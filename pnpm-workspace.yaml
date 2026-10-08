@@ -24,3 +24,8 @@ catalog:
   vite: 8.3.4
   vitest: 5.0.3
   zod: 4.6.5
+
+# pnpm 10 domyślnie blokuje skrypty instalacyjne zależności; esbuild (przez tsx) ma tylko
+# weryfikację binarki, więc go dopuszczamy, żeby `pnpm install` nie pokazywał ostrzeżenia.
+onlyBuiltDependencies:
+  - esbuild

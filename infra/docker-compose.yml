@@ -1,0 +1,155 @@
+# Lokalna infrastruktura Biddy (F-02, PROJECT.md §12).
+#
+# Uruchamiaj przez skrypty z katalogu głównego, a nie bezpośrednio:
+#   pnpm bootstrap   — pierwsze uruchomienie (tworzy .env, stawia usługi, kubełki i bazę)
+#   pnpm infra:up    — start usług i czekanie, aż healthchecki przejdą
+#   pnpm infra:down  — zatrzymanie (dane zostają w wolumenach)
+#   pnpm infra:reset — zatrzymanie i USUNIĘCIE wolumenów (utrata danych lokalnych)
+#
+# Zmienne pochodzą z pliku .env w katalogu głównym (szablon: .env.example). Wartości domyślne
+# po `:-` muszą być takie same jak w .env.example (pilnuje tego test compose.test.ts).
+# Porty są wystawione tylko na 127.0.0.1, żeby usługi nie były dostępne z sieci lokalnej.
+#
+# Produkcja nie korzysta z tego pliku: Render (Postgres, Key Value), Cloudflare R2,
+# Meilisearch Cloud i Resend (PROJECT.md §11.6).
+
+name: biddy
+
+# Wspólne ustawienia healthchecków: szybkie sprawdzanie przy starcie (start_interval),
+# rzadsze później. Dzięki nim `docker compose up --wait` czeka na gotowe usługi.
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 60s
+  start_interval: 1s
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-biddy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-biddy}
+      POSTGRES_DB: ${POSTGRES_DB:-biddy}
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      <<: *healthcheck
+      # Sprawdzamy przez TCP: tymczasowy serwer z etapu inicjalizacji słucha tylko na sockecie,
+      # więc healthcheck nie zgłosi gotowości przed restartem po initdb.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+
+  # Redis dla kolejek BullMQ. noeviction to wymóg BullMQ (eviction gubi joby), a AOF chroni
+  # zaplanowane joby (np. koniec aukcji) przed restartem kontenera (PROJECT.md §11.2).
+  redis-queue:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports:
+      - '127.0.0.1:${REDIS_QUEUE_PORT:-6379}:6379'
+    volumes:
+      - redis-queue-data:/data
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+
+  # Redis dla cache, rate limitu i pub/sub (adapter Socket.IO). Osobna instancja, żeby
+  # zapełniony cache nie blokował kolejek. Bez persystencji: dane da się odtworzyć.
+  # /data w tmpfs: obraz deklaruje VOLUME /data, więc bez montowania każdy nowy kontener
+  # zostawiałby osierocony anonimowy wolumen, którego nie usuwa nawet `pnpm infra:reset`.
+  redis-cache:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command:
+      [
+        'redis-server',
+        '--maxmemory',
+        '256mb',
+        '--maxmemory-policy',
+        'allkeys-lru',
+        '--save',
+        '',
+        '--appendonly',
+        'no',
+      ]
+    ports:
+      - '127.0.0.1:${REDIS_CACHE_PORT:-6380}:6379'
+    tmpfs:
+      - /data
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.52
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-biddy-local-meili-master-key}
+      MEILI_NO_ANALYTICS: 'true'
+    ports:
+      - '127.0.0.1:${MEILI_PORT:-7700}:7700'
+    volumes:
+      - meili-data:/meili_data
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:7700/health']
+
+  # Lokalny S3 zamiast Cloudflare R2. RustFS zamiast MinIO: MinIO przestało publikować obrazy
+  # Dockera w wersji community, a RustFS jest z nim zgodny (Apache 2.0). Kubełki i CORS
+  # tworzy `pnpm storage:setup` (uruchamiany też przez infra:up i setup).
+  rustfs:
+    image: rustfs/rustfs:1.0.1
+    restart: unless-stopped
+    environment:
+      # Klucze S3 są jednocześnie danymi logowania do konsoli.
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY_ID:-biddy-local}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:-biddy-local-secret}
+      RUSTFS_REGION: ${S3_REGION:-us-east-1}
+      RUSTFS_CONSOLE_ENABLE: 'true'
+      # Pusty katalog logów = logi na stdout, czyli widoczne w `pnpm infra:logs`
+      # (obraz domyślnie zapisuje je do plików w /logs).
+      RUSTFS_OBS_LOG_DIRECTORY: ''
+      RUSTFS_OBS_ENVIRONMENT: development
+      RUSTFS_OBS_LOGGER_LEVEL: warn
+    ports:
+      - '127.0.0.1:${RUSTFS_PORT:-9000}:9000'
+      - '127.0.0.1:${RUSTFS_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:9000/health/ready']
+
+  # Przechwytuje wszystkie maile wysyłane lokalnie; podgląd w przeglądarce (MAILPIT_UI_URL).
+  mailpit:
+    image: axllent/mailpit:v1.31
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: '1000'
+      # Przyjmuj dowolny login i hasło (albo ich brak), także bez TLS.
+      MP_SMTP_AUTH_ACCEPT_ANY: 'true'
+      MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+      # Interfejs i API odpowiadają tylko na nagłówek Host localhost/127.0.0.1 (::1 Mailpit dodaje
+      # sam, port dowolny). Chroni przed DNS rebinding: obca strona otwarta w przeglądarce nie
+      # przeczyta przechwyconych maili (od F-07 są w nich magic linki i kody 2FA).
+      MP_ALLOWED_HOSTS: 'localhost,127.0.0.1'
+    ports:
+      - '127.0.0.1:${SMTP_PORT:-1025}:1025'
+      - '127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025'
+    volumes:
+      - mailpit-data:/data
+    healthcheck:
+      <<: *healthcheck
+      test: ['CMD', '/mailpit', 'readyz']
+
+volumes:
+  postgres-data:
+  redis-queue-data:
+  meili-data:
+  rustfs-data:
+  mailpit-data:

@@ -17,7 +17,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "turbo run clean && rm -rf node_modules/.cache",
-    "setup": "pnpm --filter @biddy/infra run setup",
+    "bootstrap": "pnpm --filter @biddy/infra run bootstrap",
     "env:check": "pnpm --filter @biddy/infra run env:check",
     "infra:up": "pnpm --filter @biddy/infra run infra:up",
     "infra:down": "pnpm --filter @biddy/infra run infra:down",

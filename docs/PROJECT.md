@@ -1155,7 +1155,7 @@ biddy/
 └─ pnpm-workspace.yaml
 ```
 
-**Lokalne środowisko:** `pnpm setup` (pierwszy raz) albo `pnpm infra:up` uruchamia w Dockerze Postgres, dwie instancje Redis (kolejki i cache), Meilisearch, RustFS (S3 zamiast R2) i Mailpit (podgląd maili). **RustFS zamiast MinIO:** MinIO przestało publikować obrazy Dockera wersji community, a RustFS jest z nim zgodny (licencja Apache 2.0). Płatności i dostawy działają domyślnie na **FakeGateway** i **FakeShippingProvider**. Sandbox operatora jest opcjonalny, a jego webhooki trafiają do lokalnego API przez tunel (`cloudflared` lub ngrok).
+**Lokalne środowisko:** `pnpm bootstrap` (pierwszy raz) albo `pnpm infra:up` uruchamia w Dockerze Postgres, dwie instancje Redis (kolejki i cache), Meilisearch, RustFS (S3 zamiast R2) i Mailpit (podgląd maili). **RustFS zamiast MinIO:** MinIO przestało publikować obrazy Dockera wersji community, a RustFS jest z nim zgodny (licencja Apache 2.0). Płatności i dostawy działają domyślnie na **FakeGateway** i **FakeShippingProvider**. Sandbox operatora jest opcjonalny, a jego webhooki trafiają do lokalnego API przez tunel (`cloudflared` lub ngrok).
 
 ---
 

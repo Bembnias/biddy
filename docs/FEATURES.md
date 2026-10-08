@@ -218,13 +218,14 @@ flowchart TD
 
 **Zakres:**
 - `infra/docker-compose.yml`: Postgres, 2× Redis (kolejki `noeviction`, cache `allkeys-lru`), Meilisearch, RustFS (lokalny S3 zamiast MinIO), Mailpit.
-- `.env.example` i walidacja zmiennych.
-- Skrypty `pnpm dev`, `pnpm db:reset`, seed z użytkownikami testowymi.
+- `.env.example` i walidacja zmiennych (`pnpm env:check`).
+- Skrypty `pnpm bootstrap` (pierwsze uruchomienie), `pnpm dev`, `pnpm infra:up|down|logs|reset`, `pnpm db:reset`, `pnpm storage:setup`, `pnpm mail:test`.
+- `pnpm db:reset` z bezpiecznikiem (tylko lokalna baza, nigdy `NODE_ENV=production`) uruchamia zadania `db:migrate` i `db:seed` wszystkich pakietów. Same migracje i seed z użytkownikami testowymi powstają w F-03 i F-07.
 - README z instrukcją startu.
 
 **Kryteria akceptacji:**
 - Nowa osoba uruchamia projekt według README w mniej niż 15 minut.
-- `pnpm db:reset` odtwarza bazę z migracji i seeda.
+- `pnpm db:reset` tworzy pustą bazę od nowa i uruchamia `db:migrate` oraz `db:seed` z pakietów, które je definiują. Odmawia dla zdalnej bazy.
 - Maile wysyłane lokalnie trafiają do Mailpit.
 
 **Zależności:** F-01 · **Spec:** §12
@@ -245,6 +246,7 @@ flowchart TD
 
 **Kryteria akceptacji:**
 - Aplikacja nie startuje przy brakującej lub błędnej zmiennej środowiskowej.
+- `pnpm db:reset` odtwarza bazę z migracji Drizzle (zadanie `db:migrate` w `apps/api`).
 - Błąd walidacji zwraca Problem Details z kodem domenowym.
 - Import wewnętrznego pliku innego modułu kończy się błędem lintu.
 - Test integracyjny z Testcontainers działa w CI.
@@ -322,6 +324,7 @@ flowchart TD
 
 **Kryteria akceptacji:**
 - Bez potwierdzonego e-maila nie można licytować ani wystawiać.
+- `pnpm db:reset` tworzy użytkowników testowych (zadanie `db:seed`): kupujący, sprzedający, admin, z danymi logowania w README.
 - Zapisana jest wersja zaakceptowanego regulaminu.
 - Po 5 nieudanych logowaniach wymagany jest Turnstile i rośnie opóźnienie. Konto nie jest blokowane na twardo (§16.1).
 - Server Components w Next.js widzą zalogowanego użytkownika (SSR).
