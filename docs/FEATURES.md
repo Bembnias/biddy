@@ -1,8 +1,10 @@
 # Biddy — lista Feature Specs
 
-> **Wersja:** 0.1 · **Data:** 2026-10-07 · **Powiązany dokument:** [PROJECT.md](PROJECT.md) (odwołania „§” dotyczą tego dokumentu)
+> **Wersja:** 0.2 · **Data:** 2026-10-08 · **Powiązany dokument:** [PROJECT.md](PROJECT.md) v0.4 (odwołania „§” dotyczą tego dokumentu)
 >
-> Projekt jest rozbity na **43 feature specy dla MVP**, pogrupowane w 5 etapów zgodnych z roadmapą (§20), oraz listę funkcji po MVP. Każdy spec poniżej to **wersja skrócona**: cel, zakres, kryteria akceptacji, zależności. Pełny spec piszemy tuż przed implementacją (just-in-time) według [szablonu](#szablon-pełnego-feature-specu) w pliku `docs/features/F-XX-nazwa.md`.
+> Projekt jest rozbity na **41 feature speców do publicznego startu web** (Etapy 0–3) i **5 speców aplikacji mobilnych** (Etap 4, zaraz po starcie), zgodnie z roadmapą (§20), oraz listę funkcji po MVP. Każdy spec poniżej to **wersja skrócona**: cel, zakres, kryteria akceptacji, zależności. Pełny spec piszemy tuż przed implementacją (just-in-time) według [szablonu](#szablon-pełnego-feature-specu) w pliku `docs/features/F-XX-nazwa.md`.
+>
+> **Zmiany w v0.2:** decyzja web-first (aplikacje w Etapie 4), nowe feature'y F-59 (web push i PWA), F-60 (publikacja w sklepach), F-61 (limity kont i strike'i), poprawiona ścieżka krytyczna i zależności, zakresy i kryteria uzupełnione o decyzje z PROJECT.md v0.4. Numery F-XX są stałe, a nowe feature'y dostają kolejne wolne numery.
 
 ---
 
@@ -15,9 +17,10 @@
 5. [Etap 1: Rdzeń licytacji](#etap-1-rdzeń-licytacji)
 6. [Etap 2a: Transakcje (niezależne od operatora płatności)](#etap-2a-transakcje-niezależne-od-operatora-płatności)
 7. [Etap 2b: Integracja operatora i operacje](#etap-2b-integracja-operatora-i-operacje)
-8. [Etap 3: Mobile i start](#etap-3-mobile-i-start)
-9. [Po MVP](#po-mvp)
-10. [Szablon pełnego feature specu](#szablon-pełnego-feature-specu)
+8. [Etap 3: Beta i start web](#etap-3-beta-i-start-web)
+9. [Etap 4: Aplikacje mobilne](#etap-4-aplikacje-mobilne)
+10. [Po MVP](#po-mvp)
+11. [Szablon pełnego feature specu](#szablon-pełnego-feature-specu)
 
 ---
 
@@ -39,8 +42,10 @@ Szacunki są zgrubne. Skalibruj je po pierwszych 2–3 featurach, mierząc rzecz
 
 - Pełny spec w `docs/features/F-XX-nazwa.md` według szablonu.
 - Zależności ukończone albo zastąpione fake'ami lub mockami.
-- Otwarte pytania rozstrzygnięte (albo świadomie odłożone z domyślną decyzją).
-- Dla funkcji z UI: szkic lub wireframe ekranów i stanów (pusty, ładowanie, błąd).
+- Otwarte pytania rozstrzygnięte (albo świadomie odłożone z domyślną decyzją). Decyzje tymczasowe z rejestru (§22) implementujemy konfigurowalnie i nie czekamy na ich potwierdzenie.
+- Dla funkcji z UI: szkic lub wireframe ekranów i stanów (pusty, ładowanie, błąd). Robi go osoba prowadząca feature, a czas jest wliczony w szacunek.
+
+**Wyjątek dla Etapu 0** (decyzja §22 nr 30): F-01 – F-05 i F-09 to prace techniczne bez UI i reguł biznesowych. Wystarcza im skrócony spec z tego dokumentu i ADR-y z §10.1. Pełne specy piszemy od F-06 i F-07.
 
 ### Definition of Done (żeby uznać feature za skończony)
 
@@ -62,23 +67,25 @@ Szacunki są zgrubne. Skalibruj je po pierwszych 2–3 featurach, mierząc rzecz
 |---|---|---:|
 | 0: Fundamenty | F-01 – F-09 | 33 |
 | 1: Rdzeń licytacji | F-10 – F-21 | 66 |
-| 2a: Transakcje (niezależne od operatora) | F-22 – F-30 | 57 |
+| 2a: Transakcje (niezależne od operatora) | F-22 – F-30, F-61 | 62 |
 | 2b: Integracja operatora i operacje | F-31 – F-36 | 40 |
-| 3: Mobile i start | F-37 – F-43 | 45 |
-| **Razem MVP** | **43** | **241** |
+| 3: Beta i start web | F-41 – F-43, F-59 | 20 |
+| **Razem do startu web** | **41** | **221** |
+| 4: Aplikacje mobilne (zaraz po starcie) | F-37 – F-40, F-60 | 32 |
+| **Razem z aplikacjami** | **46** | **253** |
 
-### ⚠️ Szacunki vs roadmapa
+### Decyzja: start web-first
 
-Roadmapa w PROJECT.md (§20) zakłada start MVP po ok. **5 miesiącach** (20 tygodni). Suma szacunków z tego rozbicia daje więcej:
+**[DECYZJA]** (PROJECT.md ADR-9, §22 nr 4). Pełny zakres web i mobile (dawniej 241 osobodni) nie mieścił się w planowanych 5 miesiącach. Startujemy publicznie na web (RWD + PWA + web push), a aplikacje budujemy zaraz po starcie, częściowo w trakcie bety.
 
 | Wariant | 2 developerów | 1 developer |
 |---|---|---|
-| Web + mobile na start (241 osobodni) | ok. 24 tyg. pracy + bufor 15–20% ≈ **6–7 miesięcy** | ≈ **11–13 miesięcy** |
-| Web na start, mobile zaraz po (211 osobodni do startu) | ok. 21 tyg. + bufor ≈ **5,5–6 miesięcy**, aplikacje ok. 1–1,5 mies. później | ≈ **10–11 miesięcy** |
+| Start web (221 osobodni) | ok. 22 tyg. pracy + bufor 15–20% + beta ≈ **tydzień 29 (ok. 7 miesięcy)** | ≈ **13 miesięcy** |
+| Aplikacje mobilne (32 osobodni) | ok. 4 tygodnie, publikacja w sklepach ok. **tygodnia 33** | ok. 2 miesiące po starcie web |
 
-**Rekomendacja:** start **web-first** (RWD, wystawianie z telefonu przez przeglądarkę z dostępem do aparatu), a aplikacje mobilne (F-37 – F-40) jako szybka kontynuacja. Web daje też SEO i szybsze iteracje w becie. Alternatywnie: zostawić pełny zakres i przesunąć termin startu. **Do decyzji przed aktualizacją roadmapy.**
+Szacunki nie obejmują projektu wizualnego kluczowych ekranów (freelancer w Fazie 0–1) ani pracy prawnika i księgowego.
 
-### Lista MVP
+### Lista feature speców
 
 | ID | Feature | Etap | Rozmiar |
 |---|---|---|---|
@@ -112,60 +119,74 @@ Roadmapa w PROJECT.md (§20) zakłada start MVP po ok. **5 miesiącach** (20 tyg
 | F-28 | Spory i zwroty | 2a | L |
 | F-29 | Wiadomości | 2a | M |
 | F-30 | Oceny | 2a | S |
+| F-61 | Limity kont i strike'i | 2a | M |
 | F-31 | Adapter operatora płatności | 2b | L |
 | F-32 | Weryfikacja sprzedawców u operatora | 2b | M |
 | F-33 | Uzgodnienia z operatorem | 2b | M |
 | F-34 | Panel administracyjny v1 | 2b | L |
 | F-35 | Zgłoszenia i moderacja (DSA) | 2b | M |
 | F-36 | Antyfraud: reguły podstawowe | 2b | M |
-| F-37 | Aplikacja mobilna: fundament | 3 | M |
-| F-38 | Mobile: przeglądanie i licytowanie | 3 | L |
-| F-39 | Mobile: wystawianie z aparatem | 3 | M |
-| F-40 | Mobile: transakcje i komunikacja | 3 | L |
 | F-41 | Treści prawne i strony pomocy | 3 | M |
 | F-42 | Gotowość produkcyjna | 3 | M |
-| F-43 | Beta i publikacja w sklepach | 3 | M |
+| F-43 | Beta i start web | 3 | M |
+| F-59 | Web push i PWA | 3 | M |
+| F-37 | Aplikacja mobilna: fundament | 4 | M |
+| F-38 | Mobile: przeglądanie i licytowanie | 4 | L |
+| F-39 | Mobile: wystawianie z aparatem | 4 | M |
+| F-40 | Mobile: transakcje i komunikacja | 4 | L |
+| F-60 | Publikacja w sklepach | 4 | S |
 
 ### Podział pracy przy 2 osobach
 
-- **Osoba A (backend i domena):** fundamenty backendu, silnik licytacji, zamykanie aukcji, realtime, ledger, płatności, dostawy, cykl zamówienia, antyfraud.
-- **Osoba B (produkt i frontend):** szkielet web, auth UI, kreator, strona aukcji, wyszukiwarka (UI), Moje Biddy, checkout, wiadomości, panel admina, potem aplikacja mobilna.
+- **Osoba A (backend i domena):** fundamenty backendu, silnik licytacji, zamykanie aukcji, realtime, ledger, płatności, dostawy, cykl zamówienia, limity i strike'i, antyfraud.
+- **Osoba B (produkt i frontend):** szkielet web, auth UI, kreator, strona aukcji, wyszukiwarka (UI), Moje Biddy, checkout, wiadomości, panel admina, web push i PWA, potem aplikacja mobilna.
 
-Feature'y są full-stackowe, więc to podział „kto prowadzi”, a nie sztywny podział warstw.
+Feature'y są full-stackowe, więc to podział „kto prowadzi”, a nie sztywny podział warstw. Ledger i port płatności (F-22, F-23) zależą tylko od F-03, więc osoba A może je zacząć w drugiej połowie Etapu 1.
 
 ---
 
 ## Zależności
 
-Ścieżka krytyczna: **F-03 → F-04 → F-15 → F-16 → F-25 → F-26 → F-28 / F-34 → F-42 → F-43**. Opóźnienie na tej ścieżce przesuwa start.
+**Ścieżka krytyczna:** F-01 → F-02 → F-03 → F-04 → F-15 → F-16 → F-25 → F-26 → F-28 → F-34 → F-42 → F-43, czyli ok. 74 osobodni pracy sekwencyjnej. Opóźnienie na tej ścieżce przesuwa start.
+
+Uwagi:
+
+- F-15 potrzebuje F-08 tylko do guarda „zweryfikowany telefon”. Do czasu F-08 używamy zaślepki guarda, żeby łańcuch auth (F-05 → F-06 → F-07 → F-08) nie wydłużał ścieżki.
+- F-24 zależy od modelu `items` (gabaryt, przewoźnicy), a nie od całego kreatora F-14. Model uzgadniamy na początku Etapu 1.
+- F-28 zawiera endpoint decyzji w sporze (`POST /admin/disputes/:id/decision`), a F-34 dodaje do niego UI. Dzięki temu nie ma cyklu F-28 ↔ F-34.
 
 ```mermaid
 flowchart TD
   F03["F-03 Backend"] --> F04["F-04 Kolejki i outbox"]
-  F03 --> F07["F-07 Auth"] --> F08["F-08 Telefon i 18+"]
+  F03 --> F05["F-05 Kontrakt API"] --> F06["F-06 Web"] --> F07["F-07 Auth"] --> F08["F-08 Telefon i 18+"]
+  F07 --> F61["F-61 Limity i strike'i"]
   F11["F-11 Kategorie"] --> F14["F-14 Kreator aukcji"]
   F12["F-12 Zdjęcia"] --> F14
   F13["F-13 POK"] --> F14
-  F08 --> F15["F-15 Silnik licytacji"]
+  F08 -. "guard (zaślepka do czasu F-08)" .-> F15["F-15 Silnik licytacji"]
   F04 --> F15
   F15 --> F16["F-16 Zamykanie aukcji"]
   F15 --> F17["F-17 Realtime"] --> F18["F-18 Strona aukcji"]
   F15 --> F19["F-19 Wyszukiwarka"]
-  F22["F-22 Ledger"] --> F23["F-23 Port płatności + Fake"]
+  F15 --> F20["F-20 Powiadomienia"] --> F59["F-59 Web push i PWA"]
+  F03 --> F22["F-22 Ledger"] --> F23["F-23 Port płatności + Fake"]
+  F04 --> F24["F-24 Dostawy"]
   F16 --> F25["F-25 Checkout"]
   F23 --> F25
-  F24["F-24 Dostawy"] --> F25
+  F24 --> F25
   F25 --> F26["F-26 Cykl zamówienia"]
+  F61 --> F26
   F26 --> F28["F-28 Spory"]
   F23 --> F27["F-27 Saldo i wypłaty"]
   F23 --> F31["F-31 Adapter operatora"] --> F32["F-32 KYC"]
-  F26 --> F34["F-34 Admin"] --> F35["F-35 DSA"]
-  F18 --> MOB["F-37 – F-40 Mobile"]
-  F26 --> MOB
+  F28 --> F34["F-34 Admin"] --> F35["F-35 DSA"]
   F28 --> F42["F-42 Gotowość produkcyjna"]
   F34 --> F42
-  MOB --> F43["F-43 Beta i start"]
-  F42 --> F43
+  F59 --> F42
+  F42 --> F43["F-43 Beta i start web"]
+  F18 --> MOB["F-37 – F-40 Mobile"]
+  F26 --> MOB
+  MOB --> F60["F-60 Publikacja w sklepach"]
 ```
 
 ---
@@ -180,12 +201,14 @@ flowchart TD
 - Turborepo + pnpm workspaces, struktura `apps/` i `packages/` (§12).
 - `packages/config`: tsconfig, ESLint, Prettier (lub Biome).
 - `packages/shared`: typ `Money` i helpery kwot (grosze, procent z zaokrągleniem half-up, formatowanie PLN).
+- `packages/shared`: dni robocze z kalendarzem polskich świąt (§15.7).
 - Vitest jako runner testów.
 
 **Kryteria akceptacji:**
 - `pnpm install && pnpm build && pnpm lint && pnpm test` z katalogu głównego przechodzi.
 - Zmiana w `packages/shared` przebudowuje tylko zależne aplikacje (cache Turborepo).
 - Helpery `Money` mają testy, w tym zaokrągleń.
+- Kalendarz świąt ma testy na kilka lat do przodu (w tym Wielkanoc i Boże Ciało).
 
 **Zależności:** — · **Spec:** §11.1, §12
 
@@ -213,7 +236,7 @@ flowchart TD
 **Zakres:**
 - NestJS z adapterem Fastify, puste moduły według §10.3.
 - Konfiguracja walidowana Zodem przy starcie.
-- Drizzle ORM + drizzle-kit (migracje).
+- Drizzle ORM + drizzle-kit (migracje), UUIDv7 generowane w aplikacji (ADR-10).
 - Logger pino z request id, Sentry, health checks (`/health`, `/ready`).
 - Błędy w formacie RFC 9457 z kodami domenowymi.
 - OpenAPI pod `/docs`.
@@ -238,6 +261,8 @@ flowchart TD
 - Konwencja eventów domenowych.
 - Retry z backoffem, dead-letter queue.
 - Joby cykliczne (pod sweepery).
+- Konwencja ID dla jobów opóźnionych: ID zawiera termin (np. `close-{auctionId}-{endsAtEpochMs}`, §15.2).
+- Osobna instancja Redis dla kolejek z `maxmemory-policy noeviction`.
 - Bull Board w dev.
 
 **Kryteria akceptacji:**
@@ -245,6 +270,8 @@ flowchart TD
 - Event z zatwierdzonej transakcji trafia do konsumenta co najmniej raz, także po restarcie workera.
 - Konsument jest idempotentny: ponowne dostarczenie nie dubluje efektu (test).
 - Job, który zawiódł N razy, trafia do DLQ i generuje zdarzenie w Sentry.
+- Worker nie startuje, jeśli Redis kolejek ma politykę inną niż `noeviction`.
+- Ponowne zaplanowanie joba na nowy termin działa także z wnętrza wykonującego się joba (test).
 
 **Zależności:** F-03 · **Spec:** §10.1 (ADR-4), §10.4
 
@@ -290,13 +317,13 @@ flowchart TD
 - E-mail i hasło z weryfikacją e-maila i resetem hasła, logowanie Google i Apple.
 - Sesje cookie dla web (domena `.biddy.pl`), przygotowanie tokenów bearer dla mobile.
 - Turnstile na rejestracji i logowaniu.
-- Akceptacja regulaminu z zapisem wersji.
+- Akceptacja regulaminu z zapisem wersji (tabela `terms_acceptances`).
 - Ekrany web, wylogowanie ze wszystkich urządzeń.
 
 **Kryteria akceptacji:**
 - Bez potwierdzonego e-maila nie można licytować ani wystawiać.
 - Zapisana jest wersja zaakceptowanego regulaminu.
-- Po 5 nieudanych logowaniach następuje czasowa blokada.
+- Po 5 nieudanych logowaniach wymagany jest Turnstile i rośnie opóźnienie. Konto nie jest blokowane na twardo (§16.1).
 - Server Components w Next.js widzą zalogowanego użytkownika (SSR).
 
 **Zależności:** F-03, F-06 · **Spec:** §4, §11.2
@@ -324,7 +351,7 @@ flowchart TD
 
 **Zakres:**
 - GitHub Actions: lint, typecheck, testy, build z cache Turborepo.
-- Staging: Render (API, worker, Postgres, Redis) i Vercel (web).
+- Staging: Render (API, worker, Postgres, 2 instancje Redis: kolejki i cache) i Vercel (web).
 - Migracje jako osobny krok przed deployem, sekrety, preview deployments dla web, Sentry releases.
 
 **Kryteria akceptacji:**
@@ -345,7 +372,7 @@ flowchart TD
 **Zakres:**
 - Edycja profilu: nazwa wyświetlana, avatar.
 - Publiczny profil: data dołączenia, aktywne aukcje, miejsce na oceny (F-30).
-- Adresy: dodawanie, edycja, usuwanie, adres domyślny, walidacja kodu pocztowego.
+- Adresy: dodawanie, edycja, usuwanie, adres domyślny dostawy i domyślny adres nadania, walidacja kodu pocztowego.
 
 **Kryteria akceptacji:**
 - Publiczny profil nie ujawnia e-maila, telefonu ani adresu.
@@ -394,12 +421,13 @@ flowchart TD
 **Cel:** jedna, wspólna logika opłat i kroków przebicia dla frontu i backendu.
 
 **Zakres:**
-- Tabela `fee_schedules` (wersjonowana, z progami i capem).
+- Tabela `fee_schedules` (wersjonowana, progi krańcowe z §3.1: 7% do 1000 zł, 4% od nadwyżki, 2,99 zł opłaty stałej).
 - `calculatePok()` i tabela przebić w `packages/shared`.
 - Komponent „cena łączna”: *licytujesz X · zapłacisz Y + dostawa od Z*.
 
 **Kryteria akceptacji:**
-- Wyniki zgodne z przykładami z §3.2 (testy).
+- Wyniki zgodne z przykładami z §3.1 i §3.2 (testy), m.in. 1000 zł → 72,99 zł, 3000 zł → 152,99 zł.
+- POK rośnie monotonicznie wraz z kwotą, bez skoku na granicy progu (test property-based).
 - Zaokrąglenie half-up do grosza.
 - Zmiana cennika nie wpływa na istniejące zamówienia (zamówienie pamięta `fee_schedule_id`).
 
@@ -412,15 +440,17 @@ flowchart TD
 **Zakres:**
 - Kroki: zdjęcia → kategoria i atrybuty → tytuł, opis, stan → gabaryt i przewoźnicy → parametry (cena wywoławcza, czas trwania, cena minimalna, Kup teraz) → podgląd → publikacja.
 - Autozapis szkicu.
-- Edycja przed pierwszą ofertą, anulowanie według reguł §6.6.
-- Limity dla nowych kont.
-- Informacja o weryfikacji tożsamości przed pierwszym wystawieniem.
+- Edycja przed pierwszą ofertą, anulowanie według reguł §6.6 (anulowanie z ofertami emituje event, z którego F-61 robi strike).
+- Limity sprzedających z §4.1: liczba aktywnych aukcji i wartość aukcji (najwyższa z: cena wywoławcza, cena minimalna, Kup teraz). Respektowanie blokady wystawiania (F-61).
+- Informacja o weryfikacji tożsamości przed pierwszym wystawieniem. Po F-32: rejestracja sprzedawcy u operatora przy pierwszym wystawieniu, asynchronicznie (§7.6).
+- Ponowne wystawienie zakończonej aukcji jednym kliknięciem (kopia jako szkic).
 - Filtr zakazanych słów.
 
 **Kryteria akceptacji:**
 - Nie da się opublikować aukcji bez wymaganych pól.
-- Kup teraz poniżej 130% ceny wywoławczej jest odrzucane.
-- Nowe konto nie przekroczy limitu aktywnych aukcji i maksymalnej ceny.
+- Kup teraz poniżej 130% ceny wywoławczej lub poniżej ceny minimalnej jest odrzucane.
+- Nowe konto nie przekroczy limitu aktywnych aukcji i maksymalnej wartości aukcji (§4.1).
+- Aukcja o wartości > 1000 zł wymaga pozytywnego KYC (blokada aktywna od F-32).
 - Po pierwszej ofercie cena, opis i zdjęcia są zablokowane do edycji.
 - Przed pierwszą publikacją użytkownik widzi informację, że wypłata wymaga weryfikacji tożsamości.
 
@@ -431,36 +461,39 @@ flowchart TD
 **Cel:** poprawne, spójne i odporne na wyścigi przyjmowanie ofert.
 
 **Zakres:**
-- `POST /auctions/:id/bids` z `maxAmount` i kluczem idempotencji.
-- Walidacje (status, czas, telefon, limity, licytowanie własnej aukcji).
-- Licytacja automatyczna jako czysta funkcja w `packages/shared`, cena minimalna, Kup teraz.
-- Anti-sniping (2 minuty).
+- `POST /auctions/:id/bids` z `maxAmount` i nagłówkiem `Idempotency-Key`.
+- Walidacje (status, czas, telefon, limity kupującego z §4.1, blokada licytowania z F-61, licytowanie własnej aukcji).
+- Licytacja automatyczna jako czysta funkcja `resolve()` w `packages/shared`, cena minimalna (także przy podniesieniu maksimum przez lidera), Kup teraz.
+- Anti-sniping (2 minuty) tylko przy zmianie ceny lub lidera (§6.5).
 - Zapis ofert (ręczne i automatyczne), eventy `BidPlaced`, `UserOutbid`, `AuctionExtended`.
+- Unieważnienie oferty z przeliczeniem stanu (replay, §15.6): endpoint admina i event `BidCancelled`. UI w F-34.
 - Publiczna, zanonimizowana historia ofert.
 
 **Kryteria akceptacji:**
 - Testy property-based niezmienników z §15.1: cena nie maleje, nie przekracza maksimum lidera, remis wygrywa wcześniejsza oferta, koniec aukcji się nie cofa.
 - 50 równoległych ofert na jedną aukcję daje spójny wynik (test współbieżności).
 - Ponowione żądanie z tym samym kluczem nie tworzy drugiej oferty.
-- Oferta w ostatnich 2 minutach przedłuża aukcję.
+- Oferta w ostatnich 2 minutach, która zmienia cenę lub lidera, przedłuża aukcję. Lider podnoszący tylko swoje maksimum jej nie przedłuża.
 - Kup teraz jest niedostępne po pierwszej ofercie.
+- Oferta powyżej limitu konta zwraca `BID_LIMIT_EXCEEDED`.
+- Replay po unieważnieniu daje ten sam stan, co złożenie pozostałych ofert po kolei (property-based).
 
-**Zależności:** F-04, F-08, F-13 · **Spec:** §6.3–6.6, §15.1
+**Zależności:** F-04, F-08 (do tego czasu zaślepka guarda), F-13 · **Spec:** §4.1, §6.3–6.6, §15.1, §15.6
 
 ### F-16 · Zamykanie aukcji · `M`
 
 **Cel:** każda aukcja kończy się na czas i dokładnie raz.
 
 **Zakres:**
-- Opóźniony job `auction.close` przy publikacji, ponowne planowanie po przedłużeniu, sweeper co 30 s.
+- Opóźniony job `auction.close` przy publikacji z ID zawierającym `ends_at`, ponowne planowanie po przedłużeniu, sweeper co 10 s (§15.2).
 - Statusy `ENDED_SOLD` i `ENDED_UNSOLD`.
 - Tabela zamówień (podstawowa) i utworzenie zamówienia `AWAITING_PAYMENT` ze snapshotem przedmiotu i POK w tej samej transakcji.
 - Anulowanie aukcji przez moderację.
 
 **Kryteria akceptacji:**
 - Aukcja kończy się najpóźniej 30 s po czasie końca, także gdy job zaginie (sweeper).
-- Przedłużona aukcja nie kończy się przed nowym czasem końca.
-- Dokładnie jedno zamówienie na sprzedaną aukcję, także przy wielokrotnym wykonaniu joba.
+- Przedłużona aukcja nie kończy się przed nowym czasem końca, także po kilku przedłużeniach z rzędu.
+- Dokładnie jedno aktywne zamówienie na sprzedaną aukcję, także przy wielokrotnym wykonaniu joba (unikalny indeks częściowy na `order_items`).
 - Nieosiągnięta cena minimalna daje `ENDED_UNSOLD`.
 
 **Zależności:** F-15 · **Spec:** §6.7, §15.2
@@ -489,7 +522,7 @@ flowchart TD
 **Cel:** czytelna strona przedmiotu, która sprzedaje i dobrze się indeksuje.
 
 **Zakres:**
-- Strona `/a/[slug]` renderowana na serwerze (SSR/ISR).
+- Strona `/a/[slug]` renderowana na serwerze: ISR + rewalidacja na żądanie po `BidPlaced`, `AuctionExtended`, `AuctionEnded` (maks. raz na 5 s na aukcję, §11.3).
 - Galeria, atrybuty, sprzedawca z ocenami, informacja, czy sprzedawca jest osobą prywatną.
 - Panel licytacji: aktualna cena, licznik, minimalna kolejna oferta, maksimum, Kup teraz, cena łączna z POK i dostawą.
 - Historia ofert, aktualizacje na żywo.
@@ -497,7 +530,7 @@ flowchart TD
 - schema.org `Product` + `Offer`, obrazek OG.
 
 **Kryteria akceptacji:**
-- Strona bez JavaScriptu pokazuje poprawną cenę (SEO).
+- HTML strony (bez JavaScriptu) pokazuje cenę nie starszą niż ok. 10 s od ostatniej oferty (SEO).
 - Cena i licznik aktualizują się bez odświeżania.
 - Przed złożeniem oferty użytkownik widzi cenę łączną.
 - LCP < 2,5 s na mobile 4G (staging).
@@ -529,10 +562,10 @@ flowchart TD
 **Cel:** użytkownik nie przegapia ważnych momentów aukcji.
 
 **Zakres:**
-- Obserwowane aukcje, obserwowani sprzedawcy.
-- Moduł `notifications`: centrum powiadomień in-app, e-mail (Resend + React Email).
-- Typy: przebito Cię, aukcja kończy się za 1 h, wygrałeś, sprzedałeś, nie sprzedano.
-- Preferencje per typ i kanał.
+- Obserwowane aukcje, obserwowani sprzedawcy (tabela `user_follows`).
+- Moduł `notifications`: centrum powiadomień in-app, e-mail (Resend + React Email). Web push dochodzi w F-59, push mobilny w F-37.
+- Typy: przebito Cię, aukcja kończy się za 1 h, wygrałeś, sprzedałeś, nie sprzedano, nowa aukcja obserwowanego sprzedawcy.
+- Preferencje per typ i kanał (tabela `notification_preferences`).
 
 **Kryteria akceptacji:**
 - Przebity użytkownik dostaje powiadomienie in-app od razu, a e-mail najwyżej raz na 15 minut na aukcję.
@@ -567,13 +600,14 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Cel:** audytowalna księga wszystkich ruchów pieniędzy.
 
 **Zakres:**
-- Moduł `ledger`: konta z §7.7, transakcje podwójnego zapisu, wpisy niemodyfikowalne.
+- Moduł `ledger`: plan kont i wzorcowe księgowania z §7.7, transakcje podwójnego zapisu, wpisy niemodyfikowalne.
 - Wewnętrzne API: zaksięguj transakcję, odczytaj salda.
-- Salda sprzedawców (w trakcie / dostępne), korekty przez nowe wpisy.
+- Salda sprzedawców: „w trakcie” liczone z `buyer_funds_held` otwartych zamówień, „dostępne”, należności `seller_receivable`. Korekty przez nowe wpisy.
 
 **Kryteria akceptacji:**
 - Każda transakcja sumuje się do zera (constraint i test).
-- Saldo dostępne nigdy nie jest ujemne.
+- Każde wzorcowe księgowanie z §7.7 ma test.
+- Saldo dostępne nigdy nie jest ujemne. Niedobór trafia na `seller_receivable`.
 - Próba zmiany lub usunięcia wpisu jest blokowana na poziomie bazy.
 - Salda da się odtworzyć z samych wpisów.
 
@@ -584,7 +618,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Cel:** pełny przepływ płatności bez umowy z operatorem.
 
 **Zakres:**
-- Port `PaymentGateway` z typami (§7.8), `GatewayRegistry`, `PAYMENTS_DEFAULT_PROVIDER`.
+- Port `PaymentGateway` z typami (§7.8, w tym `capabilities.internalTransfers` i `paymentRequiresVerifiedSeller`), `GatewayRegistry`, `PAYMENTS_DEFAULT_PROVIDER`.
 - FakeGateway:
   - asynchroniczne webhooki przez BullMQ,
   - magiczne kody BLIK,
@@ -611,17 +645,19 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 - Adapter Furgonetka:
   - wyceny per przewoźnik i gabaryt,
   - punkty odbioru (mapa lub widget),
-  - tworzenie przesyłek, etykiety PDF lub kody nadania,
+  - tworzenie przesyłki po kliknięciu „Nadaj” przez sprzedającego (dane nadawcy, sposób nadania, §8.3), etykiety PDF lub kody nadania,
   - tracking przez webhooki i polling.
-- Mapowanie statusów (§8.3), cennik dostaw Biddy, przesyłki zwrotne.
+- Mapowanie statusów (§8.3), mapowanie gabaryt → przewoźnicy jako konfiguracja, cennik dostaw Biddy, przesyłki zwrotne.
+- Rejestr reklamacji u przewoźników (`carrier_claims`, §8.4).
 
 **Kryteria akceptacji:**
 - Kupujący widzi tylko opcje zaakceptowane przez sprzedającego i pasujące do gabarytu.
-- Po opłaceniu przesyłka powstaje automatycznie, a sprzedający dostaje kod lub etykietę.
+- Po opłaceniu sprzedający dostaje powiadomienie, a po kliknięciu „Nadaj” kod lub etykietę.
 - Status „odebrana” z trackingu wywołuje event uruchamiający okno 36 h.
+- `RETURNING` po terminie odbioru i `RETURNED` wywołują eventy dla ścieżki nieodebranej przesyłki.
 - FakeShippingProvider pozwala przejść cały cykl dostawy w dev w kilka minut.
 
-**Zależności:** F-04, F-14 · **Spec:** §8
+**Zależności:** F-04 (model `items` uzgodniony na starcie Etapu 1, nie czeka na kreator F-14) · **Spec:** §8
 
 ### F-25 · Checkout (web) · `M`
 
@@ -632,12 +668,14 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 - Podsumowanie: cena, POK, dostawa, suma, termin płatności.
 - Wybór metody płatności, kod BLIK w UI, przekierowania.
 - Stany: oczekiwanie, błąd, ponowienie.
-- Endpoint checkout: obliczenia po stronie backendu, idempotencja.
+- Endpoint checkout: obliczenia po stronie backendu, idempotencja (`Idempotency-Key`).
+- Płatność w `PENDING` przy terminie przedłuża go o maks. 30 min. Spóźniona udana płatność dla anulowanego zamówienia kończy się automatycznym zwrotem (§6.8).
 
 **Kryteria akceptacji:**
 - Kwoty na ekranie, w zamówieniu i w żądaniu do gatewaya są identyczne (test e2e).
 - Nie da się zapłacić po terminie ani dwa razy.
 - Odrzucony BLIK pozwala ponowić płatność bez tworzenia nowego zamówienia.
+- Webhook o udanej płatności po anulowaniu zamówienia kończy się automatycznym pełnym zwrotem, bez strike'a.
 - Pełna ścieżka działa na FakeGateway (Playwright).
 
 **Zależności:** F-13, F-16, F-23, F-24 · **Spec:** §7.2
@@ -647,20 +685,25 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Cel:** zamówienie przechodzi od wygranej do wypłaty automatycznie, z obsługą wyjątków.
 
 **Zakres:**
-- Maszyna stanów z §7.3 (tylko dozwolone przejścia, sterowane zdarzeniami), joby terminów z §7.4.
+- Maszyna stanów z §7.3 (tylko dozwolone przejścia, sterowane zdarzeniami), joby terminów z §7.4 (ID z terminem, dni robocze z kalendarzem świąt).
 - Nadanie, doręczenie, okno 36 h, przycisk „Wszystko OK”, auto-zakończenie.
 - Zwolnienie środków (EscrowService → ledger + `releaseFunds`).
-- Przesyłki nieodebrane i zaginione, anulowania, strike'i, oferta drugiej szansy.
+- Przesyłki nieodebrane: zwrot dopiero po `RETURNED`, cena + POK bez dostawy (§7.4).
+- Przesyłki zaginione: „nie otrzymałem” po 14 dniach bez statusu → `LOST`, zgłoszenie reklamacji, rekompensata dla sprzedającego (§7.9).
+- Anulowania, oferta drugiej szansy (tabela `second_chance_offers`, §6.8), ponowne wystawienie.
+- Flaga chargebacku (`orders.chargeback_status`) blokuje auto-zakończenie.
+- Strike'i za brak płatności, brak nadania i nieodebraną przesyłkę (eventy dla F-61).
 - Powiadomienia na każdym etapie, widok zamówienia dla obu stron.
 
 **Kryteria akceptacji:**
 - Każde niedozwolone przejście stanu jest odrzucane (test wszystkich par).
 - Bez potwierdzenia zamówienie przechodzi w `COMPLETED` 36 h po odbiorze, a środki trafiają na saldo dostępne.
-- Nieopłacone po 24 h → anulowanie, strike i możliwość oferty drugiej szansy.
-- Nienadane w 5 dni roboczych → pełny zwrot.
-- 3 strike'i w 90 dni blokują licytowanie.
+- Nieopłacone po 24 h → anulowanie, strike i możliwość oferty drugiej szansy. Akceptacja oferty tworzy nowe zamówienie `AWAITING_PAYMENT`.
+- Nienadane w 5 dni roboczych (z uwzględnieniem świąt) → pełny zwrot i strike sprzedającego.
+- Nieodebrana przesyłka: zwrot dopiero po `RETURNED`, kwota = cena + POK.
+- Po każdym stanie końcowym saldo `buyer_funds_held` zamówienia wynosi 0.
 
-**Zależności:** F-22, F-23, F-24, F-25 · **Spec:** §6.8, §7.2–7.4
+**Zależności:** F-22, F-23, F-24, F-25, F-61 · **Spec:** §6.8, §7.2–7.4, §7.9
 
 ### F-27 · Saldo i wypłaty · `M`
 
@@ -669,7 +712,9 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Zakres:**
 - Onboarding sprzedawcy, część niezależna od operatora: dane osobowe i DAC7, rachunek bankowy.
 - Widok salda (w trakcie / dostępne) i historii.
-- Wypłata na żądanie z minimalną kwotą.
+- Wypłata na żądanie (minimum 20 zł), opcjonalna wypłata tygodniowa.
+- Automatyczna wypłata salda poniżej minimum przy zamknięciu konta i po 90 dniach bez sprzedaży (§7.6).
+- Widok należności (`seller_receivable`) i blokada wypłat do jej spłaty.
 - Blokada wypłat na 48 h po zmianie rachunku, z powiadomieniami.
 - `PayoutService` zawsze sprawdza ledger.
 
@@ -677,6 +722,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 - Nie da się wypłacić więcej niż saldo dostępne w ledgerze, także przy równoległych żądaniach.
 - Zmiana rachunku blokuje wypłaty na 48 h i wysyła powiadomienie.
 - Dane DAC7 są zaszyfrowane w bazie.
+- Saldo poniżej minimum zostaje wypłacone po 90 dniach bez sprzedaży (job, test).
 
 **Zależności:** F-22, F-23 · **Spec:** §7.6–7.8, §16.1, §17
 
@@ -686,15 +732,18 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 **Zakres:**
 - Zgłoszenie w oknie 36 h (powód, opis, zdjęcia), zamrożenie środków.
+- Stany sporu z §7.5.
 - Odpowiedź sprzedającego w 48 h: akceptacja, zwrot częściowy albo odrzucenie.
 - Przesyłka zwrotna z etykietą i weryfikacja zwrotu.
-- Eskalacja do supportu (decyzje w panelu admina, F-34), decyzja z uzasadnieniem (DSA).
-- Zwroty przez gateway z zapisem w ledgerze, widok sporu dla obu stron.
+- Podział kosztów (§7.5, §7.9): zwrot częściowy tylko z części sprzedającego; przy winie sprzedającego dostawa w obie strony po jego stronie (potrącenie z salda albo `seller_receivable`); przy winie przewoźnika rekompensata.
+- Eskalacja do supportu: endpoint decyzji `POST /admin/disputes/:id/decision` z uzasadnieniem (DSA). UI decyzji dochodzi w F-34, a do tego czasu testujemy przez API.
+- Zwroty przez gateway z zapisem w ledgerze (tabela `refunds`), widok sporu dla obu stron.
 
 **Kryteria akceptacji:**
-- Spór można otworzyć tylko w oknie 36 h.
+- Spór można otworzyć tylko w oknie 36 h, dla zamówienia `DELIVERED`.
 - Brak odpowiedzi sprzedającego w 48 h powoduje eskalację.
-- Zwrot częściowy nie przekracza kwoty zamówienia.
+- Zwrot częściowy nie przekracza ceny przedmiotu (POK i dostawa nie są zwracane).
+- Koszt dostawy przy winie sprzedającego jest potrącany z jego salda, a niedobór trafia na `seller_receivable`.
 - Każda decyzja ma uzasadnienie widoczne dla stron.
 - Po pełnym zwrocie ledger zamówienia bilansuje się do zera.
 
@@ -707,7 +756,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Zakres:**
 - Konwersacje per aukcja lub zamówienie, na żywo, ze zdjęciami i licznikiem nieprzeczytanych.
 - Wykrywanie numerów telefonów, e-maili i IBAN-ów z ostrzeżeniem.
-- Zgłaszanie i blokowanie użytkownika, limity wiadomości.
+- Zgłaszanie i blokowanie użytkownika (tabela `user_blocks`), limity wiadomości.
 
 **Kryteria akceptacji:**
 - Wiadomość z numerem telefonu pokazuje ostrzeżenie obu stronom i jest flagowana.
@@ -721,15 +770,35 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Cel:** reputacja buduje zaufanie między stronami.
 
 **Zakres:**
-- Ocena 1–5 z komentarzem dla obu stron po zakończonym zamówieniu.
+- Ocena 1–5 z komentarzem dla obu stron po zamówieniu `COMPLETED` albo zakończonym sporem (`REFUNDED` lub `PARTIALLY_REFUNDED` po sporze), w ciągu 14 dni.
 - Ujawnienie po ocenie obu stron albo po 7 dniach.
 - Średnia i liczba ocen na profilu, informacja o sposobie weryfikacji opinii (Omnibus).
 
 **Kryteria akceptacji:**
-- Ocenić można tylko zakończone zamówienie, raz na stronę.
+- Ocenić można tylko zamówienie zakończone sprzedażą lub sporem, raz na stronę, w ciągu 14 dni.
 - Druga strona nie widzi oceny przed ujawnieniem.
 
 **Zależności:** F-26 · **Spec:** §5, §17
+
+### F-61 · Limity kont i strike'i · `M`
+
+**Cel:** ograniczenie szkód od nowych i nierzetelnych kont, z przejrzystymi zasadami i prawem do odwołania.
+
+**Zakres:**
+- Poziomy kupujących i sprzedających z §4.1 liczone z historii zamówień, nadpisania w `users.limits`, wartości domyślne w konfiguracji.
+- Tabela `strikes`. Strike'i nadaje system (konsumenci eventów: brak płatności, nieodebrana przesyłka, brak nadania, anulowanie aukcji z ofertami, przegrany spór) albo admin.
+- Reguły blokad: 3 strike'i w 90 dni → blokada na 30 dni, druga blokada w ciągu 12 miesięcy → bezterminowa, potwierdzona podróbka → natychmiastowa blokada.
+- `bidding_blocked_until` i `listing_blocked_until`, guardy w API licytacji i wystawiania.
+- Widok „Moje strike'i” z uzasadnieniem i odwołaniem (`POST /me/strikes/:id/appeal`), cofanie strike'a przez admina.
+
+**Kryteria akceptacji:**
+- Trzeci strike kupującego w 90 dniach blokuje licytowanie na 30 dni, a API zwraca `BIDDING_BLOCKED` z datą końca blokady.
+- Strike starszy niż 90 dni nie liczy się do progu.
+- Każdy strike ma uzasadnienie widoczne dla użytkownika i można się od niego odwołać.
+- Cofnięty strike nie liczy się do progu, a wynikająca z niego blokada jest zdejmowana.
+- Zmiana limitów w konfiguracji działa bez deployu.
+
+**Zależności:** F-04, F-07 · **Spec:** §4.1, §16.2, §17
 
 ---
 
@@ -744,12 +813,15 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
   - płatności (BLIK z kodem w UI, karty, przelewy, Apple Pay, Google Pay),
   - `releaseFunds` zgodnie z `holdModel`,
   - zwroty i wypłaty,
+  - chargebacki: zdarzenia, przekazanie dowodów, podział kosztów według §7.9,
+  - transfery platforma ↔ sprzedawca, jeśli operator je obsługuje,
   - webhooki z weryfikacją podpisu.
 - Testy kontraktowe na sandboksie (co noc), przegląd bezpieczeństwa integracji.
 
 **Kryteria akceptacji:**
 - Testy kontraktowe przechodzą na sandboksie operatora.
 - Na stagingu przechodzi pełna transakcja (płatność → zwolnienie → wypłata) oraz zwrot pełny i częściowy.
+- Chargeback z sandboksu przechodzi ścieżkę z §7.9 i jest zaksięgowany.
 - Zmiana `PAYMENTS_DEFAULT_PROVIDER` nie wymaga zmian w domenie.
 
 **Zależności:** F-23, decyzja o operatorze · **Spec:** §7.6, §7.8
@@ -759,7 +831,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Cel:** sprzedawcy przechodzą KYC wymagane prawem, a my informujemy ich o tym z góry.
 
 **Zakres:**
-- Rejestracja sprzedawcy u operatora (submerchant lub portfel), przekazanie danych i dokumentów (osadzone w UI lub przez przekierowanie).
+- Rejestracja sprzedawcy u operatora (submerchant lub portfel) przy pierwszym wystawieniu, asynchronicznie (§7.6 pkt 5). Pełne KYC: przekazanie danych i dokumentów (osadzone w UI lub przez przekierowanie) przed wypłatą lub aukcją > 1000 zł.
 - Statusy KYC z webhooków, komunikaty w UI.
 - Blokady: wypłata, aukcje powyżej 1000 zł.
 
@@ -790,13 +862,14 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Cel:** zespół obsługuje użytkowników, spory i pieniądze bez dostępu do bazy.
 
 **Zakres:**
-- `apps/admin` pod osobną domeną, obowiązkowe 2FA, role: support, moderator, finance, admin.
+- `apps/admin` pod osobną domeną, osobna sesja (ciasteczko host-only, §11.5), obowiązkowe 2FA, role: support, moderator, finance, admin.
 - Sekcje:
-  - użytkownicy (wyszukiwanie, blokady, limity, strike'i),
-  - aukcje (podgląd, anulowanie),
+  - użytkownicy (wyszukiwanie, blokady, limity, strike'i i odwołania),
+  - aukcje (podgląd, anulowanie, unieważnianie ofert z replay),
   - zamówienia (oś czasu i ledger),
-  - spory (decyzje z uzasadnieniem),
-  - wypłaty,
+  - spory (UI nad endpointem decyzji z F-28),
+  - wypłaty, należności, chargebacki,
+  - rekompensaty i reklamacje u przewoźników (§7.9, §8.4),
   - cenniki POK,
   - kategorie i atrybuty.
 - Audit log każdej akcji.
@@ -804,6 +877,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Kryteria akceptacji:**
 - Każda akcja admina jest zapisana w audit logu (kto, co, kiedy, zmiana).
 - Rola support nie widzi danych DAC7 i nie zmienia cenników.
+- Sesja użytkownika z `biddy.pl` nie daje dostępu do panelu.
 - Decyzja w sporze wykonuje zwrot przez gateway i księguje go w ledgerze.
 
 **Zależności:** F-07, F-26, F-28 · **Spec:** §11.5, §16.1
@@ -815,7 +889,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Zakres:**
 - Przycisk „Zgłoś” przy aukcjach, użytkownikach i wiadomościach, formularz notice & action.
 - Kolejka moderacji (z flagami zdjęć z F-12 i filtrami słów).
-- Decyzje z uzasadnieniem wysyłane do zainteresowanych, odwołania, punkt kontaktowy.
+- Decyzje z uzasadnieniem wysyłane do zainteresowanych, odwołania (także od strike'ów i blokad z F-61), punkt kontaktowy.
 - Lista zakazanych przedmiotów w filtrach.
 
 **Kryteria akceptacji:**
@@ -834,10 +908,12 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 - Wykrywanie powiązanych kont (shill bidding).
 - Reguły, np. konto często licytuje u jednego sprzedającego i nie wygrywa; nowe konto i wysoka kwota.
 - Flagi trafiają do kolejki trust & safety.
-- Akcje: unieważnienie ofert, limity, blokada. Rate limiting wrażliwych akcji.
+- Silne sygnały → automatyczna blokada licytowania u danego sprzedającego; słabe → tylko flaga (§16.2).
+- Akcje: unieważnienie ofert (replay z F-15), limity, blokada. Rate limiting wrażliwych akcji.
 
 **Kryteria akceptacji:**
-- Konto powiązane ze sprzedającym (wspólne urządzenie lub telefon) nie może licytować jego aukcji.
+- Konto powiązane ze sprzedającym silnym sygnałem (wspólna metoda płatności, adres lub to samo urządzenie w wielu sesjach) nie może licytować jego aukcji.
+- Słaby sygnał (np. wspólne IP) tworzy tylko flagę i nie blokuje licytowania.
 - Reguły można zmieniać bez deployu.
 - Każda flaga ma powód widoczny dla moderatora.
 
@@ -845,7 +921,89 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ---
 
-## Etap 3: Mobile i start
+## Etap 3: Beta i start web
+
+Prace przed publicznym startem web. Zamknięta beta działa już na produkcji z prawdziwymi płatnościami.
+
+### F-41 · Treści prawne i strony pomocy · `M`
+
+**Cel:** zgodność z prawem i odpowiedzi na najczęstsze pytania. Treści przygotowuje prawnik, a ten feature obejmuje ich wdrożenie.
+
+**Zakres:**
+- Regulamin (wersjonowany, ponowna akceptacja po zmianach), polityka prywatności. Regulamin obejmuje m.in. zasady aukcji (KC), limity i strike'i, przesyłki nieodebrane, potrącenia i rekompensaty, minimalną wypłatę (§17).
+- Baner cookies: domyślnie tylko niezbędne, analityka po zgodzie.
+- Centrum pomocy (POK, licytacje, spory, KYC), lista zakazanych przedmiotów.
+- Informacje wymagane przez Omnibus (C2C, ranking, opinie).
+- Eksport danych i usunięcie konta (RODO).
+
+**Kryteria akceptacji:**
+- Zmiana regulaminu wymaga ponownej akceptacji przy następnym logowaniu.
+- Analityka nie startuje bez zgody.
+- Użytkownik może pobrać swoje dane i usunąć konto, a dane finansowe wymagane prawem zostają zachowane.
+
+**Zależności:** F-06, F-07 · **Spec:** §17
+
+### F-42 · Gotowość produkcyjna · `M`
+
+**Cel:** produkcja jest wydajna, bezpieczna i monitorowana.
+
+**Zakres:**
+- Testy obciążeniowe k6 (200 ofert/s na gorącą aukcję, 2 tys. połączeń WS).
+- Przegląd bezpieczeństwa lub pentest.
+- Test odtworzenia backupu.
+- Dashboardy i alerty (§18.3), w tym aukcja `ACTIVE` po `ends_at`, straty platformy i pamięć Redisa kolejek.
+- Runbooki: awaria płatności, zatrzymana kolejka, rozjazd ledgera.
+- Środowisko produkcyjne, Cloudflare WAF, limity.
+
+**Kryteria akceptacji:**
+- Wymagania niefunkcjonalne z §19 spełnione na stagingu.
+- Krytyczne i wysokie znaleziska z pentestu naprawione.
+- Odtworzenie bazy z PITR wykonane i udokumentowane w mniej niż 1 h.
+- Każdy alert został testowo wyzwolony.
+
+**Zależności:** wszystkie feature'y Etapów 0–2b, F-41 i F-59 · **Spec:** §18, §19
+
+### F-43 · Beta i start web · `M`
+
+**Cel:** kontrolowany start z prawdziwymi użytkownikami, a potem publiczny start web.
+
+**Zakres:**
+- Zamknięta beta: zaproszenia, 100–300 osób z wybranych nisz, feature flag, co najmniej 3 tygodnie.
+- Zbieranie feedbacku i poprawki.
+- Weryfikacja decyzji z rejestru (§22) na danych z bety: cennik POK, cena wywoławcza, limity kont, polityka nieodebranych przesyłek, straty platformy.
+- Plan i przeprowadzenie publicznego startu web.
+
+**Kryteria akceptacji:**
+- W becie co najmniej 50 transakcji zakończonych bez ręcznej interwencji.
+- Brak otwartych błędów krytycznych.
+- Raport z bety z rekomendacjami zmian w cenniku, limitach i politykach.
+
+**Zależności:** F-41, F-42, F-59 · **Spec:** §2.4, §20, §22
+
+### F-59 · Web push i PWA · `M`
+
+**Cel:** powiadomienia „przebito Cię” i „aukcja się kończy” w czasie rzeczywistym bez aplikacji ze sklepu.
+
+**Zakres:**
+- Manifest PWA, ikony, service worker (bez trybu offline poza stroną błędu).
+- Web Push (VAPID) w module `notifications` przez bibliotekę `web-push`. Subskrypcje zapisujemy w `devices` (`platform = WEB`).
+- Prośba o zgodę na powiadomienia po pierwszej ofercie, a nie przy wejściu na stronę.
+- Na iOS: instrukcja dodania strony do ekranu głównego, bo web push działa tam tylko w zainstalowanej PWA (iOS 16.4+).
+- Kliknięcie w powiadomienie otwiera właściwą aukcję lub zamówienie.
+- Usuwanie wygasłych subskrypcji (odpowiedzi 404/410 z push service).
+
+**Kryteria akceptacji:**
+- Push „przebito Cię” dociera do Chrome (Android, desktop) i do zainstalowanej PWA na iOS w p95 < 5 s od przebicia (staging).
+- Bez zgody na push albo przy wygasłej subskrypcji powiadomienie idzie e-mailem, zgodnie z preferencjami.
+- Wyłączenie push w preferencjach działa natychmiast.
+
+**Zależności:** F-06, F-20 · **Spec:** §5, §11.3
+
+---
+
+## Etap 4: Aplikacje mobilne
+
+Startuje w trakcie bety (F-43), gdy rdzeń web jest stabilny. Publikacja w sklepach ok. tygodnia 33 (§20).
 
 ### F-37 · Aplikacja mobilna: fundament · `M`
 
@@ -863,7 +1021,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 - Push „przebito Cię” otwiera właściwą aukcję.
 - Build preview instaluje się z EAS, a aktualizacja OTA dociera do aplikacji.
 
-**Zależności:** F-05, F-07, F-17, F-20 · **Spec:** §11.4
+**Zależności:** F-05, F-07, F-17, F-20, F-59 (wspólna tabela `devices`) · **Spec:** §11.4. Start w trakcie bety (F-43).
 
 ### F-38 · Mobile: przeglądanie i licytowanie · `L`
 
@@ -912,68 +1070,29 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 **Zależności:** F-25 – F-32, F-37 · **Spec:** §7, §11.4
 
-### F-41 · Treści prawne i strony pomocy · `M`
+### F-60 · Publikacja w sklepach · `S`
 
-**Cel:** zgodność z prawem i odpowiedzi na najczęstsze pytania. Treści przygotowuje prawnik, a ten feature obejmuje ich wdrożenie.
-
-**Zakres:**
-- Regulamin (wersjonowany, ponowna akceptacja po zmianach), polityka prywatności.
-- Baner cookies: domyślnie tylko niezbędne, analityka po zgodzie.
-- Centrum pomocy (POK, licytacje, spory, KYC), lista zakazanych przedmiotów.
-- Informacje wymagane przez Omnibus (C2C, ranking, opinie).
-- Eksport danych i usunięcie konta (RODO).
-
-**Kryteria akceptacji:**
-- Zmiana regulaminu wymaga ponownej akceptacji przy następnym logowaniu.
-- Analityka nie startuje bez zgody.
-- Użytkownik może pobrać swoje dane i usunąć konto, a dane finansowe wymagane prawem zostają zachowane.
-
-**Zależności:** F-06, F-07 · **Spec:** §17
-
-### F-42 · Gotowość produkcyjna · `M`
-
-**Cel:** produkcja jest wydajna, bezpieczna i monitorowana.
+**Cel:** aplikacje dostępne w App Store i Google Play.
 
 **Zakres:**
-- Testy obciążeniowe k6 (200 ofert/s na gorącą aukcję, 2 tys. połączeń WS).
-- Przegląd bezpieczeństwa lub pentest.
-- Test odtworzenia backupu.
-- Dashboardy i alerty (§18.3).
-- Runbooki: awaria płatności, zatrzymana kolejka, rozjazd ledgera.
-- Środowisko produkcyjne, Cloudflare WAF, limity.
-
-**Kryteria akceptacji:**
-- Wymagania niefunkcjonalne z §19 spełnione na stagingu.
-- Krytyczne i wysokie znaleziska z pentestu naprawione.
-- Odtworzenie bazy z PITR wykonane i udokumentowane w mniej niż 1 h.
-- Każdy alert został testowo wyzwolony.
-
-**Zależności:** wszystkie funkcje MVP · **Spec:** §18, §19
-
-### F-43 · Beta i publikacja w sklepach · `M`
-
-**Cel:** kontrolowany start z prawdziwymi użytkownikami.
-
-**Zakres:**
-- Zamknięta beta: zaproszenia, 100–300 osób z wybranych nisz, feature flag.
-- Zbieranie feedbacku i poprawki.
-- Karty w sklepach (opisy, zrzuty, polityki), zgodność z wytycznymi App Store i Google Play (treści użytkowników, płatności).
-- Publikacja i plan startu publicznego.
+- Karty w sklepach (opisy, zrzuty, polityka prywatności, kategorie wiekowe).
+- Zgodność z wytycznymi App Store i Google Play: zgłaszanie i blokowanie treści użytkowników, płatności za towary fizyczne poza IAP, wyróżnienia tylko przez web (§17).
+- Testy przez TestFlight i Google Play testing, potem publikacja.
+- Komunikacja „pobierz aplikację” do użytkowników web.
 
 **Kryteria akceptacji:**
 - Aplikacje zaakceptowane w obu sklepach.
-- W becie co najmniej 50 transakcji zakończonych bez ręcznej interwencji.
-- Brak otwartych błędów krytycznych.
+- Universal links otwierają aplikację, jeśli jest zainstalowana.
 
-**Zależności:** F-40, F-41, F-42 · **Spec:** §2.4, §20
+**Zależności:** F-37 – F-40 · **Spec:** §11.4, §17
 
 ---
 
 ## Po MVP
 
-Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety.
+Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-62.
 
-**v1 (miesiące 6–8)**
+**v1 (miesiące 8–10)**
 
 | ID | Feature | Rozmiar |
 |---|---|---|
@@ -987,7 +1106,7 @@ Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji 
 | F-51 | Raport DAC7 | M |
 | F-52 | Planowany start aukcji i automatyczne ponowne wystawienie | S |
 
-**v2 (miesiące 9–12)**
+**v2 (miesiące 11–14)**
 
 | ID | Feature | Rozmiar |
 |---|---|---|

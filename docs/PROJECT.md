@@ -1,8 +1,18 @@
 # Biddy — specyfikacja projektu
 
-> **Wersja:** 0.3 (draft) · **Data:** 2026-10-07 · **Status:** do dyskusji przed startem implementacji
+> **Wersja:** 0.4 · **Data:** 2026-10-08 · **Status:** gotowy do startu implementacji
 >
-> Dokument opisuje produkt, model biznesowy, zasady działania licytacji i Pakietu Ochrony Kupujących, architekturę, stack technologiczny, model danych oraz plan wdrożenia. Decyzje oznaczone **[DECYZJA]** są rekomendacją do przyjęcia. Te oznaczone **[DO USTALENIA]** czekają na dane (oferty operatorów, konsultację prawną).
+> Dokument opisuje produkt, model biznesowy, zasady działania licytacji i Pakietu Ochrony Kupujących, architekturę, stack technologiczny, model danych oraz plan wdrożenia.
+>
+> **Oznaczenia decyzji:**
+> - **[DECYZJA]** — przyjęta, obowiązuje w implementacji.
+> - **[DECYZJA TYMCZASOWA]** — przyjęta na start, ale zależy od danych zewnętrznych (oferta operatora, opinia prawnika lub księgowego). Implementujemy ją **konfigurowalnie**, żeby zmiana nie wymagała przepisywania kodu. Pełny rejestr: [§22](#22-rejestr-decyzji).
+>
+> **Zmiany w v0.4:**
+> - Rozstrzygnięte wszystkie punkty „do ustalenia”: progi POK, minimalna cena wywoławcza, przesyłki nieodebrane, start web-first. Rejestr decyzji zastępuje listę otwartych pytań ([§22](#22-rejestr-decyzji)).
+> - Nowe sekcje: limity kont i strike'i ([§4.1](#41-limity-kont-i-strikei)), straty, chargebacki i rekompensaty ([§7.9](#79-straty-chargebacki-i-rekompensaty)), pytania do prawnika i księgowego ([§17.1](#171-pytania-do-prawnika-i-księgowego)).
+> - Doprecyzowane: maszyna stanów zamówienia i sporu, plan kont ledgera, anti-sniping, unieważnianie ofert, zamykanie aukcji, model danych i API.
+> - Roadmapa przeliczona pod start web-first ([§20](#20-roadmapa)).
 >
 > **Zmiany w v0.2:**
 > - Licytacje na żywo (live streaming) wyłączone z MVP, zostaje tylko notka o przyszłych wersjach ([§9](#9-licytacje-na-żywo--przyszłe-wersje)).
@@ -37,7 +47,7 @@
 19. [Wymagania niefunkcjonalne](#19-wymagania-niefunkcjonalne)
 20. [Roadmapa](#20-roadmapa)
 21. [Ryzyka](#21-ryzyka)
-22. [Otwarte decyzje](#22-otwarte-decyzje)
+22. [Rejestr decyzji](#22-rejestr-decyzji)
 23. [Słownik](#23-słownik)
 24. [Źródła](#24-źródła)
 
@@ -52,7 +62,7 @@
 - daje kilka opcji dostawy z gotowymi etykietami i śledzeniem przesyłek,
 - prowadzi spory i zwroty.
 
-Sprzedający dostaje **100% wylicytowanej kwoty**. Platforma działa w przeglądarce (RWD) i jako aplikacja mobilna (iOS/Android).
+Sprzedający dostaje **100% wylicytowanej kwoty**. **Startujemy web-first:** platforma w przeglądarce (RWD + PWA z powiadomieniami web push), a aplikacje iOS/Android wchodzą zaraz po publicznym starcie ([§20](#20-roadmapa)).
 
 **Licytacje na żywo** (streamy) są planowane w przyszłych wersjach i **nie wchodzą do MVP**.
 
@@ -106,16 +116,28 @@ Pozostałe kategorie (dom, RTV, AGD itd.) są dostępne od dnia 1, ale nie są p
 Płaci go **kupujący** jako doliczenie do wylicytowanej kwoty.
 
 ```
-POK = opłata_stała + procent × suma_wylicytowanych_kwot_w_zamówieniu
+POK = opłata_stała + Σ (stawka_progu × część kwoty mieszcząca się w progu)
+kwota = suma wylicytowanych kwot w zamówieniu
 ```
 
-**[DECYZJA] Startowa konfiguracja:** `opłata_stała = 2,99 zł`, `procent = 7%`. Stała opłata naliczana jest **raz na zamówienie**, więc kupujący łączący kilka wygranych od jednego sprzedawcy w jedną paczkę (v1) płaci ją tylko raz.
+**[DECYZJA] Startowa konfiguracja:**
+
+| Próg (część kwoty) | Stawka |
+|---|---:|
+| 0 – 1000 zł | 7% |
+| powyżej 1000 zł | 4% |
+| Opłata stała (raz na zamówienie) | 2,99 zł |
+
+Progi działają **krańcowo**, jak progi podatkowe: 4% dotyczy tylko nadwyżki ponad 1000 zł. Dzięki temu POK rośnie płynnie i nie ma skoku na granicy progu. Przykłady: 100 zł → 9,99 zł; 1000 zł → 72,99 zł; 3000 zł → 152,99 zł (zamiast 212,99 zł przy płaskich 7%); 10 000 zł → 432,99 zł.
+
+Stała opłata naliczana jest **raz na zamówienie**, więc kupujący łączący kilka wygranych od jednego sprzedawcy w jedną paczkę (v1) płaci ją tylko raz, a progi liczą się od sumy zamówienia.
 
 Zasady:
 
 - Kwoty są **brutto** (POK to usługa Biddy objęta VAT, patrz [§17](#17-prawo-i-compliance)).
 - Cennik POK jest **konfigurowalny i wersjonowany** (tabela `fee_schedules`). Każde zamówienie zapisuje, według którego cennika je policzono. Docelowo cennik może się różnić per kategoria.
-- **[DO USTALENIA]** Progi lub cap dla drogich przedmiotów. Przy 3000 zł POK wynosi 212,99 zł, co zachęca do dogadywania się poza platformą. Propozycja: 7% do 1000 zł, 4% od nadwyżki ponad 1000 zł, albo cap np. 149 zł.
+- **Dlaczego progi, a nie cap:** koszt płatności rośnie liniowo z kwotą (ok. 1,5%). Przy capie np. 149 zł każda transakcja powyżej ok. 7,8 tys. zł byłaby stratna, i to w segmencie z największym ryzykiem fraudu i sporów. Progi zmniejszają bodziec do ucieczki poza platformę, a marża zostaje dodatnia przy każdej kwocie.
+- **7% to świadomie więcej niż na Vinted (5%).** W POK mieści się wstrzymanie środków do weryfikacji przedmiotu, a przy licytacjach cenę ustala rynek. Weryfikujemy to w becie (porzucone checkouty, payment completion rate). Zmiana stawek to nowy wpis w `fee_schedules`, bez deployu.
 - **Transparentność:** przy każdym przycisku licytacji pokazujemy cenę końcową, np. *„Licytujesz 100 zł · zapłacisz 109,99 zł + dostawa od 12,99 zł”*. Wymagają tego przepisy konsumenckie, a do tego budujemy zaufanie (patrz lekcja z decyzji UOKiK wobec Vinted, [§17](#17-prawo-i-compliance)).
 - Dostawę kupujący płaci osobno, według cennika Biddy dla wybranego przewoźnika i gabarytu.
 
@@ -128,11 +150,13 @@ Założenia: koszt operatora płatności ok. **1,5% + 1,00 zł** od całej kwoty
 | 20,00 zł | 4,39 zł | 3,57 zł | 12,99 zł | 37,38 zł | 1,56 zł | **2,01 zł** |
 | 100,00 zł | 9,99 zł | 8,12 zł | 12,99 zł | 122,98 zł | 2,84 zł | **5,28 zł** |
 | 1000,00 zł | 72,99 zł | 59,34 zł | 19,99 zł | 1092,98 zł | 17,39 zł | **41,95 zł** |
+| 3000,00 zł | 152,99 zł | 124,38 zł | 19,99 zł | 3172,98 zł | 48,59 zł | **75,79 zł** |
 
 Wnioski:
 
-- **Opłata stała jest kluczowa dla tanich przedmiotów.** Warto ustawić minimalną cenę wywoławczą (np. 5 zł) albo minimalny POK.
+- **Opłata stała jest kluczowa dla tanich przedmiotów.** Minimalna cena wywoławcza prawie nie wpływa na marżę, bo liczy się cena końcowa, a nie wywoławcza. Przy wylicytowanym 1 zł marża wynosi 1,23 zł, przy 5 zł 1,40 zł. Dlatego zostajemy przy 1 zł ([§6.2](#62-parametry-aukcji)). Jeśli w becie tanie zamówienia okażą się problemem (spory, support), dźwignią jest minimalny POK albo łączenie wygranych (v1).
 - Przy marży rzędu 2–5 zł na typowej transakcji **każda opłata per sprzedawca lub per wypłata ma ogromne znaczenie**. Dlatego wybór operatora płatności to jedna z najważniejszych decyzji biznesowych ([§7.6](#76-operator-płatności)).
+- Tabela nie uwzględnia strat ponoszonych przez Biddy: chargebacków, rekompensat za zaginione paczki i kosztów zwrotu nieodebranych przesyłek ([§7.9](#79-straty-chargebacki-i-rekompensaty)). Mierzymy je w becie jako % GMV.
 
 ### 3.3 Dodatkowe źródła przychodu (po MVP)
 
@@ -147,7 +171,7 @@ Wnioski:
 
 ### 3.4 Kluczowe KPI
 
-GMV · take rate (przychód / GMV) · **sell-through rate** (% aukcji zakończonych sprzedażą) · średnia liczba ofert na aukcję · **payment completion rate** (% wygranych opłaconych) · czas do nadania · dispute rate · % zamówień z auto-zwolnieniem po 36 h · retencja kupujących i sprzedających (D30) · **koszt płatności jako % GMV**.
+GMV · take rate (przychód / GMV) · **sell-through rate** (% aukcji zakończonych sprzedażą) · średnia liczba ofert na aukcję · **payment completion rate** (% wygranych opłaconych) · czas do nadania · dispute rate · % zamówień z auto-zwolnieniem po 36 h · retencja kupujących i sprzedających (D30) · **koszt płatności jako % GMV** · **straty platformy jako % GMV** (chargebacki, rekompensaty, zwroty nieodebranych) · % przesyłek nieodebranych.
 
 ---
 
@@ -164,14 +188,53 @@ Jedno konto może być jednocześnie kupującym i sprzedającym (jak na Vinted).
 
 Role wewnętrzne (panel admina): `support`, `moderator`, `finance`, `admin`, z pełnym audit logiem.
 
+### 4.1 Limity kont i strike'i
+
+**[DECYZJA]** Wartości startowe poniżej są domyślne w konfiguracji, a per użytkownik można je nadpisać (`users.limits`). Zmiana nie wymaga deployu.
+
+**Wartość aukcji** na potrzeby limitów i progu KYC to najwyższa z: cena wywoławcza, cena minimalna, cena Kup teraz. Cena końcowa może przekroczyć limit w toku licytacji. Nie blokujemy tego, bo środki i tak są wstrzymane, a wypłata wymaga KYC.
+
+**Limity kupującego:**
+
+| Poziom | Warunek | Maks. kwota oferty (maksimum proxy) | Aukcje z aktywną ofertą |
+|---|---|---:|---:|
+| Nowy | 0 opłaconych zamówień | 500 zł | 10 |
+| Sprawdzony | ≥ 1 opłacone zamówienie | 3000 zł | 50 |
+| Zaufany | ≥ 3 zakończone zamówienia i konto ≥ 30 dni | bez limitu | bez limitu |
+
+**Limity sprzedającego:**
+
+| Poziom | Warunek | Aktywne aukcje | Maks. wartość aukcji |
+|---|---|---:|---:|
+| Nowy | 0 zakończonych sprzedaży | 5 | 500 zł |
+| Sprawdzony | ≥ 3 zakończone sprzedaże, 0 przegranych sporów | 20 | 1000 zł |
+| Z KYC | pozytywna weryfikacja u operatora | 50 (100 po 10 sprzedażach) | bez limitu |
+
+**Strike'i:**
+
+| Rola | Za co | Skutek |
+|---|---|---|
+| Kupujący | Brak płatności w terminie, nieodebrana przesyłka | 3 strike'i w 90 dni → blokada licytowania na 30 dni. Druga blokada w ciągu 12 miesięcy → blokada bezterminowa (z możliwością odwołania). |
+| Sprzedający | Brak nadania w terminie, anulowanie aukcji z ofertami, spór przegrany z powodu „niezgodny z opisem” | 3 strike'i w 90 dni → blokada wystawiania nowych aukcji na 30 dni. Druga blokada w ciągu 12 miesięcy → blokada bezterminowa. |
+| Sprzedający | Potwierdzona podróbka | Natychmiastowa blokada wystawiania i wypłat do decyzji moderatora |
+
+Zasady:
+
+- Strike wygasa po 90 dniach. Liczymy go z tabeli `strikes` (z datą), a nie z licznika.
+- Każdy strike i każda blokada mają uzasadnienie widoczne dla użytkownika i można się od nich odwołać. To wymóg DSA (*statement of reasons*, wewnętrzny system odwołań).
+- Support może cofnąć strike, np. gdy przewoźnik zawinił przy nadaniu.
+- Zasady strike'ów i limitów muszą być opisane w regulaminie i w centrum pomocy.
+
 ---
 
 ## 5. Zakres funkcjonalny i priorytety
 
-Legenda: **MVP** = publiczny start · **v1** = ok. 3 mies. po MVP · **v2+** = później.
+Legenda: **MVP** = publiczny start (web) · **Mobile** = aplikacje iOS/Android ok. 4–6 tygodni po starcie web · **v1** = ok. 3 mies. po MVP · **v2+** = później.
 
 | Obszar | Funkcja | Faza |
 |---|---|---|
+| Platforma | Web: RWD, PWA (instalacja na ekranie głównym), web push | MVP |
+| | Aplikacje iOS i Android (Expo) | Mobile |
 | Konto | Rejestracja e-mail, Google, Apple (Apple wymagane na iOS przy social loginach) | MVP |
 | | Weryfikacja telefonu SMS, profil, adresy, oświadczenie 18+ | MVP |
 | | 2FA (TOTP), powiadomienia o nowym urządzeniu | v1 |
@@ -195,8 +258,10 @@ Legenda: **MVP** = publiczny start · **v1** = ok. 3 mies. po MVP · **v2+** = p
 | | Statystyki, masowe wystawianie | v2 |
 | Komunikacja | Czat kupujący ↔ sprzedający (per aukcja/zamówienie) | MVP |
 | | Wykrywanie prób kontaktu poza platformą (telefon, e-mail, IBAN) | MVP |
-| Reputacja | Oceny obustronne po transakcji, ujawniane po obu ocenach lub po 7 dniach | MVP |
-| Powiadomienia | Push, e-mail, in-app; SMS tylko dla krytycznych (OTP, wygrana o wysokiej wartości) | MVP |
+| Reputacja | Oceny obustronne po transakcji (także po sporze zakończonym zwrotem), ujawniane po obu ocenach lub po 7 dniach | MVP |
+| Powiadomienia | Web push, e-mail, in-app; SMS tylko dla krytycznych (OTP, wygrana o wysokiej wartości) | MVP |
+| | Push natywny w aplikacjach (Expo Push) | Mobile |
+| Konto | Limity kont i strike'i z odwołaniami ([§4.1](#41-limity-kont-i-strikei)) | MVP |
 | Admin | Użytkownicy, moderacja, zgłoszenia (DSA), zamówienia, spory, wypłaty, cenniki, kategorie | MVP (v1 rozszerzenia) |
 | Compliance | Zbieranie danych DAC7, eksport raportu | MVP (zbieranie) / v1 (raport) |
 | Sprzedawcy firmowi (B2C) | Konta firmowe, prawo odstąpienia 14 dni, faktury | v2 |
@@ -214,9 +279,10 @@ Kolumna `auctions.type` istnieje od początku, żeby w przyszłości dodać typ 
 
 ### 6.2 Parametry aukcji
 
-- **Cena wywoławcza:** min. 1 zł (**[DO USTALENIA]** rozważyć 5 zł ze względu na ekonomikę POK).
+- **Cena wywoławcza:** **[DECYZJA]** min. 1 zł. Minimalna cena wywoławcza praktycznie nie zmienia marży ([§3.2](#32-przykładowa-ekonomika-jednostkowa-ilustracyjna)), a „licytacja od 1 zł” to mocny argument marketingowy.
 - **Cena minimalna (reserve):** opcjonalna, ukryta. Pokazujemy tylko „cena minimalna nieosiągnięta/osiągnięta”.
-- **Kup teraz:** opcjonalne, dostępne **do pierwszej oferty**. Musi być ≥ 130% ceny wywoławczej.
+- **Kup teraz:** opcjonalne, dostępne **do pierwszej oferty**. Musi być ≥ 130% ceny wywoławczej i ≥ ceny minimalnej.
+- **Limity wartości** dla nowych sprzedających i próg KYC: [§4.1](#41-limity-kont-i-strikei).
 - **Waluta:** PLN. Model danych przechowuje kod waluty, żeby później dodać EUR.
 
 ### 6.3 Kroki przebicia
@@ -242,19 +308,21 @@ Reguły rozstrzygania, gdy przychodzi nowa oferta z maksimum `M_new`, a lider ma
 2. Jeśli `M_new > M_lead`: liderem zostaje nowy licytujący, a cena wynosi `min(M_new, M_lead + inc(M_lead))`.
 3. Jeśli `M_new ≤ M_lead`: lider się nie zmienia, a cena wynosi `min(M_lead, M_new + inc(M_new))`. **Przy remisie wygrywa wcześniejsza oferta.**
 4. **Cena minimalna:** jeśli `M_lead ≥ reserve`, a cena jest niższa niż reserve, cena podnosi się do `reserve`.
-5. Lider może podnieść swoje maksimum bez podnoszenia ceny.
+5. Lider może podnieść swoje maksimum bez podnoszenia ceny. Wyjątek z reguły 4: jeśli nowe maksimum osiąga reserve, a cena jest niższa, cena podnosi się do reserve.
+6. **Unieważnienie oferty** (literówka zgłoszona do supportu, shill bidding): stan aukcji przeliczamy od nowa z pozostałych ważnych ofert ([§15.6](#156-unieważnienie-oferty-replay)). To jedyna sytuacja, w której cena może spaść.
 
 Szczegółowy algorytm i transakcja SQL: [§15.1](#151-składanie-oferty).
 
 ### 6.5 Anti-sniping (soft close)
 
 - Oferta złożona w **ostatnich 2 minutach** przesuwa koniec na `teraz + 2 min`. Bez limitu przedłużeń, wartość konfigurowalna.
+- **[DECYZJA]** Przedłużenie następuje tylko wtedy, gdy oferta **zmieniła cenę lub lidera**. Lider, który w końcówce podnosi tylko swoje maksimum, nie przedłuża aukcji, bo dla innych nic się nie zmieniło.
 - Czas jest **zawsze serwerowy** (`now()` z bazy danych). Klienci synchronizują offset zegara (patrz [§15.4](#154-synchronizacja-czasu)).
 
 ### 6.6 Wiążący charakter ofert
 
-- Oferty są **wiążące**. Wycofanie oferty możliwe jest tylko przez support w wyjątkowych przypadkach (np. oczywista literówka zgłoszona w ciągu 5 minut i co najmniej 12 h przed końcem).
-- Sprzedający **nie może anulować** aukcji z ofertami w ostatnich 12 h. Wcześniej może, ale dostaje ostrzeżenie (strike) i nie może tego robić nagminnie.
+- Oferty są **wiążące**. Wycofanie oferty możliwe jest tylko przez support w wyjątkowych przypadkach (np. oczywista literówka zgłoszona w ciągu 5 minut i co najmniej 12 h przed końcem). Po wycofaniu stan aukcji jest przeliczany ([§15.6](#156-unieważnienie-oferty-replay)).
+- Sprzedający **nie może anulować** aukcji z ofertami w ostatnich 12 h. Wcześniej może, ale dostaje strike ([§4.1](#41-limity-kont-i-strikei)). Licytujący dostają powiadomienie o anulowaniu.
 - Sprzedający i konta z nim powiązane nie mogą licytować jego aukcji (patrz shill bidding, [§16](#16-bezpieczeństwo-i-przeciwdziałanie-nadużyciom)).
 
 ### 6.7 Zakończenie aukcji
@@ -278,12 +346,21 @@ Po `ENDED_SOLD` w tej samej transakcji tworzymy **zamówienie** w statusie `AWAI
 
 ### 6.8 Brak płatności zwycięzcy
 
-- Zwycięzca ma **24 h** na checkout. Przypomnienia wysyłamy po 1 h, 12 h i 20 h.
+- **[DECYZJA]** Zwycięzca ma **24 h** na checkout. Przypomnienia wysyłamy po 1 h, 12 h i 20 h.
+- Płatność rozpoczęta przed terminem i będąca jeszcze w `PENDING` (np. BLIK czeka na potwierdzenie w banku) przesuwa anulowanie o maks. 30 minut.
+- Jeśli webhook o udanej płatności przyjdzie dla zamówienia już anulowanego, system automatycznie robi pełny zwrot i nie nalicza strike'a.
 - W v1 zwycięzca z zapisaną metodą płatności i domyślną dostawą może włączyć „opłacaj automatycznie”.
-- Brak płatności → zamówienie `CANCELLED_UNPAID`, kupujący dostaje **strike**. Przy 3 strike'ach w 90 dni blokujemy licytowanie.
+- Brak płatności → zamówienie `CANCELLED_UNPAID`, kupujący dostaje **strike** ([§4.1](#41-limity-kont-i-strikei)).
 - Sprzedający może wtedy:
-  - wysłać **ofertę drugiej szansy** do kolejnego licytującego (po jego najwyższej ofercie, ważna 24 h),
-  - albo ponownie wystawić przedmiot bezpłatnie.
+  - wysłać **ofertę drugiej szansy** do kolejnego licytującego,
+  - albo jednym kliknięciem wystawić przedmiot ponownie (kopia aukcji).
+
+**Oferta drugiej szansy** **[DECYZJA]:**
+
+- Cena to maksimum zadeklarowane przez tego licytującego (jak na eBay). Sprzedający może ją wysłać także wtedy, gdy maksimum jest niższe od ceny minimalnej, bo to jego decyzja.
+- Oferta jest ważna 24 h i **nie jest wiążąca** dla licytującego. Odrzucenie lub brak reakcji nie ma konsekwencji.
+- Akceptacja tworzy nowe zamówienie `AWAITING_PAYMENT` z terminem płatności 24 h i POK liczonym od ceny oferty.
+- Na aukcję przypada najwyżej jedno **aktywne** zamówienie. Wcześniejsze, anulowane zamówienia zostają w historii.
 
 ---
 
@@ -308,9 +385,11 @@ sequenceDiagram
   P-->>B: BLIK / karta / przelew / Apple Pay / Google Pay
   P-->>API: webhook: płatność udana
   API->>API: Order → PAID, ledger: środki wstrzymane
+  API-->>S: Push: „Sprzedane! Nadaj paczkę w ciągu 5 dni rob.”
+  S->>API: „Nadaj” (dane nadawcy, sposób nadania)
   API->>C: Utwórz przesyłkę (nadawca = sprzedający)
   C-->>API: etykieta PDF / kod nadania
-  API-->>S: Push: „Nadaj paczkę w ciągu 5 dni rob.” + kod
+  API-->>S: Kod nadania / etykieta
   S->>C: Nadanie w paczkomacie / punkcie
   C-->>API: webhooki trackingu … „odebrana”
   API-->>B: „Masz 36 h na sprawdzenie przedmiotu”
@@ -329,22 +408,29 @@ stateDiagram-v2
   AWAITING_PAYMENT --> CANCELLED_UNPAID: brak płatności w terminie
   PAID --> SHIPPED: przesyłka nadana
   PAID --> CANCELLED_NOT_SHIPPED: brak nadania w terminie
-  SHIPPED --> DELIVERED: przesyłka odebrana
-  SHIPPED --> NOT_PICKED_UP: nieodebrana, wraca do nadawcy
-  SHIPPED --> LOST: zaginięcie / brak doręczenia
+  SHIPPED --> DELIVERED: przesyłka odebrana / doręczona
+  SHIPPED --> NOT_PICKED_UP: nieodebrana w terminie, wraca do nadawcy
+  SHIPPED --> LOST: 14 dni bez statusu końcowego + zgłoszenie kupującego
   DELIVERED --> COMPLETED: potwierdzenie lub upływ 36 h
-  DELIVERED --> DISPUTED: zgłoszenie problemu
+  DELIVERED --> DISPUTED: zgłoszenie problemu w oknie 36 h
   DISPUTED --> COMPLETED: rozstrzygnięcie dla sprzedającego
   DISPUTED --> REFUNDED: pełny zwrot
   DISPUTED --> PARTIALLY_REFUNDED: zwrot częściowy
-  CANCELLED_NOT_SHIPPED --> REFUNDED
-  LOST --> REFUNDED
-  NOT_PICKED_UP --> REFUNDED: zwrot pomniejszony o koszt dostawy
+  CANCELLED_NOT_SHIPPED --> REFUNDED: pełny zwrot
+  LOST --> REFUNDED: pełny zwrot, rekompensata dla sprzedającego (§7.9)
+  NOT_PICKED_UP --> REFUNDED: paczka wróciła do nadawcy; zwrot bez kosztu dostawy
+  NOT_PICKED_UP --> LOST: zwrot do nadawcy zaginął
   COMPLETED --> [*]
   REFUNDED --> [*]
   PARTIALLY_REFUNDED --> [*]
   CANCELLED_UNPAID --> [*]
 ```
+
+Zasady maszyny stanów:
+
+- Przejścia są dozwolone tylko według diagramu. Każde przejście to jedna transakcja: zmiana statusu, wpisy w ledgerze i event w outboxie.
+- `REFUNDED` oznacza zamówienie zakończone bez sprzedaży. Kwota zwrotu zależy od przyczyny (§7.4, §7.9), a szczegóły są w tabeli `refunds`.
+- **Chargeback** nie jest stanem zamówienia, tylko flagą (`orders.chargeback_status`). Przed zwolnieniem środków blokuje auto-zakończenie do rozstrzygnięcia ([§7.9](#79-straty-chargebacki-i-rekompensaty)).
 
 ### 7.4 Terminy
 
@@ -352,36 +438,87 @@ Wszystkie terminy są konfigurowalne, a zadania pilnujące terminów działają 
 
 | Etap | Termin | Co się dzieje po upływie |
 |---|---|---|
-| Płatność | 24 h od końca aukcji | Anulowanie, strike dla kupującego, druga szansa |
+| Płatność | 24 h od końca aukcji (+ maks. 30 min, jeśli płatność jest w `PENDING`) | Anulowanie, strike dla kupującego, druga szansa |
 | Nadanie | 5 dni roboczych od opłacenia | Anulowanie, pełny zwrot, strike dla sprzedającego |
-| Doręczenie | 14 dni od nadania bez statusu końcowego | Kupujący może otworzyć spór „nie otrzymałem”, reklamacja u przewoźnika |
+| Doręczenie | 14 dni od nadania bez statusu końcowego | Kupujący może zgłosić „nie otrzymałem”. Biddy składa reklamację u przewoźnika, zamówienie → `LOST` |
 | **Weryfikacja przedmiotu** | **36 h od odbioru** | Auto-zakończenie, zwolnienie środków |
 | Odpowiedź sprzedającego w sporze | 48 h | Eskalacja do supportu Biddy |
 | Decyzja supportu | 72 h od eskalacji (SLA) | — |
 | Nadanie zwrotu przez kupującego | 5 dni roboczych | Spór zamknięty na korzyść sprzedającego |
 | Weryfikacja zwrotu przez sprzedającego | 36 h od odbioru zwrotu | Auto-zwrot środków kupującemu |
+| Powrót nieodebranej przesyłki | 14 dni od `NOT_PICKED_UP` bez statusu `RETURNED` | Zadanie dla supportu: reklamacja u przewoźnika, ewentualnie `LOST` |
 
-**Odbiór przesyłki:**
+Dni robocze liczymy z kalendarzem polskich świąt ([§15.7](#157-dni-robocze)).
 
-- Dla paczkomatów i punktów liczymy od statusu „odebrana przez odbiorcę”, a dla kuriera od statusu „doręczona”.
-- **[DO USTALENIA]** Polityka dla przesyłek nieodebranych. Propozycja: zwrot ceny i POK, potrącenie kosztu dostawy, strike dla kupującego.
+**Odbiór przesyłki** **[DECYZJA]:**
+
+- Okno 36 h liczymy dla paczkomatów i punktów od statusu „odebrana przez odbiorcę”, a dla kuriera od statusu „doręczona”.
+- Jeśli przewoźnik zgłosi powrót do nadawcy po upływie terminu odbioru, zamówienie przechodzi w `NOT_PICKED_UP`.
+- Jeśli przez 14 dni od nadania nie ma statusu końcowego, kupujący może zgłosić brak przesyłki i uruchamiamy ścieżkę `LOST`.
+- Opóźniony webhook przewoźnika przesuwa start okna na korzyść kupującego. To akceptujemy (polling co 2 h ogranicza opóźnienie).
+
+**Przesyłki nieodebrane** **[DECYZJA TYMCZASOWA]** (dopuszczalność potrącenia do potwierdzenia z prawnikiem, [§17.1](#171-pytania-do-prawnika-i-księgowego)):
+
+1. Zamówienie przechodzi w `NOT_PICKED_UP`, a środki pozostają wstrzymane.
+2. Zwrot robimy dopiero, gdy paczka **wróci do sprzedającego** (status `RETURNED`), żeby sprzedający nie został bez przedmiotu i bez pieniędzy.
+3. Kupujący dostaje zwrot ceny i POK, **bez kosztu dostawy**, oraz strike. Przykład: przy 100 zł kupujący zapłacił 122,98 zł, a dostaje 109,99 zł.
+4. Jeśli przewoźnik nalicza opłatę za zwrot do nadawcy, w MVP pokrywa ją Biddy (`platform_losses`). Skalę mierzymy w becie, a potem ewentualnie zmieniamy regulamin.
+5. Zasada jest opisana w regulaminie i pokazana przy checkoutcie.
 
 ### 7.5 Spory
 
 Powody: *niezgodny z opisem*, *uszkodzony*, *niekompletny*, *podróbka*, *nie otrzymałem*, *inny*.
 
+**Kiedy można zgłosić problem:**
+
+- Spór otwieramy tylko w oknie 36 h od odbioru (zamówienie `DELIVERED`).
+- Powód *nie otrzymałem* w sporze dotyczy sytuacji, gdy tracking pokazuje doręczenie, a kupujący przesyłki nie dostał.
+- Brak statusu końcowego przez 14 dni to nie spór ze sprzedającym, tylko ścieżka `LOST` (§7.4). Obsługuje ją Biddy z przewoźnikiem.
+
 Przebieg:
 
-1. Kupujący zgłasza problem w oknie 36 h: powód, opis, zdjęcia lub wideo. Środki pozostają zamrożone.
+1. Kupujący zgłasza problem: powód, opis, zdjęcia lub wideo. Środki pozostają zamrożone.
 2. Sprzedający ma 48 h na reakcję:
    - akceptuje zwrot (z odesłaniem lub bez),
    - proponuje zwrot częściowy,
    - odrzuca.
 3. Brak porozumienia oznacza eskalację do Biddy. Moderator widzi zdjęcia z aukcji, zdjęcia ze sporu, czat i tracking.
-4. Przy zwrocie z odesłaniem Biddy generuje etykietę zwrotną. Koszt pokrywa sprzedający, jeśli przedmiot był niezgodny z opisem lub podrobiony. Kupujący nie może zwrócić przedmiotu tylko dlatego, że zmienił zdanie (C2C).
-5. Zwrot obejmuje cenę, POK i dostawę, jeśli winny jest sprzedający.
+4. Przy zwrocie z odesłaniem Biddy generuje etykietę zwrotną. Kupujący nie może zwrócić przedmiotu tylko dlatego, że zmienił zdanie (C2C).
+5. Moderator może zdecydować, że winny jest przewoźnik (*uszkodzony*, z dokumentacją zniszczonego opakowania). Wtedy kupujący dostaje pełny zwrot, a sprzedający rekompensatę jak przy zaginięciu ([§7.9](#79-straty-chargebacki-i-rekompensaty)).
 
-Wszystkie decyzje zapisujemy z uzasadnieniem (wymóg DSA, *statement of reasons*).
+**Kwoty zwrotu** **[DECYZJA]:**
+
+| Rozstrzygnięcie | Kupujący dostaje | Sprzedający |
+|---|---|---|
+| Wina sprzedającego (niezgodny z opisem, niekompletny, podróbka) | Pełny zwrot: cena + POK + dostawa | Nie dostaje ceny. Pokrywa koszt dostawy w obie strony (potrącenie, [§7.9](#79-straty-chargebacki-i-rekompensaty)) + strike |
+| Zwrot częściowy (porozumienie lub decyzja) | Ustalona kwota, **tylko z części sprzedającego** (maks. cena) | Dostaje cenę pomniejszoną o zwrot. POK i dostawa nie są zwracane |
+| Wina przewoźnika | Pełny zwrot | Rekompensata (§7.9) |
+| Na korzyść sprzedającego | — | Zwolnienie środków jak przy `COMPLETED` |
+
+Wszystkie decyzje zapisujemy z uzasadnieniem (wymóg DSA, *statement of reasons*). Po rozstrzygnięciu obie strony mogą wystawić ocenę.
+
+**Stany sporu** (`disputes.status`):
+
+```mermaid
+stateDiagram-v2
+  [*] --> AWAITING_SELLER: zgłoszenie kupującego
+  AWAITING_SELLER --> RESOLVED: sprzedający akceptuje zwrot bez odesłania
+  AWAITING_SELLER --> AWAITING_RETURN: sprzedający akceptuje zwrot z odesłaniem
+  AWAITING_SELLER --> PARTIAL_OFFERED: propozycja zwrotu częściowego
+  PARTIAL_OFFERED --> RESOLVED: kupujący akceptuje
+  PARTIAL_OFFERED --> ESCALATED: kupujący odrzuca
+  AWAITING_SELLER --> ESCALATED: sprzedający odrzuca / brak reakcji w 48 h
+  ESCALATED --> AWAITING_RETURN: decyzja: zwrot z odesłaniem
+  ESCALATED --> RESOLVED: decyzja (zwrot pełny, częściowy lub dla sprzedającego)
+  AWAITING_RETURN --> RETURN_IN_TRANSIT: kupujący nadał zwrot
+  AWAITING_RETURN --> RESOLVED: brak nadania w 5 dni rob. → na korzyść sprzedającego
+  RETURN_IN_TRANSIT --> RETURN_DELIVERED: zwrot odebrany przez sprzedającego
+  RETURN_DELIVERED --> RESOLVED: potwierdzenie lub upływ 36 h → zwrot środków
+  RETURN_DELIVERED --> ESCALATED: sprzedający kwestionuje stan zwrotu
+  RESOLVED --> [*]
+```
+
+Zamówienie pozostaje w `DISPUTED` aż spór przejdzie w `RESOLVED`. Wtedy zamówienie przechodzi w `COMPLETED`, `REFUNDED` lub `PARTIALLY_REFUNDED`.
 
 ### 7.6 Operator płatności
 
@@ -413,16 +550,22 @@ Przykład: sprzedawca sprzedaje jeden przedmiot za 50 zł w miesiącu i wypłaca
    - opłaty per sprzedawca (jednorazowe i miesięczne),
    - koszt wypłaty,
    - obsługę **osób prywatnych** jako sprzedawców,
-   - możliwość **wstrzymania wypłat** do decyzji platformy i maksymalny czas wstrzymania,
+   - możliwość **wstrzymania wypłat** do decyzji platformy i maksymalny czas wstrzymania. **Wymagamy co najmniej 60 dni**, bo najdłuższa ścieżka (nadanie, doręczenie, spór, odesłanie zwrotu) trwa ok. 50 dni,
    - przebieg KYC (jakie dokumenty, ile trwa),
-   - refundy, chargebacki,
+   - **czy płatność ze splitem na sprzedawcę działa, zanim sprzedawca skończy KYC**, i co jest minimum do jego rejestracji (patrz niżej),
+   - refundy, także po wypłacie środków przez sprzedawcę, oraz chargebacki: kto odpowiada, terminy, jak przekazujemy dowody,
+   - **przenoszenie środków** między saldem platformy a saldem sprzedawcy (potrącenia, rekompensaty, [§7.9](#79-straty-chargebacki-i-rekompensaty)),
    - minimalne opłaty miesięczne,
    - wymogi umowne dla startupu.
 2. **[DECYZJA] Domyślny wybór: PayU Marketplace**, jeśli oferta potwierdzi brak opłat per sprzedawca i kontrolę nad wypłatami. Development można zacząć na publicznym sandboksie PayU. **Plan B: Mangopay.**
 3. Moduł płatności budujemy za interfejsem `PaymentGateway` (adapter). Reszta systemu nie zna operatora, więc zmiana w przyszłości to nowy adapter, a nie przepisywanie domeny. Większość modułu powstaje jeszcze przed wyborem operatora, patrz [§7.8](#78-moduł-płatności-adapter).
-4. **Niezależnie od operatora ograniczamy liczbę wypłat:**
-   - saldo sprzedającego w Biddy, wypłata na żądanie z minimalną kwotą (np. 20 zł),
-   - opcjonalnie automatyczna wypłata zbiorcza raz w tygodniu.
+4. **[DECYZJA] Niezależnie od operatora ograniczamy liczbę wypłat:**
+   - saldo sprzedającego w Biddy, wypłata na żądanie z minimalną kwotą **20 zł**,
+   - opcjonalnie automatyczna wypłata zbiorcza raz w tygodniu (sprzedający włącza ją w ustawieniach, obowiązuje to samo minimum),
+   - saldo poniżej minimum **nie może utknąć**: wypłacamy całość przy zamknięciu konta i automatycznie po 90 dniach bez nowych sprzedaży (lekcja z Vinted, [§17](#17-prawo-i-compliance)).
+5. **[DECYZJA TYMCZASOWA] Moment rejestracji sprzedawcy u operatora.**
+   - Domyślnie: rejestracja z minimalnym zestawem danych przy **pierwszym wystawieniu** (asynchronicznie, bez blokowania kreatora), a pełne KYC przed pierwszą wypłatą lub przed aukcją o wartości > 1000 zł.
+   - Jeśli operator przyjmie płatność na rzecz sprzedawcy dopiero po pełnym KYC, przenosimy KYC przed pierwszą publikację. To gorszy UX, więc w takim przypadku Mangopay (portfel kupującego nie wymaga konta sprzedawcy do zwolnienia środków) zyskuje w porównaniu.
 
 > **Opcja długoterminowa:** własne zezwolenie, np. wpis jako **mała instytucja płatnicza (MIP)** w KNF, pozwoliłoby obsługiwać escrow bez pośrednika. Wymaga to procedur AML, kapitału, raportowania i ma limity obrotu. To temat na etap dużej skali, do analizy z prawnikiem, **nie na MVP**.
 
@@ -435,24 +578,59 @@ Mapowanie modelu na operatorów (do potwierdzenia w dokumentacji i umowie):
 | Zwolnienie | Biddy oznacza zamówienie jako zakończone w ledgerze, środki stają się dostępne do wypłaty | Transfer portfel kupującego → portfel sprzedającego, POK jako opłata do portfela platformy |
 | Zwrot | Refund zamówienia (z salda sprzedawcy, zanim środki zostaną wypłacone) | Refund PayIn |
 | Wypłata | Payouts API z salda sprzedawcy | PayOut z portfela sprzedającego |
+| Przeniesienie środków (potrącenia, rekompensaty) | Do potwierdzenia (np. korekta splitu przy kolejnej płatności na rzecz sprzedawcy) | Transfer między portfelami |
 
 ### 7.7 Księga (ledger)
 
 **[DECYZJA]** Niezależnie od operatora prowadzimy **wewnętrzną księgę podwójnego zapisu** (`ledger_entries`, niemodyfikowalne wpisy). Każdy ruch pieniądza ma dwie strony. Codzienny job **uzgadnia** księgę z raportami operatora. Ledger jest też źródłem prawdy dla pytania „czy te środki wolno już wypłacić?”, zwłaszcza u operatorów, gdzie środki od razu lądują na saldzie sprzedawcy.
 
-Konta księgowe (przykład):
+**Zakres:** ledger rejestruje pieniądze klientów u operatora oraz zobowiązania i należności Biddy wobec użytkowników. **Nie jest** pełną księgowością spółki: faktury kosztowe przewoźników, rachunek firmowy i podatki prowadzi biuro księgowe. Eksport z ledgera jest dla księgowości źródłem danych.
 
-```
-buyer_funds_held:{orderId}       – środki wstrzymane na zamówienie
-seller_balance_pending:{userId}  – środki sprzedającego w trakcie weryfikacji
-seller_balance_available:{userId}– saldo do wypłaty
-platform_revenue_pok             – przychód z POK
-platform_shipping                – rozliczenia dostaw
-payment_fees_expense             – koszty operatora
-refunds                          – zwroty
-```
+**Konwencja:** każdy wpis ma kwotę ze znakiem (`+` = Winien / debet, `−` = Ma / kredyt). Suma wpisów jednej transakcji (`transaction_id`) wynosi zawsze 0.
 
-Wszystkie kwoty są w **groszach jako liczby całkowite** (`bigint`). **Nigdy float.** Zaokrąglenia POK: half-up do grosza, jedna funkcja w `packages/shared`.
+**Plan kont** **[DECYZJA]:**
+
+| Konto | Typ | Znaczenie |
+|---|---|---|
+| `provider_cash:{provider}` | aktywa | Środki u operatora płatności (wpłaty minus zwroty, wypłaty i opłaty) |
+| `seller_receivable:{userId}` | aktywa | Należność od sprzedającego (np. koszt dostawy po przegranym sporze, gdy saldo było za małe) |
+| `carrier_claims_receivable` | aktywa | Należności od przewoźników z reklamacji |
+| `buyer_funds_held:{orderId}` | zobowiązanie | Cała wpłata kupującego na zamówienie, wstrzymana do zakończenia |
+| `seller_balance_available:{userId}` | zobowiązanie | Saldo sprzedającego do wypłaty |
+| `payouts_in_transit:{payoutId}` | zobowiązanie | Wypłata zlecona, czeka na potwierdzenie operatora |
+| `vat_payable` | zobowiązanie | VAT należny od POK |
+| `platform_revenue_pok` | przychód | POK netto |
+| `platform_shipping` | przychód | Opłaty za dostawę pobrane od kupujących i odzyskane od sprzedających |
+| `payment_fees_expense` | koszt | Opłaty operatora |
+| `platform_losses` | koszt | Straty: chargebacki, rekompensaty, zwroty nieodebranych, spisane należności |
+| `platform_external` | rozliczeniowe | Przepływy poza operatorem, np. rekompensata wypłacona przelewem z rachunku firmowego |
+
+„Saldo w trakcie” sprzedającego to **nie** osobne konto. Liczymy je z `buyer_funds_held` jego otwartych zamówień (część `items_total`). Dzięki temu te same pieniądze nie są księgowane dwa razy.
+
+**Wzorcowe księgowania** (D = debet, C = kredyt; cena = `items_total`):
+
+| Zdarzenie | Księgowanie |
+|---|---|
+| Płatność udana | D `provider_cash` total · C `buyer_funds_held` total |
+| Zakończenie (`COMPLETED`) | D `buyer_funds_held` total · C `seller_balance_available` cena (najpierw spłata `seller_receivable`, jeśli jest) · C `platform_revenue_pok` POK netto · C `vat_payable` VAT od POK · C `platform_shipping` dostawa |
+| Pełny zwrot | D `buyer_funds_held` total · C `provider_cash` total |
+| Zwrot nieodebranej | D `buyer_funds_held` total · C `provider_cash` (total − dostawa) · C `platform_shipping` dostawa |
+| Zwrot częściowy | D `buyer_funds_held` kwota zwrotu · C `provider_cash` kwota zwrotu. Reszta jak przy zakończeniu, z ceną pomniejszoną o zwrot |
+| Zlecenie wypłaty | D `seller_balance_available` · C `payouts_in_transit` |
+| Wypłata zrealizowana / nieudana | D `payouts_in_transit` · C `provider_cash` / storno do `seller_balance_available` |
+| Opłata operatora | D `payment_fees_expense` · C `provider_cash` |
+| Koszty sporu po stronie sprzedającego | D `seller_balance_available` (do wysokości salda) + D `seller_receivable` (reszta) · C `platform_shipping` |
+| Chargeback po zakończeniu, ponosi Biddy | D `platform_losses` · C `provider_cash` |
+| Rekompensata za zaginioną paczkę | D `carrier_claims_receivable` · C `seller_balance_available` lub `platform_external`. Nieodzyskana część reklamacji → D `platform_losses` · C `carrier_claims_receivable` |
+
+Niezmienniki (testowane w F-22):
+
+- Suma każdej transakcji = 0.
+- `seller_balance_available` nigdy nie jest ujemne. Niedobór trafia na `seller_receivable`.
+- `buyer_funds_held:{orderId}` po zakończeniu zamówienia (w każdym stanie końcowym) wynosi 0.
+- Każde saldo da się odtworzyć z samych wpisów.
+
+Wszystkie kwoty są w **groszach jako liczby całkowite** (`bigint`). **Nigdy float.** Zaokrąglenia POK i VAT: half-up do grosza, jedna funkcja w `packages/shared`.
 
 ### 7.8 Moduł płatności (adapter)
 
@@ -521,6 +699,8 @@ export type GatewayCapabilities = {
   blikCodeInOwnUi: boolean;   // kod BLIK wpisywany w UI Biddy
   embeddedKyc: boolean;       // KYC w naszym UI zamiast przekierowania
   savedCards: boolean;
+  internalTransfers: boolean; // przeniesienie środków platforma ↔ sprzedawca (potrącenia, rekompensaty)
+  paymentRequiresVerifiedSeller: boolean; // split na sprzedawcę wymaga zakończonego KYC
 };
 
 export type CreatePaymentInput = {
@@ -630,7 +810,7 @@ Ledger pozostaje osobnym modułem `ledger` ([§10.3](#103-moduły-backendu-bound
 
 | Teraz (niezależne od operatora) | Po wyborze operatora |
 |---|---|
-| Tabele: `payments`, `payouts`, `seller_accounts`, `ledger_entries`, `processed_webhooks`, `fee_schedules` | Adapter: wywołania API, uwierzytelnianie, weryfikacja podpisów webhooków |
+| Tabele: `payments`, `refunds`, `chargebacks`, `payouts`, `seller_accounts`, `ledger_entries`, `processed_webhooks`, `fee_schedules` | Adapter: wywołania API, uwierzytelnianie, weryfikacja podpisów webhooków |
 | Ledger + testy niezmienników (każda transakcja sumuje się do zera, saldo nigdy ujemne) | Mapowanie statusów i błędów operatora na zdarzenia znormalizowane |
 | Kalkulator POK i cenniki | Rejestracja sprzedawcy i KYC: przekierowanie czy osadzenie w naszym UI, wymagane pola |
 | Maszyna stanów zamówienia sterowana zdarzeniami | Konkretna realizacja wstrzymania i zwolnienia (`holdModel`) |
@@ -642,6 +822,26 @@ Ledger pozostaje osobnym modułem `ledger` ([§10.3](#103-moduły-backendu-bound
 | FakeGateway, testy kontraktowe, e2e całej transakcji | |
 
 **Opcjonalnie:** PayU ma publiczny sandbox, więc adapter PayU (najbardziej prawdopodobny wybór) można zacząć przed podpisaniem umowy. Ryzyko jest małe, bo adapter to cienka warstwa.
+
+### 7.9 Straty, chargebacki i rekompensaty
+
+**[DECYZJA TYMCZASOWA]** Kto ponosi koszt w sytuacjach wyjątkowych. Mechanizm potrąceń zależy od operatora (`capabilities.internalTransfers`), a regulamin musi to opisać (pytania w [§17.1](#171-pytania-do-prawnika-i-księgowego)).
+
+| Sytuacja | Kupujący | Sprzedający | Koszt ponosi |
+|---|---|---|---|
+| **Zaginięcie przesyłki** (`LOST`) | Pełny zwrot | **Rekompensata = cena**, maks. do limitu odpowiedzialności przewoźnika. Wypłacana po potwierdzeniu zaginięcia przez przewoźnika, nie później niż 30 dni od zgłoszenia | Biddy składa reklamację (jest zleceniodawcą). Odszkodowanie trafia do Biddy, a różnica to `platform_losses` |
+| **Uszkodzenie w transporcie** (decyzja moderatora) | Pełny zwrot | Rekompensata jak przy zaginięciu | Jak wyżej |
+| **Spór przegrany przez sprzedającego** | Pełny zwrot (cena + POK + dostawa) | Pokrywa dostawę w obie strony: potrącenie z salda, a niedobór jako `seller_receivable` (spłacany z kolejnych sprzedaży, blokada wypłat do spłaty). Strike | Należność nieodzyskana w 180 dni → `platform_losses` |
+| **Nieodebrana przesyłka** | Cena + POK, bez dostawy, strike | Odzyskuje przedmiot | Opłata za zwrot do nadawcy (jeśli jest) → Biddy |
+| **Chargeback przed zakończeniem** | — | Środki pozostają wstrzymane | Bronimy transakcji dowodami. Przegrany chargeback = pełny zwrot z wstrzymanych środków |
+| **Chargeback po zakończeniu**, sprzedający się wywiązał (tracking, brak sporu) | Konto kupującego zablokowane do wyjaśnienia | Nie ponosi kosztu | Biddy (`platform_losses`). Bronimy transakcji dowodami |
+| **Chargeback po zakończeniu**, oszustwo sprzedającego wykryte później | — | Należność `seller_receivable`, blokada konta i wypłat | Biddy do czasu odzyskania |
+
+Zasady:
+
+- **Rekompensaty w MVP** wypłacamy na saldo sprzedającego, jeśli operator obsługuje transfery z salda platformy. W przeciwnym razie dział `finance` robi przelew z rachunku firmowego (`platform_external`), z wpisem w panelu admina i audit logu.
+- **Dowody do chargebacków** zbieramy automatycznie: tracking z potwierdzeniem odbioru, historia czatu, zdjęcia z aukcji, potwierdzenie „Wszystko OK” lub upływ 36 h.
+- **Limit strat:** alert, gdy `platform_losses` w miesiącu przekroczy 0,5% GMV.
 
 ---
 
@@ -679,20 +879,37 @@ Sprzedający wybiera gabaryt przy wystawianiu. Gabaryty są zbieżne z paczkomat
 
 Sprzedający zaznacza akceptowanych przewoźników. Kupujący widzi ceny dostaw już na stronie aukcji („dostawa od …”).
 
+Limity wymiarów i wagi różnią się między przewoźnikami. Mapowanie „gabaryt → dostępni przewoźnicy i usługi” jest konfiguracją w module `shipping`, a nie stałą w kodzie.
+
 ### 8.3 Przepływ
 
 1. Kupujący w checkoutcie wybiera przewoźnika i punkt na mapie (widget przewoźnika lub agregatora) albo adres.
-2. Po potwierdzeniu płatności worker tworzy przesyłkę przez API. Biddy jest zleceniodawcą i płatnikiem, nadawcą jest sprzedający, odbiorcą kupujący. Zapisujemy numer przesyłki, etykietę (PDF w R2) i kod nadania.
-3. Sprzedający dostaje push i e-mail z kodem lub etykietą oraz terminem nadania.
-4. Tracking działa przez **webhooki** agregatora/przewoźnika oraz **fallback pollingiem** (job co 2 h dla aktywnych przesyłek).
-5. Statusy przewoźników mapujemy na wewnętrzne:
+2. Po potwierdzeniu płatności sprzedający dostaje push i e-mail „Sprzedane, nadaj w ciągu 5 dni roboczych”.
+3. **[DECYZJA TYMCZASOWA]** Przesyłkę tworzymy, gdy sprzedający kliknie **„Nadaj”**. Uzupełnia wtedy dane nadawcy (imię i nazwisko, telefon, adres, jeśli przewoźnik go wymaga) i wybiera sposób nadania. Dzięki temu nie płacimy za etykiety, które nie zostaną użyte (`CANCELLED_NOT_SHIPPED`). Jeśli Furgonetka nalicza opłatę dopiero przy nadaniu albo bezpłatnie anuluje nieużyte etykiety, możemy tworzyć przesyłkę automatycznie zaraz po płatności.
+4. Przesyłkę tworzy worker przez API. Biddy jest zleceniodawcą i płatnikiem, nadawcą jest sprzedający, odbiorcą kupujący. Zapisujemy numer przesyłki, etykietę (PDF w R2) i kod nadania.
+5. Tracking działa przez **webhooki** agregatora/przewoźnika oraz **fallback pollingiem** (job co 2 h dla aktywnych przesyłek).
+6. Statusy przewoźników mapujemy na wewnętrzne:
 
 ```
 CREATED → DROPPED_OFF → IN_TRANSIT → OUT_FOR_DELIVERY | READY_FOR_PICKUP → DELIVERED
                                    ↘ EXCEPTION / RETURNING → RETURNED
 ```
 
-`DELIVERED` (odebrana) uruchamia okno 36 h.
+`DELIVERED` (odebrana) uruchamia okno 36 h. `RETURNING` po upływie terminu odbioru przełącza zamówienie w `NOT_PICKED_UP`, a `RETURNED` uruchamia zwrot środków ([§7.4](#74-terminy)).
+
+**Prywatność:** etykieta zawiera dane nadawcy, które zobaczy kupujący. Informujemy o tym sprzedającego przy pierwszym nadaniu i w polityce prywatności.
+
+### 8.4 Reklamacje u przewoźnika
+
+Reklamacje (zaginięcie, uszkodzenie) składa **Biddy** jako zleceniodawca. Panel admina prowadzi je w tabeli `carrier_claims`, a rekompensaty dla sprzedających działają według [§7.9](#79-straty-chargebacki-i-rekompensaty).
+
+### 8.5 Pytania do Furgonetki i InPost (Faza 0)
+
+- Czy płacimy za utworzenie przesyłki, czy za nadanie? Czy nieużytą etykietę można bezpłatnie anulować?
+- Czy zwrot nieodebranej przesyłki do nadawcy jest płatny i ile kosztuje?
+- Limity odpowiedzialności przewoźników, przebieg i terminy reklamacji, opcje ubezpieczenia.
+- Dostępność webhooków trackingu dla każdego przewoźnika, sandbox, limity API.
+- Stawki per przewoźnik i gabaryt oraz warunki ich renegocjacji przy wolumenie.
 
 ---
 
@@ -722,6 +939,8 @@ Co MVP już dla niego przygotowuje (bez dodatkowej pracy):
 | ADR-6 | **Licencjonowany operator płatności + własny ledger** | Wymogi prawne (brak zezwolenia KNF), audytowalność, możliwość zmiany operatora |
 | ADR-7 | **Adaptery** dla płatności, przewoźników, SMS i maili | Wymienialność dostawców, testy z fake'ami |
 | ADR-8 | **EU data residency** (Frankfurt) | RODO, niskie opóźnienia do PL |
+| ADR-9 | **Web-first:** publiczny start na web (RWD + PWA + web push), aplikacje Expo zaraz po starcie | Szacunki (FEATURES.md) nie mieszczą web i mobile w planowanym terminie. Web daje SEO i szybsze iteracje w becie. Ryzyko braku natywnych pushy na iOS ograniczamy PWA, e-mailem i krótką Fazą 4. |
+| ADR-10 | **ID generowane w aplikacji** (UUIDv7) | Niezależność od wersji Postgresa (natywne `uuidv7()` jest dopiero w PG 18), ID znane przed INSERT (outbox, idempotencja). |
 
 ### 10.2 Diagram komponentów
 
@@ -766,18 +985,18 @@ flowchart LR
 
 | Moduł | Odpowiedzialność |
 |---|---|
-| `identity` | Auth (Better Auth), użytkownicy, weryfikacja telefonu, role, limity, strike'i |
+| `identity` | Auth (Better Auth), użytkownicy, weryfikacja telefonu, akceptacje regulaminu, role, limity, strike'i i blokady (§4.1) |
 | `catalog` | Kategorie (drzewo), schematy atrybutów, przedmioty |
 | `media` | Presigned upload, przetwarzanie zdjęć, usuwanie EXIF, moderacja obrazów |
 | `auctions` | Aukcje, oferty, proxy bidding, anti-sniping, zamykanie, obserwowane |
-| `orders` | Checkout, maszyna stanów zamówienia, terminy |
-| `payments` | Adapter operatora, webhooki, KYC status, wypłaty |
+| `orders` | Checkout, maszyna stanów zamówienia, terminy, oferty drugiej szansy |
+| `payments` | Adapter operatora, webhooki, KYC status, zwroty, chargebacki, wypłaty |
 | `ledger` | Księga podwójnego zapisu, uzgodnienia |
-| `shipping` | Adapter przewoźników, wyceny, etykiety, tracking |
+| `shipping` | Adapter przewoźników, wyceny, etykiety, tracking, reklamacje |
 | `disputes` | Spory, dowody, decyzje, zwroty |
-| `messaging` | Czat kupujący ↔ sprzedający, wykrywanie kontaktu poza platformą |
+| `messaging` | Czat kupujący ↔ sprzedający, wykrywanie kontaktu poza platformą, blokowanie użytkowników |
 | `reviews` | Oceny i reputacja |
-| `notifications` | Push, e-mail, SMS, in-app, preferencje |
+| `notifications` | Web push, push mobilny (Expo, Faza 4), e-mail, SMS, in-app, preferencje |
 | `search` | Indeksowanie do Meilisearch, zapisane wyszukiwania |
 | `trust-safety` | Zgłoszenia (DSA), reguły antyfraudowe, kolejki moderacji |
 | `compliance` | DAC7, eksporty, retencja danych |
@@ -790,7 +1009,7 @@ Reguła: moduły komunikują się przez **publiczne serwisy modułu** albo **eve
 Jeden codebase `apps/api` ma dwa entrypointy:
 
 - `main.ts` to **API**: HTTP + WebSocket, bezstanowe, skalowane poziomo. Socket.IO korzysta z Redis adaptera.
-- `worker.ts` to **workery BullMQ**: zamykanie aukcji, terminy zamówień, powiadomienia, indeksowanie, tracking, wypłaty, przetwarzanie zdjęć, relay outboxa, joby cykliczne (sweeper aukcji, uzgodnienia ledgera, polling trackingu).
+- `worker.ts` to **workery BullMQ**: zamykanie aukcji, terminy zamówień, powiadomienia, indeksowanie, tracking, wypłaty, przetwarzanie zdjęć, relay outboxa, rewalidacja stron aukcji w Next.js, joby cykliczne (sweeper aukcji, uzgodnienia ledgera, polling trackingu).
 
 ### 10.5 Kanały realtime
 
@@ -822,12 +1041,12 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 | Obszar | Wybór | Uzasadnienie / alternatywa |
 |---|---|---|
 | Framework | **NestJS** (adapter Fastify) | Struktura modułowa, DI, guards, gateway WS |
-| Baza | **PostgreSQL 17/18** | Transakcje, `FOR UPDATE`, JSONB dla atrybutów, `ltree` dla drzewa kategorii |
+| Baza | **PostgreSQL 17/18** (najnowsza dostępna na Render) | Transakcje, `FOR UPDATE`, JSONB dla atrybutów, `ltree` dla drzewa kategorii. UUIDv7 generujemy w aplikacji (ADR-10). |
 | ORM | **Drizzle ORM** + drizzle-kit (migracje) | Pełna kontrola SQL (blokady, CTE, indeksy częściowe), lekki. Alt.: Prisma (lepszy DX, mniej kontroli). |
 | Auth | **Better Auth** (montowany w NestJS, adapter Drizzle) | Open-source, dane u nas. E-mail i hasło, Google, Apple, Facebook, OTP telefonu, 2FA, plugin Expo. Alt.: Clerk (szybciej, ale koszt per MAU i lock-in). |
-| Kolejki / joby | **BullMQ** na Redis | Opóźnione joby (koniec aukcji, terminy), retry, repeatable |
+| Kolejki / joby | **BullMQ** na Redis | Opóźnione joby (koniec aukcji, terminy), retry, repeatable. **Osobna instancja Redis z `maxmemory-policy noeviction`** (wymóg BullMQ: eviction gubi joby). |
 | Realtime | **Socket.IO** + `@socket.io/redis-adapter` | Alt.: zarządzany Ably/Pusher przy dużej skali |
-| Cache / rate limit | **Redis** | |
+| Cache / rate limit / pub-sub | **Redis** (druga instancja, `allkeys-lru`) | Oddzielona od kolejek, żeby zapełniony cache nie blokował jobów |
 | Wyszukiwarka | **Meilisearch** (Cloud, EU) | Fasety, tolerancja literówek, proste API. Alt.: Typesense; OpenSearch przy dużej skali. |
 | Pliki | **Cloudflare R2** (S3 API) + Cloudflare Image Transformations | Brak opłat za egress, CDN |
 | Moderacja obrazów | Sightengine lub AWS Rekognition | NSFW, broń, przemoc |
@@ -842,6 +1061,8 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 | Obszar | Wybór |
 |---|---|
 | Framework | **Next.js** (App Router, Server Components, ISR dla stron aukcji i kategorii) |
+| Świeżość stron aukcji | ISR z `revalidate` 60 s + **rewalidacja na żądanie** (`revalidateTag('auction:{id}')`) wywoływana przez worker po `BidPlaced`, `AuctionExtended` i `AuctionEnded`, maks. raz na 5 s na aukcję. HTML bez JS pokazuje cenę nie starszą niż ok. 10 s. |
+| PWA i web push | Manifest, service worker, **Web Push (VAPID)** przez bibliotekę `web-push` w module `notifications`. Na iOS web push działa tylko po dodaniu strony do ekranu głównego (iOS 16.4+), więc po pierwszej ofercie na iPhonie proponujemy instalację. |
 | UI | **Tailwind CSS** + **shadcn/ui** (Radix) |
 | Dane | TanStack Query (client), fetch w Server Components z przekazywaniem cookie sesji |
 | Formularze | react-hook-form + Zod |
@@ -851,6 +1072,8 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 | Analityka | PostHog (EU), Sentry |
 
 ### 11.4 Mobile (`apps/mobile`)
+
+Aplikacje powstają w Fazie 4, zaraz po publicznym starcie web (ADR-9). Wybory poniżej obowiązują bez zmian.
 
 | Obszar | Wybór |
 |---|---|
@@ -868,6 +1091,8 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 
 Osobna aplikacja Next.js z shadcn/ui i TanStack Table, pod osobną domeną (`admin.biddy.pl`). Wymaga 2FA, opcjonalnie allowlisty IP lub Cloudflare Access. RBAC i audit log każdej akcji.
 
+**[DECYZJA]** Admin ma **osobną sesję**: ciasteczko host-only dla `admin.biddy.pl` z innym prefiksem i czasem życia 8 h. Ciasteczko sesji użytkownika (`.biddy.pl`) nie daje dostępu do panelu.
+
 ### 11.6 Hosting i usługi zewnętrzne
 
 | Komponent | MVP | Skala (później) |
@@ -875,7 +1100,7 @@ Osobna aplikacja Next.js z shadcn/ui i TanStack Table, pod osobną domeną (`adm
 | Web + admin | **Vercel** (region `fra1`) | bez zmian |
 | API + workery | **Render** (Frankfurt), kontenery Docker | AWS ECS Fargate (eu-central-1) + Terraform |
 | PostgreSQL | Render Postgres (PITR) | AWS RDS / Aurora |
-| Redis | Render Key Value | AWS ElastiCache |
+| Redis | Render Key Value, **2 instancje**: kolejki (`noeviction`) oraz cache/pub-sub (`allkeys-lru`) | AWS ElastiCache |
 | Wyszukiwarka | Meilisearch Cloud (EU) | bez zmian / self-host |
 | Media / CDN | Cloudflare R2 + CDN | bez zmian |
 | DNS, WAF, bot protection | **Cloudflare** (w tym Turnstile na rejestracji) | bez zmian |
@@ -920,13 +1145,15 @@ biddy/
 │  └─ terraform/           # (później)
 ├─ docs/
 │  ├─ PROJECT.md           # ten dokument
+│  ├─ FEATURES.md          # lista feature speców, szacunki, zależności
+│  ├─ features/            # pełne specy F-XX-nazwa.md (just-in-time)
 │  └─ adr/                 # Architecture Decision Records
 ├─ .github/workflows/
 ├─ turbo.json
 └─ pnpm-workspace.yaml
 ```
 
-**Lokalne środowisko:** `docker compose up` uruchamia Postgres, Redis, Meilisearch, MinIO (zamiast R2) i Mailpit (podgląd maili). Płatności działają w sandboksie operatora, webhooki trafiają do lokalnego API przez tunel (`cloudflared` lub ngrok).
+**Lokalne środowisko:** `docker compose up` uruchamia Postgres, Redis, Meilisearch, MinIO (zamiast R2) i Mailpit (podgląd maili). Płatności i dostawy działają domyślnie na **FakeGateway** i **FakeShippingProvider**. Sandbox operatora jest opcjonalny, a jego webhooki trafiają do lokalnego API przez tunel (`cloudflared` lub ngrok).
 
 ---
 
@@ -934,7 +1161,7 @@ biddy/
 
 ### 13.1 Konwencje
 
-- ID: **UUIDv7** (sortowalne czasowo). W URL-ach krótki publiczny identyfikator i slug: `biddy.pl/a/nike-air-max-90-k3x9qa`.
+- ID: **UUIDv7** (sortowalne czasowo), generowane w aplikacji. W URL-ach krótki publiczny identyfikator i slug: `biddy.pl/a/nike-air-max-90-k3x9qa`.
 - Kwoty: `bigint` w groszach + `currency char(3)`.
 - Czasy: `timestamptz` w UTC.
 - Soft delete tylko tam, gdzie wymaga tego audyt. Dane finansowe są **niemodyfikowalne** (korekty przez nowe wpisy).
@@ -945,7 +1172,8 @@ biddy/
 ```mermaid
 erDiagram
   USER ||--o{ ADDRESS : posiada
-  USER ||--o| SELLER_ACCOUNT : "konto wypłat / KYC"
+  USER ||--o{ SELLER_ACCOUNT : "konto u operatora (per provider)"
+  USER ||--o{ STRIKE : otrzymuje
   USER ||--o{ ITEM : wystawia
   CATEGORY ||--o{ CATEGORY : podkategorie
   CATEGORY ||--o{ ITEM : zawiera
@@ -957,8 +1185,12 @@ erDiagram
   ORDER_ITEM }o--|| AUCTION : "z aukcji"
   USER ||--o{ ORDER : kupuje
   ORDER ||--o{ PAYMENT : platnosci
+  PAYMENT ||--o{ REFUND : zwroty
+  PAYMENT ||--o{ CHARGEBACK : chargebacki
   ORDER ||--o{ SHIPMENT : "wysylka / zwrot"
   SHIPMENT ||--o{ SHIPMENT_EVENT : tracking
+  SHIPMENT ||--o| CARRIER_CLAIM : reklamacja
+  AUCTION ||--o{ SECOND_CHANCE_OFFER : "druga szansa"
   ORDER ||--o| DISPUTE : spor
   ORDER ||--o{ LEDGER_ENTRY : ksiegowania
   ORDER ||--o{ REVIEW : oceny
@@ -971,11 +1203,16 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `users` | id, email, phone, phone_verified_at, display_name, avatar_key, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), strikes, limits (jsonb), created_at |
-| `seller_accounts` | user_id, type (`PRIVATE`/`BUSINESS`), provider, provider_account_id, kyc_status, payout_method_masked, dac7_data (szyfrowane), nip, created_at |
-| `addresses` | id, user_id, name, street, city, postal_code, country, phone, is_default |
+| `users` | id, email, phone, phone_verified_at, display_name, avatar_key, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), bidding_blocked_until, listing_blocked_until, limits (jsonb, nadpisania §4.1), created_at |
+| `terms_acceptances` | id, user_id, document (`TERMS`/`PRIVACY`), version, accepted_at, ip |
+| `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, order_id, auction_id, issued_by (system/admin), statement_of_reasons, expires_at, appeal_status, revoked_at, created_at |
+| `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider). |
+| `addresses` | id, user_id, name, street, city, postal_code, country, phone, is_default, is_sender_default |
 | `payment_methods` (v1) | id, user_id, provider_ref, type, brand, last4, is_default (tylko referencje/tokeny operatora, **żadnych danych kart**) |
-| `devices` | id, user_id, push_token, platform, fingerprint, last_seen_at |
+| `devices` | id, user_id, platform (`WEB`/`IOS`/`ANDROID`), push_token (Expo), web_push_subscription (jsonb: endpoint, klucze), fingerprint, last_seen_at |
+| `user_follows` | follower_id, seller_id, created_at (obserwowani sprzedawcy) |
+| `user_blocks` | blocker_id, blocked_id, created_at |
+| `notification_preferences` | user_id, type, channel, enabled |
 
 **Katalog i aukcje**
 
@@ -985,23 +1222,27 @@ erDiagram
 | `items` | id, seller_id, category_id, title, description, condition (enum), brand, attributes (jsonb), package_size, weight_g, dims, allowed_carriers (text[]), location_city, created_at |
 | `item_media` | id, item_id, storage_key, width, height, position, moderation_status |
 | `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status, start_price, reserve_price, buy_now_price, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, starts_at, ends_at, original_ends_at, extension_policy, version, created_at |
-| `bids` | id, auction_id, bidder_id, amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), idempotency_key (unique per bidder), ip, device_id, created_at |
+| `bids` | id, auction_id, bidder_id, amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, idempotency_key (unique per bidder), ip, device_id, created_at |
 | `watchlist` | user_id, auction_id, created_at |
-| `saved_searches` | id, user_id, query (jsonb), notify, created_at |
+| `saved_searches` (v1) | id, user_id, query (jsonb), notify, created_at |
+| `second_chance_offers` | id, auction_id, bidder_id, amount, status (`PENDING`/`ACCEPTED`/`DECLINED`/`EXPIRED`), expires_at, order_id, created_at |
 
 **Transakcje**
 
 | Tabela | Kolumny |
 |---|---|
-| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, created_at |
-| `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb) |
-| `fee_schedules` | id, fixed_fee, percent_bp (punkty bazowe, 700 = 7%), tiers (jsonb), category_id (nullable), valid_from, valid_to |
-| `payments` | id, order_id, provider, provider_payment_id, method, amount, status, failure_reason, raw (jsonb), created_at |
+| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, cancelled_at, chargeback_status, second_chance_offer_id, created_at |
+| `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb), is_active (false po anulowaniu zamówienia) |
+| `fee_schedules` | id, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), category_id (nullable), valid_from, valid_to |
+| `payments` | id, order_id, provider, provider_payment_id, method, amount, status, failure_reason, idempotency_key, raw (jsonb), created_at |
+| `refunds` | id, order_id, payment_id, dispute_id, reason (`DISPUTE`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, raw (jsonb), created_at |
+| `chargebacks` | id, payment_id, order_id, amount, reason, status, liable_party (`PLATFORM`/`SELLER`), provider_ref, evidence_submitted_at, opened_at, closed_at |
 | `ledger_entries` | id, transaction_id, account, amount (+/−), currency, order_id, payout_id, description, created_at |
-| `payouts` | id, seller_id, amount, status, provider_payout_id, requested_at, completed_at |
-| `shipments` | id, order_id, direction (`OUTBOUND`/`RETURN`), provider, carrier, service, package_size, pickup_point_id, recipient (jsonb), tracking_number, label_key, dropoff_code, status, cost, created_at |
+| `payouts` | id, seller_id, provider, amount, status, provider_payout_id, idempotency_key, requested_at, completed_at |
+| `shipments` | id, order_id, direction (`OUTBOUND`/`RETURN`), provider, carrier, service, package_size, pickup_point_id, sender (jsonb), recipient (jsonb), tracking_number, label_key, dropoff_code, status, cost, created_at |
 | `shipment_events` | id, shipment_id, raw_status, status, occurred_at, raw (jsonb) |
-| `disputes` | id, order_id, opened_by, reason, status, resolution, refund_amount, deadline_at, decided_by, decision_reason, created_at |
+| `carrier_claims` | id, shipment_id, type (`LOST`/`DAMAGED`), status, claimed_amount, recovered_amount, submitted_at, resolved_at |
+| `disputes` | id, order_id, opened_by, reason, status (§7.5), resolution, refund_amount, deadline_at, decided_by, decision_reason, created_at |
 | `dispute_messages` / `dispute_evidence` | wiadomości i załączniki w sporze |
 
 **Społeczność i operacje**
@@ -1009,7 +1250,7 @@ erDiagram
 | Tabela | Kolumny |
 |---|---|
 | `conversations` / `messages` | czat per aukcja lub zamówienie, flagi wykrytych danych kontaktowych |
-| `reviews` | id, order_id, author_id, target_id, role (`BUYER`/`SELLER`), rating, comment, visible_at |
+| `reviews` | id, order_id, author_id, target_id, role (`BUYER`/`SELLER`), rating, comment, visible_at. Unikalne (order_id, author_id). |
 | `notifications` | id, user_id, type, payload, read_at, created_at |
 | `reports` | id, reporter_id, target_type, target_id, reason, status, decision, statement_of_reasons, created_at (DSA *notice & action*) |
 | `outbox` | id, type, payload, created_at, processed_at, attempts |
@@ -1021,7 +1262,10 @@ erDiagram
 - `auctions(status, ends_at)` dla sweepera i sortowania „kończące się”,
 - `bids(auction_id, created_at)`,
 - `orders(status, inspection_ends_at)` oraz `orders(status, payment_due_at)` dla jobów terminów,
-- unikalny `bids(bidder_id, idempotency_key)`.
+- unikalny `bids(bidder_id, idempotency_key)`,
+- unikalny częściowy `order_items(auction_id) WHERE is_active` (jedno aktywne zamówienie na aukcję; anulowanie zamówienia ustawia `is_active = false` w tej samej transakcji),
+- `strikes(user_id, created_at)` dla reguły „3 w 90 dni”,
+- `shipments(status)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`.
 
 ---
 
@@ -1037,8 +1281,17 @@ POST   /auth/sign-up | /auth/sign-in | /auth/sign-in/social | /auth/phone/send-o
 GET    /me                         PATCH /me
 GET    /users/:id                  (profil publiczny, oceny)
 CRUD   /me/addresses
+POST   /me/terms-acceptances       (akceptacja aktualnej wersji regulaminu / polityki)
 POST   /me/seller-onboarding       → rejestracja sprzedawcy i KYC u operatora
-GET    /me/balance                 POST /me/payouts
+GET    /me/balance                 POST /me/payouts             PATCH /me/payout-settings
+GET    /me/strikes                 POST /me/strikes/:id/appeal
+PUT    /me/followed-sellers/:userId    DELETE /me/followed-sellers/:userId
+PUT    /me/blocks/:userId          DELETE /me/blocks/:userId
+
+# Powiadomienia
+GET    /me/notifications           POST /me/notifications/read   { ids | all }
+GET    /me/notification-preferences    PUT /me/notification-preferences
+POST   /me/devices                 (rejestracja web push / Expo push)   DELETE /me/devices/:id
 
 # Katalog i media
 GET    /categories                 GET /categories/:id/schema
@@ -1049,8 +1302,9 @@ POST   /auctions                   (szkic z przedmiotem)
 PATCH  /auctions/:id               POST /auctions/:id/publish   POST /auctions/:id/cancel
 GET    /auctions                   (wyszukiwanie — proxy do Meilisearch z filtrami)
 GET    /auctions/:id               GET /auctions/:id/bids       (historia, zanonimizowana)
-POST   /auctions/:id/bids          { maxAmount, idempotencyKey }
-POST   /auctions/:id/buy-now       { idempotencyKey }
+POST   /auctions/:id/bids          { maxAmount }            + nagłówek Idempotency-Key
+POST   /auctions/:id/buy-now       {}                       + nagłówek Idempotency-Key
+POST   /auctions/:id/relist        (kopia zakończonej aukcji jako szkic)
 PUT    /me/watchlist/:auctionId    DELETE /me/watchlist/:auctionId
 
 # Zamówienia
@@ -1058,8 +1312,13 @@ GET    /me/orders?role=buyer|seller
 GET    /orders/:id
 GET    /orders/:id/shipping-options
 POST   /orders/:id/checkout        { carrier, service, pickupPointId | addressId, paymentMethod, blikCode? }
+POST   /orders/:id/shipment        (sprzedający: „Nadaj” — dane nadawcy, sposób nadania → etykieta / kod)
+GET    /orders/:id/label
 POST   /orders/:id/confirm-receipt
-POST   /orders/:id/disputes
+POST   /orders/:id/disputes        (w oknie 36 h)
+POST   /orders/:id/not-received    (po 14 dniach bez statusu końcowego → ścieżka LOST)
+POST   /orders/:id/second-chance   (sprzedający, po CANCELLED_UNPAID)
+POST   /second-chance-offers/:id/accept | /decline
 GET    /shipping/points?carrier=&lat=&lng=
 
 # Spory, wiadomości, oceny, zgłoszenia
@@ -1071,11 +1330,17 @@ POST   /reports
 # Webhooki (weryfikacja podpisu + idempotencja)
 POST   /webhooks/payments/:provider
 POST   /webhooks/shipping/:provider
+
+# Admin (/admin/*, osobna sesja i RBAC) — m.in.:
+POST   /admin/bids/:id/cancel      (unieważnienie oferty + replay, §15.6)
+POST   /admin/disputes/:id/decision
+POST   /admin/strikes              POST /admin/strikes/:id/revoke
+POST   /admin/compensations        (rekompensata dla sprzedającego, §7.9)
 ```
 
 Zasady:
 
-- Mutacje finansowe i oferty wymagają nagłówka `Idempotency-Key`.
+- Mutacje finansowe i oferty wymagają nagłówka `Idempotency-Key` (nie pola w body).
 - Paginacja kursorowa.
 - Błędy w formacie RFC 9457 (Problem Details) z kodami domenowymi, np. `BID_TOO_LOW`, `AUCTION_ENDED`, `PHONE_NOT_VERIFIED`.
 
@@ -1099,9 +1364,12 @@ type UserWon = { type: 'user.won'; auctionId: string; orderId: string; paymentDu
 
 ### 14.3 Eventy domenowe (outbox)
 
-`AuctionPublished`, `BidPlaced`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `OrderCreated`, `OrderPaid`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderCompleted`, `DisputeOpened`, `DisputeResolved`, `PayoutRequested`, `PayoutCompleted`, `ReportCreated`.
+- **Aukcje:** `AuctionPublished`, `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
+- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`.
+- **Spory i pieniądze:** `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged`.
+- **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `ReviewPublished`, `ReportCreated`.
 
-Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), analityka.
+Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
 
 ---
 
@@ -1113,17 +1381,18 @@ Cała operacja to **jedna transakcja Postgres z blokadą wiersza aukcji**. Gwara
 
 ```sql
 BEGIN;
--- 1. Idempotencja: jeśli (bidder_id, idempotency_key) istnieje → zwróć poprzedni wynik
+-- 1. Idempotencja: jeśli (bidder_id, Idempotency-Key) istnieje → zwróć poprzedni wynik
 SELECT * FROM auctions WHERE id = $auction_id FOR UPDATE;
 
 -- 2. Walidacje (w kodzie, na zablokowanym wierszu):
 --    status = 'ACTIVE' AND now() < ends_at
 --    bidder ≠ seller, bidder nie jest powiązany z seller (flagi trust-safety)
---    bidder: phone_verified, brak blokady, limity kwotowe dla nowych kont
+--    bidder: phone_verified, bidding_blocked_until, limity z §4.1
 --    max_amount >= min_next_bid(current_price, bid_count, start_price)
 
 -- 3. Rozstrzygnięcie proxy (funkcja czysta z packages/shared, testowana property-based):
 --    (new_price, new_leader, new_leader_max, auto_bids[]) = resolve(auction, bid)
+--    $changed = new_price ≠ current_price OR new_leader ≠ leader_id
 
 INSERT INTO bids (...) VALUES (...);            -- oferta użytkownika
 INSERT INTO bids (...) VALUES (...);            -- ewentualna automatyczna oferta lidera
@@ -1133,7 +1402,8 @@ UPDATE auctions SET
   leader_id         = $new_leader,
   leader_max_amount = $new_leader_max,
   bid_count         = bid_count + $n,
-  ends_at = CASE WHEN ends_at - now() < $snipe_window
+  -- anti-sniping tylko, gdy zmieniła się cena lub lider (§6.5)
+  ends_at = CASE WHEN $changed AND ends_at - now() < $snipe_window
                  THEN now() + $snipe_window ELSE ends_at END,
   version = version + 1
 WHERE id = $auction_id;
@@ -1146,21 +1416,22 @@ COMMIT;
 
 Niezmienniki do testów property-based:
 
-- cena nigdy nie maleje,
+- cena nigdy nie maleje (wyjątek: unieważnienie oferty, §15.6),
 - cena ≤ maksimum lidera,
 - lider ma najwyższe maksimum (przy remisie najwcześniejsze),
 - cena ≥ cena wywoławcza,
-- `ends_at` nigdy się nie cofa.
+- `ends_at` nigdy się nie cofa,
+- oferta, która nie zmienia ceny ani lidera, nie przesuwa `ends_at`.
 
 ### 15.2 Zamykanie aukcji
 
-1. Przy publikacji aukcji tworzymy opóźniony job BullMQ `auction.close` na `ends_at` (jobId = auctionId, więc deduplikacja).
-2. Worker: `SELECT … FOR UPDATE`. Jeśli `now() < ends_at` (aukcja przedłużona), job planuje się ponownie na nowe `ends_at`. W przeciwnym razie: status `ENDED_*`, utworzenie zamówienia, eventy, COMMIT.
-3. **Sweeper** (co 30 s) jako siatka bezpieczeństwa: `WHERE status='ACTIVE' AND ends_at < now() - interval '15 seconds'`.
+1. Przy publikacji aukcji tworzymy opóźniony job BullMQ `auction.close` na `ends_at`. **jobId zawiera czas końca:** `close-{auctionId}-{endsAtEpochMs}`. BullMQ ignoruje dodanie joba z ID, które już istnieje, więc stałe `jobId = auctionId` uniemożliwiłoby ponowne zaplanowanie.
+2. Worker: `SELECT … FOR UPDATE`. Jeśli `status ≠ 'ACTIVE'`, to no-op. Jeśli `now() < ends_at` (aukcja przedłużona), worker dodaje nowy job z ID dla nowego `ends_at`. W przeciwnym razie: status `ENDED_*`, utworzenie zamówienia, eventy, COMMIT.
+3. **Sweeper** (co 10 s) jako siatka bezpieczeństwa: `WHERE status='ACTIVE' AND ends_at <= now() - interval '5 seconds'`. Najgorszy przypadek przy zaginionym jobie to ok. 15 s opóźnienia, w granicach wymogu ≤ 30 s (§19). Wyścig joba ze sweeperem jest bezpieczny dzięki blokadzie wiersza i sprawdzeniu statusu.
 
 ### 15.3 Terminy zamówień
 
-Każda zmiana statusu planuje odpowiedni job (`order.payment-deadline`, `order.ship-deadline`, `order.inspection-deadline`, …). Job przy wykonaniu **sprawdza aktualny status**, więc nieaktualne joby są no-op. Uzupełnia to sweeper cykliczny.
+Każda zmiana statusu planuje odpowiedni job (`order.payment-deadline`, `order.ship-deadline`, `order.inspection-deadline`, …) z jobId zawierającym typ terminu i jego czas, jak w §15.2. Job przy wykonaniu **sprawdza aktualny status**, więc nieaktualne joby są no-op. Uzupełnia to sweeper cykliczny (co 1 min).
 
 ### 15.4 Synchronizacja czasu
 
@@ -1174,6 +1445,24 @@ Eventy z outboxa trafiają do joba indeksującego, a ten robi częściowe aktual
 
 Dokument indeksu zawiera: `title`, `description`, `brand`, `categoryPath`, `attributes.*`, `condition`, `currentPrice`, `bidCount`, `endsAt`, `status`, `sellerRating`, `city`, `carriers`, `createdAt`.
 
+### 15.6 Unieważnienie oferty (replay)
+
+Używane przy literówce zgłoszonej do supportu (§6.6) i przy unieważnianiu ofert z shill biddingu (§16.2). Wykonuje to admin przez `POST /admin/bids/:id/cancel`, z uzasadnieniem.
+
+1. W jednej transakcji z blokadą wiersza aukcji oznaczamy ofertę jako `CANCELLED` (`cancel_reason` = `TYPO` lub `FRAUD`).
+2. Wszystkie oferty `AUTO` tej aukcji oznaczamy jako `CANCELLED` (`REPLAY`). Są pochodną ofert ręcznych.
+3. Przeliczamy stan od zera: kolejno, według `created_at`, przepuszczamy ważne oferty ręczne (`max_amount`) przez tę samą czystą funkcję `resolve()` z §15.1. Wynikowe oferty `AUTO` zapisujemy na nowo.
+4. Aktualizujemy `current_price`, `leader_id`, `leader_max_amount`, `bid_count`. `ends_at` się nie zmienia.
+5. Eventy: `BidCancelled`, `auction.updated`, powiadomienia dla lidera, jeśli się zmienił.
+
+Unieważnienie po zakończeniu aukcji robimy tylko wtedy, gdy zamówienie nie jest jeszcze opłacone. Wtedy anulujemy zamówienie i proponujemy sprzedającemu ofertę drugiej szansy.
+
+Test property-based: wynik `replay(oferty)` jest identyczny ze stanem uzyskanym przez składanie tych samych ofert po kolei.
+
+### 15.7 Dni robocze
+
+Terminy w dniach roboczych (nadanie, nadanie zwrotu) liczy jedna funkcja w `packages/shared` z kalendarzem polskich świąt ustawowych, także ruchomych (Wielkanoc, Boże Ciało). Kalendarz jest testowany na kilka lat do przodu.
+
 ---
 
 ## 16. Bezpieczeństwo i przeciwdziałanie nadużyciom
@@ -1183,27 +1472,33 @@ Dokument indeksu zawiera: `title`, `description`, `brand`, `categoryPath`, `attr
 - OWASP ASVS jako checklista.
 - Walidacja wszystkich wejść (Zod), Helmet, CORS ograniczony do domen Biddy, CSRF dla sesji cookie.
 - Rate limiting w Redis per IP i per użytkownik: oferty, wiadomości, logowanie, OTP.
+- Logowanie: po 5 nieudanych próbach wymagamy Turnstile i wprowadzamy rosnące opóźnienie (per konto i per IP). **Bez twardej blokady konta**, bo pozwalałaby każdemu zablokować cudze konto.
 - Cloudflare WAF i Turnstile na rejestracji i logowaniu.
 - Upload tylko przez presigned URL z limitem rozmiaru i typu. Worker **ponownie koduje obraz i usuwa EXIF** (w tym GPS, czyli prywatność adresów domowych).
 - Sekrety poza repo. Szyfrowanie wrażliwych pól (dane DAC7) kluczem z KMS lub env.
 - Webhooki: weryfikacja podpisu i idempotencja (`processed_webhooks`).
 - Zmiana konta do wypłat: potwierdzenie e-mailem, **blokada wypłat na 48 h** i powiadomienie na wszystkie urządzenia.
-- Panel admina: 2FA obowiązkowe, RBAC, audit log, osobna domena.
+- Panel admina: 2FA obowiązkowe, RBAC, audit log, osobna domena i osobna sesja (ciasteczko host-only, §11.5).
 
 ### 16.2 Antyfraud
 
 | Zagrożenie | Środki |
 |---|---|
-| **Shill bidding** (sztuczne podbijanie przez sprzedającego) | Wykrywanie powiązań kont: urządzenie, IP, metoda płatności, adres, numer telefonu. Wzorzec: konto często licytuje u jednego sprzedającego i rzadko wygrywa. Kolejka do ręcznej weryfikacji, unieważnianie ofert, bany. |
-| Fałszywe konta / boty | 1 telefon = 1 konto, Turnstile, limity dla nowych kont |
-| Niepłacący zwycięzcy | Strike'i, blokady; w v1 wymóg zapisanej metody płatności dla aukcji powyżej określonej kwoty |
-| Oszuści-sprzedawcy | Limity dla nowych sprzedawców (np. 5 aktywnych aukcji, maks. 500 zł), KYC przed wypłatą i przed wystawieniem drogich przedmiotów, środki wstrzymane do weryfikacji |
+| **Shill bidding** (sztuczne podbijanie przez sprzedającego) | Wykrywanie powiązań kont: urządzenie, IP, metoda płatności, adres, numer telefonu. Wzorzec: konto często licytuje u jednego sprzedającego i rzadko wygrywa. Kolejka do ręcznej weryfikacji, unieważnianie ofert (§15.6), bany. Zasady poniżej. |
+| Fałszywe konta / boty | 1 telefon = 1 konto, Turnstile, limity dla nowych kont (§4.1) |
+| Niepłacący zwycięzcy | Limity nowych kupujących i strike'i (§4.1); w v1 wymóg zapisanej metody płatności dla aukcji powyżej określonej kwoty |
+| Oszuści-sprzedawcy | Limity dla nowych sprzedawców (§4.1: 5 aktywnych aukcji, maks. 500 zł), KYC przed wypłatą i przed aukcją > 1000 zł, środki wstrzymane do weryfikacji |
 | Transakcje poza platformą | Wykrywanie telefonów, e-maili i IBAN-ów w czacie z ostrzeżeniem, edukacja („poza Biddy nie masz ochrony”) |
 | Podróbki | Kategorie „brand-sensitive” wymagają więcej zdjęć (metki, kody), zgłoszenia, docelowo weryfikacja autentyczności |
 | Fraud płatniczy | Narzędzia antyfraudowe operatora, 3DS/SCA |
 | Przejęcie konta | 2FA, alert o nowym urządzeniu, blokada wypłat po zmianach wrażliwych danych |
 
 Reguły antyfraudowe są konfigurowalne. Wyniki trafiają do kolejki `trust-safety` w panelu admina.
+
+**[DECYZJA] Powiązania kont a licytowanie:**
+
+- **Silne sygnały** (wspólna metoda płatności, wspólny adres dostawy lub nadania, to samo urządzenie w wielu sesjach obu kont) → automatyczna blokada licytowania aukcji tego sprzedającego i flaga do przeglądu.
+- **Słabe sygnały** (wspólne IP, jednorazowo to samo urządzenie) → tylko flaga do przeglądu. Domownicy i sieci firmowe nie mogą być blokowani automatycznie.
 
 ---
 
@@ -1216,17 +1511,41 @@ Reguły antyfraudowe są konfigurowalne. Wyniki trafiają do kolejki `trust-safe
 | **Usługi płatnicze (PSD2, ustawa o usługach płatniczych)** | Nie przyjmujemy cudzych środków na własny rachunek. Escrow, KYC/AML i wypłaty realizuje licencjonowany operator. Własne zezwolenie (np. MIP) to ewentualnie temat długoterminowy. | Faza 0 |
 | **Transparentność KYC i POK (lekcja z Vinted)** | UOKiK nałożył na Vinted ok. 5,36 mln zł kary m.in. za niepoinformowanie z góry, że wypłata może wymagać przesłania dokumentów tożsamości (sąd później częściowo uchylił decyzję). Biddy **przed pierwszym wystawieniem** jasno informuje o KYC. Zasady POK, terminy i zasady wstrzymania środków są opisane w regulaminie i widoczne w UI. | MVP |
 | **DSA (akt o usługach cyfrowych)** | Mechanizm zgłaszania nielegalnych treści (notice & action), uzasadnienia decyzji moderacyjnych, wewnętrzny system odwołań, punkt kontaktowy, przejrzysty regulamin. Przy sprzedawcach firmowych: identyfikowalność przedsiębiorców (KYBC). Część obowiązków nie dotyczy mikro- i małych przedsiębiorstw (do weryfikacji). | MVP |
-| **DAC7** | Platforma zbiera dane sprzedających (imię i nazwisko, adres, NIP/PESEL, data urodzenia, rachunek) i raportuje do Szefa KAS do 31 stycznia za poprzedni rok. Raport obejmuje sprzedawców poza wyłączeniem (wyłączeni są ci z < 30 transakcji **i** < 2000 EUR rocznie). Zbieranie danych wbudowujemy w onboarding wypłat. | MVP (zbieranie), v1 (raport) |
+| **DAC7** | Platforma zbiera dane sprzedających (imię i nazwisko, adres, NIP/PESEL, data urodzenia, rachunek) i raportuje do Szefa KAS do 31 stycznia za poprzedni rok. Raport obejmuje sprzedawców poza wyłączeniem (wyłączeni są ci, którzy w roku mieli mniej niż 30 sprzedaży towarów **i** nie więcej niż 2000 EUR wynagrodzenia). Zbieranie danych wbudowujemy w onboarding wypłat. | MVP (zbieranie), v1 (raport) |
 | **Prawo konsumenckie / Omnibus** | Relacja Biddy ↔ użytkownik (usługa POK) to B2C: obowiązki informacyjne, reklamacje usługi. Przy każdej aukcji informujemy, czy sprzedający jest przedsiębiorcą, a jeśli nie, że prawa konsumenta wobec niego nie przysługują. Ujawniamy główne parametry rankingu wyników i sposób weryfikacji opinii. Pokazujemy cenę łączną. | MVP |
 | **Sprzedawcy firmowi (B2C)** | Aukcje internetowe na platformie to **nie** „aukcja publiczna” w rozumieniu dyrektywy, więc konsumentowi przysługuje 14-dniowe prawo odstąpienia. **[DECYZJA]** MVP tylko dla osób prywatnych, z wykrywaniem „ukrytych firm” po wolumenie. Konta firmowe w v2. | v2 |
 | **VAT, KSeF, ewidencja** | POK to usługa Biddy, więc VAT (do ustalenia stawka i miejsce świadczenia). Rozliczenie odsprzedaży dostaw. Faktury na żądanie, KSeF dla faktur B2B. Kwestia kasy fiskalnej i zwolnień przy płatnościach przez operatora. **Do ustalenia z księgowym.** | Faza 0 |
 | **RODO** | Polityka prywatności, rejestr czynności, umowy powierzenia (DPA) z dostawcami, dane w UE, retencja (dane finansowe ok. 5 lat), eksport i usunięcie danych na żądanie, minimalizacja. Cookies: domyślnie tylko niezbędne. | MVP |
 | **Dostępność (EAA, od 28.06.2025)** | Mikroprzedsiębiorstwa usługowe są zwolnione, ale od początku celujemy w **WCAG 2.1 AA**. Tańsze niż retrofit. | MVP |
-| **Regulamin** | Wiążący charakter ofert, zasady licytacji i anti-snipingu, POK, spory, strike'i, lista zakazanych przedmiotów, wymóg 18+. | MVP |
+| **Aukcja w Kodeksie cywilnym (art. 70¹–70⁵ KC)** | Regulamin określa warunki aukcji: kiedy oferta przestaje wiązać, moment zawarcia umowy, licytacja automatyczna, cena minimalna, wycofanie oferty, anulowanie przez sprzedającego, oferta drugiej szansy. Do potwierdzenia z prawnikiem, że mechanika z §6 jest z tym zgodna. | Faza 0 |
+| **Regulamin** | Wiążący charakter ofert, zasady licytacji i anti-snipingu, POK, spory, strike'i i limity (§4.1), przesyłki nieodebrane, potrącenia i rekompensaty (§7.9), minimalna wypłata, lista zakazanych przedmiotów, wymóg 18+. | MVP |
 | **Zakazane przedmioty** | Broń i amunicja, narkotyki, leki, alkohol, wyroby tytoniowe i e-papierosy, podróbki, zwierzęta, treści dla dorosłych, dokumenty, bilety imienne, produkty z recall, używane kosmetyki. Lista w regulaminie + filtry słów + moderacja obrazów. | MVP |
 | **Hazard** | Formaty typu „mystery box” za opłatą i losowania mogą podpadać pod ustawę o grach hazardowych. **[DECYZJA]** Zakazane do czasu opinii prawnej. | MVP |
 | **App Store / Google Play** | Towary fizyczne mogą być opłacane poza IAP. Płatne wyróżnienia (usługa cyfrowa) w aplikacji iOS mogą wymagać IAP, dlatego na start sprzedajemy je przez web. Aplikacje z treściami użytkowników muszą mieć zgłaszanie i blokowanie (Apple Guideline 1.2). | MVP |
 | **Znak towarowy i domena** | Sprawdzenie „Biddy” w bazach UPRP i EUIPO, rejestracja znaku, domeny `biddy.pl` i alternatyw, nazwy w sklepach z aplikacjami. | Faza 0 |
+
+### 17.1 Pytania do prawnika i księgowego
+
+Odpowiedzi nie blokują Etapów 0–1. Do czasu ich otrzymania obowiązują decyzje tymczasowe, implementowane konfigurowalnie. Termin: przed pisaniem regulaminu (F-41) i przed Etapem 2a.
+
+**Prawnik (e-commerce / fintech):**
+
+1. Czy model z §7.1 (operator przechowuje środki, Biddy tylko steruje przepływem) na pewno nie wymaga od Biddy zezwolenia KNF?
+2. Zgodność mechaniki licytacji (§6: licytacja automatyczna, cena minimalna, wycofanie oferty, anulowanie, druga szansa) z art. 70¹–70⁵ KC i jak to zapisać w regulaminie.
+3. Czy kupującemu przysługuje 14-dniowe prawo odstąpienia od usługi POK (umowa na odległość, B2C) i jak je ukształtować (np. zgoda na rozpoczęcie świadczenia).
+4. Czy można potrącić koszt dostawy przy nieodebranej przesyłce (§7.4) i potrącać koszty sporu z salda sprzedającego (§7.9).
+5. Strike'i i blokady (§4.1): zgodność z DSA (uzasadnienia, odwołania) i ryzyko klauzul niedozwolonych.
+6. Minimalna kwota wypłaty i automatyczna wypłata salda (§7.6) w świetle decyzji UOKiK wobec Vinted.
+7. Które obowiązki DSA dotyczą Biddy jako mikro- lub małego przedsiębiorstwa.
+
+**Księgowy:**
+
+1. VAT od POK: stawka, miejsce świadczenia, korekty przy zwrocie POK.
+2. Odsprzedaż usług dostawy: VAT, dokumentowanie, marża.
+3. Kasa fiskalna: czy zwolnienie dla płatności przez operatora obejmuje POK.
+4. KSeF dla faktur B2B, faktury dla konsumentów na żądanie.
+5. Rozliczenie strat: chargebacki, rekompensaty dla sprzedających, spisane należności, odszkodowania od przewoźników.
+6. Obowiązki operatora platformy w DAC7 (zgłoszenie, terminy, weryfikacja NIP/PESEL).
 
 ---
 
@@ -1254,7 +1573,7 @@ Reguły antyfraudowe są konfigurowalne. Wyniki trafiają do kolejki `trust-safe
 - **OpenTelemetry**: trace od żądania HTTP przez transakcję DB do joba w kolejce.
 - Logi strukturalne (pino) do Better Stack lub Grafana.
 - **Metryki biznesowe na dashboardzie:** oferty na minutę, opóźnienie akceptacji oferty (p95), opóźnienie broadcastu, długość kolejek BullMQ, nieudane webhooki, rozjazdy ledgera.
-- **Alerty:** zatrzymana kolejka zamykania aukcji, błędy webhooków płatności, rozjazd ledgera ≠ 0, p95 oferty > 300 ms.
+- **Alerty:** zatrzymana kolejka zamykania aukcji, aukcja `ACTIVE` ponad 30 s po `ends_at`, błędy webhooków płatności, rozjazd ledgera ≠ 0, p95 oferty > 300 ms, straty platformy > 0,5% GMV w miesiącu, zapełnienie pamięci Redisa kolejek > 70%.
 
 ### 18.4 Backup i ciągłość
 
@@ -1270,8 +1589,11 @@ Reguły antyfraudowe są konfigurowalne. Wyniki trafiają do kolejki `trust-safe
 |---|---|
 | Akceptacja oferty (serwer) | p95 < 150 ms |
 | Broadcast aktualizacji do klientów | p95 < 300 ms od COMMIT |
+| Zamknięcie aukcji | ≤ 30 s po `ends_at`, także przy zaginionym jobie |
+| Świeżość HTML strony aukcji (bez JS) | cena nie starsza niż ok. 10 s od ostatniej oferty |
 | Dostępność | 99,9% miesięcznie. Brak planowanych okien serwisowych w godzinach szczytu kończenia aukcji (19:00–23:00). |
 | Skala MVP (założenie) | 10 tys. MAU, 2 tys. równoczesnych połączeń WS, 100 ofert/s w szczycie |
+| Wydajność UI | Lighthouse ≥ 90 (wydajność i dostępność) na stronie głównej i stronie aukcji |
 | Skala v1 (założenie) | 100 tys. MAU, 20 tys. WS |
 | Web performance | LCP < 2,5 s na stronie aukcji (mobile 4G), Core Web Vitals „good” |
 | Dostępność cyfrowa | WCAG 2.1 AA |
@@ -1284,20 +1606,23 @@ Reguły antyfraudowe są konfigurowalne. Wyniki trafiają do kolejki `trust-safe
 
 Rozbicie na feature specy z szacunkami i zależnościami: [FEATURES.md](FEATURES.md).
 
-Szacunki zakładają **1–2 full-stack developerów**. Przy jednej osobie mobile startuje później, a terminy wydłużają się o ok. 40–50%. To plan orientacyjny do korekty po Fazie 0.
+**[DECYZJA] Start web-first** (ADR-9). Publiczny start obejmuje web (RWD + PWA + web push). Aplikacje mobilne budujemy od razu po nim, a częściowo już w trakcie bety.
 
-### Faza 0: Fundamenty (tygodnie 1–2)
+Tygodnie poniżej zakładają **2 full-stack developerów** i bufor 15–20%. Suma szacunków dla startu web to 221 osobodni, czyli ok. 22 tygodnie pracy dwóch osób plus bufor i beta. **Przy jednej osobie wszystkie terminy wydłużają się mniej więcej dwukrotnie** (start web po ok. 13 miesiącach). To plan do korekty po Fazie 1, gdy będziemy mieć zmierzone tempo.
 
-**Biznes i prawo (równolegle przez całe Fazy 0–2):**
+### Faza 0: Fundamenty (tygodnie 1–4)
+
+**Biznes i prawo (równolegle przez Fazy 0–2):**
 
 - [ ] Sprawdzenie znaku „Biddy” (UPRP/EUIPO), domeny, nazwy w sklepach z aplikacjami
 - [ ] Spółka (rekomendacja: sp. z o.o.), konto firmowe
-- [ ] Konsultacja z prawnikiem (§17) i księgowym (VAT, KSeF, kasa)
+- [ ] Konsultacja z prawnikiem i księgowym: lista pytań w [§17.1](#171-pytania-do-prawnika-i-księgowego)
 - [ ] **Zapytania ofertowe do operatorów płatności:** PayU, Mangopay, Tpay, Przelewy24 (lista pytań w §7.6)
-- [ ] Zapytania ofertowe do kurierów: Furgonetka, InPost
-- [ ] Konta deweloperskie: Apple Developer, Google Play Console, Expo, Vercel, Render, Cloudflare, Sentry, PostHog, sandbox PayU
+- [ ] Zapytania ofertowe do kurierów: Furgonetka, InPost (lista pytań w [§8.5](#85-pytania-do-furgonetki-i-inpost-faza-0))
+- [ ] Konta deweloperskie: Vercel, Render, Cloudflare, Sentry, PostHog, sandbox PayU; Apple Developer, Google Play Console i Expo zakładamy wcześnie, bo weryfikacja kont trwa
+- [ ] Projekt wizualny kluczowych ekranów (strona aukcji, kreator, checkout) i identyfikacja: freelancer, poza osobodniami zespołu
 
-**Technika:**
+**Technika (Etap 0, F-01 – F-09):**
 
 - [ ] Monorepo (Turborepo + pnpm), `packages/config`, `packages/shared`, CI
 - [ ] `infra/docker-compose.yml` (Postgres, Redis, Meilisearch, MinIO, Mailpit)
@@ -1307,64 +1632,73 @@ Szacunki zakładają **1–2 full-stack developerów**. Przy jednej osobie mobil
 - [ ] Generowanie OpenAPI → orval → `packages/api-client`
 - [ ] ADR-y z §10.1 zapisane w `docs/adr/`
 
-### Faza 1: Rdzeń licytacji (tygodnie 3–8)
+### Faza 1: Rdzeń licytacji (tygodnie 5–12)
 
 - [ ] Kategorie (drzewo + schematy atrybutów), seed głównych kategorii
 - [ ] Upload zdjęć (presigned R2, przetwarzanie, EXIF strip, moderacja obrazów)
-- [ ] Kreator aukcji (web), szkice, publikacja
-- [ ] **Silnik licytacji:** proxy bidding, kroki przebicia, reserve, Kup teraz, anti-sniping, idempotencja, testy property-based
+- [ ] Kalkulator POK z progami krańcowymi, tabela przebić
+- [ ] Kreator aukcji (web), szkice, publikacja, limity sprzedających
+- [ ] **Silnik licytacji:** proxy bidding, kroki przebicia, reserve, Kup teraz, anti-sniping, idempotencja, limity kupujących, testy property-based
 - [ ] Zamykanie aukcji (joby + sweeper), tworzenie zamówień
 - [ ] WebSocket gateway, rooms, synchronizacja czasu, powiadomienia o przebiciu
 - [ ] Wyszukiwarka (Meilisearch): indeksowanie, filtry, sortowania
-- [ ] Strony aukcji, kategorii i profilu (SSR/ISR, SEO, sitemap)
-- [ ] Obserwowane, powiadomienia e-mail i in-app
+- [ ] Strony aukcji, kategorii i profilu (SSR/ISR z rewalidacją na żądanie, SEO, sitemap)
+- [ ] Obserwowane aukcje i sprzedawcy, powiadomienia e-mail i in-app, Moje Biddy
 - [ ] **Kamień milowy:** zamknięta demo-licytacja end-to-end bez płatności
 
-### Faza 2: Transakcje i POK (tygodnie 9–14)
+### Faza 2: Transakcje i POK (tygodnie 13–25)
 
-Pierwsza część nie czeka na wybór operatora płatności ([§7.8](#78-moduł-płatności-adapter)). Przy dwóch osobach rdzeń płatności można zacząć już w drugiej połowie Fazy 1, bo zależy tylko od modelu zamówień.
+Pierwsza część nie czeka na wybór operatora płatności ([§7.8](#78-moduł-płatności-adapter)). Ledger i port płatności (F-22, F-23) zależą tylko od szkieletu backendu, więc druga osoba może je zacząć już w drugiej połowie Fazy 1.
 
-**Niezależne od operatora (tygodnie 9–11):**
+**Niezależne od operatora (tygodnie 13–20, Etap 2a):**
 
 - [ ] Port `PaymentGateway` sprawdzony „na papierze” z dokumentacją PayU i Mangopay
 - [ ] FakeGateway (symulator webhooków, testowa strona płatności, panel deweloperski) + testy kontraktowe
-- [ ] Ledger + szkielet uzgodnień
+- [ ] Ledger z planem kont z §7.7 + szkielet uzgodnień
 - [ ] Checkout: dostawa, POK, wybór metody płatności, kod BLIK, stany oczekiwania i błędu (na FakeGateway)
-- [ ] Maszyna stanów zamówienia + joby terminów, okno 36 h, auto-zwolnienie
-- [ ] Saldo i wypłaty sprzedającego (na żądanie, z minimalną kwotą), formularz danych DAC7
-- [ ] Spory (podstawowe), zwroty
-- [ ] Adapter `ShippingProvider` (Furgonetka): wyceny, mapa punktów, etykiety, tracking, przesyłki zwrotne
+- [ ] Maszyna stanów zamówienia + joby terminów, okno 36 h, auto-zwolnienie, nieodebrane i zaginione przesyłki, druga szansa
+- [ ] Limity kont i strike'i z odwołaniami (§4.1)
+- [ ] Saldo i wypłaty sprzedającego (na żądanie, minimum 20 zł), formularz danych DAC7
+- [ ] Spory ze zwrotami i podziałem kosztów (§7.5, §7.9)
+- [ ] Adapter `ShippingProvider` (Furgonetka): wyceny, mapa punktów, „Nadaj” → etykieta, tracking, przesyłki zwrotne
 - [ ] Czat kupujący ↔ sprzedający, oceny
-- [ ] **Kamień milowy:** pełna transakcja end-to-end na FakeGateway
+- [ ] **Kamień milowy:** pełna transakcja end-to-end na FakeGateway, łącznie ze sporem i zwrotem
 
-**Po wyborze operatora (tygodnie 12–14):**
+**Po wyborze operatora (tygodnie 21–25, Etap 2b):**
 
-- [ ] Decyzja o operatorze płatności (najpóźniej ok. tygodnia 11)
-- [ ] Adapter operatora: płatności, zwolnienie środków, zwroty, wypłaty, webhooki; testy kontraktowe na sandboksie
+- [ ] Decyzja o operatorze płatności (**najpóźniej w tygodniu 18**)
+- [ ] Adapter operatora: płatności, zwolnienie środków, zwroty, wypłaty, chargebacki, webhooki; testy kontraktowe na sandboksie
 - [ ] Rejestracja sprzedawców i KYC u operatora
 - [ ] Import raportów rozliczeniowych i uzgodnienia ledgera z operatorem
-- [ ] Panel admina v1: użytkownicy, aukcje, zgłoszenia DSA, zamówienia, spory, wypłaty, cenniki POK, audit log
+- [ ] Panel admina v1: użytkownicy, aukcje, zgłoszenia DSA, zamówienia, spory, strike'i, wypłaty, rekompensaty, cenniki POK, audit log
+- [ ] Antyfraud: reguły podstawowe
 - [ ] **Kamień milowy:** pełna transakcja na stagingu (sandbox operatora → etykieta sandbox → auto-zwolnienie → wypłata)
 
-### Faza 3: Mobile, beta i start (tygodnie 15–20)
+### Faza 3: Beta i start web (tygodnie 26–29, Etap 3)
 
-- [ ] Aplikacja Expo: auth, przeglądanie, wyszukiwanie, aukcja z realtime, licytacja, kreator z aparatem, checkout, zamówienia, czat, push (start możliwy równolegle od Fazy 2 przy 2 osobach)
+- [ ] Web push i PWA
 - [ ] Regulamin, polityka prywatności, strony pomocy, zakazane przedmioty
 - [ ] Testy obciążeniowe (k6), przegląd bezpieczeństwa / pentest, test odtwarzania backupu
-- [ ] **Zamknięta beta** (np. 100–300 osób z wybranych nisz, np. społeczność TCG), poprawki
-- [ ] Publikacja w App Store i Google Play
-- [ ] **Publiczny start MVP** (ok. 5 miesięcy od startu)
+- [ ] **Zamknięta beta** (min. 3 tygodnie, 100–300 osób z wybranych nisz, np. społeczność TCG), poprawki
+- [ ] **Publiczny start web** (ok. tydzień 29, czyli ok. 7 miesięcy od startu)
 
-### Faza 4: v1 (miesiące 6–8)
+### Faza 4: Aplikacje mobilne (tygodnie 28–33, Etap 4)
+
+Startuje w trakcie bety, gdy rdzeń web jest stabilny.
+
+- [ ] Aplikacja Expo: auth, push natywny, przeglądanie, wyszukiwanie, aukcja z realtime, licytacja, kreator z aparatem, checkout, zamówienia, czat
+- [ ] Publikacja w App Store i Google Play (ok. tydzień 33)
+
+### Faza 5: v1 (miesiące 8–10)
 
 - [ ] Łączenie wygranych od jednego sprzedawcy w jedno zamówienie i jedną paczkę
 - [ ] Zapisane metody płatności, „opłacaj automatycznie”
 - [ ] Zapisane wyszukiwania z alertami, publiczne Q&A do aukcji
 - [ ] Bezpośrednia integracja InPost, Poczta Polska, kurier gabarytowy
-- [ ] 2FA, wyróżnienia aukcji (płatne przez web), raport DAC7
+- [ ] 2FA, wyróżnienia aukcji (płatne przez web), raport DAC7 (pierwszy raport do 31 stycznia za rok startu)
 - [ ] Planowany start aukcji, automatyczne ponowne wystawienie
 
-### Faza 5: v2 (miesiące 9–12)
+### Faza 6: v2 (miesiące 11–14)
 
 - [ ] Konta firmowe (B2C)
 - [ ] Biddy Pro, statystyki sprzedawcy, masowe wystawianie
@@ -1376,7 +1710,7 @@ Pierwsza część nie czeka na wybór operatora płatności ([§7.8](#78-moduł-
 - [ ] **Licytacje na żywo (live streaming)**: patrz [§9](#9-licytacje-na-żywo--przyszłe-wersje)
 - [ ] Weryfikacja autentyczności, ubezpieczenie przesyłek, ekspansja zagraniczna (EUR)
 
-**Definicja „MVP gotowe”:** użytkownik może się zarejestrować, wystawić przedmiot, inni mogą go wylicytować w czasie rzeczywistym, zwycięzca płaci z POK, sprzedający nadaje paczkę z wygenerowanym kodem, kupujący potwierdza odbiór (lub mija 36 h), a sprzedający wypłaca środki. Wszystko na web i mobile, z działającym sporem i panelem admina.
+**Definicja „MVP gotowe” (start web):** użytkownik może się zarejestrować, wystawić przedmiot, inni mogą go wylicytować w czasie rzeczywistym (z web push o przebiciu), zwycięzca płaci z POK, sprzedający nadaje paczkę z wygenerowanym kodem, kupujący potwierdza odbiór (lub mija 36 h), a sprzedający wypłaca środki. Wszystko na web (desktop i telefon), z działającym sporem, strike'ami i panelem admina. Aplikacje mobilne to Faza 4.
 
 ---
 
@@ -1385,31 +1719,68 @@ Pierwsza część nie czeka na wybór operatora płatności ([§7.8](#78-moduł-
 | Ryzyko | Wpływ | Mitygacja |
 |---|---|---|
 | Brak płynności (mało ofert i licytujących na starcie) | Krytyczny | Fokus na 2–3 nisze, pozyskanie kilkudziesięciu aktywnych sprzedawców przed startem (społeczności TCG, sneakers), 0% prowizji dla sprzedawców |
-| Koszty operatora płatności zjadają marżę (opłaty per sprzedawca i per wypłata) | Wysoki | Wybór operatora bez opłat per sprzedawca (PayU / Mangopay), wypłaty na żądanie z minimalną kwotą, opłata stała POK, minimalna cena wywoławcza |
+| Koszty operatora płatności zjadają marżę (opłaty per sprzedawca i per wypłata) | Wysoki | Wybór operatora bez opłat per sprzedawca (PayU / Mangopay), wypłaty na żądanie z minimalną kwotą, opłata stała POK |
 | Opóźniony onboarding u operatora płatności | Wysoki | Zapytania w Fazie 0, rdzeń płatności i FakeGateway budowane przed decyzją ([§7.8](#78-moduł-płatności-adapter)), plan B (Mangopay) |
-| Fraud (shill bidding, oszuści, niepłacący) | Wysoki | §16: weryfikacja telefonu, KYC, limity, strike'i, wstrzymane środki, reguły wykrywania |
-| Ucieczka transakcji poza platformę | Średni | Wartość POK (ochrona, wysyłka), wykrywanie kontaktów w czacie, cap POK dla drogich przedmiotów |
-| Regulacje (DSA, DAC7, UOKiK, hazard) | Wysoki | Konsultacja prawna w Fazie 0, transparentność w UI, compliance by design |
+| Operator wymaga pełnego KYC sprzedawcy przed przyjęciem płatności | Wysoki | Pytanie w ofercie (§7.6). Wtedy KYC przed pierwszą publikacją albo Mangopay |
+| Fraud (shill bidding, oszuści, niepłacący) | Wysoki | §16 i §4.1: weryfikacja telefonu, KYC, limity, strike'i, wstrzymane środki, reguły wykrywania |
+| Straty platformy (chargebacki, zaginione paczki, zwroty nieodebranych) | Średni | Polityka §7.9, automatyczne zbieranie dowodów, reklamacje u przewoźników, alert przy stratach > 0,5% GMV |
+| Ucieczka transakcji poza platformę | Średni | Wartość POK (ochrona, wysyłka), wykrywanie kontaktów w czacie, niższa stawka POK powyżej 1000 zł |
+| Web-first: brak natywnych pushy na iOS przy starcie | Średni | PWA z web push (iOS 16.4+ po dodaniu do ekranu głównego), e-mail, SMS przy wygranej o wysokiej wartości, krótka Faza 4 |
+| Regulacje (DSA, DAC7, UOKiK, hazard, KC) | Wysoki | Konsultacja prawna w Fazie 0 (§17.1), decyzje tymczasowe implementowane konfigurowalnie, transparentność w UI |
 | Konkurencja (Vinted lub Allegro rozwijają licytacje) | Średni | Szybkość, nisze, społeczność, lokalne dostawy i płatności |
 | Wydajność gorących aukcji w końcówce | Średni | Testy k6 przed startem, plan B: Redis Lua jako sekwencer ofert |
+| Szacunki okażą się za niskie | Średni | Kalibracja po 2–3 pierwszych featurach, bufor 15–20%, start web-first, zakres v1 zamrożony do startu |
 
 ---
 
-## 22. Otwarte decyzje
+## 22. Rejestr decyzji
 
-| # | Pytanie | Rekomendacja / propozycja | Do kiedy |
+Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest implementowana konfigurowalnie, ale może się zmienić po danych zewnętrznych. **Otwarta** = czeka na dane i nie blokuje wskazanych etapów.
+
+**Biznes i produkt**
+
+| # | Decyzja | Status | Gdzie | Weryfikacja |
+|---|---|---|---|---|
+| 1 | Operator płatności: domyślnie PayU Marketplace, plan B Mangopay | Otwarta (nie blokuje Etapów 0–2a) | §7.6 | Oferty; decyzja najpóźniej w tyg. 18 |
+| 2 | POK: 2,99 zł + 7% do 1000 zł + 4% od nadwyżki, progi krańcowe, bez capu | Przyjęta | §3.1 | Beta: payment completion rate, porzucone checkouty |
+| 3 | Minimalna cena wywoławcza 1 zł | Przyjęta | §6.2 | Beta: udział zamówień < 10 zł, spory na tanich przedmiotach |
+| 4 | Start web-first (RWD + PWA + web push), aplikacje w Fazie 4 | Przyjęta | ADR-9, §20 | — |
+| 5 | Sprzedawcy firmowi dopiero w v2. Próg „ukrytej firmy” do ręcznej weryfikacji = próg DAC7 (30 sprzedaży lub 2000 EUR rocznie) | Przyjęta | §17 | — |
+| 6 | Kategorie startowe do marketingu: TCG/kolekcjonerstwo, sneakers/vintage, retro gaming | Przyjęta | §2.4 | Przed betą |
+| 7 | Limity kont i strike'i (wartości startowe) | Przyjęta | §4.1 | Beta, zmiana bez deployu |
+| 8 | Projekt wizualny kluczowych ekranów: freelancer w Fazie 0–1, wireframe'y robi osoba prowadząca feature | Tymczasowa | §20 | Faza 0 |
+
+**Transakcje**
+
+| # | Decyzja | Status | Gdzie | Weryfikacja |
+|---|---|---|---|---|
+| 9 | Termin płatności 24 h (+ maks. 30 min dla płatności w `PENDING`) | Przyjęta | §6.8 | — |
+| 10 | Okno 36 h od „odebrana” (paczkomat/punkt) lub „doręczona” (kurier) | Przyjęta | §7.4 | — |
+| 11 | Nieodebrane: zwrot po powrocie paczki, cena + POK bez dostawy, strike | Tymczasowa | §7.4 | Prawnik (§17.1 pkt 4) |
+| 12 | „Nie otrzymałem” po 14 dniach bez statusu = ścieżka `LOST`, nie spór | Przyjęta | §7.3–7.5 | — |
+| 13 | Podział kosztów w sporach i stratach, rekompensata za zaginioną paczkę = cena do limitu przewoźnika | Tymczasowa | §7.5, §7.9 | Prawnik, operator (transfery) |
+| 14 | Zwrot częściowy tylko z części sprzedającego; POK i dostawa bez zwrotu | Przyjęta | §7.5 | — |
+| 15 | Oferta drugiej szansy po maksimum licytującego, niewiążąca, 24 h | Przyjęta | §6.8 | Prawnik (KC) |
+| 16 | Rejestracja sprzedawcy u operatora przy pierwszym wystawieniu; KYC przed wypłatą i przed aukcją > 1000 zł | Tymczasowa | §7.6 | Oferta operatora |
+| 17 | Wypłaty: minimum 20 zł, opcjonalna wypłata tygodniowa, saldo poniżej minimum wypłacane przy zamknięciu konta i po 90 dniach | Przyjęta | §7.6 | Prawnik (§17.1 pkt 6) |
+| 18 | Przesyłka tworzona po kliknięciu „Nadaj” przez sprzedającego | Tymczasowa | §8.3 | Oferta Furgonetki |
+| 19 | Oceny także po sporze zakończonym zwrotem | Przyjęta | §5 | — |
+
+**Technika**
+
+| # | Decyzja | Status | Gdzie |
 |---|---|---|---|
-| 1 | Operator płatności | PayU Marketplace (jeśli oferta potwierdzi brak opłat per sprzedawca i kontrolę wypłat), plan B: Mangopay | Ok. tydzień 11 (przed adapterem w Fazie 2) |
-| 2 | Cennik POK: stała, procent, progi, cap | 2,99 zł + 7%, cap lub próg dla > 1000 zł | Faza 2 |
-| 3 | Od czego liczyć 36 h | Od statusu „odebrana” (paczkomat/punkt) lub „doręczona” (kurier) | Faza 2 |
-| 4 | Termin płatności | 24 h | Faza 1 |
-| 5 | Polityka nieodebranych przesyłek | Zwrot bez kosztu dostawy + strike | Faza 2 |
-| 6 | Minimalna cena wywoławcza | 1 zł vs 5 zł (ekonomika POK) | Faza 1 |
-| 7 | Sprzedawcy firmowi w MVP | Nie (v2) | Faza 0 |
-| 8 | Hosting backendu | Render (Frankfurt) na MVP | Faza 0 |
-| 9 | Kategorie startowe do marketingu | Kolekcjonerstwo/TCG, sneakers/vintage, retro gaming | Faza 3 |
-| 10 | KYC przed wystawieniem czy przed wypłatą | Przed wypłatą, ale przed wystawieniem przy przedmiotach > 1000 zł | Faza 2 |
-| 11 | Minimalna kwota wypłaty i wypłaty automatyczne | 20 zł, wypłata na żądanie + opcjonalnie zbiorcza raz w tygodniu | Faza 2 |
+| 20 | Hosting: Render (Frankfurt), 2 instancje Redis (kolejki `noeviction`, cache `allkeys-lru`) | Przyjęta | §11.6 |
+| 21 | Anti-sniping tylko przy zmianie ceny lub lidera | Przyjęta | §6.5 |
+| 22 | Unieważnienie oferty przez replay z czystej funkcji `resolve()` | Przyjęta | §15.6 |
+| 23 | Joby z ID zawierającym termin; sweeper aukcji co 10 s | Przyjęta | §15.2 |
+| 24 | Strony aukcji: ISR + rewalidacja na żądanie po zdarzeniach | Przyjęta | §11.3 |
+| 25 | Osobna sesja admina (ciasteczko host-only) | Przyjęta | §11.5 |
+| 26 | UUIDv7 generowane w aplikacji | Przyjęta | ADR-10 |
+| 27 | `Idempotency-Key` zawsze w nagłówku | Przyjęta | §14.1 |
+| 28 | Logowanie: Turnstile i rosnące opóźnienie zamiast twardej blokady konta | Przyjęta | §16.1 |
+| 29 | Powiązane konta: automatyczna blokada tylko przy silnych sygnałach | Przyjęta | §16.2 |
+| 30 | Etap 0 (F-01 – F-05, F-09) nie wymaga pełnego speca: wystarczy skrócony spec z FEATURES.md i ADR-y | Przyjęta | FEATURES.md |
 
 ---
 
@@ -1428,6 +1799,11 @@ Pierwsza część nie czeka na wybór operatora płatności ([§7.8](#78-moduł-
 | **KYC** | Weryfikacja tożsamości użytkownika (realizowana przez operatora płatności) |
 | **Submerchant** | Sprzedawca zarejestrowany u operatora płatności w ramach marketplace'u |
 | **Outbox** | Wzorzec zapisu eventów w tej samej transakcji co zmiana danych |
+| **Oferta drugiej szansy** | Propozycja zakupu wysłana przez sprzedającego kolejnemu licytującemu, gdy zwycięzca nie zapłacił |
+| **Chargeback** | Obciążenie zwrotne: zwrot płatności wymuszony przez bank lub wydawcę karty kupującego |
+| **Należność (receivable)** | Kwota, którą użytkownik jest winien Biddy, np. koszt dostawy po przegranym sporze |
+| **Replay** | Przeliczenie stanu aukcji od nowa z listy ważnych ofert po unieważnieniu jednej z nich |
+| **PWA / web push** | Strona instalowana na ekranie głównym, która może wysyłać powiadomienia push bez aplikacji ze sklepu |
 
 ---
 
