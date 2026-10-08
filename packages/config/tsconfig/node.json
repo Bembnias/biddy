@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Biddy: Node.js 24",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "lib": ["ES2024"],
+    "target": "ES2024",
+    "types": ["node"]
+  }
+}

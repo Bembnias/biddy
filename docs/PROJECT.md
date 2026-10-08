@@ -1028,12 +1028,13 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 
 | Warstwa | Wybór | Uzasadnienie / alternatywa |
 |---|---|---|
-| Język | **TypeScript** wszędzie | Jeden język, współdzielone typy |
-| Runtime | **Node.js 24 LTS** | |
-| Monorepo | **Turborepo + pnpm workspaces** | Cache buildów, proste. Alt.: Nx. |
+| Język | **TypeScript 6.0** wszędzie | Jeden język, współdzielone typy. TypeScript 7 (natywny kompilator) poczeka, aż wspiera go typescript-eslint (obecnie wymaga TS < 6.1). |
+| Runtime | **Node.js 24 LTS** (`.nvmrc`) | |
+| Monorepo | **Turborepo + pnpm 10 workspaces** (wersje wspólnych narzędzi w `catalog:` w `pnpm-workspace.yaml`) | Cache buildów, proste. Alt.: Nx. |
+| Build pakietów | **tsdown** (ESM + CJS + `.d.ts`) | Pakiety w `packages/*` są budowane, bo NestJS działa na CommonJS, a Next.js i Expo na ESM. tsup odpadł: jest w trybie utrzymania i nie działa z TypeScript 6. |
 | Walidacja / kontrakty | **Zod** w `packages/shared` | Te same schematy na froncie, w mobile i w NestJS (`nestjs-zod`) |
 | Klient API | **OpenAPI** z NestJS, generowany przez **orval** do hooków **TanStack Query** | Typowany klient dla web i mobile bez ręcznego pisania |
-| Lint / format | ESLint + Prettier (lub Biome) | |
+| Lint / format | **ESLint (flat config, typed linting) + Prettier** | ESLint, a nie Biome, bo potrzebujemy reguł granic modułów (§10.3) i reguł z informacją o typach (np. `no-floating-promises`). Wspólna konfiguracja w `packages/config`. |
 | Testy | **Vitest**, **Testcontainers** (Postgres/Redis), **Playwright** (web e2e), **Maestro** (mobile e2e), **k6** (load), **fast-check** (property-based dla silnika licytacji) | |
 
 ### 11.2 Backend
@@ -1141,7 +1142,8 @@ biddy/
 │  ├─ emails/              # szablony React Email
 │  └─ config/              # eslint, tsconfig, prettier
 ├─ infra/
-│  ├─ docker-compose.yml   # dev: postgres, redis, meilisearch, minio, mailpit
+│  ├─ docker-compose.yml   # dev: postgres, redis ×2, meilisearch, rustfs (S3), mailpit
+│  ├─ scripts/             # setup, infra:up, db:reset, storage:setup, mail:test
 │  └─ terraform/           # (później)
 ├─ docs/
 │  ├─ PROJECT.md           # ten dokument
@@ -1153,7 +1155,7 @@ biddy/
 └─ pnpm-workspace.yaml
 ```
 
-**Lokalne środowisko:** `docker compose up` uruchamia Postgres, Redis, Meilisearch, MinIO (zamiast R2) i Mailpit (podgląd maili). Płatności i dostawy działają domyślnie na **FakeGateway** i **FakeShippingProvider**. Sandbox operatora jest opcjonalny, a jego webhooki trafiają do lokalnego API przez tunel (`cloudflared` lub ngrok).
+**Lokalne środowisko:** `pnpm setup` (pierwszy raz) albo `pnpm infra:up` uruchamia w Dockerze Postgres, dwie instancje Redis (kolejki i cache), Meilisearch, RustFS (S3 zamiast R2) i Mailpit (podgląd maili). **RustFS zamiast MinIO:** MinIO przestało publikować obrazy Dockera wersji community, a RustFS jest z nim zgodny (licencja Apache 2.0). Płatności i dostawy działają domyślnie na **FakeGateway** i **FakeShippingProvider**. Sandbox operatora jest opcjonalny, a jego webhooki trafiają do lokalnego API przez tunel (`cloudflared` lub ngrok).
 
 ---
 
@@ -1625,7 +1627,7 @@ Tygodnie poniżej zakładają **2 full-stack developerów** i bufor 15–20%. Su
 **Technika (Etap 0, F-01 – F-09):**
 
 - [ ] Monorepo (Turborepo + pnpm), `packages/config`, `packages/shared`, CI
-- [ ] `infra/docker-compose.yml` (Postgres, Redis, Meilisearch, MinIO, Mailpit)
+- [ ] `infra/docker-compose.yml` (Postgres, 2× Redis, Meilisearch, RustFS, Mailpit)
 - [ ] NestJS: struktura modułów, konfiguracja, Drizzle + migracje, outbox, BullMQ, logowanie, Sentry
 - [ ] Better Auth: e-mail i hasło, Google, Apple, OTP SMS (SMSAPI)
 - [ ] Next.js: layout, design tokens, shadcn/ui, auth flow
@@ -1781,6 +1783,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 28 | Logowanie: Turnstile i rosnące opóźnienie zamiast twardej blokady konta | Przyjęta | §16.1 |
 | 29 | Powiązane konta: automatyczna blokada tylko przy silnych sygnałach | Przyjęta | §16.2 |
 | 30 | Etap 0 (F-01 – F-05, F-09) nie wymaga pełnego speca: wystarczy skrócony spec z FEATURES.md i ADR-y | Przyjęta | FEATURES.md |
+| 31 | Narzędzia: TypeScript 6.0, pnpm 10, tsdown do budowania pakietów, ESLint + Prettier | Przyjęta | §11.1 |
+| 32 | Lokalny S3: RustFS zamiast MinIO | Przyjęta | §12 |
 
 ---
 

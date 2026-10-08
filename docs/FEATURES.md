@@ -199,7 +199,7 @@ flowchart TD
 
 **Zakres:**
 - Turborepo + pnpm workspaces, struktura `apps/` i `packages/` (§12).
-- `packages/config`: tsconfig, ESLint, Prettier (lub Biome).
+- `packages/config`: tsconfig, ESLint (flat config, typed linting), Prettier.
 - `packages/shared`: typ `Money` i helpery kwot (grosze, procent z zaokrągleniem half-up, formatowanie PLN).
 - `packages/shared`: dni robocze z kalendarzem polskich świąt (§15.7).
 - Vitest jako runner testów.
@@ -217,7 +217,7 @@ flowchart TD
 **Cel:** każda osoba uruchamia cały projekt lokalnie jedną komendą.
 
 **Zakres:**
-- `infra/docker-compose.yml`: Postgres, Redis, Meilisearch, MinIO, Mailpit.
+- `infra/docker-compose.yml`: Postgres, 2× Redis (kolejki `noeviction`, cache `allkeys-lru`), Meilisearch, RustFS (lokalny S3 zamiast MinIO), Mailpit.
 - `.env.example` i walidacja zmiennych.
 - Skrypty `pnpm dev`, `pnpm db:reset`, seed z użytkownikami testowymi.
 - README z instrukcją startu.
@@ -403,7 +403,7 @@ flowchart TD
 **Cel:** bezpieczny upload zdjęć z ochroną prywatności i moderacją.
 
 **Zakres:**
-- Presigned URL do R2/MinIO z limitem typu i rozmiaru.
+- Presigned URL do R2 (lokalnie RustFS) z limitem typu i rozmiaru.
 - Job przetwarzania: ponowne kodowanie, usunięcie EXIF (w tym GPS), warianty rozmiarów.
 - Moderacja obrazów (adapter + fake), kolejność zdjęć.
 - Czyszczenie osieroconych plików.
