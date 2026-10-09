@@ -1041,9 +1041,9 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 
 | Obszar | Wybór | Uzasadnienie / alternatywa |
 |---|---|---|
-| Framework | **NestJS** (adapter Fastify) | Struktura modułowa, DI, guards, gateway WS |
+| Framework | **NestJS 12** (ESM, adapter Fastify 5) | Struktura modułowa, DI, guards, gateway WS. Kompilacja przez **SWC** (build i tryb dev przez `@swc-node/register`), `tsc` tylko do sprawdzania typów: esbuild i tsx nie emitują metadanych dekoratorów, na których opiera się DI. Walidacja i OpenAPI: **nestjs-zod** (oficjalnie dla Nest ≤ 11, sprawdzony z 12; wyjątek w `peerDependencyRules`). |
 | Baza | **PostgreSQL 17/18** (najnowsza dostępna na Render) | Transakcje, `FOR UPDATE`, JSONB dla atrybutów, `ltree` dla drzewa kategorii. UUIDv7 generujemy w aplikacji (ADR-10). |
-| ORM | **Drizzle ORM** + drizzle-kit (migracje) | Pełna kontrola SQL (blokady, CTE, indeksy częściowe), lekki. Alt.: Prisma (lepszy DX, mniej kontroli). |
+| ORM | **Drizzle ORM 0.45** + drizzle-kit (migracje) | Pełna kontrola SQL (blokady, CTE, indeksy częściowe), lekki. Alt.: Prisma (lepszy DX, mniej kontroli). Wersja 1.0 jest w RC; aktualizacja po wydaniu stabilnej. Tabele modułu leżą w `src/modules/<moduł>/db/*.schema.ts`, migracje w `apps/api/drizzle/`, na produkcji uruchamiane osobnym krokiem przed deployem (§18.2). |
 | Auth | **Better Auth** (montowany w NestJS, adapter Drizzle) | Open-source, dane u nas. E-mail i hasło, Google, Apple, Facebook, OTP telefonu, 2FA, plugin Expo. Alt.: Clerk (szybciej, ale koszt per MAU i lock-in). |
 | Kolejki / joby | **BullMQ** na Redis | Opóźnione joby (koniec aukcji, terminy), retry, repeatable. **Osobna instancja Redis z `maxmemory-policy noeviction`** (wymóg BullMQ: eviction gubi joby). |
 | Realtime | **Socket.IO** + `@socket.io/redis-adapter` | Alt.: zarządzany Ably/Pusher przy dużej skali |
@@ -1785,6 +1785,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 30 | Etap 0 (F-01 – F-05, F-09) nie wymaga pełnego speca: wystarczy skrócony spec z FEATURES.md i ADR-y | Przyjęta | FEATURES.md |
 | 31 | Narzędzia: TypeScript 6.0, pnpm 10, tsdown do budowania pakietów, ESLint + Prettier | Przyjęta | §11.1 |
 | 32 | Lokalny S3: RustFS zamiast MinIO | Przyjęta | §12 |
+| 33 | Backend: NestJS 12 (ESM) + SWC, nestjs-zod mimo deklarowanej zgodności tylko z Nest ≤ 11 | Przyjęta | §11.2 |
+| 34 | Błędy API: RFC 9457 (`application/problem+json`) z polem `code`; lista kodów wspólna dla klientów w `packages/shared` | Przyjęta | §14.1 |
 
 ---
 
