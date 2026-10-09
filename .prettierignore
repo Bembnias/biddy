@@ -5,3 +5,5 @@ dist
 coverage
 pnpm-lock.yaml
 docs/**/*.md
+# drizzle-kit zapisuje meta (journal, snapshoty) w swoim formacie; nie formatujemy ich.
+apps/api/drizzle/meta

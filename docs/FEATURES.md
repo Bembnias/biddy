@@ -320,6 +320,8 @@ flowchart TD
 - Sesje cookie dla web (domena `.biddy.pl`), przygotowanie tokenów bearer dla mobile.
 - Turnstile na rejestracji i logowaniu.
 - Akceptacja regulaminu z zapisem wersji (tabela `terms_acceptances`).
+- Ochrona CSRF dla sesji cookie (sprawdzanie `Origin` albo token; NestJS 12 ma `enableCsrfProtection()`). Parser formularzy (`application/x-www-form-urlencoded`) tylko na trasie callbacku Sign in with Apple, globalnie API przyjmuje wyłącznie JSON (F-03).
+- Decyzja o kluczach obcych między modułami (np. `orders` → użytkownicy z `identity`): reguła granic modułów (F-03) blokuje dziś import cudzego `*.schema.ts`. Do wyboru: wyjątek w regule dla plików schematu albo kolumny uuid bez FK.
 - Ekrany web, wylogowanie ze wszystkich urządzeń.
 
 **Kryteria akceptacji:**
@@ -355,7 +357,8 @@ flowchart TD
 **Zakres:**
 - GitHub Actions: lint, typecheck, testy, build z cache Turborepo.
 - Staging: Render (API, worker, Postgres, 2 instancje Redis: kolejki i cache) i Vercel (web).
-- Migracje jako osobny krok przed deployem, sekrety, preview deployments dla web, Sentry releases.
+- Migracje jako osobny krok przed deployem (`node dist/infra/db/migrate.js`; obraz musi zawierać `apps/api/drizzle/`), sekrety, preview deployments dla web, Sentry releases.
+- Weryfikacja `TRUST_PROXY` na Render: domyślnie ufamy adresom loopback i prywatnym (load balancer Render). Jeśli przed Render stoi Cloudflare, dopisać jego zakresy CIDR (inaczej `request.ip` będzie adresem proxy).
 
 **Kryteria akceptacji:**
 - Merge do `main` wdraża staging automatycznie w mniej niż 15 minut.

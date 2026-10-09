@@ -22,6 +22,7 @@
       "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*", "CI"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },
