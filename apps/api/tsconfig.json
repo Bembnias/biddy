@@ -1,0 +1,13 @@
+{
+  "extends": "@biddy/config/tsconfig/node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    // NestJS: DI opiera się na metadanych typów parametrów z dekoratorów (legacy decorators).
+    // Kompilację robi SWC (.swcrc), tsc służy tylko do sprawdzania typów.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false
+  },
+  "include": ["src", "test", "*.config.ts", "eslint.config.js"]
+}

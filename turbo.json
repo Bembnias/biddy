@@ -17,6 +17,10 @@
     "test": {
       "dependsOn": ["^build"]
     },
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*", "CI"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
