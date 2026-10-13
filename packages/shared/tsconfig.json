@@ -1,0 +1,8 @@
+{
+  "extends": "@biddy/config/tsconfig/library.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["src", "tsdown.config.ts", "vitest.config.ts", "eslint.config.js"]
+}

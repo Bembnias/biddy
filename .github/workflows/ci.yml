@@ -1,0 +1,105 @@
+# CI: lint, typecheck, testy jednostkowe, formatowanie i build (job „checks”) oraz testy
+# integracyjne z Testcontainers na prawdziwym Postgresie w Dockerze (job „integration”).
+# Uruchamia się dla każdego pull requesta i każdego pusha do main.
+#
+# F-09 (CI/CD i środowiska) rozszerzy ten workflow o wdrożenia: migracje jako osobny krok przed
+# deployem, staging na Render i Vercel po merge'u do main, preview deployments dla web
+# i Sentry releases.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Nowy push do tego samego pull requesta anuluje poprzedni przebieg. Na main każdy commit
+# przechodzi pełne sprawdzenie (F-09 dołoży tu deploy, którego nie wolno przerwać w połowie).
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  checks:
+    name: Lint, typecheck, testy i build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Wersja pnpm z pola packageManager w package.json.
+      - name: pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Node.js (wersja z .nvmrc) z cache magazynu pnpm
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Lokalny cache Turborepo: niezmienione pakiety nie budują się i nie testują od nowa.
+      - name: Cache Turborepo
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ github.job }}-
+
+      - name: Instalacja zależności
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint, typecheck, testy jednostkowe i formatowanie
+        run: pnpm check
+
+  integration:
+    name: Testy integracyjne (Testcontainers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Node.js (wersja z .nvmrc) z cache magazynu pnpm
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Cache Turborepo
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ github.job }}-
+
+      - name: Instalacja zależności
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      # Docker jest dostępny na runnerach GitHub z Ubuntu; Testcontainers łączy się przez
+      # /var/run/docker.sock i sam pobiera obrazy (postgres:17-alpine, testcontainers/ryuk).
+      - name: Docker
+        run: docker version
+
+      - name: Testy integracyjne
+        run: pnpm test:integration

@@ -1,0 +1,29 @@
+# Zależności
+node_modules/
+
+# Wyniki buildów
+dist/
+.next/
+out/
+build/
+*.tsbuildinfo
+
+# Turborepo
+.turbo/
+
+# Zmienne środowiskowe (szablon: .env.example)
+.env
+.env.*
+!.env.example
+
+# Logi i pliki systemowe
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+coverage/
+
+# Edytory
+.idea/
+.vscode/*
+!.vscode/extensions.json
