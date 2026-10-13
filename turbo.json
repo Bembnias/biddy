@@ -8,6 +8,13 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
+    "@biddy/web#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env"],
+      "env": ["NEXT_PUBLIC_*", "SENTRY_ORG", "SENTRY_PROJECT"],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN", "CI"]
+    },
     "lint": {
       "dependsOn": ["^build"]
     },

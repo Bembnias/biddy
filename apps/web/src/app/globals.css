@@ -1,0 +1,23 @@
+/* Tailwind CSS 4 z motywem z @biddy/design-tokens: domyślna paleta, fonty i rozmiary Tailwinda
+   są wyłączone, więc dostępne są tylko klasy z tokenów (np. bg-primary, text-muted-foreground). */
+@import 'tailwindcss';
+@import '@biddy/design-tokens/theme.css';
+
+/* Tryb ciemny jest poza MVP: wariant dark: działa tylko z klasą .dark, której nie ustawiamy.
+   Domyślnie Tailwind 4 reagowałby na prefers-color-scheme i mieszał kolory w komponentach shadcn. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  body {
+    @apply flex min-h-dvh flex-col;
+  }
+
+  /* Widoczny fokus klawiatury na linkach i przyciskach bez własnego stylu fokusu. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}

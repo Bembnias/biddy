@@ -1061,14 +1061,14 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 
 | Obszar | Wybór |
 |---|---|
-| Framework | **Next.js** (App Router, Server Components, ISR dla stron aukcji i kategorii) |
+| Framework | **Next.js 16** (App Router, Server Components, Turbopack, ISR dla stron aukcji i kategorii) |
 | Świeżość stron aukcji | ISR z `revalidate` 60 s + **rewalidacja na żądanie** (`revalidateTag('auction:{id}')`) wywoływana przez worker po `BidPlaced`, `AuctionExtended` i `AuctionEnded`, maks. raz na 5 s na aukcję. HTML bez JS pokazuje cenę nie starszą niż ok. 10 s. |
 | PWA i web push | Manifest, service worker, **Web Push (VAPID)** przez bibliotekę `web-push` w module `notifications`. Na iOS web push działa tylko po dodaniu strony do ekranu głównego (iOS 16.4+), więc po pierwszej ofercie na iPhonie proponujemy instalację. |
-| UI | **Tailwind CSS** + **shadcn/ui** (Radix) |
+| UI | **Tailwind CSS 4** + **shadcn/ui** (Radix). Kolory, typografia i promienie wyłącznie z `packages/design-tokens` (motyw Tailwind bez domyślnej palety i fontów). |
 | Dane | TanStack Query (client), fetch w Server Components z przekazywaniem cookie sesji |
 | Formularze | react-hook-form + Zod |
 | Realtime | `socket.io-client` (wspólny wrapper z `packages/realtime`) |
-| i18n | `next-intl` (PL na start, EN później) |
+| i18n | `next-intl` (PL na start, EN później; bez prefiksu języka w adresie, dopóki jest jeden język) |
 | SEO | Metadata API, `sitemap.xml` (dynamiczny), schema.org `Product` + `Offer`, OG images (`next/og`) |
 | Analityka | PostHog (EU), Sentry |
 
@@ -1792,6 +1792,9 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 35 | Kolejki: BullMQ 6 + ioredis 5.11; eventy z outboxa osobnym jobem na konsumenta, idempotencja przez `processed_events`, DLQ jako kolejka `dead-letter` | Przyjęta | §11.2, §14.3 |
 | 36 | Bull Board tylko lokalnie (osobny proces, bez uwierzytelniania); na produkcji kolejki i DLQ w panelu administracyjnym | Przyjęta | §11.5, §18.3 |
 | 37 | Kontrakt API: odpowiedzi przez `@ZodResponse` (serializacja schematem DTO), `operationId` = nazwa metody kontrolera (unikalna), błąd `default` = ProblemDetails; klient orval z fetcherem `apiFetch` i kodem w repozytorium | Przyjęta | §11.1, §14.1 |
+| 38 | Web: Next.js 16 + Tailwind CSS 4 + shadcn/ui, next-intl bez prefiksu języka; konfiguracja `NEXT_PUBLIC_*` walidowana przy buildzie, środowisko w `NEXT_PUBLIC_ENVIRONMENT` (indeksowanie tylko na produkcji) | Przyjęta | §11.3 |
+| 39 | Design tokens w TypeScript (`packages/design-tokens`) generują motyw Tailwind 4 z wyzerowaną domyślną paletą; paleta (granat i pomarańcz) i font Inter tymczasowo, do czasu identyfikacji wizualnej | Tymczasowa | §11.3, §22 nr 8 |
+| 40 | Sentry w przeglądarce ładowany osobnym fragmentem JS po starcie strony (błędy z pierwszych chwil buforowane), PostHog dopiero po zgodzie | Przyjęta | §17, §18.3, §19 |
 
 ---
 

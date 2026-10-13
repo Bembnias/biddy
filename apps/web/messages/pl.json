@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "title": "Biddy: licytacje z ochroną kupującego",
+    "description": "Licytuj karty, sneakersy, retro gry i kolekcje. Uczciwa cena ustalona przez rynek, płatność wstrzymana do odbioru przedmiotu, a sprzedający dostaje 100% kwoty."
+  },
+  "layout": {
+    "skipToContent": "Przejdź do treści",
+    "home": "Biddy, strona główna",
+    "mainNavigation": "Nawigacja główna",
+    "search": {
+      "label": "Szukaj na Biddy",
+      "placeholder": "Szukaj przedmiotów, np. Pokémon, Air Max…",
+      "submit": "Szukaj"
+    },
+    "sell": "Wystaw przedmiot",
+    "signIn": "Zaloguj się"
+  },
+  "footer": {
+    "label": "Stopka",
+    "company": {
+      "title": "Biddy",
+      "about": "O nas",
+      "contact": "Kontakt"
+    },
+    "help": {
+      "title": "Pomoc",
+      "howBiddingWorks": "Jak działa licytacja",
+      "buyerProtection": "Pakiet Ochrony Kupujących",
+      "helpCenter": "Centrum pomocy"
+    },
+    "rules": {
+      "title": "Zasady",
+      "terms": "Regulamin",
+      "privacy": "Polityka prywatności",
+      "prohibitedItems": "Zakazane przedmioty"
+    },
+    "copyright": "© {year} Biddy. Licytacje z ochroną kupującego."
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Licytacje C2C z ochroną kupującego",
+      "title": "Licytuj. Wygrywaj. Kupuj bezpiecznie.",
+      "lead": "Cenę ustala rynek, a pieniądze czekają u operatora płatności, aż odbierzesz przedmiot i potwierdzisz, że wszystko się zgadza.",
+      "browse": "Przeglądaj aukcje",
+      "sell": "Wystaw przedmiot"
+    },
+    "values": {
+      "title": "Dlaczego Biddy",
+      "fairPrice": {
+        "title": "Uczciwa cena",
+        "text": "Licytacja pokazuje, ile przedmiot jest naprawdę wart. Licytuj automatycznie do swojego maksimum, a my podbijemy ofertę za Ciebie."
+      },
+      "protection": {
+        "title": "Pakiet Ochrony Kupujących",
+        "text": "Płacisz BLIK-iem lub kartą, a środki trafiają do sprzedającego dopiero po odbiorze. Masz 36 godzin na sprawdzenie przedmiotu."
+      },
+      "zeroFee": {
+        "title": "0% prowizji dla sprzedających",
+        "text": "Sprzedający dostaje 100% wylicytowanej kwoty, gotową etykietę i śledzenie przesyłki."
+      }
+    },
+    "niches": {
+      "title": "Odkrywaj kolekcje",
+      "collectibles": {
+        "title": "Kolekcjonerstwo",
+        "text": "Karty Pokémon, MTG i One Piece, LEGO, figurki i monety.",
+        "query": "kolekcjonerstwo"
+      },
+      "sneakers": {
+        "title": "Sneakersy i vintage",
+        "text": "Limitowane edycje, streetwear i moda z duszą.",
+        "query": "sneakersy"
+      },
+      "retro": {
+        "title": "Retro gaming",
+        "text": "Konsole, kartridże i elektronika z historią.",
+        "query": "retro gaming"
+      },
+      "cta": "Zobacz aukcje"
+    }
+  },
+  "notFound": {
+    "metaTitle": "Nie znaleziono strony",
+    "title": "Nie znaleźliśmy tej strony",
+    "text": "Adres mógł się zmienić albo aukcja została usunięta. Sprawdź adres lub poszukaj przedmiotu.",
+    "home": "Strona główna",
+    "search": "Szukaj przedmiotów"
+  },
+  "error": {
+    "title": "Coś poszło nie tak",
+    "text": "Nie udało się wyświetlić tej strony. Spróbuj ponownie za chwilę. Jeśli problem się powtarza, napisz do nas i podaj kod błędu.",
+    "retry": "Spróbuj ponownie",
+    "home": "Strona główna",
+    "reference": "Kod błędu: {digest}"
+  },
+  "loading": "Ładowanie…"
+}

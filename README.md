@@ -52,7 +52,7 @@ pnpm test:integration  # testy integracyjne z Testcontainers (wymaga Dockera)
 pnpm api:generate      # po zmianie endpointu albo DTO: kontrakt OpenAPI i klient API od nowa
 ```
 
-API działa wtedy pod http://localhost:3001 (sonda http://localhost:3001/health, dokumentacja http://localhost:3001/docs), worker przetwarza joby i eventy domenowe, a podgląd kolejek (Bull Board) jest pod http://localhost:3002. Szczegóły: [API (apps/api)](#api-appsapi) i [Kolejki, workery i outbox](#kolejki-workery-i-outbox).
+Aplikacja web działa wtedy pod http://localhost:3000, API pod http://localhost:3001 (sonda http://localhost:3001/health, dokumentacja http://localhost:3001/docs), worker przetwarza joby i eventy domenowe, a podgląd kolejek (Bull Board) jest pod http://localhost:3002. Szczegóły: [Aplikacja web (apps/web)](#aplikacja-web-appsweb), [API (apps/api)](#api-appsapi) i [Kolejki, workery i outbox](#kolejki-workery-i-outbox).
 
 ## Usługi
 
@@ -97,7 +97,7 @@ Wszystkie uruchamiasz z katalogu głównego.
 | Skrypt                  | Co robi                                                                                                                               |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm bootstrap`        | Pierwsze uruchomienie: `.env`, walidacja, usługi, kubełki S3, reset bazy, podsumowanie.                                               |
-| `pnpm dev`              | `pnpm infra:up`, a potem `turbo run dev dev:worker dev:board`: API, worker i Bull Board w trybie deweloperskim.                       |
+| `pnpm dev`              | `pnpm infra:up`, a potem `turbo run dev dev:worker dev:board`: web, API, worker i Bull Board w trybie deweloperskim.                  |
 | `pnpm build`            | Build wszystkich pakietów i aplikacji (Turborepo z cache).                                                                            |
 | `pnpm lint`             | ESLint (flat config, reguły z informacją o typach).                                                                                   |
 | `pnpm typecheck`        | `tsc --noEmit` we wszystkich pakietach.                                                                                               |
@@ -331,12 +331,51 @@ Testy (`*.test.ts` i katalog `test/`) mogą importować wszystko.
 
 Testy integracyjne nie korzystają z `pnpm infra:up` ani z `.env`. Kontenery znikają po zakończeniu testów. Każdy plik testów workera dostaje własną bazę, a każdy worker własny prefiks kluczy BullMQ, więc pliki działają równolegle.
 
+## Aplikacja web (apps/web)
+
+Next.js 16 (App Router, Server Components, Turbopack), Tailwind CSS 4 i shadcn/ui, teksty przez `next-intl` ([PROJECT.md §11.3](docs/PROJECT.md#113-web-appsweb)). Pełny spec: [F-06](docs/features/F-06-szkielet-web.md).
+
+### Uruchomienie
+
+```bash
+pnpm dev                              # razem z API, workerem i Bull Board; web pod http://localhost:3000
+pnpm --filter @biddy/web dev          # sama aplikacja web (Turbopack, odświeżanie na żywo)
+pnpm build && pnpm --filter @biddy/web start   # wersja produkcyjna lokalnie
+```
+
+Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.example`](.env.example)). Lokalnie nic nie trzeba ustawiać: API to domyślnie http://localhost:3001. Zmienne `NEXT_PUBLIC_*` trafiają do kodu przeglądarki przy buildzie, więc ich zmiana wymaga ponownego `pnpm build` (w `pnpm dev` restartu). Błędna wartość przerywa `next build` z listą problemów. `NEXT_PUBLIC_ENVIRONMENT=production` jako jedyne pozwala wyszukiwarkom indeksować stronę.
+
+### Design tokens i style
+
+- Kolory, typografia i promienie są w [`packages/design-tokens/src/tokens.ts`](packages/design-tokens/src/tokens.ts). Build pakietu generuje z nich `theme.css` dla Tailwinda, a test sprawdza kontrast WCAG AA par tekst/tło.
+- Tailwind nie ma domyślnej palety ani fontów: `bg-blue-500` czy `text-red-600` nie dadzą żadnego stylu. Używaj nazw semantycznych (`bg-primary`, `text-muted-foreground`, `border-input`, `bg-highlight`) albo palety z tokenów (`bg-navy-50`). Test `apps/web/src/design-tokens.test.ts` odrzuca wartości dowolne (`bg-[#fff]`, `text-[13px]`, `font-[…]`) i literały kolorów w kodzie.
+- Paleta i font (Inter) są tymczasowe, do czasu identyfikacji wizualnej. Zmiana palety to zmiana tokenów, bez zmian w komponentach.
+- Komponenty shadcn/ui leżą w `apps/web/src/components/ui`. Nowy komponent: `pnpm dlx shadcn@4.21.2 add <nazwa>` w katalogu `apps/web`, potem `pnpm --filter @biddy/web typecheck` (CLI zdarza się wpisać zły import `cn`; poprawny to `@/lib/utils`) i `pnpm format`.
+
+### Teksty, monitoring, analityka
+
+- Teksty są w `apps/web/messages/pl.json`, a komponenty czytają je przez `useTranslations('sekcja')`. Klucze są typowane: literówka to błąd kompilacji.
+- Sentry działa, gdy ustawiony jest `NEXT_PUBLIC_SENTRY_DSN`. W przeglądarce SDK ładuje się osobnym fragmentem JS po starcie strony.
+- PostHog startuje dopiero po zgodzie na analitykę: ciasteczko `biddy_consent` z kategorią `analytics` (baner zgód powstanie w F-41). Bez zgody kod PostHog nawet nie trafia do przeglądarki.
+- Klient API (`@biddy/api-client`) jest skonfigurowany w layoucie (`src/components/providers/app-providers.tsx`). W Server Components wygenerowane funkcje dostają ciasteczko sesji przez `withSessionCookies()` z `src/lib/api/server.ts`.
+
+### Testy web
+
+| Polecenie                             | Co sprawdza                                                                                                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @biddy/web test`       | Vitest i Testing Library: konfiguracja, komponenty layoutu, zegar, zgody, „tylko tokeny”.                                                                         |
+| `pnpm --filter @biddy/web test:e2e`   | Playwright na zbudowanej aplikacji (`next start`): szerokości 360–1440 px, axe-core (WCAG 2.1 AA), klawiatura, 404, robots.txt, nagłówki, brak PostHog bez zgody. |
+| `pnpm --filter @biddy/web lighthouse` | Lighthouse strony głównej (profil mobilny, mediana z 3 pomiarów), progi 90 dla wydajności i dostępności, raport w `apps/web/.lighthouse/`. Uruchamiany ręcznie.   |
+
+E2E i Lighthouse wymagają wcześniejszego `pnpm build` i przeglądarki: `pnpm --filter @biddy/web exec playwright install chromium`.
+
 ## CI
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) działa dla każdego pull requesta i każdego pusha do `main`:
 
 - job `checks`: `pnpm build` i `pnpm check` (lint, typecheck, testy jednostkowe, formatowanie, aktualność kontraktu i klienta API),
-- job `integration`: `pnpm build` i `pnpm test:integration` (Docker jest na runnerach GitHub z Ubuntu).
+- job `integration`: `pnpm build` i `pnpm test:integration` (Docker jest na runnerach GitHub z Ubuntu),
+- job `web`: build aplikacji web i testy e2e w Playwright (Chromium); przy błędzie raport Playwright jako artefakt.
 
 Oba joby korzystają z cache magazynu pnpm i cache Turborepo. Nowy push do pull requesta anuluje poprzedni przebieg. Wdrożenia (staging, preview, migracje przed deployem) dojdą w F-09.
 
@@ -345,7 +384,12 @@ Oba joby korzystają z cache magazynu pnpm i cache Turborepo. Nowy push do pull 
 ```
 biddy/
 ├─ apps/
-│  └─ api/                 # backend NestJS (Fastify); później web (F-06), admin i mobile
+│  ├─ web/                 # Next.js: biddy.pl (App Router, Tailwind 4, shadcn/ui, next-intl)
+│  │  ├─ src/app/          # strony, layout, 404, błędy, robots.txt, ikona
+│  │  ├─ src/components/   # layout, ui (shadcn/ui), dostawcy (TanStack Query, zegar serwera)
+│  │  ├─ messages/pl.json  # teksty
+│  │  └─ e2e/              # testy Playwright
+│  └─ api/                 # backend NestJS (Fastify); później admin i mobile
 │     ├─ src/modules/      # 16 modułów domenowych, publiczne API każdego w index.ts
 │     ├─ src/infra/        # config, db (Drizzle), http (Problem Details), logger, health, openapi,
 │     │                    # queues (BullMQ), outbox (eventy domenowe), worker
@@ -356,6 +400,7 @@ biddy/
 ├─ packages/
 │  ├─ api-client/          # klient API z orval: funkcje, hooki TanStack Query, fetcher (ApiError)
 │  ├─ config/              # wspólna konfiguracja: tsconfig, ESLint, Prettier
+│  ├─ design-tokens/       # kolory, typografia, promienie → motyw Tailwind 4 (web) i wartości JS (mobile)
 │  └─ shared/              # logika współdzielona: Money, dni robocze i święta, kody błędów API
 ├─ infra/
 │  ├─ docker-compose.yml   # usługi lokalne: Postgres, 2× Redis, Meilisearch, RustFS, Mailpit
@@ -401,6 +446,10 @@ Potem `pnpm env:check` (wykryje niezgodny port) i `pnpm infra:up` (compose odtwo
 **`pnpm api:check`: „Klient API jest nieaktualny”.** Kod API (endpoint, DTO, nazwa metody) zmienił się bez regeneracji klienta. Uruchom `pnpm api:generate` i dodaj do commita `apps/api/openapi.json` oraz `packages/api-client/src/generated`. Komunikat wymienia pliki, które się różnią. Generowanie wymaga zbudowanego `@biddy/shared` (`pnpm build`).
 
 **`pnpm test:integration` nie może uruchomić kontenera.** Testy integracyjne potrzebują działającego Dockera (`docker info`). Testcontainers pobiera przy pierwszym uruchomieniu obrazy `postgres:17-alpine`, `redis:7.4-alpine` i `testcontainers/ryuk` (sprząta kontenery po przerwanych testach). Jeśli `testcontainers/ryuk` nie da się pobrać, uruchom testy z `TESTCONTAINERS_RYUK_DISABLED=true`. Kontenery znikają wtedy tylko po normalnym zakończeniu testów.
+
+**Klasa Tailwinda nic nie robi (np. `bg-blue-500`, `font-serif`).** Motyw ma tylko wartości z design tokens. Użyj klasy semantycznej (`bg-primary`) albo dodaj token w `packages/design-tokens/src/tokens.ts` i przebuduj pakiet (`pnpm build`).
+
+**`pnpm --filter @biddy/web test:e2e` nie startuje.** Najpierw `pnpm build` (testy działają na `next start`) i `pnpm --filter @biddy/web exec playwright install chromium`. Port testów to 3100 (`E2E_PORT`).
 
 **Zła wersja Node.** `node -v` powinno pokazać `v24.x`. Przełącz wersję: `nvm use` (albo `fnm use`).
 

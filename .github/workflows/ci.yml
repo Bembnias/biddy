@@ -1,6 +1,6 @@
 # CI: lint, typecheck, testy jednostkowe, formatowanie, aktualność klienta API i build (job
-# „checks”) oraz testy integracyjne z Testcontainers na prawdziwym Postgresie i Redisie w Dockerze
-# (job „integration”).
+# „checks”), testy integracyjne z Testcontainers na prawdziwym Postgresie i Redisie w Dockerze
+# (job „integration”) oraz testy e2e aplikacji web w Playwright (job „web”).
 # Uruchamia się dla każdego pull requesta i każdego pusha do main.
 #
 # F-09 (CI/CD i środowiska) rozszerzy ten workflow o wdrożenia: migracje jako osobny krok przed
@@ -107,3 +107,53 @@ jobs:
 
       - name: Testy integracyjne
         run: pnpm test:integration
+
+  web:
+    name: Aplikacja web (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Node.js (wersja z .nvmrc) z cache magazynu pnpm
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Cache Turborepo
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ github.job }}-
+
+      - name: Instalacja zależności
+        run: pnpm install --frozen-lockfile
+
+      # Build web z zależnościami (design tokens, klient API); konfiguracja domyślna (lokalna).
+      - name: Build
+        run: pnpm turbo run build --filter=@biddy/web...
+
+      - name: Przeglądarka dla Playwright (Chromium)
+        run: pnpm --filter @biddy/web exec playwright install --with-deps chromium
+
+      # Na zbudowanej aplikacji (next start): szerokości 360–1440 px, axe-core (WCAG 2.1 AA),
+      # klawiatura, 404, robots.txt, nagłówki bezpieczeństwa, brak analityki bez zgody.
+      - name: Testy e2e (Playwright)
+        run: pnpm --filter @biddy/web test:e2e
+
+      - name: Raport Playwright (przy błędzie)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

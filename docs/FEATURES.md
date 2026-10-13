@@ -294,6 +294,8 @@ flowchart TD
 
 ### F-06 · Szkielet aplikacji web · `M`
 
+> Pełny spec: [docs/features/F-06-szkielet-web.md](features/F-06-szkielet-web.md).
+
 **Cel:** baza aplikacji Next.js z design systemem.
 
 **Zakres:**
@@ -302,7 +304,7 @@ flowchart TD
 - Layout: nagłówek, miejsce na wyszukiwarkę, stopka.
 - `next-intl` (PL), strony błędów i 404.
 - Sentry, PostHog (włączany dopiero po zgodzie, patrz F-41), bazowe SEO (metadata, robots).
-- Klient API z F-05: `configureApiClient({ baseUrl })` i `QueryClientProvider` w layoucie; dowolny ekran używa wygenerowanego hooka (np. `useGetServerTime`), co domyka kryterium F-05 w prawdziwej aplikacji. Server Components wołają wygenerowane funkcje z przekazanym ciasteczkiem sesji.
+- Klient API z F-05: `configureApiClient({ baseUrl })` i `QueryClientProvider` w layoucie; synchronizacja zegara z serwerem przez wygenerowane `getServerTime` (`GET /v1/time`), co domyka kryterium F-05 w prawdziwej aplikacji. Server Components wołają wygenerowane funkcje z przekazanym ciasteczkiem sesji (`withSessionCookies`).
 
 **Kryteria akceptacji:**
 - Lighthouse ≥ 90 dla wydajności i dostępności na stronie głównej.
@@ -357,7 +359,7 @@ flowchart TD
 
 **Zakres:**
 - GitHub Actions: lint, typecheck, testy, build z cache Turborepo.
-- Staging: Render (API, worker, Postgres, 2 instancje Redis: kolejki i cache) i Vercel (web). Worker jako Background Worker z `start:worker` (`node --import ./dist/instrument.js dist/worker.js`), bez portu HTTP. Key Value kolejek z „Maxmemory Policy: noeviction” (inaczej worker nie wystartuje, F-04), `REDIS_QUEUE_URL` dla API i workera.
+- Staging: Render (API, worker, Postgres, 2 instancje Redis: kolejki i cache) i Vercel (web). Web: `NEXT_PUBLIC_ENVIRONMENT` (`preview`, `staging`, `production`; tylko produkcja jest indeksowana), `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_APP_RELEASE` i `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT` do uploadu source map (F-06). Worker jako Background Worker z `start:worker` (`node --import ./dist/instrument.js dist/worker.js`), bez portu HTTP. Key Value kolejek z „Maxmemory Policy: noeviction” (inaczej worker nie wystartuje, F-04), `REDIS_QUEUE_URL` dla API i workera.
 - Migracje jako osobny krok przed deployem (`node dist/infra/db/migrate.js`; obraz musi zawierać `apps/api/drizzle/`), sekrety, preview deployments dla web, Sentry releases.
 - Weryfikacja `TRUST_PROXY` na Render: domyślnie ufamy adresom loopback i prywatnym (load balancer Render). Jeśli przed Render stoi Cloudflare, dopisać jego zakresy CIDR (inaczej `request.ip` będzie adresem proxy).
 
@@ -939,7 +941,7 @@ Prace przed publicznym startem web. Zamknięta beta działa już na produkcji z 
 
 **Zakres:**
 - Regulamin (wersjonowany, ponowna akceptacja po zmianach), polityka prywatności. Regulamin obejmuje m.in. zasady aukcji (KC), limity i strike'i, przesyłki nieodebrane, potrącenia i rekompensaty, minimalną wypłatę (§17).
-- Baner cookies: domyślnie tylko niezbędne, analityka po zgodzie.
+- Baner cookies: domyślnie tylko niezbędne, analityka po zgodzie. Kontrakt z F-06: baner zapisuje ciasteczko `biddy_consent` (kategorie po przecinku, np. `analytics`) i wysyła zdarzenie `biddy:consent-changed` na `window`; aplikacja web wtedy uruchamia PostHog (`apps/web/src/analytics`).
 - Centrum pomocy (POK, licytacje, spory, KYC), lista zakazanych przedmiotów.
 - Informacje wymagane przez Omnibus (C2C, ranking, opinie).
 - Eksport danych i usunięcie konta (RODO).
@@ -959,6 +961,8 @@ Prace przed publicznym startem web. Zamknięta beta działa już na produkcji z 
 - Testy obciążeniowe k6 (200 ofert/s na gorącą aukcję, 2 tys. połączeń WS).
 - Przegląd bezpieczeństwa lub pentest.
 - Test odtworzenia backupu.
+- Lighthouse ≥ 90 dla strony głównej i strony aukcji (kryterium przeniesione z F-06): skrypt `pnpm --filter @biddy/web lighthouse` istnieje; w F-06 wydajność wahała się 87–97 przez symulowany LCP ok. 3 s przy FCP 0,8 s, do zbadania i ewentualnie progu w CI.
+- Content Security Policy z nonce dla web (odłożone w F-06, bo wymusza dynamiczne renderowanie stron).
 - Dashboardy i alerty (§18.3), w tym aukcja `ACTIVE` po `ends_at`, straty platformy i pamięć Redisa kolejek. Alert na niepustą kolejkę `dead-letter` i na zaległości w outboxie (wiersze z pustym `published_at` starsze niż minuta, F-04).
 - Runbooki: awaria płatności, zatrzymana kolejka, rozjazd ledgera.
 - Środowisko produkcyjne, Cloudflare WAF, limity.

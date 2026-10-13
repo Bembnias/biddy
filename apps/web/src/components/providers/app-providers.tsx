@@ -1,0 +1,25 @@
+'use client';
+
+import { configureApiClient } from '@biddy/api-client';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { type ReactNode, useState } from 'react';
+
+import { Analytics } from '@/analytics/analytics';
+import { config } from '@/config';
+import { createQueryClient } from '@/lib/query-client';
+
+import { ServerClockProvider } from './server-clock-provider';
+
+// Klient API w przeglądarce: adres z konfiguracji, ciasteczko sesji (domyślne credentials).
+configureApiClient({ baseUrl: config.apiUrl });
+
+/** Dostawcy po stronie przeglądarki: TanStack Query, zegar serwera, analityka po zgodzie. */
+export function AppProviders({ children }: { readonly children: ReactNode }) {
+  const [queryClient] = useState(createQueryClient);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ServerClockProvider>{children}</ServerClockProvider>
+      <Analytics />
+    </QueryClientProvider>
+  );
+}
