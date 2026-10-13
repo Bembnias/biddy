@@ -21,6 +21,14 @@
       "dependsOn": ["^build"],
       "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*", "CI"]
     },
+    "@biddy/api-client#test:integration": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/api/src/**",
+        "$TURBO_ROOT$/apps/api/package.json"
+      ]
+    },
     "dev": {
       "dependsOn": ["^build"],
       "cache": false,

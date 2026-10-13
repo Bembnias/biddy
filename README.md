@@ -47,8 +47,9 @@ Codzienna praca:
 ```bash
 pnpm dev               # infra:up, potem tryb deweloperski: API, worker i Bull Board
 pnpm infra:down        # zatrzymuje usługi, dane zostają w wolumenach Dockera
-pnpm check             # lint, typecheck, testy i formatowanie przed pull requestem
+pnpm check             # lint, typecheck, testy, formatowanie i aktualność klienta API przed pull requestem
 pnpm test:integration  # testy integracyjne z Testcontainers (wymaga Dockera)
+pnpm api:generate      # po zmianie endpointu albo DTO: kontrakt OpenAPI i klient API od nowa
 ```
 
 API działa wtedy pod http://localhost:3001 (sonda http://localhost:3001/health, dokumentacja http://localhost:3001/docs), worker przetwarza joby i eventy domenowe, a podgląd kolejek (Bull Board) jest pod http://localhost:3002. Szczegóły: [API (apps/api)](#api-appsapi) i [Kolejki, workery i outbox](#kolejki-workery-i-outbox).
@@ -102,7 +103,9 @@ Wszystkie uruchamiasz z katalogu głównego.
 | `pnpm typecheck`        | `tsc --noEmit` we wszystkich pakietach.                                                                                               |
 | `pnpm test`             | Testy jednostkowe (Vitest).                                                                                                           |
 | `pnpm test:integration` | Testy integracyjne (Testcontainers): własny Postgres i Redis w kontenerach. Wymaga Dockera, nie wymaga `pnpm infra:up`.               |
-| `pnpm check`            | `lint`, `typecheck`, `test` i `format:check` razem.                                                                                   |
+| `pnpm check`            | `lint`, `typecheck`, `test`, `format:check` i `api:check` razem.                                                                      |
+| `pnpm api:generate`     | Zapisuje kontrakt OpenAPI (`apps/api/openapi.json`) i generuje z niego klienta (`packages/api-client/src/generated`).                 |
+| `pnpm api:check`        | Sprawdza bez zmian w plikach, czy kontrakt i klient zgadzają się z kodem API (CI). Gdy nie, uruchom `pnpm api:generate`.              |
 | `pnpm format`           | Formatuje repozytorium Prettierem.                                                                                                    |
 | `pnpm format:check`     | Sprawdza formatowanie bez zmian w plikach.                                                                                            |
 | `pnpm clean`            | Usuwa wyniki buildów i cache.                                                                                                         |
@@ -263,6 +266,42 @@ async onAuctionEnded(event: DomainEventOf<typeof AuctionEnded>, { tx }: DomainEv
 
 **Redis kolejek.** Osobna instancja z `maxmemory-policy noeviction` (`REDIS_QUEUE_URL`): przy eviction Redis po zapełnieniu pamięci usuwa joby. Worker sprawdza politykę przy starcie i bez `noeviction` kończy się kodem 1. Lokalnie ustawia ją `infra/docker-compose.yml`, na Render trzeba ją wybrać w ustawieniach Key Value. Klucze BullMQ mają prefiks `QUEUE_PREFIX` (domyślnie `biddy`).
 
+### Kontrakt OpenAPI i klient API (packages/api-client)
+
+Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
+
+```
+DTO (nestjs-zod) + @ZodResponse  →  apps/api/openapi.json  →  orval  →  packages/api-client
+        pnpm api:generate: openapi:export (apps/api)  +  generate (packages/api-client)
+```
+
+- Wejście endpointu opisuje DTO z `createZodDto` (walidacja i OpenAPI), wyjście `@ZodResponse({ type: Dto })`. Odpowiedź przechodzi przez schemat DTO, więc pola spoza kontraktu nie trafiają do klienta, a niezgodność z DTO kończy się błędem 500.
+- `operationId` to nazwa metody kontrolera, np. `getServerTime` daje w kliencie funkcję `getServerTime()` i hooki `useGetServerTime()` i `useGetServerTimeSuspense()`. Nazwy metod muszą być unikalne w całym API: powtórzenie przerywa start API z błędem `OpenApiContractError`.
+- Każda operacja ma w kontrakcie odpowiedź `default` z `ProblemDetails`, więc błąd w kliencie ma typ `ApiError<ProblemDetails>` z polem `code`.
+- Po zmianie endpointu albo DTO uruchom `pnpm api:generate` i commituj `apps/api/openapi.json` razem z `packages/api-client/src/generated`. Plików wygenerowanych nie edytuj. `pnpm api:check` (w `pnpm check` i w CI) generuje oba w katalogu tymczasowym i porównuje z repozytorium.
+- `apps/api/openapi.json` nie zależy od środowiska (stała konfiguracja, wersja z `package.json`), więc w diffie pull requesta widać tylko zmiany kontraktu.
+
+Użycie w aplikacji (web w F-06, mobile w F-37):
+
+```tsx
+import { configureApiClient, useGetServerTime } from '@biddy/api-client';
+
+// Raz przy starcie. Web: ciasteczko sesji (credentials: 'include' domyślnie).
+configureApiClient({ baseUrl: process.env.NEXT_PUBLIC_API_URL });
+// Mobile: token sesji jako Authorization: Bearer.
+configureApiClient({ baseUrl, getAccessToken: () => SecureStore.getItemAsync('session') });
+
+function ServerClock() {
+  const { data, error } = useGetServerTime(); // data: ServerTimeDto, error: ApiError<ProblemDetails>
+  if (error) {
+    return <p>{error.code === 'SERVICE_UNAVAILABLE' ? 'Spróbuj za chwilę' : error.message}</p>;
+  }
+  return <p>{data?.serverTime}</p>;
+}
+```
+
+Hooki wymagają `QueryClientProvider` z `@tanstack/react-query` (peer dependency, tak jak `react`). Poza Reactem, np. w Server Components, wołaj wygenerowane funkcje (`await getServerTime({ headers: { cookie } })`) albo przekaż nagłówki przez `configureApiClient({ headers })`. Każdy błąd klienta to `ApiError`: `status` (0, gdy odpowiedź nie dotarła), `code` i `problem` z Problem Details oraz `requestId` do zgłoszenia w supporcie.
+
 ### Granice modułów
 
 Moduły domenowe leżą w `apps/api/src/modules/<moduł>/`: 16 modułów z [PROJECT.md §10.3](docs/PROJECT.md#103-moduły-backendu-bounded-contexts). Publiczne API modułu to wyłącznie jego `index.ts`. ESLint (eslint-plugin-boundaries, reguły w `apps/api/eslint.config.js`) zgłasza błąd, gdy:
@@ -283,10 +322,12 @@ Testy (`*.test.ts` i katalog `test/`) mogą importować wszystko.
 
 ### Testy API
 
-| Polecenie                       | Co sprawdza                                                                                                                                                                                       |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm --filter @biddy/api test` | Testy jednostkowe i testy aplikacji w procesie (`fastify.inject()`). Bez Dockera i bez bazy.                                                                                                      |
-| `pnpm test:integration`         | Testy integracyjne z `apps/api/test/integration`. Testcontainers uruchamia własny Postgres 17 i Redis 7.4, stosuje migracje i testuje API oraz worker (także jako osobny proces). Wymaga Dockera. |
+| Polecenie                                          | Co sprawdza                                                                                                                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @biddy/api test`                    | Testy jednostkowe i testy aplikacji w procesie (`fastify.inject()`). Bez Dockera i bez bazy.                                                                                                      |
+| `pnpm test:integration`                            | Testy integracyjne z `apps/api/test/integration`. Testcontainers uruchamia własny Postgres 17 i Redis 7.4, stosuje migracje i testuje API oraz worker (także jako osobny proces). Wymaga Dockera. |
+| `pnpm --filter @biddy/api-client test`             | Fetcher i wygenerowane hooki w komponencie React (happy-dom), z podmienionym `fetch`.                                                                                                             |
+| `pnpm --filter @biddy/api-client test:integration` | Klient na prawdziwym API (proces `apps/api`) ze strony pod originem web: ścieżki, typy odpowiedzi, Problem Details i CORS. Bez Dockera (uruchamia go też `pnpm test:integration`).                |
 
 Testy integracyjne nie korzystają z `pnpm infra:up` ani z `.env`. Kontenery znikają po zakończeniu testów. Każdy plik testów workera dostaje własną bazę, a każdy worker własny prefiks kluczy BullMQ, więc pliki działają równolegle.
 
@@ -294,7 +335,7 @@ Testy integracyjne nie korzystają z `pnpm infra:up` ani z `.env`. Kontenery zni
 
 GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) działa dla każdego pull requesta i każdego pusha do `main`:
 
-- job `checks`: `pnpm build` i `pnpm check` (lint, typecheck, testy jednostkowe, formatowanie),
+- job `checks`: `pnpm build` i `pnpm check` (lint, typecheck, testy jednostkowe, formatowanie, aktualność kontraktu i klienta API),
 - job `integration`: `pnpm build` i `pnpm test:integration` (Docker jest na runnerach GitHub z Ubuntu).
 
 Oba joby korzystają z cache magazynu pnpm i cache Turborepo. Nowy push do pull requesta anuluje poprzedni przebieg. Wdrożenia (staging, preview, migracje przed deployem) dojdą w F-09.
@@ -310,8 +351,10 @@ biddy/
 │     │                    # queues (BullMQ), outbox (eventy domenowe), worker
 │     ├─ src/main.ts       # proces API; src/worker.ts: proces workera; src/bull-board.ts: podgląd kolejek
 │     ├─ drizzle/          # migracje SQL (drizzle-kit)
+│     ├─ openapi.json      # kontrakt OpenAPI (pnpm api:generate), źródło klienta API
 │     └─ test/             # testy: unit/ (bez Dockera), integration/ (Testcontainers)
 ├─ packages/
+│  ├─ api-client/          # klient API z orval: funkcje, hooki TanStack Query, fetcher (ApiError)
 │  ├─ config/              # wspólna konfiguracja: tsconfig, ESLint, Prettier
 │  └─ shared/              # logika współdzielona: Money, dni robocze i święta, kody błędów API
 ├─ infra/
@@ -354,6 +397,8 @@ Potem `pnpm env:check` (wykryje niezgodny port) i `pnpm infra:up` (compose odtwo
 **Job albo event „utknął”.** Otwórz Bull Board (http://localhost:3002): job z błędem ma w zakładce „Failed” powód i stos, a po wyczerpaniu prób jego kopia leży w kolejce `dead-letter`. Event, który nie dotarł do kolejki, ma w tabeli `outbox` puste `published_at`. Wtedy sprawdź, czy worker działa i czy w jego logach nie ma błędów `Relay outboxa`.
 
 **`/ready` zwraca 503.** API działa, ale nie łączy się z bazą. Uruchom usługi (`pnpm infra:up`) i sprawdź `DATABASE_URL`. Przyczynę zapisuje log `Sonda /ready: baza danych nie odpowiada`.
+
+**`pnpm api:check`: „Klient API jest nieaktualny”.** Kod API (endpoint, DTO, nazwa metody) zmienił się bez regeneracji klienta. Uruchom `pnpm api:generate` i dodaj do commita `apps/api/openapi.json` oraz `packages/api-client/src/generated`. Komunikat wymienia pliki, które się różnią. Generowanie wymaga zbudowanego `@biddy/shared` (`pnpm build`).
 
 **`pnpm test:integration` nie może uruchomić kontenera.** Testy integracyjne potrzebują działającego Dockera (`docker info`). Testcontainers pobiera przy pierwszym uruchomieniu obrazy `postgres:17-alpine`, `redis:7.4-alpine` i `testcontainers/ryuk` (sprząta kontenery po przerwanych testach). Jeśli `testcontainers/ryuk` nie da się pobrać, uruchom testy z `TESTCONTAINERS_RYUK_DISABLED=true`. Kontenery znikają wtedy tylko po normalnym zakończeniu testów.
 

@@ -1033,7 +1033,7 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 | Monorepo | **Turborepo + pnpm 10 workspaces** (wersje wspólnych narzędzi w `catalog:` w `pnpm-workspace.yaml`) | Cache buildów, proste. Alt.: Nx. |
 | Build pakietów | **tsdown** (ESM + CJS + `.d.ts`) | Pakiety w `packages/*` są budowane, bo NestJS działa na CommonJS, a Next.js i Expo na ESM. tsup odpadł: jest w trybie utrzymania i nie działa z TypeScript 6. |
 | Walidacja / kontrakty | **Zod** w `packages/shared` | Te same schematy na froncie, w mobile i w NestJS (`nestjs-zod`) |
-| Klient API | **OpenAPI** z NestJS, generowany przez **orval** do hooków **TanStack Query** | Typowany klient dla web i mobile bez ręcznego pisania |
+| Klient API | **OpenAPI** z NestJS, generowany przez **orval 8** do hooków **TanStack Query 5** (`packages/api-client`) | Typowany klient dla web i mobile bez ręcznego pisania. Kontrakt (`apps/api/openapi.json`) i kod klienta są w repozytorium, a CI sprawdza, czy zgadzają się z kodem API. Żądania idą przez własny fetcher (adres API, sesja cookie lub token Bearer, błędy jako `ApiError` z Problem Details). |
 | Lint / format | **ESLint (flat config, typed linting) + Prettier** | ESLint, a nie Biome, bo potrzebujemy reguł granic modułów (§10.3) i reguł z informacją o typach (np. `no-floating-promises`). Wspólna konfiguracja w `packages/config`. |
 | Testy | **Vitest**, **Testcontainers** (Postgres/Redis), **Playwright** (web e2e), **Maestro** (mobile e2e), **k6** (load), **fast-check** (property-based dla silnika licytacji) | |
 
@@ -1791,6 +1791,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 34 | Błędy API: RFC 9457 (`application/problem+json`) z polem `code`; lista kodów wspólna dla klientów w `packages/shared` | Przyjęta | §14.1 |
 | 35 | Kolejki: BullMQ 6 + ioredis 5.11; eventy z outboxa osobnym jobem na konsumenta, idempotencja przez `processed_events`, DLQ jako kolejka `dead-letter` | Przyjęta | §11.2, §14.3 |
 | 36 | Bull Board tylko lokalnie (osobny proces, bez uwierzytelniania); na produkcji kolejki i DLQ w panelu administracyjnym | Przyjęta | §11.5, §18.3 |
+| 37 | Kontrakt API: odpowiedzi przez `@ZodResponse` (serializacja schematem DTO), `operationId` = nazwa metody kontrolera (unikalna), błąd `default` = ProblemDetails; klient orval z fetcherem `apiFetch` i kodem w repozytorium | Przyjęta | §11.1, §14.1 |
 
 ---
 

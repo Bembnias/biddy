@@ -1,0 +1,23 @@
+{
+  "extends": "@biddy/config/tsconfig/library.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    // Paczkę buduje tsdown, a orval generuje importy katalogów bez rozszerzeń (../model).
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    // fetch, Request, Response: w przeglądarce, w React Native i w Node 18+.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src",
+    "test",
+    "scripts",
+    "orval.config.ts",
+    "tsdown.config.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts",
+    "eslint.config.js"
+  ]
+}

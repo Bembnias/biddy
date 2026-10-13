@@ -1,0 +1,134 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/time": {
+      "get": {
+        "operationId": "getServerTime",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Czas serwera",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerTimeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Czas serwera (synchronizacja zegara klienta)",
+        "tags": [
+          "time"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Biddy API",
+    "description": "REST API Biddy. Błędy mają format Problem Details (RFC 9457) z polem `code`; każda odpowiedź ma nagłówek x-request-id.",
+    "version": "0.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "ServerTimeDto": {
+        "type": "object",
+        "properties": {
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Czas serwera w chwili odpowiedzi (UTC, ISO 8601), np. 2026-12-24T19:00:00.123Z"
+          }
+        },
+        "required": [
+          "serverTime"
+        ],
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "description": "Błąd w formacie Problem Details (RFC 9457), typ treści application/problem+json.",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "instance",
+          "code",
+          "requestId"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://biddy.pl/problems/not-found"
+          },
+          "title": {
+            "type": "string",
+            "example": "Nie znaleziono"
+          },
+          "status": {
+            "type": "integer",
+            "example": 404
+          },
+          "detail": {
+            "type": "string",
+            "example": "Nie znaleziono zasobu pod tym adresem."
+          },
+          "instance": {
+            "type": "string",
+            "example": "/v1/auctions/0199c2f0-0000-7000-8000-000000000000"
+          },
+          "code": {
+            "type": "string",
+            "description": "Kod domenowy (ERROR_CODES z @biddy/shared)."
+          },
+          "requestId": {
+            "type": "string",
+            "description": "Identyfikator żądania (nagłówek x-request-id)."
+          },
+          "errors": {
+            "type": "array",
+            "description": "Błędy pól, tylko przy VALIDATION_FAILED.",
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "code",
+                "message"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "example": "title"
+                },
+                "code": {
+                  "type": "string",
+                  "example": "too_small"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
-# CI: lint, typecheck, testy jednostkowe, formatowanie i build (job „checks”) oraz testy
-# integracyjne z Testcontainers na prawdziwym Postgresie w Dockerze (job „integration”).
+# CI: lint, typecheck, testy jednostkowe, formatowanie, aktualność klienta API i build (job
+# „checks”) oraz testy integracyjne z Testcontainers na prawdziwym Postgresie i Redisie w Dockerze
+# (job „integration”).
 # Uruchamia się dla każdego pull requesta i każdego pusha do main.
 #
 # F-09 (CI/CD i środowiska) rozszerzy ten workflow o wdrożenia: migracje jako osobny krok przed
@@ -60,7 +61,9 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Lint, typecheck, testy jednostkowe i formatowanie
+      # Także `pnpm api:check`: kontrakt OpenAPI i wygenerowany klient (packages/api-client)
+      # muszą zgadzać się z kodem API, więc zmiana DTO bez `pnpm api:generate` kończy się błędem.
+      - name: Lint, typecheck, testy jednostkowe, formatowanie i aktualność klienta API
         run: pnpm check
 
   integration:

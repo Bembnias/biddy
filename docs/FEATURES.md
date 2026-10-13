@@ -302,6 +302,7 @@ flowchart TD
 - Layout: nagłówek, miejsce na wyszukiwarkę, stopka.
 - `next-intl` (PL), strony błędów i 404.
 - Sentry, PostHog (włączany dopiero po zgodzie, patrz F-41), bazowe SEO (metadata, robots).
+- Klient API z F-05: `configureApiClient({ baseUrl })` i `QueryClientProvider` w layoucie; dowolny ekran używa wygenerowanego hooka (np. `useGetServerTime`), co domyka kryterium F-05 w prawdziwej aplikacji. Server Components wołają wygenerowane funkcje z przekazanym ciasteczkiem sesji.
 
 **Kryteria akceptacji:**
 - Lighthouse ≥ 90 dla wydajności i dostępności na stronie głównej.
@@ -317,7 +318,7 @@ flowchart TD
 **Zakres:**
 - Better Auth w NestJS (adapter Drizzle).
 - E-mail i hasło z weryfikacją e-maila i resetem hasła, logowanie Google i Apple.
-- Sesje cookie dla web (domena `.biddy.pl`), przygotowanie tokenów bearer dla mobile.
+- Sesje cookie dla web (domena `.biddy.pl`), przygotowanie tokenów bearer dla mobile. Klient API (F-05) już wysyła ciasteczka (`credentials: 'include'`) i token z `getAccessToken` jako `Authorization: Bearer`; trasy wymagające sesji opisać w OpenAPI (security scheme), żeby klient i dokumentacja to pokazywały.
 - Turnstile na rejestracji i logowaniu.
 - Akceptacja regulaminu z zapisem wersji (tabela `terms_acceptances`).
 - Ochrona CSRF dla sesji cookie (sprawdzanie `Origin` albo token; NestJS 12 ma `enableCsrfProtection()`). Parser formularzy (`application/x-www-form-urlencoded`) tylko na trasie callbacku Sign in with Apple, globalnie API przyjmuje wyłącznie JSON (F-03).

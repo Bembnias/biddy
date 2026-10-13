@@ -1,6 +1,7 @@
 // Dokumentacja OpenAPI: Swagger UI pod /docs i dokument JSON pod /docs/json (źródło dla
 // generowanego klienta, F-05). Domyślnie wyłączona na produkcji (OPENAPI_ENABLED).
 import { readFileSync } from 'node:fs';
+import { isDeepStrictEqual } from 'node:util';
 
 import { PROBLEM_CONTENT_TYPE } from '@biddy/shared';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -66,6 +67,101 @@ const PROBLEM_DETAILS_SCHEMA: SchemaObject = {
   additionalProperties: true,
 };
 
+/** Odpowiedź z błędem dopisywana do każdej operacji (typ błędu w generowanym kliencie). */
+const PROBLEM_RESPONSE = {
+  description: `Błąd: Problem Details (RFC 9457, ${PROBLEM_CONTENT_TYPE}); rozpoznawaj go po polu code.`,
+  content: {
+    [PROBLEM_CONTENT_TYPE]: { schema: { $ref: '#/components/schemas/ProblemDetails' } },
+  },
+};
+
+const HTTP_METHODS = ['get', 'put', 'post', 'delete', 'patch', 'options', 'head', 'trace'] as const;
+
+type Operation = NonNullable<OpenAPIObject['paths'][string]['get']>;
+
+/** Kontrakt OpenAPI, z którego nie da się wygenerować klienta (np. powtórzone operationId). */
+export class OpenApiContractError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'OpenApiContractError';
+  }
+}
+
+/** Operacje dokumentu z adresem i metodą (do komunikatów). */
+function operationsOf(document: OpenAPIObject): { where: string; operation: Operation }[] {
+  return Object.entries(document.paths).flatMap(([path, item]) =>
+    HTTP_METHODS.flatMap((method) => {
+      const operation = item[method];
+      return operation === undefined
+        ? []
+        : [{ where: `${method.toUpperCase()} ${path}`, operation }];
+    }),
+  );
+}
+
+/**
+ * operationId to nazwa metody kontrolera (np. getServerTime): od niej pochodzą nazwy funkcji
+ * i hooków generowanego klienta (getServerTime, useGetServerTime). Dwie operacje o tej samej
+ * nazwie dałyby w kliencie dwie funkcje o tej samej nazwie, więc to błąd przy budowie dokumentu.
+ */
+function assertUniqueOperationIds(document: OpenAPIObject): void {
+  const seen = new Map<string, string>();
+  const duplicates: string[] = [];
+  for (const { where, operation } of operationsOf(document)) {
+    const id = operation.operationId ?? '';
+    const previous = seen.get(id);
+    if (previous !== undefined) {
+      duplicates.push(`${id}: ${previous} i ${where}`);
+    }
+    seen.set(id, where);
+  }
+  if (duplicates.length > 0) {
+    throw new OpenApiContractError(
+      `Powtórzone operationId (nazwy metod kontrolerów muszą być unikalne w całym API, bo od nich pochodzą nazwy funkcji klienta): ${duplicates.join('; ')}`,
+    );
+  }
+}
+
+const OUTPUT_SUFFIX = '_Output';
+const SCHEMA_REF_PREFIX = '#/components/schemas/';
+
+/**
+ * nestjs-zod nazywa schemat odpowiedzi `NazwaDto_Output` (wersja „po walidacji” może różnić się
+ * od wejściowej, np. pola z wartością domyślną są w niej wymagane). Gdy wersji wejściowej nie ma
+ * w dokumencie albo jest identyczna, zostawiamy samą nazwę DTO: w kliencie typ to `ServerTimeDto`,
+ * a nie `ServerTimeDtoOutput`. Różne wersje zostają pod dwiema nazwami.
+ */
+export function withoutRedundantOutputSuffix(document: OpenAPIObject): OpenAPIObject {
+  const schemas = document.components?.schemas ?? {};
+  const renames = new Map<string, string>();
+  for (const name of Object.keys(schemas)) {
+    const base = name.slice(0, -OUTPUT_SUFFIX.length);
+    if (
+      name.endsWith(OUTPUT_SUFFIX) &&
+      (!(base in schemas) || isDeepStrictEqual(schemas[base], schemas[name]))
+    ) {
+      renames.set(name, base);
+    }
+  }
+  if (renames.size === 0) {
+    return document;
+  }
+  const renamed = JSON.parse(
+    JSON.stringify(document, (key, value: unknown) => {
+      if (key === '$ref' && typeof value === 'string' && value.startsWith(SCHEMA_REF_PREFIX)) {
+        const name = value.slice(SCHEMA_REF_PREFIX.length);
+        return `${SCHEMA_REF_PREFIX}${renames.get(name) ?? name}`;
+      }
+      return value;
+    }),
+  ) as OpenAPIObject;
+  const ordered: Record<string, SchemaObject | { $ref: string }> = {};
+  for (const [name, schema] of Object.entries(renamed.components?.schemas ?? {})) {
+    ordered[renames.get(name) ?? name] ??= schema;
+  }
+  return { ...renamed, components: { ...renamed.components, schemas: ordered } };
+}
+
 /** Buduje dokument OpenAPI z kontrolerów aplikacji (wywołać po setGlobalPrefix). */
 export function createOpenApiDocument(
   app: NestFastifyApplication,
@@ -79,7 +175,17 @@ export function createOpenApiDocument(
     )
     .setVersion(apiVersion(config))
     .build();
-  const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, base));
+  const document = withoutRedundantOutputSuffix(
+    cleanupOpenApiDoc(
+      SwaggerModule.createDocument(app, base, {
+        operationIdFactory: (_controllerKey, methodKey) => methodKey,
+      }),
+    ),
+  );
+  assertUniqueOperationIds(document);
+  for (const { operation } of operationsOf(document)) {
+    operation.responses = { ...operation.responses, default: PROBLEM_RESPONSE };
+  }
   return {
     ...document,
     components: {
