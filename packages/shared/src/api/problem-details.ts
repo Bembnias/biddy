@@ -30,6 +30,14 @@ export const ERROR_CODES = {
   METHOD_NOT_ALLOWED: 'METHOD_NOT_ALLOWED',
   /** Stan zasobu nie pozwala na operację (np. równoległa zmiana). */
   CONFLICT: 'CONFLICT',
+  /** Operacja wymaga potwierdzonego adresu e-mail (licytowanie, wystawianie). */
+  EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
+  /** Wymagana weryfikacja Turnstile (np. po kilku nieudanych logowaniach). */
+  CAPTCHA_REQUIRED: 'CAPTCHA_REQUIRED',
+  /** Weryfikacja Turnstile nie powiodła się albo token wygasł. */
+  CAPTCHA_FAILED: 'CAPTCHA_FAILED',
+  /** Brak akceptacji aktualnego regulaminu albo polityki prywatności. */
+  TERMS_NOT_ACCEPTED: 'TERMS_NOT_ACCEPTED',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

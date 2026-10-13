@@ -4,6 +4,7 @@ import type { Logger } from 'pino';
 import { type AppConfig, ConfigModule } from './infra/config/index.js';
 import { DbModule } from './infra/db/index.js';
 import { createLoggerModule } from './infra/logger/index.js';
+import { MailModule } from './infra/mail/index.js';
 import { OutboxModule } from './infra/outbox/index.js';
 import { QueuesModule, type QueueTuning } from './infra/queues/index.js';
 import { WorkerRuntimeModule } from './infra/worker/index.js';
@@ -32,6 +33,7 @@ export class WorkerModule {
         DbModule,
         QueuesModule.forRoot(options.tuning),
         OutboxModule,
+        MailModule,
         ...DOMAIN_MODULES,
         ...(options.extraModules ?? []),
         WorkerRuntimeModule,

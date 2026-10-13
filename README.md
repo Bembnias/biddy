@@ -54,6 +54,16 @@ pnpm api:generate      # po zmianie endpointu albo DTO: kontrakt OpenAPI i klien
 
 Aplikacja web działa wtedy pod http://localhost:3000, API pod http://localhost:3001 (sonda http://localhost:3001/health, dokumentacja http://localhost:3001/docs), worker przetwarza joby i eventy domenowe, a podgląd kolejek (Bull Board) jest pod http://localhost:3002. Szczegóły: [Aplikacja web (apps/web)](#aplikacja-web-appsweb), [API (apps/api)](#api-appsapi) i [Kolejki, workery i outbox](#kolejki-workery-i-outbox).
 
+Konta testowe (tworzy je seed w `pnpm bootstrap` i `pnpm db:reset`), wszystkie z hasłem `Biddy-test-2026` i potwierdzonym e-mailem:
+
+| E-mail                    | Kto                                |
+| ------------------------- | ---------------------------------- |
+| `kupujacy@biddy.local`    | Kasia Kupująca, zwykłe konto       |
+| `sprzedajacy@biddy.local` | Staszek Sprzedający, zwykłe konto  |
+| `admin@biddy.local`       | Ada Admin, rola wewnętrzna `admin` |
+
+Maile z linkami (weryfikacja adresu, reset hasła) wysyła worker, a lokalnie przechwytuje je Mailpit: http://localhost:8025.
+
 ## Usługi
 
 Wszystkie usługi działają w Dockerze (projekt compose `biddy`) i są dostępne tylko z tej maszyny (porty wystawione na `127.0.0.1`). Dane trzymają nazwane wolumeny, więc przetrwają `pnpm infra:down`.
@@ -118,7 +128,7 @@ Wszystkie uruchamiasz z katalogu głównego.
 | `pnpm storage:setup`    | Tworzy brakujące kubełki S3 i regułę CORS. Można uruchamiać wielokrotnie. Działa tylko dla lokalnego S3 i poza `NODE_ENV=production`. |
 | `pnpm mail:test`        | Wysyła testowy mail przez SMTP i sprawdza w API Mailpit, że dotarł. Wypisuje link do podglądu.                                        |
 
-Migracje (`db:migrate`) definiuje API: `pnpm db:reset` odtwarza bazę z migracji Drizzle z `apps/api/drizzle` (patrz [Baza danych i migracje](#baza-danych-i-migracje)). Seed (`db:seed`) pojawi się z kontami użytkowników (F-07). Do tego czasu `pnpm db:reset` informuje, że tego zadania jeszcze nie ma.
+Migracje (`db:migrate`) i seed (`db:seed`) definiuje API: `pnpm db:reset` odtwarza bazę z migracji Drizzle z `apps/api/drizzle` (patrz [Baza danych i migracje](#baza-danych-i-migracje)), a seed (`apps/api/src/seed.ts`) zakłada konta testowe z [Szybkiego startu](#szybki-start). Seed jest idempotentny (istniejących kont nie zmienia) i odmawia działania przy `NODE_ENV=production`.
 
 Dla autorów `db:migrate` i `db:seed`: skrypt w pakiecie czyta adres bazy ze zmiennej `DATABASE_URL`. Turborepo 2 działa w trybie strict, więc `turbo.json` przekazuje tym zadaniom `DATABASE_URL` i `NODE_ENV` (`passThroughEnv`). `pnpm db:reset` podaje adres zbudowany z celu sprawdzonego przez bezpiecznik (bez parametrów zapytania), więc zadania łączą się dokładnie z bazą, którą reset odtworzył.
 
@@ -139,7 +149,7 @@ Na produkcji API i worker to dwa procesy z tego samego buildu: `pnpm --filter @b
 
 API czyta zmienne z `.env` w katalogu głównym (tworzy go `pnpm bootstrap`). Baza potrzebuje migracji przed pierwszym startem: `pnpm bootstrap` robi to sam, później wystarczy `pnpm db:reset` albo `pnpm --filter @biddy/api db:migrate`. API importuje zbudowany pakiet `@biddy/shared` (`packages/shared/dist`), więc na świeżym klonie uruchom najpierw `pnpm build`.
 
-Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL` (na produkcji także `REDIS_QUEUE_URL` i, dla API, `CORS_ORIGINS`). Worker sprawdza te same zmienne, ale nie wymaga `CORS_ORIGINS`. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
+Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL` i `RESEND_API_KEY`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL` i klucze Turnstile. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
 
 | Adres lokalny                   | Co to jest                                                                                                            |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -178,7 +188,7 @@ Przykład: odpowiedź 400 na dane, które nie przeszły walidacji DTO (nestjs-zo
 - `instance` to ścieżka żądania bez parametrów zapytania, `requestId` to identyfikator żądania (patrz niżej).
 - `errors` występuje tylko przy `VALIDATION_FAILED`: ścieżka pola, kod Zod i komunikat po polsku.
 - Nieznana trasa to 404 `NOT_FOUND` (także nieobsługiwana metoda na istniejącej trasie), zły JSON to 400 `BAD_REQUEST`, adres z błędnym kodowaniem znaków (np. `/v1/%zz`) to 400 `BAD_REQUEST`.
-- API przyjmuje tylko JSON. Formularze (`application/x-www-form-urlencoded`), `text/plain` i `multipart/form-data` dostają 415 `UNSUPPORTED_MEDIA_TYPE`. Przeglądarka wysyła takie treści między domenami bez preflightu CORS, więc to także pierwsza linia obrony przed CSRF. Trasa, która potrzebuje formularza (callback Apple Sign In, F-07), zarejestruje parser tylko dla siebie.
+- API przyjmuje tylko JSON. Formularze (`application/x-www-form-urlencoded`), `text/plain` i `multipart/form-data` dostają 415 `UNSUPPORTED_MEDIA_TYPE`. Przeglądarka wysyła takie treści między domenami bez preflightu CORS, więc to także pierwsza linia obrony przed CSRF. Formularz przyjmuje tylko callback Apple Sign In (`/v1/auth/callback/apple`, F-07), który ma parser tylko dla siebie.
 - Ten sam format mają błędy z middleware NestJS (np. 401 z middleware uwierzytelniania), razem z nagłówkami CORS, więc przeglądarka może je odczytać.
 - Nieoczekiwany błąd to 500 `INTERNAL_ERROR` bez szczegółów. Szczegóły trafiają do logów i Sentry. Pole `debug` (komunikat i stos) pojawia się tylko w development, gdy API słucha na adresie lokalnym (domyślne `API_HOST=127.0.0.1`).
 
@@ -266,6 +276,34 @@ async onAuctionEnded(event: DomainEventOf<typeof AuctionEnded>, { tx }: DomainEv
 
 **Redis kolejek.** Osobna instancja z `maxmemory-policy noeviction` (`REDIS_QUEUE_URL`): przy eviction Redis po zapełnieniu pamięci usuwa joby. Worker sprawdza politykę przy starcie i bez `noeviction` kończy się kodem 1. Lokalnie ustawia ją `infra/docker-compose.yml`, na Render trzeba ją wybrać w ustawieniach Key Value. Klucze BullMQ mają prefiks `QUEUE_PREFIX` (domyślnie `biddy`).
 
+### Konta i logowanie (F-07)
+
+Konta, sesje, weryfikacja e-maila, reset hasła i logowanie Google/Apple obsługuje [Better Auth](https://www.better-auth.com) pod `/v1/auth/*` (moduł `identity`, `apps/api/src/modules/identity`). Pełny spec: [F-07](docs/features/F-07-rejestracja-logowanie.md).
+
+- **Sesja:** web dostaje ciasteczko `biddy.session_token` (httpOnly, `SameSite=Lax`, 30 dni, przedłużane raz na dobę), mobile token Bearer z nagłówka `set-auth-token` odpowiedzi logowania. Na produkcji ciasteczko ma wspólną domenę web i API (`AUTH_COOKIE_DOMAIN`).
+- **Endpointy Biddy:** `GET /v1/session` (zawsze 200, `{ "user": null }` dla gościa; nagłówek web), `GET /v1/me` (401 bez sesji), `POST /v1/me/terms-acceptances` (akceptacja regulaminu po pierwszym logowaniu Google/Apple), `GET /v1/auth-options` (dostawcy, klucz Turnstile, minimalna długość hasła).
+- **Błędy** Better Auth API zamienia na Problem Details z komunikatem po polsku, np. 401 `INVALID_EMAIL_OR_PASSWORD`. Kody Biddy: `TERMS_NOT_ACCEPTED`, `CAPTCHA_REQUIRED`, `CAPTCHA_FAILED`, `EMAIL_NOT_VERIFIED`.
+- **Ochrona przed botami:** Cloudflare Turnstile (token w nagłówku `x-turnstile-token`) przy rejestracji i resecie hasła, a przy logowaniu po 5 nieudanych próbach na adres e-mail. Od tego progu rośnie też przerwa między próbami (2 s do 5 min, 429 `RATE_LIMITED` z `Retry-After`); próg dla adresu IP to 20. Lokalnie działają klucze testowe Cloudflare (widżet zawsze przechodzi, API sprawdza token bez sieci).
+- **CSRF:** żądanie zmieniające stan (POST, PUT, PATCH, DELETE) z ciasteczkiem sesji musi mieć nagłówek `Origin` z listy zaufanych (`CORS_ORIGINS` i `WEB_URL`), inaczej 403. Żądania z tokenem Bearer (mobile) nie mają ciasteczka, więc ich to nie dotyczy.
+- **E-maile** idą przez kolejkę `emails` (worker, Resend albo SMTP). Bez działającego workera link weryfikacyjny nie przyjdzie.
+
+Endpoint wymagający sesji albo potwierdzonego e-maila:
+
+```ts
+@Controller('auctions')
+export class BidsController {
+  @Post(':id/bids')
+  @RequireVerifiedEmail() // 401 bez sesji, 403 EMAIL_NOT_VERIFIED bez potwierdzonego adresu
+  placeBid(@CurrentUser() user: AuthenticatedUser) {}
+
+  @Get('watched')
+  @RequireSession() // wystarczy zalogowanie
+  watched(@CurrentUser() user: AuthenticatedUser) {}
+}
+```
+
+Konto zablokowane (`BANNED`) dostaje 403 `FORBIDDEN` na każdym endpoincie z sesją.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
@@ -343,7 +381,7 @@ pnpm --filter @biddy/web dev          # sama aplikacja web (Turbopack, odśwież
 pnpm build && pnpm --filter @biddy/web start   # wersja produkcyjna lokalnie
 ```
 
-Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.example`](.env.example)). Lokalnie nic nie trzeba ustawiać: API to domyślnie http://localhost:3001. Zmienne `NEXT_PUBLIC_*` trafiają do kodu przeglądarki przy buildzie, więc ich zmiana wymaga ponownego `pnpm build` (w `pnpm dev` restartu). Błędna wartość przerywa `next build` z listą problemów. `NEXT_PUBLIC_ENVIRONMENT=production` jako jedyne pozwala wyszukiwarkom indeksować stronę.
+Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.example`](.env.example)). Lokalnie nic nie trzeba ustawiać: API to domyślnie http://localhost:3001. Server Components mogą wołać API innym adresem (`API_INTERNAL_URL`, czytany przy starcie, np. sieć prywatna platformy). Zmienne `NEXT_PUBLIC_*` trafiają do kodu przeglądarki przy buildzie, więc ich zmiana wymaga ponownego `pnpm build` (w `pnpm dev` restartu). Błędna wartość przerywa `next build` z listą problemów. `NEXT_PUBLIC_ENVIRONMENT=production` jako jedyne pozwala wyszukiwarkom indeksować stronę.
 
 ### Design tokens i style
 
@@ -359,15 +397,29 @@ Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.examp
 - PostHog startuje dopiero po zgodzie na analitykę: ciasteczko `biddy_consent` z kategorią `analytics` (baner zgód powstanie w F-41). Bez zgody kod PostHog nawet nie trafia do przeglądarki.
 - Klient API (`@biddy/api-client`) jest skonfigurowany w layoucie (`src/components/providers/app-providers.tsx`). W Server Components wygenerowane funkcje dostają ciasteczko sesji przez `withSessionCookies()` z `src/lib/api/server.ts`.
 
+### Konta w web
+
+| Strona                   | Co robi                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------ |
+| `/logowanie`             | E-mail i hasło, Google, Apple. Turnstile pojawia się, gdy API go zażąda. Powrót: `?next=`. |
+| `/rejestracja`           | Konto e-mail: regulamin, oświadczenie 18+, Turnstile, potem „Sprawdź skrzynkę”.            |
+| `/weryfikacja-email`     | Tu wraca link weryfikacyjny z e-maila (sukces albo link wygasły).                          |
+| `/reset-hasla`           | Prośba o link do nowego hasła (Turnstile).                                                 |
+| `/nowe-haslo`            | Ustawienie nowego hasła z linku; wylogowuje ze wszystkich urządzeń.                        |
+| `/akceptacja-regulaminu` | Regulamin i 18+ po pierwszym logowaniu Google/Apple.                                       |
+| `/konto`                 | Renderowane na serwerze z sesją; bez sesji przekierowuje na logowanie.                     |
+
+Formularze wołają Better Auth przez `src/lib/auth/auth-api.ts` (zwykłe `apiFetch`, bez klienta Better Auth w paczce), walidacja to Zod i React Hook Form z komunikatami po polsku (`src/lib/auth/schemas.ts`). Nagłówek pokazuje „Moje konto” albo „Zaloguj się” według `GET /v1/session`.
+
 ### Testy web
 
-| Polecenie                             | Co sprawdza                                                                                                                                                       |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm --filter @biddy/web test`       | Vitest i Testing Library: konfiguracja, komponenty layoutu, zegar, zgody, „tylko tokeny”.                                                                         |
-| `pnpm --filter @biddy/web test:e2e`   | Playwright na zbudowanej aplikacji (`next start`): szerokości 360–1440 px, axe-core (WCAG 2.1 AA), klawiatura, 404, robots.txt, nagłówki, brak PostHog bez zgody. |
-| `pnpm --filter @biddy/web lighthouse` | Lighthouse strony głównej (profil mobilny, mediana z 3 pomiarów), progi 90 dla wydajności i dostępności, raport w `apps/web/.lighthouse/`. Uruchamiany ręcznie.   |
+| Polecenie                             | Co sprawdza                                                                                                                                                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm --filter @biddy/web test`       | Vitest i Testing Library: konfiguracja, komponenty layoutu, formularze kont, zegar, zgody, „tylko tokeny”. API podmienia `mockApi()` z `src/test/api.ts`.                                                                |
+| `pnpm --filter @biddy/web test:e2e`   | Playwright na zbudowanej aplikacji (`next start`): szerokości 360–1440 px, axe-core (WCAG 2.1 AA), klawiatura, 404, robots.txt, nagłówki, brak PostHog bez zgody, logowanie i rejestracja (z Turnstile), `/konto` z SSR. |
+| `pnpm --filter @biddy/web lighthouse` | Lighthouse strony głównej (profil mobilny, mediana z 3 pomiarów), progi 90 dla wydajności i dostępności, raport w `apps/web/.lighthouse/`. Uruchamiany ręcznie.                                                          |
 
-E2E i Lighthouse wymagają wcześniejszego `pnpm build` i przeglądarki: `pnpm --filter @biddy/web exec playwright install chromium`.
+E2E i Lighthouse wymagają wcześniejszego `pnpm build` i przeglądarki: `pnpm --filter @biddy/web exec playwright install chromium`. W e2e przeglądarka rozmawia z API podmienionym przez `page.route` (`e2e/support.ts`, także atrapa skryptu Turnstile), a renderowanie na serwerze z atrapą `e2e/mock-api.ts` (port 3901, `API_INTERNAL_URL`). Prawdziwe API ani sieć nie są potrzebne.
 
 ## CI
 

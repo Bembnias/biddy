@@ -44,6 +44,26 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Konflikt',
     detail: 'Operacja jest sprzeczna z aktualnym stanem zasobu. Odśwież dane i spróbuj ponownie.',
   },
+  EMAIL_NOT_VERIFIED: {
+    status: 403,
+    title: 'Niepotwierdzony e-mail',
+    detail: 'Potwierdź adres e-mail linkiem z wiadomości, aby kontynuować.',
+  },
+  CAPTCHA_REQUIRED: {
+    status: 403,
+    title: 'Wymagana weryfikacja',
+    detail: 'Potwierdź, że nie jesteś robotem, i spróbuj ponownie.',
+  },
+  CAPTCHA_FAILED: {
+    status: 403,
+    title: 'Weryfikacja nieudana',
+    detail: 'Weryfikacja nie powiodła się albo wygasła. Spróbuj ponownie.',
+  },
+  TERMS_NOT_ACCEPTED: {
+    status: 400,
+    title: 'Brak akceptacji regulaminu',
+    detail: 'Zaakceptuj regulamin i politykę prywatności, aby kontynuować.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

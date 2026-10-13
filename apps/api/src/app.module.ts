@@ -8,6 +8,7 @@ import { type AppConfig, ConfigModule } from './infra/config/index.js';
 import { DbModule } from './infra/db/index.js';
 import { HealthModule } from './infra/health/index.js';
 import { createLoggerModule, createRootLogger } from './infra/logger/index.js';
+import { MailModule } from './infra/mail/index.js';
 import { OutboxModule } from './infra/outbox/index.js';
 import { QueuesModule } from './infra/queues/index.js';
 import { TimeModule } from './infra/time/index.js';
@@ -36,6 +37,7 @@ export class AppModule {
         // Kolejki i outbox po stronie producenta; joby i eventy przetwarza worker (worker.ts).
         QueuesModule.forRoot(),
         OutboxModule,
+        MailModule,
         ...DOMAIN_MODULES,
         HealthModule,
         TimeModule,

@@ -1,4 +1,4 @@
-import { CirclePlus, UserRound } from 'lucide-react';
+import { CirclePlus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -7,6 +7,7 @@ import { routes } from '@/lib/routes';
 
 import { Logo } from './logo';
 import { SearchForm } from './search-form';
+import { UserMenu } from './user-menu';
 
 /**
  * Nagłówek: logo, wyszukiwarka, „Wystaw przedmiot” i „Zaloguj się”. Na wąskich ekranach
@@ -30,12 +31,7 @@ export function SiteHeader() {
               </Button>
             </li>
             <li>
-              <Button asChild variant="outline" className="max-sm:size-10 max-sm:px-0">
-                <Link href={routes.signIn}>
-                  <UserRound aria-hidden className="sm:hidden" />
-                  <span className="max-sm:sr-only">{t('signIn')}</span>
-                </Link>
-              </Button>
+              <UserMenu />
             </li>
           </ul>
         </nav>

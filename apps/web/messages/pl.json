@@ -13,7 +13,8 @@
       "submit": "Szukaj"
     },
     "sell": "Wystaw przedmiot",
-    "signIn": "Zaloguj się"
+    "signIn": "Zaloguj się",
+    "account": "Moje konto"
   },
   "footer": {
     "label": "Stopka",
@@ -93,5 +94,107 @@
     "home": "Strona główna",
     "reference": "Kod błędu: {digest}"
   },
-  "loading": "Ładowanie…"
+  "loading": "Ładowanie…",
+  "auth": {
+    "validation": {
+      "email": "Podaj poprawny adres e-mail.",
+      "passwordMin": "Hasło musi mieć co najmniej 10 znaków.",
+      "passwordMax": "Hasło może mieć najwyżej 128 znaków.",
+      "name": "Podaj imię wyświetlane (2–60 znaków).",
+      "terms": "Zaakceptuj regulamin i politykę prywatności.",
+      "adult": "Konto mogą założyć tylko osoby pełnoletnie.",
+      "passwordsDiffer": "Hasła nie są takie same."
+    },
+    "fields": {
+      "name": "Imię wyświetlane",
+      "nameHint": "Widoczne dla innych użytkowników, np. przy ofertach.",
+      "email": "E-mail",
+      "password": "Hasło",
+      "passwordHint": "Co najmniej 10 znaków.",
+      "newPassword": "Nowe hasło",
+      "confirmPassword": "Powtórz hasło",
+      "acceptTerms": "Akceptuję <terms>regulamin</terms> i <privacy>politykę prywatności</privacy>.",
+      "adultDeclaration": "Mam ukończone 18 lat.",
+      "captcha": "Weryfikacja, że nie jesteś robotem"
+    },
+    "social": {
+      "google": "Kontynuuj z Google",
+      "apple": "Kontynuuj z Apple",
+      "or": "lub"
+    },
+    "signIn": {
+      "metaTitle": "Logowanie",
+      "title": "Zaloguj się",
+      "submit": "Zaloguj się",
+      "pending": "Logowanie…",
+      "forgotPassword": "Nie pamiętasz hasła?",
+      "noAccount": "Nie masz konta?",
+      "signUp": "Załóż konto",
+      "captchaRequired": "Kilka prób się nie powiodło. Potwierdź, że nie jesteś robotem, i spróbuj ponownie."
+    },
+    "signUp": {
+      "metaTitle": "Załóż konto",
+      "title": "Załóż konto",
+      "submit": "Załóż konto",
+      "pending": "Zakładanie konta…",
+      "hasAccount": "Masz już konto?",
+      "signIn": "Zaloguj się",
+      "checkInboxTitle": "Sprawdź skrzynkę",
+      "checkInboxText": "Wysłaliśmy link potwierdzający na adres {email}. Kliknij go, żeby licytować i wystawiać przedmioty. Link jest ważny 24 godziny.",
+      "goToAccount": "Przejdź do konta"
+    },
+    "verifyEmail": {
+      "metaTitle": "Potwierdzenie adresu e-mail",
+      "successTitle": "Adres e-mail potwierdzony",
+      "successText": "Możesz już licytować i wystawiać przedmioty.",
+      "errorTitle": "Link wygasł lub jest nieprawidłowy",
+      "errorText": "Poproś o nowy link na stronie konta.",
+      "goToAccount": "Przejdź do konta"
+    },
+    "forgotPassword": {
+      "metaTitle": "Reset hasła",
+      "title": "Nie pamiętasz hasła?",
+      "text": "Podaj adres e-mail konta. Wyślemy link do ustawienia nowego hasła.",
+      "submit": "Wyślij link",
+      "pending": "Wysyłanie…",
+      "sentTitle": "Sprawdź skrzynkę",
+      "sentText": "Jeśli konto z adresem {email} istnieje, wysłaliśmy na nie link do zmiany hasła. Link jest ważny 1 godzinę.",
+      "backToSignIn": "Wróć do logowania"
+    },
+    "resetPassword": {
+      "metaTitle": "Nowe hasło",
+      "title": "Ustaw nowe hasło",
+      "text": "Po zmianie hasła wylogujemy Cię ze wszystkich urządzeń.",
+      "submit": "Zapisz hasło",
+      "pending": "Zapisywanie…",
+      "successTitle": "Hasło zmienione",
+      "successText": "Zaloguj się nowym hasłem.",
+      "signIn": "Zaloguj się",
+      "invalidLinkTitle": "Link wygasł lub jest nieprawidłowy",
+      "invalidLinkText": "Poproś o nowy link do zmiany hasła.",
+      "requestNew": "Poproś o nowy link"
+    },
+    "acceptTerms": {
+      "metaTitle": "Akceptacja regulaminu",
+      "title": "Zanim zaczniesz",
+      "text": "Żeby korzystać z Biddy, zaakceptuj regulamin i politykę prywatności oraz potwierdź pełnoletność.",
+      "submit": "Akceptuję",
+      "pending": "Zapisywanie…"
+    },
+    "account": {
+      "metaTitle": "Moje konto",
+      "title": "Moje konto",
+      "email": "E-mail",
+      "emailVerified": "potwierdzony",
+      "emailNotVerified": "niepotwierdzony: potwierdź adres, żeby licytować i wystawiać",
+      "resendVerification": "Wyślij link ponownie",
+      "resendPending": "Wysyłanie…",
+      "resendDone": "Wysłaliśmy nowy link. Sprawdź skrzynkę.",
+      "memberSince": "Konto od",
+      "signOut": "Wyloguj się",
+      "signOutEverywhere": "Wyloguj ze wszystkich urządzeń",
+      "signOutEverywhereHint": "Np. po zgubieniu telefonu. Wylogujemy też aplikację mobilną."
+    },
+    "genericError": "Coś poszło nie tak. Spróbuj ponownie za chwilę."
+  }
 }

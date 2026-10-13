@@ -39,6 +39,12 @@ export const QUEUE_DEFINITIONS = {
     description: 'Joby cykliczne infrastruktury, np. sprzątanie outboxa',
     concurrency: 1,
   },
+  emails: {
+    description:
+      'Wysyłka e-maili (weryfikacja adresu, reset hasła). Treść zawiera linki z tokenami, więc job znika po wysłaniu',
+    concurrency: 5,
+    jobOptions: { removeOnComplete: true },
+  },
 } as const satisfies Record<string, QueueDefinition>;
 
 /** Nazwa kolejki z katalogu. */

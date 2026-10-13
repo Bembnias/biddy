@@ -146,7 +146,8 @@ jobs:
         run: pnpm --filter @biddy/web exec playwright install --with-deps chromium
 
       # Na zbudowanej aplikacji (next start): szerokości 360–1440 px, axe-core (WCAG 2.1 AA),
-      # klawiatura, 404, robots.txt, nagłówki bezpieczeństwa, brak analityki bez zgody.
+      # klawiatura, 404, robots.txt, nagłówki bezpieczeństwa, brak analityki bez zgody, ekrany
+      # kont (logowanie z Turnstile, rejestracja, /konto z SSR) na atrapach API i Turnstile.
       - name: Testy e2e (Playwright)
         run: pnpm --filter @biddy/web test:e2e
 

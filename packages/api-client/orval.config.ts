@@ -20,7 +20,8 @@ export default defineConfig({
         mutator: { path: './src/fetcher.ts', name: 'apiFetch' },
         // Funkcje zwracają samą treść odpowiedzi; status i błąd obsługuje fetcher.
         fetch: { includeHttpResponseReturnType: false },
-        query: { version: 5, useQuery: true, useSuspenseQuery: true, signal: true },
+        // GET jako zapytania (useX, useXSuspense), pozostałe metody jako mutacje (useX z mutate).
+        query: { version: 5, useSuspenseQuery: true, signal: true },
       },
     },
   },

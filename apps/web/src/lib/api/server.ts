@@ -4,8 +4,9 @@ import { configureApiClient } from '@biddy/api-client';
 import { cookies } from 'next/headers';
 
 import { config } from '@/config';
+import { serverApiUrl } from '@/env';
 
-configureApiClient({ baseUrl: config.apiUrl });
+configureApiClient({ baseUrl: serverApiUrl(config.apiUrl) });
 
 /**
  * Opcje żądania z ciasteczkami bieżącego żądania użytkownika.

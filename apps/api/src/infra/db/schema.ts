@@ -10,3 +10,4 @@
 // To jedyny plik infra, który może importować pliki modułów, i tylko pliki *.schema.ts
 // (reguła granic modułów w eslint.config.js). Tabele innego modułu nie są jego publicznym API.
 export * from '../outbox/db/outbox.schema.js';
+export * from '../../modules/identity/db/identity.schema.js';

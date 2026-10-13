@@ -114,3 +114,24 @@ export function parsePublicEnv(input: Record<string, string | undefined>): Publi
   }
   return result.data;
 }
+
+/**
+ * Adres API dla kodu serwera (Server Components). Domyślnie ten sam co w przeglądarce.
+ * API_INTERNAL_URL to zmienna serwerowa czytana przy starcie (nie przy buildzie): kieruje SSR
+ * inną drogą, np. siecią prywatną platformy albo do atrapy API w testach e2e.
+ */
+export function serverApiUrl(
+  publicApiUrl: string,
+  internal = process.env.API_INTERNAL_URL,
+): string {
+  const parsed = emptyAsMissing(httpUrl('http://api.internal:3001').optional()).safeParse(internal);
+  if (!parsed.success) {
+    throw new WebConfigError(
+      parsed.error.issues.map((issue) => ({
+        variable: 'API_INTERNAL_URL',
+        message: issue.message,
+      })),
+    );
+  }
+  return parsed.data ?? publicApiUrl;
+}

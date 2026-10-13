@@ -1,6 +1,144 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/v1/me": {
+      "get": {
+        "operationId": "getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Zalogowany użytkownik",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zalogowany użytkownik",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/terms-acceptances": {
+      "post": {
+        "description": "Np. po pierwszym logowaniu przez Google lub Apple albo po zmianie regulaminu.",
+        "operationId": "acceptTerms",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Zapisano akceptację"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Akceptacja aktualnych wersji regulaminu i polityki prywatności",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/session": {
+      "get": {
+        "operationId": "getSession",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Stan sesji",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Stan sesji (zalogowany użytkownik albo null)",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/auth-options": {
+      "get": {
+        "operationId": "getAuthOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Metody logowania",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthOptionsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Metody logowania i konfiguracja formularzy",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/v1/time": {
       "get": {
         "operationId": "getServerTime",
@@ -43,7 +181,144 @@
   "tags": [],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "biddy.session_token",
+        "description": "Sesja web: ciasteczko HttpOnly ustawiane przy logowaniu (/v1/auth/sign-in/email); na produkcji z prefiksem __Secure-."
+      },
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Sesja mobile: token z nagłówka set-auth-token odpowiedzi logowania."
+      }
+    },
     "schemas": {
+      "MeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Imię wyświetlane"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "description": "Czy adres e-mail jest potwierdzony (wymagane do licytowania i wystawiania)"
+          },
+          "termsAccepted": {
+            "type": "boolean",
+            "description": "Czy użytkownik zaakceptował aktualne wersje regulaminu i polityki prywatności"
+          },
+          "staffRole": {
+            "type": "string",
+            "enum": [
+              "support",
+              "moderator",
+              "finance",
+              "admin",
+              null
+            ],
+            "description": "Rola wewnętrzna (panel administracyjny) albo null",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "emailVerified",
+          "termsAccepted",
+          "staffRole",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "SessionDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              },
+              "emailVerified": {
+                "type": "boolean"
+              },
+              "termsAccepted": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "emailVerified",
+              "termsAccepted"
+            ],
+            "additionalProperties": false,
+            "description": "Zalogowany użytkownik albo null (gość)",
+            "nullable": true
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "AuthOptionsDto": {
+        "type": "object",
+        "properties": {
+          "socialProviders": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "google",
+                "apple"
+              ]
+            },
+            "description": "Włączone logowanie przez dostawców (przyciski w formularzu)"
+          },
+          "turnstileSiteKey": {
+            "type": "string",
+            "description": "Klucz witryny Cloudflare Turnstile dla widżetu"
+          },
+          "passwordMinLength": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Minimalna długość hasła"
+          }
+        },
+        "required": [
+          "socialProviders",
+          "turnstileSiteKey",
+          "passwordMinLength"
+        ],
+        "additionalProperties": false
+      },
       "ServerTimeDto": {
         "type": "object",
         "properties": {

@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ConfigError,
   DEFAULT_PRODUCTION_TRUST_PROXY,
+  DEVELOPMENT_AUTH_SECRET,
+  TURNSTILE_TEST_SECRET_KEY,
+  TURNSTILE_TEST_SITE_KEY,
   ENV_KEYS,
   type ConfigIssue,
   type ProcessRole,
@@ -22,6 +25,12 @@ const production = {
   ...minimal,
   NODE_ENV: 'production',
   REDIS_QUEUE_URL: 'redis://red-queue.internal:6379',
+  RESEND_API_KEY: 're_test_key',
+  BETTER_AUTH_SECRET: 'prod-secret-0123456789-0123456789-abcdef',
+  API_PUBLIC_URL: 'https://api.biddy.pl',
+  WEB_URL: 'https://biddy.pl',
+  TURNSTILE_SITE_KEY: '0x4AAAAAAA-site',
+  TURNSTILE_SECRET_KEY: '0x4AAAAAAA-secret',
 } as const;
 
 function issuesFor(
@@ -59,6 +68,26 @@ describe('loadConfig: wartości domyślne', () => {
       },
       database: { url: DATABASE_URL, poolMax: 10 },
       queues: { redisUrl: 'redis://localhost:6379', prefix: 'biddy', outboxPollIntervalMs: 250 },
+      auth: {
+        secret: DEVELOPMENT_AUTH_SECRET,
+        apiUrl: 'http://localhost:3001',
+        webUrl: 'http://localhost:3000',
+        cookieDomain: undefined,
+        secureCookies: false,
+        google: undefined,
+        apple: undefined,
+        turnstile: { siteKey: TURNSTILE_TEST_SITE_KEY, secretKey: TURNSTILE_TEST_SECRET_KEY },
+      },
+      mail: {
+        from: 'Biddy <no-reply@biddy.local>',
+        transport: {
+          kind: 'smtp',
+          host: 'localhost',
+          port: 1025,
+          user: undefined,
+          password: undefined,
+        },
+      },
       log: { level: 'debug', pretty: true },
       openapi: { enabled: true },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
@@ -207,7 +236,7 @@ describe('loadConfig: kolejki (Redis, prefiks, relay outboxa)', () => {
     'na produkcji REDIS_QUEUE_URL jest wymagany (%s)',
     (role) => {
       const issues = issuesFor(
-        { ...minimal, NODE_ENV: 'production', CORS_ORIGINS: 'https://biddy.pl' },
+        { ...production, REDIS_QUEUE_URL: undefined, CORS_ORIGINS: 'https://biddy.pl' },
         role,
       );
       expect(issues.map((issue) => issue.variable)).toEqual(['REDIS_QUEUE_URL']);
@@ -228,6 +257,73 @@ describe('loadConfig: kolejki (Redis, prefiks, relay outboxa)', () => {
     ['prefiks z wielką literą', { QUEUE_PREFIX: 'Biddy' }, 'QUEUE_PREFIX'],
     ['za krótki odstęp relaya', { OUTBOX_POLL_INTERVAL_MS: '5' }, 'OUTBOX_POLL_INTERVAL_MS'],
     ['odstęp relaya nie liczbą', { OUTBOX_POLL_INTERVAL_MS: '1s' }, 'OUTBOX_POLL_INTERVAL_MS'],
+  ])('odrzuca: %s', (_label, env, variable) => {
+    expect(variablesWithIssues({ ...minimal, ...env })).toEqual([variable]);
+  });
+});
+
+describe('loadConfig: konta i e-maile (F-07)', () => {
+  it('na produkcji API wymaga sekretu, adresów, Turnstile i Resend; worker tylko Resend', () => {
+    const missing = {
+      ...minimal,
+      NODE_ENV: 'production',
+      CORS_ORIGINS: 'https://biddy.pl',
+      REDIS_QUEUE_URL: 'redis://red-queue.internal:6379',
+    };
+    expect(variablesWithIssues(missing).sort()).toEqual(
+      [
+        'API_PUBLIC_URL',
+        'BETTER_AUTH_SECRET',
+        'RESEND_API_KEY',
+        'TURNSTILE_SECRET_KEY',
+        'TURNSTILE_SITE_KEY',
+        'WEB_URL',
+      ].sort(),
+    );
+    expect(issuesFor(missing, 'worker').map((issue) => issue.variable)).toEqual(['RESEND_API_KEY']);
+  });
+
+  it('produkcja: Resend, bezpieczne ciasteczka, adresy bez ukośnika na końcu', () => {
+    const config = loadConfig({
+      ...production,
+      CORS_ORIGINS: 'https://biddy.pl',
+      API_PUBLIC_URL: 'https://api.biddy.pl/',
+      AUTH_COOKIE_DOMAIN: 'biddy.pl',
+    });
+    expect(config.auth).toMatchObject({
+      apiUrl: 'https://api.biddy.pl',
+      webUrl: 'https://biddy.pl',
+      cookieDomain: 'biddy.pl',
+      secureCookies: true,
+      turnstile: { siteKey: '0x4AAAAAAA-site', secretKey: '0x4AAAAAAA-secret' },
+    });
+    expect(config.mail.transport).toEqual({ kind: 'resend', apiKey: 're_test_key' });
+  });
+
+  it('Google i Apple włączone tylko z parą kluczy; sam identyfikator albo sam sekret to błąd', () => {
+    const config = loadConfig({
+      ...minimal,
+      GOOGLE_CLIENT_ID: 'g-id',
+      GOOGLE_CLIENT_SECRET: 'g-secret',
+    });
+    expect(config.auth.google).toEqual({ clientId: 'g-id', clientSecret: 'g-secret' });
+    expect(config.auth.apple).toBeUndefined();
+    expect(variablesWithIssues({ ...minimal, APPLE_CLIENT_ID: 'a-id' })).toEqual([
+      'APPLE_CLIENT_SECRET',
+    ]);
+    expect(variablesWithIssues({ ...minimal, GOOGLE_CLIENT_SECRET: 's' })).toEqual([
+      'GOOGLE_CLIENT_ID',
+    ]);
+  });
+
+  it.each([
+    ['za krótki sekret', { BETTER_AUTH_SECRET: 'krotki' }, 'BETTER_AUTH_SECRET'],
+    [
+      'domena ciasteczka z protokołem',
+      { AUTH_COOKIE_DOMAIN: 'https://biddy.pl' },
+      'AUTH_COOKIE_DOMAIN',
+    ],
+    ['WEB_URL bez protokołu', { WEB_URL: 'biddy.pl' }, 'WEB_URL'],
   ])('odrzuca: %s', (_label, env, variable) => {
     expect(variablesWithIssues({ ...minimal, ...env })).toEqual([variable]);
   });
@@ -469,11 +565,16 @@ describe('.env.example (sekcja API)', () => {
   const exampleText = readFileSync(new URL('../../../../../.env.example', import.meta.url), 'utf8');
   const example = parseEnv(exampleText) as Record<string, string>;
 
-  /** Odkomentowane linie `# ZMIENNA=wartość` dla zmiennych API (opcjonalne są zakomentowane). */
+  /** Sekcja „API” pliku (od jej nagłówka do następnej sekcji). */
+  const apiSection =
+    /^# --- API \(apps\/api\)[^\n]*\n([\s\S]*?)(?=^# --- |(?![\s\S]))/m.exec(exampleText)?.[1] ??
+    '';
+
+  /** Odkomentowane linie `# ZMIENNA=wartość` z sekcji API (opcjonalne są zakomentowane). */
   function uncommentedApiValues(): Record<string, string> {
     const values: Record<string, string> = {};
     for (const key of ENV_KEYS) {
-      const match = new RegExp(`^# ${key}=(.*)$`, 'm').exec(exampleText);
+      const match = new RegExp(`^# ${key}=(.*)$`, 'm').exec(apiSection);
       if (match) {
         values[key] = match[1] ?? '';
       }
@@ -494,6 +595,18 @@ describe('.env.example (sekcja API)', () => {
         'LOG_LEVEL',
         'OPENAPI_ENABLED',
         'SENTRY_DSN',
+        'BETTER_AUTH_SECRET',
+        'API_PUBLIC_URL',
+        'WEB_URL',
+        'AUTH_COOKIE_DOMAIN',
+        'GOOGLE_CLIENT_ID',
+        'GOOGLE_CLIENT_SECRET',
+        'APPLE_CLIENT_ID',
+        'APPLE_CLIENT_SECRET',
+        'APPLE_APP_BUNDLE_ID',
+        'TURNSTILE_SITE_KEY',
+        'TURNSTILE_SECRET_KEY',
+        'RESEND_API_KEY',
       ]),
     );
     expect(loadConfig({ ...example, ...documented })).toEqual(loadConfig(example));

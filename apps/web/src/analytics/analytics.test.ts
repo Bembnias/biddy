@@ -1,14 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { rememberSocialLogin, takeSocialLogin } from './auth-events';
 import { hasAnalyticsConsent, parseConsent, readCookie } from './consent';
-import { resetAnalyticsForTests, startAnalyticsIfConsented } from './posthog';
+import { identifyUser, resetAnalyticsForTests, startAnalyticsIfConsented, track } from './posthog';
 
 const CONFIG = { posthogKey: 'phc_test', posthogHost: 'https://eu.i.posthog.com' };
 
 function fakePostHog() {
-  const init = vi.fn();
-  const load = vi.fn(() => Promise.resolve({ default: { init } } as never));
-  return { init, load };
+  const posthog = { init: vi.fn(), capture: vi.fn(), identify: vi.fn(), reset: vi.fn() };
+  const load = vi.fn(() => Promise.resolve({ default: posthog } as never));
+  return { ...posthog, load };
 }
 
 afterEach(() => {
@@ -64,5 +65,61 @@ describe('startAnalyticsIfConsented', () => {
       'phc_test',
       expect.objectContaining({ api_host: 'https://eu.i.posthog.com' }),
     );
+  });
+});
+
+describe('zdarzenia i identyfikacja', () => {
+  it('bez zgody track i identifyUser nic nie wysyłają', async () => {
+    const { load, capture, identify } = fakePostHog();
+    await startAnalyticsIfConsented(CONFIG, '', load);
+    track('login_completed', { method: 'email' });
+    identifyUser('u1');
+    await Promise.resolve();
+    expect(capture).not.toHaveBeenCalled();
+    expect(identify).not.toHaveBeenCalled();
+  });
+
+  it('zdarzenie i identify z czasu ładowania PostHog nie giną', async () => {
+    const { load, capture, identify } = fakePostHog();
+    identifyUser('u1');
+    const started = startAnalyticsIfConsented(CONFIG, 'biddy_consent=analytics', load);
+    track('login_completed', { method: 'google' });
+    await started;
+    await Promise.resolve();
+
+    expect(identify).toHaveBeenCalledWith('u1');
+    expect(capture).toHaveBeenCalledWith('login_completed', { method: 'google' });
+  });
+
+  it('wylogowanie resetuje osobę w PostHog, ten sam użytkownik nie jest identyfikowany ponownie', async () => {
+    const { load, identify, reset } = fakePostHog();
+    await startAnalyticsIfConsented(CONFIG, 'biddy_consent=analytics', load);
+    identifyUser('u1');
+    identifyUser('u1');
+    identifyUser(undefined);
+    await Promise.resolve();
+
+    expect(identify).toHaveBeenCalledTimes(1);
+    expect(reset).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('logowanie Google/Apple: metoda po powrocie od dostawcy', () => {
+  afterEach(() => {
+    sessionStorage.clear();
+  });
+
+  it('działa raz i tylko przez 15 minut', () => {
+    rememberSocialLogin('google', 1_000);
+    expect(takeSocialLogin(2_000)).toBe('google');
+    expect(takeSocialLogin(3_000)).toBeUndefined();
+
+    rememberSocialLogin('apple', 0);
+    expect(takeSocialLogin(15 * 60 * 1000)).toBeUndefined();
+  });
+
+  it('ignoruje uszkodzony znacznik', () => {
+    sessionStorage.setItem('biddy_social_login', '{nie json');
+    expect(takeSocialLogin()).toBeUndefined();
   });
 });

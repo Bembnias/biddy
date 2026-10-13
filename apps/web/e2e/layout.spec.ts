@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { type Page, expect, test } from '@playwright/test';
 
+import { mockBrowserApi } from './support';
+
 // Kryteria F-06 w przeglądarce: układ 360–1440 px bez przewijania w poziomie, dostępność
 // (WCAG 2.1 A/AA według axe-core), klawiatura, 404, robots.txt i nagłówki bezpieczeństwa.
 
@@ -11,14 +13,10 @@ const PAGES = [
 
 const WIDTHS = [360, 768, 1024, 1440] as const;
 
-/** API podmienione: synchronizacja zegara dostaje stały czas serwera. */
-async function mockApi(page: Page): Promise<string[]> {
-  const requests: string[] = [];
-  await page.route('**/v1/time', async (route) => {
-    requests.push(route.request().url());
-    await route.fulfill({ json: { serverTime: new Date().toISOString() } });
-  });
-  return requests;
+/** API podmienione (e2e/support.ts); zwraca adresy żądań synchronizacji zegara. */
+async function mockApi(page: Page): Promise<() => string[]> {
+  const api = await mockBrowserApi(page);
+  return () => api.requests('GET /v1/time').map((request) => request.url());
 }
 
 test.beforeEach(async ({ page }) => {
@@ -118,8 +116,8 @@ test('klient API: synchronizacja zegara woła GET /v1/time pod adresem API z kon
 }) => {
   const requests = await mockApi(page);
   await page.goto('/');
-  await expect.poll(() => requests.length).toBeGreaterThan(0);
-  expect(requests[0]).toBe('http://localhost:3001/v1/time');
+  await expect.poll(() => requests().length).toBeGreaterThan(0);
+  expect(requests()[0]).toBe('http://localhost:3001/v1/time');
 });
 
 test('bez zgody na analitykę nie ma żadnych żądań do PostHog', async ({ page }) => {
@@ -132,7 +130,7 @@ test('bez zgody na analitykę nie ma żadnych żądań do PostHog', async ({ pag
   });
   await page.goto('/');
   // Po hydratacji (synchronizacja zegara już poszła) analityka miałaby szansę wystartować.
-  await expect.poll(() => requests.length).toBeGreaterThan(0);
+  await expect.poll(() => requests().length).toBeGreaterThan(0);
   await page.waitForTimeout(1_000);
   expect(posthog).toEqual([]);
 });

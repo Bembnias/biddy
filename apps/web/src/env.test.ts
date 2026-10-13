@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { WebConfigError, parsePublicEnv, publicEnvInput } from './env';
+import { WebConfigError, parsePublicEnv, publicEnvInput, serverApiUrl } from './env';
 
 describe('parsePublicEnv', () => {
   it('lokalnie: wartości domyślne (API na 3001, strona na 3000, PostHog EU, bez Sentry)', () => {
@@ -62,6 +62,25 @@ describe('parsePublicEnv', () => {
     ['DSN, który nie jest adresem', { NEXT_PUBLIC_SENTRY_DSN: 'abc' }, 'NEXT_PUBLIC_SENTRY_DSN'],
   ])('odrzuca: %s', (_label, input, variable) => {
     expect(() => parsePublicEnv(input)).toThrow(`• ${variable}:`);
+  });
+});
+
+describe('serverApiUrl (API_INTERNAL_URL)', () => {
+  it('bez zmiennej: adres publiczny', () => {
+    expect(serverApiUrl('https://api.biddy.pl', undefined)).toBe('https://api.biddy.pl');
+    expect(serverApiUrl('https://api.biddy.pl', ' ')).toBe('https://api.biddy.pl');
+  });
+
+  it('ze zmienną: adres wewnętrzny bez końcowego ukośnika', () => {
+    expect(serverApiUrl('https://api.biddy.pl', 'http://api.internal:3001/')).toBe(
+      'http://api.internal:3001',
+    );
+  });
+
+  it('odrzuca adres bez protokołu http', () => {
+    expect(() => serverApiUrl('https://api.biddy.pl', 'api.internal')).toThrow(
+      '• API_INTERNAL_URL:',
+    );
   });
 });
 

@@ -15,6 +15,7 @@ import {
   ProblemDetailsFilter,
   REQUEST_ID_HEADER,
   createHttpAdapter,
+  registerCsrfProtection,
   registerSecurityHeaders,
 } from './infra/http/index.js';
 import { createRootLogger } from './infra/logger/index.js';
@@ -49,18 +50,25 @@ export async function createApp(
   // w kolejności rejestracji. Dzięki temu odpowiedź z błędem z middleware (np. 401 z middleware
   // uwierzytelniania) ma nagłówki CORS i przeglądarka może ją odczytać.
   await registerSecurityHeaders(adapter.getInstance(), DOCS_PATH);
+  const problemOptions = { exposeInternals: config.http.exposeErrorDetails };
   adapter.enableCors({
     origin: [...config.http.corsOrigins],
     credentials: true,
     // @fastify/cors domyślnie zezwala tylko na GET, HEAD i POST.
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    exposedHeaders: [REQUEST_ID_HEADER],
+    // set-auth-token: token sesji dla klientów Bearer (mobile, wtyczka bearer Better Auth).
+    exposedHeaders: [REQUEST_ID_HEADER, 'set-auth-token'],
     maxAge: 600,
     // OPTIONS bez nagłówków Origin i Access-Control-Request-Method to nie preflight CORS.
     // W trybie ścisłym @fastify/cors odpowiadałby na nie 400 text/plain (bez Problem Details),
     // a tak dostają zwykłe 204 bez nagłówków Access-Control-Allow-Origin.
     strictPreflight: false,
   });
+  registerCsrfProtection(
+    adapter.getInstance(),
+    [...config.http.corsOrigins, config.auth.webUrl],
+    problemOptions,
+  );
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.forRoot(config, options.extraModules, logger),
     adapter,

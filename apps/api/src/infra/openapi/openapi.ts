@@ -10,6 +10,10 @@ import { cleanupOpenApiDoc } from 'nestjs-zod';
 
 import type { AppConfig } from '../config/index.js';
 
+/** Schematy bezpieczeństwa w OpenAPI (nazwy używane przez @RequireSession w module identity). */
+export const SESSION_COOKIE_SECURITY = 'session';
+export const BEARER_SECURITY = 'bearer';
+
 /** Ścieżka Swagger UI (poza prefiksem /v1). */
 export const DOCS_PATH = '/docs';
 /** Ścieżka dokumentu OpenAPI w JSON. */
@@ -174,6 +178,24 @@ export function createOpenApiDocument(
         'każda odpowiedź ma nagłówek x-request-id.',
     )
     .setVersion(apiVersion(config))
+    .addCookieAuth(
+      'biddy.session_token',
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        description:
+          'Sesja web: ciasteczko HttpOnly ustawiane przy logowaniu (/v1/auth/sign-in/email); na produkcji z prefiksem __Secure-.',
+      },
+      SESSION_COOKIE_SECURITY,
+    )
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        description: 'Sesja mobile: token z nagłówka set-auth-token odpowiedzi logowania.',
+      },
+      BEARER_SECURITY,
+    )
     .build();
   const document = withoutRedundantOutputSuffix(
     cleanupOpenApiDoc(

@@ -191,6 +191,29 @@ export const envSchema = z.object({
     .transform(Number)
     .optional(),
   APP_RELEASE: text().optional(),
+  // Konta i logowanie (Better Auth, F-07).
+  API_PUBLIC_URL: url(['https:', 'http:'], 'https://api.biddy.pl').optional(),
+  WEB_URL: url(['https:', 'http:'], 'https://biddy.pl').optional(),
+  BETTER_AUTH_SECRET: text()
+    .min(32, 'oczekiwano co najmniej 32 znaków (np. openssl rand -base64 32)')
+    .optional(),
+  AUTH_COOKIE_DOMAIN: text()
+    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, 'oczekiwano domeny bez protokołu, np. biddy.pl')
+    .optional(),
+  GOOGLE_CLIENT_ID: text().optional(),
+  GOOGLE_CLIENT_SECRET: text().optional(),
+  APPLE_CLIENT_ID: text().optional(),
+  APPLE_CLIENT_SECRET: text().optional(),
+  APPLE_APP_BUNDLE_ID: text().optional(),
+  TURNSTILE_SITE_KEY: text().optional(),
+  TURNSTILE_SECRET_KEY: text().optional(),
+  // E-maile (weryfikacja, reset hasła): Resend z kluczem, inaczej SMTP (lokalnie Mailpit).
+  MAIL_FROM: text().optional(),
+  RESEND_API_KEY: text().optional(),
+  SMTP_HOST: text().optional(),
+  SMTP_PORT: port().optional(),
+  SMTP_USER: text().optional(),
+  SMTP_PASSWORD: text().optional(),
 });
 
 /** Nazwy wszystkich zmiennych obsługiwanych przez schemat. */
@@ -211,6 +234,36 @@ export const DEFAULT_REDIS_QUEUE_URL = 'redis://localhost:6379';
 
 /** Domyślny prefiks kluczy BullMQ w Redisie. */
 export const DEFAULT_QUEUE_PREFIX = 'biddy';
+
+/**
+ * Klucze testowe Cloudflare Turnstile (zawsze przechodzą): domyślne lokalnie i w testach.
+ * https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+ */
+export const TURNSTILE_TEST_SITE_KEY = '1x00000000000000000000AA';
+export const TURNSTILE_TEST_SECRET_KEY = '1x0000000000000000000000000000000AA';
+
+/** Sekret sesji poza produkcją (lokalnie i w testach); na produkcji BETTER_AUTH_SECRET jest wymagany. */
+export const DEVELOPMENT_AUTH_SECRET = 'biddy-development-only-auth-secret-0123456789';
+
+/** Nadawca e-maili lokalnie (jak MAIL_FROM w .env.example). */
+export const DEFAULT_MAIL_FROM = 'Biddy <no-reply@biddy.local>';
+
+/** Transport e-maili: Resend (produkcja) albo SMTP (lokalnie Mailpit). */
+export type MailTransportConfig =
+  | { readonly kind: 'resend'; readonly apiKey: string }
+  | {
+      readonly kind: 'smtp';
+      readonly host: string;
+      readonly port: number;
+      readonly user: string | undefined;
+      readonly password: string | undefined;
+    };
+
+/** Dostawca logowania OAuth z kluczami. */
+export interface OAuthProviderConfig {
+  readonly clientId: string;
+  readonly clientSecret: string;
+}
 
 /** Konfiguracja aplikacji po walidacji i wyliczeniu wartości domyślnych. */
 export interface AppConfig {
@@ -246,6 +299,26 @@ export interface AppConfig {
   };
   readonly openapi: {
     readonly enabled: boolean;
+  };
+  readonly auth: {
+    /** Sekret podpisu ciasteczek i tokenów Better Auth. */
+    readonly secret: string;
+    /** Publiczny adres API (bez /v1): z niego Better Auth buduje linki i callbacki OAuth. */
+    readonly apiUrl: string;
+    /** Adres aplikacji web: przekierowania po weryfikacji e-maila, resecie hasła i OAuth. */
+    readonly webUrl: string;
+    /** Domena ciasteczka sesji wspólna dla web i API (np. biddy.pl); undefined = host API. */
+    readonly cookieDomain: string | undefined;
+    /** Ciasteczka tylko przez HTTPS (poza lokalnym HTTP). */
+    readonly secureCookies: boolean;
+    readonly google: OAuthProviderConfig | undefined;
+    readonly apple:
+      (OAuthProviderConfig & { readonly appBundleId: string | undefined }) | undefined;
+    readonly turnstile: { readonly siteKey: string; readonly secretKey: string };
+  };
+  readonly mail: {
+    readonly from: string;
+    readonly transport: MailTransportConfig;
   };
   readonly sentry: {
     readonly dsn: string | undefined;
@@ -353,6 +426,41 @@ function crossFieldIssues(
       message: `${MISSING}; na produkcji podaj adres Redisa kolejek (instancja z maxmemory-policy noeviction)`,
     });
   }
+  const required: [string, string][] = [
+    ['RESEND_API_KEY', 'na produkcji e-maile (weryfikacja, reset hasła) wysyła Resend'],
+  ];
+  if (role === 'api') {
+    required.push(
+      ['BETTER_AUTH_SECRET', 'sekret sesji, np. openssl rand -base64 32'],
+      ['API_PUBLIC_URL', 'publiczny adres API, np. https://api.biddy.pl'],
+      ['WEB_URL', 'adres aplikacji web, np. https://biddy.pl'],
+      ['TURNSTILE_SITE_KEY', 'klucz witryny Cloudflare Turnstile'],
+      ['TURNSTILE_SECRET_KEY', 'klucz tajny Cloudflare Turnstile'],
+    );
+  }
+  for (const [variable, hint] of required) {
+    if (input[variable] === undefined) {
+      issues.push({ variable, message: `${MISSING}; ${hint}` });
+    }
+  }
+  return issues;
+}
+
+/** Klucze dostawcy OAuth podaje się parami: sam identyfikator albo sam sekret to błąd. */
+function oauthPairIssues(input: Readonly<Record<string, string>>): ConfigIssue[] {
+  const issues: ConfigIssue[] = [];
+  for (const [id, secret] of [
+    ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+    ['APPLE_CLIENT_ID', 'APPLE_CLIENT_SECRET'],
+  ] as const) {
+    if ((input[id] === undefined) !== (input[secret] === undefined)) {
+      const missing = input[id] === undefined ? id : secret;
+      issues.push({
+        variable: missing,
+        message: `${MISSING}; podaj ${id} i ${secret} razem albo żadnej (logowanie wyłączone)`,
+      });
+    }
+  }
   return issues;
 }
 
@@ -377,6 +485,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
   const issues = [
     ...(result.success ? [] : issuesOf(result.error)),
     ...crossFieldIssues(input, role),
+    ...oauthPairIssues(input),
   ];
   if (!result.success || issues.length > 0) {
     throw new ConfigError(issues.sort(byVariableOrder));
@@ -414,6 +523,44 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     },
     openapi: {
       enabled: vars.OPENAPI_ENABLED ?? !production,
+    },
+    auth: {
+      secret: vars.BETTER_AUTH_SECRET ?? DEVELOPMENT_AUTH_SECRET,
+      apiUrl: (
+        vars.API_PUBLIC_URL ?? `http://localhost:${vars.PORT ?? vars.API_PORT ?? 3001}`
+      ).replace(/\/+$/, ''),
+      webUrl: (vars.WEB_URL ?? 'http://localhost:3000').replace(/\/+$/, ''),
+      cookieDomain: vars.AUTH_COOKIE_DOMAIN,
+      secureCookies: production || (vars.API_PUBLIC_URL?.startsWith('https:') ?? false),
+      google:
+        vars.GOOGLE_CLIENT_ID === undefined || vars.GOOGLE_CLIENT_SECRET === undefined
+          ? undefined
+          : { clientId: vars.GOOGLE_CLIENT_ID, clientSecret: vars.GOOGLE_CLIENT_SECRET },
+      apple:
+        vars.APPLE_CLIENT_ID === undefined || vars.APPLE_CLIENT_SECRET === undefined
+          ? undefined
+          : {
+              clientId: vars.APPLE_CLIENT_ID,
+              clientSecret: vars.APPLE_CLIENT_SECRET,
+              appBundleId: vars.APPLE_APP_BUNDLE_ID,
+            },
+      turnstile: {
+        siteKey: vars.TURNSTILE_SITE_KEY ?? TURNSTILE_TEST_SITE_KEY,
+        secretKey: vars.TURNSTILE_SECRET_KEY ?? TURNSTILE_TEST_SECRET_KEY,
+      },
+    },
+    mail: {
+      from: vars.MAIL_FROM ?? DEFAULT_MAIL_FROM,
+      transport:
+        vars.RESEND_API_KEY === undefined
+          ? {
+              kind: 'smtp',
+              host: vars.SMTP_HOST ?? 'localhost',
+              port: vars.SMTP_PORT ?? 1025,
+              user: vars.SMTP_USER,
+              password: vars.SMTP_PASSWORD,
+            }
+          : { kind: 'resend', apiKey: vars.RESEND_API_KEY },
     },
     sentry: {
       dsn: vars.SENTRY_DSN,

@@ -220,7 +220,7 @@ flowchart TD
 - `infra/docker-compose.yml`: Postgres, 2× Redis (kolejki `noeviction`, cache `allkeys-lru`), Meilisearch, RustFS (lokalny S3 zamiast MinIO), Mailpit.
 - `.env.example` i walidacja zmiennych (`pnpm env:check`).
 - Skrypty `pnpm bootstrap` (pierwsze uruchomienie), `pnpm dev`, `pnpm infra:up|down|logs|reset`, `pnpm db:reset`, `pnpm storage:setup`, `pnpm mail:test`.
-- `pnpm db:reset` z bezpiecznikiem (tylko lokalna baza, nigdy `NODE_ENV=production`) uruchamia zadania `db:migrate` i `db:seed` wszystkich pakietów. Same migracje i seed z użytkownikami testowymi powstają w F-03 i F-07.
+- `pnpm db:reset` z bezpiecznikiem (tylko lokalna baza, nigdy `NODE_ENV=production`) uruchamia zadania `db:migrate` i `db:seed` wszystkich pakietów. Same migracje i seed z użytkownikami testowymi powstały w F-03 i F-07.
 - README z instrukcją startu.
 
 **Kryteria akceptacji:**
@@ -315,16 +315,18 @@ flowchart TD
 
 ### F-07 · Rejestracja i logowanie · `M`
 
+> Pełny spec: [docs/features/F-07-rejestracja-logowanie.md](features/F-07-rejestracja-logowanie.md).
+
 **Cel:** bezpieczne konta użytkowników.
 
 **Zakres:**
 - Better Auth w NestJS (adapter Drizzle).
 - E-mail i hasło z weryfikacją e-maila i resetem hasła, logowanie Google i Apple.
 - Sesje cookie dla web (domena `.biddy.pl`), przygotowanie tokenów bearer dla mobile. Klient API (F-05) już wysyła ciasteczka (`credentials: 'include'`) i token z `getAccessToken` jako `Authorization: Bearer`; trasy wymagające sesji opisać w OpenAPI (security scheme), żeby klient i dokumentacja to pokazywały.
-- Turnstile na rejestracji i logowaniu.
+- Turnstile na rejestracji, resecie hasła i logowaniu (po 5 nieudanych próbach).
 - Akceptacja regulaminu z zapisem wersji (tabela `terms_acceptances`).
-- Ochrona CSRF dla sesji cookie (sprawdzanie `Origin` albo token; NestJS 12 ma `enableCsrfProtection()`). Parser formularzy (`application/x-www-form-urlencoded`) tylko na trasie callbacku Sign in with Apple, globalnie API przyjmuje wyłącznie JSON (F-03).
-- Decyzja o kluczach obcych między modułami (np. `orders` → użytkownicy z `identity`): reguła granic modułów (F-03) blokuje dziś import cudzego `*.schema.ts`. Do wyboru: wyjątek w regule dla plików schematu albo kolumny uuid bez FK.
+- Ochrona CSRF dla sesji cookie: sprawdzanie `Origin` (§22 nr 43). Parser formularzy (`application/x-www-form-urlencoded`) tylko na trasie callbacku Sign in with Apple, globalnie API przyjmuje wyłącznie JSON (F-03).
+- Decyzja o kluczach obcych między modułami (np. `orders` → użytkownicy z `identity`): kolumny uuid bez FK, reguła granic modułów (F-03) bez wyjątków (§13.1, §22 nr 42).
 - Ekrany web, wylogowanie ze wszystkich urządzeń.
 
 **Kryteria akceptacji:**

@@ -6,6 +6,12 @@
  * OpenAPI spec version: 0.0.0
  */
 
+export * from './authOptionsDto';
+export * from './authOptionsDtoSocialProvidersItem';
+export * from './meDto';
+export * from './meDtoStaffRole';
 export * from './problemDetails';
 export * from './problemDetailsErrorsItem';
 export * from './serverTimeDto';
+export * from './sessionDto';
+export * from './sessionDtoUser';

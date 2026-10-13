@@ -1,9 +1,25 @@
 /**
  * Publiczne API modułu `identity` (PROJECT.md §10.3).
  *
- * Odpowiedzialność: auth (Better Auth), użytkownicy, weryfikacja telefonu, akceptacje regulaminu, role, limity, strike'i i blokady (§4.1).
+ * Odpowiedzialność: konta i logowanie (Better Auth), sesje, weryfikacja e-maila, akceptacje
+ * regulaminu; w kolejnych feature'ach telefon (F-08), limity i strike'i (F-61).
  *
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
+ * Kolumny z ID użytkownika w innych modułach to uuid bez klucza obcego (decyzja F-07).
  */
 export { IdentityModule } from './identity.module.js';
+export {
+  CurrentUser,
+  RequireSession,
+  RequireVerifiedEmail,
+  SessionGuard,
+} from './session/session.guard.js';
+export { type AuthenticatedUser } from './session/session.js';
+export {
+  STAFF_ROLES,
+  USER_STATUSES,
+  type StaffRole,
+  type UserStatus,
+} from './db/identity.schema.js';
+export { TEST_USERS, TEST_USER_PASSWORD, seedTestUsers } from './seed.js';

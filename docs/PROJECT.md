@@ -1168,6 +1168,7 @@ biddy/
 - Czasy: `timestamptz` w UTC.
 - Soft delete tylko tam, gdzie wymaga tego audyt. Dane finansowe są **niemodyfikowalne** (korekty przez nowe wpisy).
 - Snapshot przedmiotu w zamówieniu (`order_items.item_snapshot`), bo opis aukcji nie może się zmienić po sprzedaży.
+- Klucze obce tylko wewnątrz modułu. Między modułami (np. `orders.buyer_id` → `users.id`) kolumna `uuid` bez FK: granice modułów zostają bez wyjątków, a integralność pilnuje kod (publiczne API modułu) i eventy. Użytkowników nie usuwamy fizycznie (usunięcie konta na żądanie z §17 to anonimizacja, F-41), więc osierocone wiersze nie powstają.
 
 ### 13.2 Diagram relacji (główne encje)
 
@@ -1475,9 +1476,10 @@ Terminy w dniach roboczych (nadanie, nadanie zwrotu) liczy jedna funkcja w `pack
 
 - OWASP ASVS jako checklista.
 - Walidacja wszystkich wejść (Zod), Helmet, CORS ograniczony do domen Biddy, CSRF dla sesji cookie.
-- Rate limiting w Redis per IP i per użytkownik: oferty, wiadomości, logowanie, OTP.
-- Logowanie: po 5 nieudanych próbach wymagamy Turnstile i wprowadzamy rosnące opóźnienie (per konto i per IP). **Bez twardej blokady konta**, bo pozwalałaby każdemu zablokować cudze konto.
-- Cloudflare WAF i Turnstile na rejestracji i logowaniu.
+- Rate limiting per IP i per użytkownik: oferty, wiadomości, OTP (Redis). Logowanie i trasy wysyłające e-maile liczą w Postgresie (F-07): mały ruch, a liczniki przetrwają restart Redisa.
+- Logowanie: po 5 nieudanych próbach na konto (20 z jednego IP, bo za adresem bywa wiele osób) wymagamy Turnstile i wprowadzamy rosnące opóźnienie: 2 s, 4 s… do 5 min. Liczniki w Postgresie, okno 24 h. **Bez twardej blokady konta**, bo pozwalałaby każdemu zablokować cudze konto.
+- Cloudflare WAF i Turnstile na rejestracji, resecie hasła i logowaniu (po progu nieudanych prób).
+- CSRF: żądanie zmieniające stan z ciasteczkiem sesji musi mieć `Origin` aplikacji Biddy; do tego API przyjmuje tylko JSON. Token Bearer (mobile) nie podlega sprawdzeniu.
 - Upload tylko przez presigned URL z limitem rozmiaru i typu. Worker **ponownie koduje obraz i usuwa EXIF** (w tym GPS, czyli prywatność adresów domowych).
 - Sekrety poza repo. Szyfrowanie wrażliwych pól (dane DAC7) kluczem z KMS lub env.
 - Webhooki: weryfikacja podpisu i idempotencja (`processed_webhooks`).
@@ -1795,6 +1797,10 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 38 | Web: Next.js 16 + Tailwind CSS 4 + shadcn/ui, next-intl bez prefiksu języka; konfiguracja `NEXT_PUBLIC_*` walidowana przy buildzie, środowisko w `NEXT_PUBLIC_ENVIRONMENT` (indeksowanie tylko na produkcji) | Przyjęta | §11.3 |
 | 39 | Design tokens w TypeScript (`packages/design-tokens`) generują motyw Tailwind 4 z wyzerowaną domyślną paletą; paleta (granat i pomarańcz) i font Inter tymczasowo, do czasu identyfikacji wizualnej | Tymczasowa | §11.3, §22 nr 8 |
 | 40 | Sentry w przeglądarce ładowany osobnym fragmentem JS po starcie strony (błędy z pierwszych chwil buforowane), PostHog dopiero po zgodzie | Przyjęta | §17, §18.3, §19 |
+| 41 | Konta: Better Auth pod `/v1/auth/*` z błędami jako Problem Details; web woła je fetcherem klienta API (bez klienta Better Auth w paczce), mobile dostaje token Bearer (`set-auth-token`) | Przyjęta | §11.2, §14.1 |
+| 42 | Klucze obce tylko wewnątrz modułu; między modułami kolumny `uuid` bez FK | Przyjęta | §10.3, §13.1 |
+| 43 | Logowanie: Turnstile i przerwa po 5 porażkach na konto albo 20 z IP (liczniki w Postgresie); CSRF przez sprawdzanie `Origin` dla żądań z ciasteczkiem sesji | Przyjęta | §16.1 |
+| 44 | E-maile transakcyjne przez kolejkę `emails` w workerze (Resend na produkcji, SMTP lokalnie); job z linkiem z tokenem znika po wysłaniu | Przyjęta | §11.2 |
 
 ---
 
