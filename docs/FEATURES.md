@@ -356,7 +356,7 @@ flowchart TD
 
 **Zakres:**
 - GitHub Actions: lint, typecheck, testy, build z cache Turborepo.
-- Staging: Render (API, worker, Postgres, 2 instancje Redis: kolejki i cache) i Vercel (web).
+- Staging: Render (API, worker, Postgres, 2 instancje Redis: kolejki i cache) i Vercel (web). Worker jako Background Worker z `start:worker` (`node --import ./dist/instrument.js dist/worker.js`), bez portu HTTP. Key Value kolejek z „Maxmemory Policy: noeviction” (inaczej worker nie wystartuje, F-04), `REDIS_QUEUE_URL` dla API i workera.
 - Migracje jako osobny krok przed deployem (`node dist/infra/db/migrate.js`; obraz musi zawierać `apps/api/drizzle/`), sekrety, preview deployments dla web, Sentry releases.
 - Weryfikacja `TRUST_PROXY` na Render: domyślnie ufamy adresom loopback i prywatnym (load balancer Render). Jeśli przed Render stoi Cloudflare, dopisać jego zakresy CIDR (inaczej `request.ip` będzie adresem proxy).
 
@@ -877,7 +877,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
   - wypłaty, należności, chargebacki,
   - rekompensaty i reklamacje u przewoźników (§7.9, §8.4),
   - cenniki POK,
-  - kategorie i atrybuty.
+  - kategorie i atrybuty,
+  - kolejki: liczniki jobów i dead-letter queue z ponowieniem wpisu (`DeadLetterQueue.list` i `replay` z F-04; Bull Board działa tylko lokalnie).
 - Audit log każdej akcji.
 
 **Kryteria akceptacji:**
@@ -957,7 +958,7 @@ Prace przed publicznym startem web. Zamknięta beta działa już na produkcji z 
 - Testy obciążeniowe k6 (200 ofert/s na gorącą aukcję, 2 tys. połączeń WS).
 - Przegląd bezpieczeństwa lub pentest.
 - Test odtworzenia backupu.
-- Dashboardy i alerty (§18.3), w tym aukcja `ACTIVE` po `ends_at`, straty platformy i pamięć Redisa kolejek.
+- Dashboardy i alerty (§18.3), w tym aukcja `ACTIVE` po `ends_at`, straty platformy i pamięć Redisa kolejek. Alert na niepustą kolejkę `dead-letter` i na zaległości w outboxie (wiersze z pustym `published_at` starsze niż minuta, F-04).
 - Runbooki: awaria płatności, zatrzymana kolejka, rozjazd ledgera.
 - Środowisko produkcyjne, Cloudflare WAF, limity.
 

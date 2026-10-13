@@ -10,7 +10,7 @@ import {
   UNHANDLED_REJECTION_MESSAGE,
 } from './fatal-errors.js';
 
-function setup(shutdown: () => Promise<unknown> = () => Promise.resolve()) {
+function setup(shutdown: () => Promise<unknown> = () => Promise.resolve(), label?: string) {
   const source = new EventEmitter();
   const calls: string[] = [];
   const log = vi.fn((error: Error, message: string) => {
@@ -29,6 +29,7 @@ function setup(shutdown: () => Promise<unknown> = () => Promise.resolve()) {
     exit: vi.fn((code: number) => {
       calls.push(`exit ${code}`);
     }),
+    ...(label === undefined ? {} : { label }),
   };
   const dispose = handleFatalErrors(source, options);
   return { source, calls, options, dispose };
@@ -50,6 +51,21 @@ describe('handleFatalErrors', () => {
       'shutdown',
       `flush ${SENTRY_FLUSH_TIMEOUT_MS}`,
       'exit 1',
+    ]);
+  });
+
+  it('label: komunikaty nazywają proces (worker zamiast API)', async () => {
+    const { source, calls, options } = setup(() => new Promise(() => undefined), 'worker');
+    vi.useFakeTimers();
+
+    source.emit('uncaughtException', new Error('boom'));
+    await vi.advanceTimersByTimeAsync(FATAL_SHUTDOWN_TIMEOUT_MS);
+
+    await vi.waitFor(() => expect(options.exit).toHaveBeenCalledWith(1));
+    expect(calls.slice(0, 3)).toEqual([
+      'log: Nieobsłużony wyjątek (uncaughtException): zamykam worker (boom)',
+      'shutdown',
+      `log: Nie udało się łagodnie zamknąć worker po błędzie krytycznym (Zamykanie worker przekroczyło ${FATAL_SHUTDOWN_TIMEOUT_MS} ms)`,
     ]);
   });
 

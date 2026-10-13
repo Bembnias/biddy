@@ -97,7 +97,8 @@ jobs:
         run: pnpm build
 
       # Docker jest dostępny na runnerach GitHub z Ubuntu; Testcontainers łączy się przez
-      # /var/run/docker.sock i sam pobiera obrazy (postgres:17-alpine, testcontainers/ryuk).
+      # /var/run/docker.sock i sam pobiera obrazy (postgres:17-alpine, redis:7.4-alpine,
+      # testcontainers/ryuk).
       - name: Docker
         run: docker version
 

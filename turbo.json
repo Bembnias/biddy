@@ -26,6 +26,16 @@
       "cache": false,
       "persistent": true
     },
+    "dev:worker": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "dev:board": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
     "clean": {
       "cache": false
     },

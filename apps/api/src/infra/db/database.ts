@@ -1,6 +1,8 @@
 // Połączenie z Postgresem: pula pg i instancja Drizzle (PROJECT.md §11.2).
 import { Logger } from '@nestjs/common';
-import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
+import type { TablesRelationalConfig } from 'drizzle-orm';
+import { drizzle, type NodePgDatabase, type NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
+import type { PgTransaction } from 'drizzle-orm/pg-core';
 import { Pool } from 'pg';
 
 import type { AppConfig } from '../config/index.js';
@@ -29,6 +31,17 @@ export type AppDatabase = NodePgDatabase<typeof schema>;
  */
 export type Database<TSchema extends Record<string, unknown> = Record<string, never>> =
   NodePgDatabase<TSchema>;
+
+/**
+ * Otwarta transakcja (`tx` z `db.transaction(async (tx) => …)`) niezależnie od schematu, którym
+ * moduł otypował bazę. Ma budowniczy zapytań (`tx.insert(tabela)`, `tx.select()`, `tx.execute`),
+ * bez zapytań relacyjnych (`tx.query`). Typu nie spełnia sama baza (`db`), więc funkcja, która
+ * musi działać w transakcji wywołującego (np. Outbox.add), nie przyjmie zapytania poza nią.
+ */
+export type Transaction = Omit<
+  PgTransaction<NodePgQueryResultHKT, Record<string, unknown>, TablesRelationalConfig>,
+  'query' | '_'
+>;
 
 /** Nazwa aplikacji widoczna w `pg_stat_activity` i w logach Postgresa. */
 export const APPLICATION_NAME = 'biddy-api';

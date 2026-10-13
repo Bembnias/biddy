@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "dev": "pnpm infra:up && turbo run dev",
+    "dev": "pnpm infra:up && turbo run dev dev:worker dev:board",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

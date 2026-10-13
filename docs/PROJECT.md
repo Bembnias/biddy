@@ -1045,7 +1045,7 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 | Baza | **PostgreSQL 17/18** (najnowsza dostępna na Render) | Transakcje, `FOR UPDATE`, JSONB dla atrybutów, `ltree` dla drzewa kategorii. UUIDv7 generujemy w aplikacji (ADR-10). |
 | ORM | **Drizzle ORM 0.45** + drizzle-kit (migracje) | Pełna kontrola SQL (blokady, CTE, indeksy częściowe), lekki. Alt.: Prisma (lepszy DX, mniej kontroli). Wersja 1.0 jest w RC; aktualizacja po wydaniu stabilnej. Tabele modułu leżą w `src/modules/<moduł>/db/*.schema.ts`, migracje w `apps/api/drizzle/`, na produkcji uruchamiane osobnym krokiem przed deployem (§18.2). |
 | Auth | **Better Auth** (montowany w NestJS, adapter Drizzle) | Open-source, dane u nas. E-mail i hasło, Google, Apple, Facebook, OTP telefonu, 2FA, plugin Expo. Alt.: Clerk (szybciej, ale koszt per MAU i lock-in). |
-| Kolejki / joby | **BullMQ** na Redis | Opóźnione joby (koniec aukcji, terminy), retry, repeatable. **Osobna instancja Redis z `maxmemory-policy noeviction`** (wymóg BullMQ: eviction gubi joby). |
+| Kolejki / joby | **BullMQ 6** na Redis (klient ioredis 5.11, wersja testowana przez BullMQ) | Opóźnione joby (koniec aukcji, terminy), retry, repeatable. **Osobna instancja Redis z `maxmemory-policy noeviction`** (wymóg BullMQ: eviction gubi joby); worker bez niej nie startuje. Joby, które wyczerpały próby, trafiają do kolejki `dead-letter` i do Sentry. Podgląd: Bull Board tylko lokalnie. |
 | Realtime | **Socket.IO** + `@socket.io/redis-adapter` | Alt.: zarządzany Ably/Pusher przy dużej skali |
 | Cache / rate limit / pub-sub | **Redis** (druga instancja, `allkeys-lru`) | Oddzielona od kolejek, żeby zapełniony cache nie blokował jobów |
 | Wyszukiwarka | **Meilisearch** (Cloud, EU) | Fasety, tolerancja literówek, proste API. Alt.: Typesense; OpenSearch przy dużej skali. |
@@ -1372,6 +1372,8 @@ type UserWon = { type: 'user.won'; auctionId: string; orderId: string; paymentDu
 - **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `ReviewPublished`, `ReportCreated`.
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
+
+Dostarczanie (F-04): relay w workerze przekazuje zatwierdzone eventy z tabeli `outbox` do kolejki `domain-events`, osobnym jobem dla każdego konsumenta (błąd jednego nie ponawia pozostałych). Gwarancja **at-least-once**, bez gwarancji kolejności. Konsument jest idempotentny: jego obsługa i wpis w `processed_events` (konsument, ID eventu) to jedna transakcja. Typ eventu w PascalCase w czasie przeszłym, wersja payloadu od 1, payload ze schematem Zod z typami JSON (konwencja w `apps/api/src/infra/outbox/domain-event.ts`).
 
 ---
 
@@ -1787,6 +1789,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 32 | Lokalny S3: RustFS zamiast MinIO | Przyjęta | §12 |
 | 33 | Backend: NestJS 12 (ESM) + SWC, nestjs-zod mimo deklarowanej zgodności tylko z Nest ≤ 11 | Przyjęta | §11.2 |
 | 34 | Błędy API: RFC 9457 (`application/problem+json`) z polem `code`; lista kodów wspólna dla klientów w `packages/shared` | Przyjęta | §14.1 |
+| 35 | Kolejki: BullMQ 6 + ioredis 5.11; eventy z outboxa osobnym jobem na konsumenta, idempotencja przez `processed_events`, DLQ jako kolejka `dead-letter` | Przyjęta | §11.2, §14.3 |
+| 36 | Bull Board tylko lokalnie (osobny proces, bez uwierzytelniania); na produkcji kolejki i DLQ w panelu administracyjnym | Przyjęta | §11.5, §18.3 |
 
 ---
 

@@ -15,6 +15,8 @@ export interface FatalErrorOptions {
   readonly exit: (code: number) => void;
   /** Limit czasu na łagodne zamknięcie; domyślnie {@link FATAL_SHUTDOWN_TIMEOUT_MS}. */
   readonly shutdownTimeoutMs?: number;
+  /** Nazwa procesu w komunikatach („API” albo „worker”); domyślnie API. */
+  readonly label?: string;
 }
 
 /** Proces Node (albo jego zastępstwo w testach). */
@@ -23,9 +25,18 @@ export type FatalErrorSource = Pick<NodeJS.EventEmitter, 'on' | 'off'>;
 export const FATAL_SHUTDOWN_TIMEOUT_MS = 10_000;
 export const SENTRY_FLUSH_TIMEOUT_MS = 2_000;
 
-export const UNHANDLED_REJECTION_MESSAGE =
-  'Nieobsłużone odrzucenie obietnicy (unhandledRejection): zamykam API';
-export const UNCAUGHT_EXCEPTION_MESSAGE = 'Nieobsłużony wyjątek (uncaughtException): zamykam API';
+/** Komunikaty logów krytycznych dla procesu o danej nazwie. */
+export function fatalMessages(label: string) {
+  return {
+    unhandledRejection: `Nieobsłużone odrzucenie obietnicy (unhandledRejection): zamykam ${label}`,
+    uncaughtException: `Nieobsłużony wyjątek (uncaughtException): zamykam ${label}`,
+    shutdownFailed: `Nie udało się łagodnie zamknąć ${label} po błędzie krytycznym`,
+    shutdownTimeout: (ms: number) => `Zamykanie ${label} przekroczyło ${ms} ms`,
+  };
+}
+
+export const UNHANDLED_REJECTION_MESSAGE = fatalMessages('API').unhandledRejection;
+export const UNCAUGHT_EXCEPTION_MESSAGE = fatalMessages('API').uncaughtException;
 
 /** Odrzucenie wartością, która nie jest błędem (np. `Promise.reject('x')`), jako Error. */
 function asError(reason: unknown): Error {
@@ -37,11 +48,15 @@ function asError(reason: unknown): Error {
   });
 }
 
-async function shutdownWithin(shutdown: () => Promise<unknown>, timeoutMs: number): Promise<void> {
+async function shutdownWithin(
+  shutdown: () => Promise<unknown>,
+  timeoutMs: number,
+  timeoutMessage: string,
+): Promise<void> {
   let timer: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => {
-      reject(new Error(`Zamykanie API przekroczyło ${timeoutMs} ms`));
+      reject(new Error(timeoutMessage));
     }, timeoutMs);
   });
   try {
@@ -60,6 +75,8 @@ export function handleFatalErrors(
   options: FatalErrorOptions,
 ): () => void {
   let terminating = false;
+  const messages = fatalMessages(options.label ?? 'API');
+  const shutdownTimeoutMs = options.shutdownTimeoutMs ?? FATAL_SHUTDOWN_TIMEOUT_MS;
 
   const onFatal = (message: string) => (reason: unknown) => {
     options.log(asError(reason), message);
@@ -71,21 +88,19 @@ export function handleFatalErrors(
       try {
         await shutdownWithin(
           options.shutdown,
-          options.shutdownTimeoutMs ?? FATAL_SHUTDOWN_TIMEOUT_MS,
+          shutdownTimeoutMs,
+          messages.shutdownTimeout(shutdownTimeoutMs),
         );
       } catch (shutdownError) {
-        options.log(
-          asError(shutdownError),
-          'Nie udało się łagodnie zamknąć API po błędzie krytycznym',
-        );
+        options.log(asError(shutdownError), messages.shutdownFailed);
       }
       await options.flush(SENTRY_FLUSH_TIMEOUT_MS).catch(() => undefined);
       options.exit(1);
     })();
   };
 
-  const onRejection = onFatal(UNHANDLED_REJECTION_MESSAGE);
-  const onException = onFatal(UNCAUGHT_EXCEPTION_MESSAGE);
+  const onRejection = onFatal(messages.unhandledRejection);
+  const onException = onFatal(messages.uncaughtException);
   source.on('unhandledRejection', onRejection);
   source.on('uncaughtException', onException);
   return () => {

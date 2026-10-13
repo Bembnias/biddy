@@ -169,6 +169,16 @@ export const envSchema = z.object({
     (parsed) => parsed.pathname.length > 1,
   ),
   DATABASE_POOL_MAX: integer(1, 100).optional(),
+  // Redis kolejek BullMQ (maxmemory-policy noeviction, PROJECT.md §11.2). Cache ma osobną instancję.
+  REDIS_QUEUE_URL: url(['redis:', 'rediss:'], 'redis://localhost:6379').optional(),
+  QUEUE_PREFIX: text()
+    .regex(
+      /^[a-z0-9][a-z0-9_-]{0,31}$/,
+      'oczekiwano 1–32 znaków: małe litery, cyfry, _ i - (bez dwukropka), np. biddy',
+    )
+    .optional(),
+  OUTBOX_POLL_INTERVAL_MS: integer(10, 60_000).optional(),
+  BULL_BOARD_PORT: port().optional(),
   LOG_LEVEL: oneOf(LOG_LEVELS).optional(),
   LOG_PRETTY: boolean().optional(),
   CORS_ORIGINS: originList().optional(),
@@ -190,6 +200,18 @@ export type AppEnvironment = 'development' | 'test' | 'production';
 
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
+/**
+ * Proces, dla którego wczytujemy konfigurację (PROJECT.md §10.4): API (HTTP) albo worker
+ * (BullMQ, relay outboxa). Worker nie obsługuje HTTP, więc nie wymaga np. CORS_ORIGINS.
+ */
+export type ProcessRole = 'api' | 'worker';
+
+/** Domyślny adres Redisa kolejek poza produkcją (infra/docker-compose.yml). */
+export const DEFAULT_REDIS_QUEUE_URL = 'redis://localhost:6379';
+
+/** Domyślny prefiks kluczy BullMQ w Redisie. */
+export const DEFAULT_QUEUE_PREFIX = 'biddy';
+
 /** Konfiguracja aplikacji po walidacji i wyliczeniu wartości domyślnych. */
 export interface AppConfig {
   readonly env: AppEnvironment;
@@ -209,6 +231,14 @@ export interface AppConfig {
   readonly database: {
     readonly url: string;
     readonly poolMax: number;
+  };
+  readonly queues: {
+    /** Redis kolejek BullMQ (noeviction); sprawdza go worker przy starcie. */
+    readonly redisUrl: string;
+    /** Prefiks kluczy BullMQ: osobne przestrzenie kolejek na jednej instancji (np. testy). */
+    readonly prefix: string;
+    /** Co ile relay outboxa sprawdza nowe eventy, gdy ostatnia porcja była niepełna. */
+    readonly outboxPollIntervalMs: number;
   };
   readonly log: {
     readonly level: LogLevel;
@@ -261,6 +291,22 @@ export function formatConfigError(error: ConfigError): string {
 
 type RawEnv = Readonly<Record<string, string | undefined>>;
 
+/**
+ * loadConfig dla punktu wejścia procesu (main.ts, worker.ts): przy błędnej konfiguracji wypisuje
+ * listę błędów na stderr i kończy proces kodem 1, zanim cokolwiek się połączy.
+ */
+export function loadConfigOrExit(env: RawEnv, role: ProcessRole): AppConfig {
+  try {
+    return loadConfig(env, role);
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      process.stderr.write(`${formatConfigError(error)}\n`);
+      process.exit(1);
+    }
+    throw error;
+  }
+}
+
 /** Kopia zmiennych schematu bez pustych wartości (pusta wartość = brak zmiennej). */
 function pickNonEmpty(env: RawEnv, keys: readonly string[]): Record<string, string> {
   const input: Record<string, string> = {};
@@ -286,13 +332,25 @@ function isLoopbackHost(host: string): boolean {
 }
 
 /** Problemy, które zależą od kilku zmiennych naraz (np. od NODE_ENV). */
-function crossFieldIssues(input: Readonly<Record<string, string>>): ConfigIssue[] {
+function crossFieldIssues(
+  input: Readonly<Record<string, string>>,
+  role: ProcessRole,
+): ConfigIssue[] {
   const issues: ConfigIssue[] = [];
-  // Na produkcji domyślny localhost w CORS byłby błędem konfiguracji, a nie wygodą.
-  if (input['NODE_ENV'] === 'production' && input['CORS_ORIGINS'] === undefined) {
+  if (input['NODE_ENV'] !== 'production') {
+    return issues;
+  }
+  // Na produkcji domyślne adresy localhost byłyby błędem konfiguracji, a nie wygodą.
+  if (role === 'api' && input['CORS_ORIGINS'] === undefined) {
     issues.push({
       variable: 'CORS_ORIGINS',
       message: `${MISSING}; na produkcji podaj originy frontendu, np. https://biddy.pl`,
+    });
+  }
+  if (input['REDIS_QUEUE_URL'] === undefined) {
+    issues.push({
+      variable: 'REDIS_QUEUE_URL',
+      message: `${MISSING}; na produkcji podaj adres Redisa kolejek (instancja z maxmemory-policy noeviction)`,
     });
   }
   return issues;
@@ -310,11 +368,16 @@ function byVariableOrder(left: ConfigIssue, right: ConfigIssue): number {
 /**
  * Waliduje zmienne środowiskowe i wylicza konfigurację. Rzuca {@link ConfigError} ze
  * wszystkimi problemami naraz. Nie czyta process.env sama, żeby dało się ją testować.
+ *
+ * @param role proces, który startuje: worker nie wymaga zmiennych samego HTTP (CORS_ORIGINS)
  */
-export function loadConfig(env: RawEnv): AppConfig {
+export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
   const input = pickNonEmpty(env, ENV_KEYS);
   const result = envSchema.safeParse(input);
-  const issues = [...(result.success ? [] : issuesOf(result.error)), ...crossFieldIssues(input)];
+  const issues = [
+    ...(result.success ? [] : issuesOf(result.error)),
+    ...crossFieldIssues(input, role),
+  ];
   if (!result.success || issues.length > 0) {
     throw new ConfigError(issues.sort(byVariableOrder));
   }
@@ -339,6 +402,11 @@ export function loadConfig(env: RawEnv): AppConfig {
     database: {
       url: vars.DATABASE_URL,
       poolMax: vars.DATABASE_POOL_MAX ?? 10,
+    },
+    queues: {
+      redisUrl: vars.REDIS_QUEUE_URL ?? DEFAULT_REDIS_QUEUE_URL,
+      prefix: vars.QUEUE_PREFIX ?? DEFAULT_QUEUE_PREFIX,
+      outboxPollIntervalMs: vars.OUTBOX_POLL_INTERVAL_MS ?? 250,
     },
     log: {
       level: vars.LOG_LEVEL ?? (development ? 'debug' : 'info'),
@@ -387,5 +455,50 @@ export function loadSentryOptions(env: RawEnv): SentryOptions | undefined {
     environment: vars.SENTRY_ENVIRONMENT ?? vars.NODE_ENV,
     release: vars.APP_RELEASE,
     tracesSampleRate: vars.SENTRY_TRACES_SAMPLE_RATE ?? 0,
+  };
+}
+
+/** Ustawienia lokalnego Bull Board (src/bull-board.ts): podgląd kolejek tylko w development. */
+export interface BullBoardConfig {
+  readonly redisUrl: string;
+  readonly prefix: string;
+  /** Bull Board nie ma logowania, więc słucha wyłącznie na interfejsie lokalnym. */
+  readonly host: '127.0.0.1';
+  readonly port: number;
+}
+
+const bullBoardEnvSchema = envSchema.pick({
+  NODE_ENV: true,
+  REDIS_QUEUE_URL: true,
+  QUEUE_PREFIX: true,
+  BULL_BOARD_PORT: true,
+});
+
+/**
+ * Konfiguracja Bull Board. Nie wymaga DATABASE_URL (podgląd czyta tylko Redis). Odmawia na
+ * produkcji: panel pozwala ponawiać i usuwać joby, a nie ma uwierzytelniania (kolejki na
+ * produkcji obejrzymy w panelu administracyjnym, F-34).
+ */
+export function loadBullBoardConfig(env: RawEnv): BullBoardConfig {
+  const input = pickNonEmpty(env, Object.keys(bullBoardEnvSchema.shape));
+  const result = bullBoardEnvSchema.safeParse(input);
+  if (!result.success) {
+    throw new ConfigError(issuesOf(result.error).sort(byVariableOrder));
+  }
+  const vars = result.data;
+  if (vars.NODE_ENV === 'production') {
+    throw new ConfigError([
+      {
+        variable: 'NODE_ENV',
+        message:
+          'Bull Board działa tylko poza produkcją (nie ma uwierzytelniania); na produkcji kolejki pokaże panel administracyjny',
+      },
+    ]);
+  }
+  return {
+    redisUrl: vars.REDIS_QUEUE_URL ?? DEFAULT_REDIS_QUEUE_URL,
+    prefix: vars.QUEUE_PREFIX ?? DEFAULT_QUEUE_PREFIX,
+    host: '127.0.0.1',
+    port: vars.BULL_BOARD_PORT ?? 3002,
   };
 }

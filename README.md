@@ -45,13 +45,13 @@ pnpm mail:test       # wysyła mail przez SMTP i potwierdza, że dotarł do Mail
 Codzienna praca:
 
 ```bash
-pnpm dev               # uruchamia infrastrukturę (infra:up), potem tryb deweloperski wszystkich pakietów
+pnpm dev               # infra:up, potem tryb deweloperski: API, worker i Bull Board
 pnpm infra:down        # zatrzymuje usługi, dane zostają w wolumenach Dockera
 pnpm check             # lint, typecheck, testy i formatowanie przed pull requestem
 pnpm test:integration  # testy integracyjne z Testcontainers (wymaga Dockera)
 ```
 
-API działa wtedy pod http://localhost:3001 (sonda http://localhost:3001/health, dokumentacja http://localhost:3001/docs). Szczegóły: [API (apps/api)](#api-appsapi).
+API działa wtedy pod http://localhost:3001 (sonda http://localhost:3001/health, dokumentacja http://localhost:3001/docs), worker przetwarza joby i eventy domenowe, a podgląd kolejek (Bull Board) jest pod http://localhost:3002. Szczegóły: [API (apps/api)](#api-appsapi) i [Kolejki, workery i outbox](#kolejki-workery-i-outbox).
 
 ## Usługi
 
@@ -96,12 +96,12 @@ Wszystkie uruchamiasz z katalogu głównego.
 | Skrypt                  | Co robi                                                                                                                               |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `pnpm bootstrap`        | Pierwsze uruchomienie: `.env`, walidacja, usługi, kubełki S3, reset bazy, podsumowanie.                                               |
-| `pnpm dev`              | `pnpm infra:up`, a potem `turbo run dev` (tryb deweloperski wszystkich pakietów).                                                     |
+| `pnpm dev`              | `pnpm infra:up`, a potem `turbo run dev dev:worker dev:board`: API, worker i Bull Board w trybie deweloperskim.                       |
 | `pnpm build`            | Build wszystkich pakietów i aplikacji (Turborepo z cache).                                                                            |
 | `pnpm lint`             | ESLint (flat config, reguły z informacją o typach).                                                                                   |
 | `pnpm typecheck`        | `tsc --noEmit` we wszystkich pakietach.                                                                                               |
 | `pnpm test`             | Testy jednostkowe (Vitest).                                                                                                           |
-| `pnpm test:integration` | Testy integracyjne (Testcontainers): własny Postgres w kontenerze i migracje. Wymaga Dockera, nie wymaga `pnpm infra:up`.             |
+| `pnpm test:integration` | Testy integracyjne (Testcontainers): własny Postgres i Redis w kontenerach. Wymaga Dockera, nie wymaga `pnpm infra:up`.               |
 | `pnpm check`            | `lint`, `typecheck`, `test` i `format:check` razem.                                                                                   |
 | `pnpm format`           | Formatuje repozytorium Prettierem.                                                                                                    |
 | `pnpm format:check`     | Sprawdza formatowanie bez zmian w plikach.                                                                                            |
@@ -126,13 +126,17 @@ Backend to modularny monolit NestJS na adapterze Fastify ([PROJECT.md §10](docs
 ### Uruchomienie
 
 ```bash
-pnpm dev                        # infra:up, potem tryb deweloperski wszystkich pakietów, w tym API
-pnpm --filter @biddy/api dev    # samo API (po pnpm infra:up); restart po każdej zmianie pliku
+pnpm dev                               # infra:up, potem API, worker i Bull Board w trybie deweloperskim
+pnpm --filter @biddy/api dev           # samo API (po pnpm infra:up); restart po każdej zmianie pliku
+pnpm --filter @biddy/api dev:worker    # sam worker (joby, konsumenci eventów, relay outboxa)
+pnpm --filter @biddy/api dev:board     # sam Bull Board pod http://localhost:3002
 ```
+
+Na produkcji API i worker to dwa procesy z tego samego buildu: `pnpm --filter @biddy/api start` (`dist/main.js`) i `pnpm --filter @biddy/api start:worker` (`dist/worker.js`).
 
 API czyta zmienne z `.env` w katalogu głównym (tworzy go `pnpm bootstrap`). Baza potrzebuje migracji przed pierwszym startem: `pnpm bootstrap` robi to sam, później wystarczy `pnpm db:reset` albo `pnpm --filter @biddy/api db:migrate`. API importuje zbudowany pakiet `@biddy/shared` (`packages/shared/dist`), więc na świeżym klonie uruchom najpierw `pnpm build`.
 
-Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL` (na produkcji także `CORS_ORIGINS`). Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
+Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL` (na produkcji także `REDIS_QUEUE_URL` i, dla API, `CORS_ORIGINS`). Worker sprawdza te same zmienne, ale nie wymaga `CORS_ORIGINS`. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
 
 | Adres lokalny                   | Co to jest                                                                                                            |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -195,7 +199,7 @@ Przykład: odpowiedź 400 na dane, które nie przeszły walidacji DTO (nestjs-zo
 
 - Drizzle ORM na `pg`. Migracje SQL leżą w `apps/api/drizzle`, generuje je drizzle-kit, a stosuje zadanie `db:migrate` (`apps/api/src/infra/db/migrate.ts`). Pierwsza migracja (`0000_init`) włącza rozszerzenie `ltree`.
 - Identyfikatory encji to UUIDv7 generowane w aplikacji (ADR-10): kolumna `idColumn()` i funkcja `newId()` z `apps/api/src/infra/db/ids.ts`.
-- Tabele modułu leżą w `src/modules/<moduł>/db/*.schema.ts`. Każdy taki plik dopisz w `src/infra/db/schema.ts`.
+- Tabele modułu leżą w `src/modules/<moduł>/db/*.schema.ts`, tabele infrastruktury w `src/infra/<nazwa>/db/*.schema.ts` (np. `outbox` i `processed_events`, migracja `0001_outbox`). Każdy taki plik dopisz w `src/infra/db/schema.ts`.
 - Moduł wstrzykuje Drizzle tokenem `DRIZZLE` i typuje go własnymi tabelami: `Database<typeof ordersTables>` (z `import * as ordersTables from './db/orders.schema.js'`). Typ nie zna tabel innych modułów, więc `db.query.<cudza tabela>` się nie skompiluje.
 - `db:migrate` działa pod blokadą doradczą Postgresa: równoległe uruchomienia (np. nakładające się deploye) czekają na siebie. Przed migracją sprawdza dziennik (`drizzle/meta/_journal.json`), a po niej, czy każda migracja z dziennika ma wpis w bazie.
 
@@ -212,6 +216,52 @@ pnpm --filter @biddy/api db:migrate    # 3b. albo stosuje tylko nowe migracje na
 Własny SQL (rozszerzenie, funkcja, indeks, którego drizzle-kit nie generuje) dodasz pustą migracją: `pnpm --filter @biddy/api exec drizzle-kit generate --custom --name <nazwa>`. Zastosowanych migracji nie edytuj. Drizzle zapisuje je w tabeli `drizzle.__drizzle_migrations` i drugi raz nie uruchomi, więc każda poprawka to nowa migracja.
 
 Drizzle stosuje tylko migracje z czasem `when` późniejszym niż ostatnio zastosowana. Migracja wygenerowana na gałęzi przed cudzą, a scalona po niej, zostałaby po cichu pominięta. Test jednostkowy i `db:migrate` odrzucają taki dziennik. Wtedy usuń swoją migrację (plik SQL, snapshot i wpis w dzienniku) i wygeneruj ją ponownie na aktualnym `main`.
+
+### Kolejki, workery i outbox
+
+Efekty uboczne (powiadomienia, indeksowanie, maile) i joby z terminem (zamknięcie aukcji, terminy zamówień) działają asynchronicznie w osobnym procesie, workerze ([PROJECT.md §10.4](docs/PROJECT.md#104-procesy-uruchomieniowe), ADR-4). Kod leży w `apps/api/src/infra/queues`, `src/infra/outbox` i `src/infra/worker`.
+
+| Proces                       | Co robi                                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API (`src/main.ts`)          | Zapisuje eventy domenowe w outboxie (w transakcji zmiany) i może dodawać joby (`JobQueues`). Jobów nie wykonuje.                                  |
+| Worker (`src/worker.ts`)     | Workery BullMQ dla kolejek z handlerami, konsumenci eventów, joby cykliczne i relay outboxa. Nie startuje, gdy Redis kolejek nie ma `noeviction`. |
+| Bull Board (`bull-board.ts`) | Podgląd kolejek w przeglądarce, tylko lokalnie (`127.0.0.1`, odmawia przy `NODE_ENV=production`, bo nie ma logowania).                            |
+
+**Eventy domenowe (transactional outbox).** Event zapisujemy w tej samej transakcji co zmianę, którą opisuje. Wycofana transakcja nie zostawia eventu, zatwierdzona zostawia go na pewno. Relay w workerze przekazuje go do kolejki `domain-events`, osobnym jobem dla każdego konsumenta:
+
+```ts
+// Moduł, który publikuje event (definicja eksportowana przez jego index.ts):
+export const AuctionEnded = defineDomainEvent({
+  type: 'AuctionEnded', // PascalCase, czas przeszły
+  version: 1,
+  aggregateType: 'auction',
+  payload: z.object({ winnerId: z.uuid().nullable() }), // tylko typy JSON
+});
+
+await db.transaction(async (tx) => {
+  await tx.update(auctions).set({ status: 'ENDED_SOLD' }).where(eq(auctions.id, id));
+  await outbox.add(tx, AuctionEnded.create({ aggregateId: id, payload: { winnerId } }));
+});
+
+// Moduł, który reaguje (provider w dowolnym module):
+@OnDomainEvent(AuctionEnded, { consumer: 'notifications.auction-ended' })
+async onAuctionEnded(event: DomainEventOf<typeof AuctionEnded>, { tx }: DomainEventContext) {}
+```
+
+- Konsument dostaje event **co najmniej raz**. Worker wykonuje go w transakcji, która najpierw zapisuje parę (konsument, ID eventu) w `processed_events`, więc ponowne dostarczenie nie powtarza efektu w bazie. Efekty poza bazą (mail, SMS) przekazują `event.id` jako klucz idempotencji dostawcy.
+- Kolejność dostarczania nie jest gwarantowana. Konsument, dla którego ma znaczenie, porównuje stan encji.
+- Metadane eventu (`requestId` żądania HTTP, `causationId` eventu, który go wywołał) `Outbox.add` uzupełnia sam z kontekstu logów.
+- Konwencja eventów (nazwy, wersje, payload) jest opisana w `src/infra/outbox/domain-event.ts`.
+
+**Joby.** Handler to metoda providera oznaczona `@JobHandler('kolejka', 'nazwa.joba')`, a job dodaje `JobQueues.add(kolejka, nazwa, dane, { jobId, runAt })`. Kolejki są w katalogu `src/infra/queues/queue-catalog.ts` (nowa kolejka = nowy wpis). Job z terminem dostaje ID z terminem, `deadlineJobId('close', auctionId, endsAt)` → `close-{id}-{ms}` ([PROJECT.md §15.2](docs/PROJECT.md#152-zamykanie-aukcji)): nowy termin to nowy job (także dodany z wnętrza wykonującego się joba), ten sam termin dodany dwa razy to jeden job. Handler musi być idempotentny.
+
+**Joby cykliczne.** `@ScheduledJob({ queue, name, every })` albo `{ pattern: '0 3 * * *' }` (cron, czas polski). Worker przy starcie rejestruje harmonogramy z kodu i usuwa te, których w kodzie już nie ma. Przykład: `outbox.cleanup` co godzinę usuwa przekazane eventy starsze niż 7 dni i wpisy `processed_events` starsze niż 30 dni.
+
+**Ponowienia i dead-letter queue.** Domyślnie 10 prób z wykładniczym odstępem od 2 s (łącznie ok. 17 minut). Job, który wyczerpie próby albo rzuci `UnrecoverableError` z bullmq, trafia jako kopia do kolejki `dead-letter` (oryginał zostaje 14 dni w zbiorze „failed”), a błąd do Sentry z tagami `queue` i `job_name`. Wpis da się ponowić przez `DeadLetterQueue.replay(id)` (panel administracyjny w F-34) albo obejrzeć w Bull Board. Nieudane wykonanie joba cyklicznego nie trafia do DLQ (następne przyjdzie za chwilę), ale trafia do Sentry.
+
+**Logi.** Logi z kodu wykonywanego w jobie mają pola `queue`, `jobId`, `jobName`, `attempt`, a w konsumentach także `consumer`, `eventId`, `eventType` i `requestId` żądania, w którym powstał event. Pole `service` odróżnia procesy: `biddy-api` i `biddy-worker`.
+
+**Redis kolejek.** Osobna instancja z `maxmemory-policy noeviction` (`REDIS_QUEUE_URL`): przy eviction Redis po zapełnieniu pamięci usuwa joby. Worker sprawdza politykę przy starcie i bez `noeviction` kończy się kodem 1. Lokalnie ustawia ją `infra/docker-compose.yml`, na Render trzeba ją wybrać w ustawieniach Key Value. Klucze BullMQ mają prefiks `QUEUE_PREFIX` (domyślnie `biddy`).
 
 ### Granice modułów
 
@@ -233,12 +283,12 @@ Testy (`*.test.ts` i katalog `test/`) mogą importować wszystko.
 
 ### Testy API
 
-| Polecenie                       | Co sprawdza                                                                                                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pnpm --filter @biddy/api test` | Testy jednostkowe i testy aplikacji w procesie (`fastify.inject()`). Bez Dockera i bez bazy.                                                                       |
-| `pnpm test:integration`         | Testy integracyjne z `apps/api/test/integration`. Testcontainers uruchamia własny Postgres 17, stosuje migracje i testuje API na prawdziwej bazie. Wymaga Dockera. |
+| Polecenie                       | Co sprawdza                                                                                                                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @biddy/api test` | Testy jednostkowe i testy aplikacji w procesie (`fastify.inject()`). Bez Dockera i bez bazy.                                                                                                      |
+| `pnpm test:integration`         | Testy integracyjne z `apps/api/test/integration`. Testcontainers uruchamia własny Postgres 17 i Redis 7.4, stosuje migracje i testuje API oraz worker (także jako osobny proces). Wymaga Dockera. |
 
-Testy integracyjne nie korzystają z `pnpm infra:up` ani z `.env`. Kontener z bazą znika po zakończeniu testów.
+Testy integracyjne nie korzystają z `pnpm infra:up` ani z `.env`. Kontenery znikają po zakończeniu testów. Każdy plik testów workera dostaje własną bazę, a każdy worker własny prefiks kluczy BullMQ, więc pliki działają równolegle.
 
 ## CI
 
@@ -256,7 +306,9 @@ biddy/
 ├─ apps/
 │  └─ api/                 # backend NestJS (Fastify); później web (F-06), admin i mobile
 │     ├─ src/modules/      # 16 modułów domenowych, publiczne API każdego w index.ts
-│     ├─ src/infra/        # config, db (Drizzle), http (Problem Details), logger, health, openapi
+│     ├─ src/infra/        # config, db (Drizzle), http (Problem Details), logger, health, openapi,
+│     │                    # queues (BullMQ), outbox (eventy domenowe), worker
+│     ├─ src/main.ts       # proces API; src/worker.ts: proces workera; src/bull-board.ts: podgląd kolejek
 │     ├─ drizzle/          # migracje SQL (drizzle-kit)
 │     └─ test/             # testy: unit/ (bez Dockera), integration/ (Testcontainers)
 ├─ packages/
@@ -295,11 +347,15 @@ Potem `pnpm env:check` (wykryje niezgodny port) i `pnpm infra:up` (compose odtwo
 
 **`pnpm storage:setup` odmawia działania albo `pnpm infra:up` pomija kubełki.** Kubełki i reguła CORS powstają tylko w lokalnym RustFS (`S3_ENDPOINT` na `localhost`, `127.0.0.1` albo `::1`) i poza `NODE_ENV=production`. Chroni to kubełki w Cloudflare R2, które używają tych samych nazw zmiennych. Sprawdź, czy w powłoce nie zostały zmienne `S3_*` z innego środowiska (`env | grep S3_`).
 
-**API nie startuje: „Nieprawidłowa konfiguracja API”.** Komunikat wymienia każdą złą zmienną z przyczyną. Popraw je w `.env` (wzór w `.env.example`). Zmienne ustawione w powłoce mają pierwszeństwo przed `.env`, więc sprawdź też `env | grep -E 'DATABASE_URL|API_|LOG_|SENTRY_'`.
+**API nie startuje: „Nieprawidłowa konfiguracja API”.** Komunikat wymienia każdą złą zmienną z przyczyną. Popraw je w `.env` (wzór w `.env.example`). Zmienne ustawione w powłoce mają pierwszeństwo przed `.env`, więc sprawdź też `env | grep -E 'DATABASE_URL|API_|LOG_|SENTRY_|REDIS_|QUEUE_|OUTBOX_'`.
+
+**Worker nie startuje: „Redis kolejek (REDIS_QUEUE_URL) ma maxmemory-policy …”.** Instancja Redisa spod `REDIS_QUEUE_URL` ma politykę inną niż `noeviction`, więc mogłaby usuwać joby. Sprawdź, czy adres nie wskazuje na Redis cache (`REDIS_CACHE_URL`, `allkeys-lru`), a na Render ustaw w Key Value „Maxmemory Policy: noeviction”. Gdy worker zgłasza, że Redis nie odpowiedział, uruchom usługi (`pnpm infra:up`).
+
+**Job albo event „utknął”.** Otwórz Bull Board (http://localhost:3002): job z błędem ma w zakładce „Failed” powód i stos, a po wyczerpaniu prób jego kopia leży w kolejce `dead-letter`. Event, który nie dotarł do kolejki, ma w tabeli `outbox` puste `published_at`. Wtedy sprawdź, czy worker działa i czy w jego logach nie ma błędów `Relay outboxa`.
 
 **`/ready` zwraca 503.** API działa, ale nie łączy się z bazą. Uruchom usługi (`pnpm infra:up`) i sprawdź `DATABASE_URL`. Przyczynę zapisuje log `Sonda /ready: baza danych nie odpowiada`.
 
-**`pnpm test:integration` nie może uruchomić kontenera.** Testy integracyjne potrzebują działającego Dockera (`docker info`). Testcontainers pobiera przy pierwszym uruchomieniu obrazy `postgres:17-alpine` i `testcontainers/ryuk` (sprząta kontenery po przerwanych testach). Jeśli `testcontainers/ryuk` nie da się pobrać, uruchom testy z `TESTCONTAINERS_RYUK_DISABLED=true`. Kontener z bazą znika wtedy tylko po normalnym zakończeniu testów.
+**`pnpm test:integration` nie może uruchomić kontenera.** Testy integracyjne potrzebują działającego Dockera (`docker info`). Testcontainers pobiera przy pierwszym uruchomieniu obrazy `postgres:17-alpine`, `redis:7.4-alpine` i `testcontainers/ryuk` (sprząta kontenery po przerwanych testach). Jeśli `testcontainers/ryuk` nie da się pobrać, uruchom testy z `TESTCONTAINERS_RYUK_DISABLED=true`. Kontenery znikają wtedy tylko po normalnym zakończeniu testów.
 
 **Zła wersja Node.** `node -v` powinno pokazać `v24.x`. Przełącz wersję: `nvm use` (albo `fnm use`).
 

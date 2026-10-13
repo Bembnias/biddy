@@ -8,17 +8,28 @@ import {
   DEFAULT_PRODUCTION_TRUST_PROXY,
   ENV_KEYS,
   type ConfigIssue,
+  type ProcessRole,
   formatConfigError,
+  loadBullBoardConfig,
   loadConfig,
   loadSentryOptions,
 } from './config.js';
 
 const DATABASE_URL = 'postgres://biddy:biddy@localhost:5432/biddy';
 const minimal = { DATABASE_URL } as const;
+/** Minimum na produkcji: adres Redisa kolejek nie ma tam wartości domyślnej. */
+const production = {
+  ...minimal,
+  NODE_ENV: 'production',
+  REDIS_QUEUE_URL: 'redis://red-queue.internal:6379',
+} as const;
 
-function issuesFor(env: Record<string, string | undefined>): ConfigIssue[] {
+function issuesFor(
+  env: Record<string, string | undefined>,
+  role: ProcessRole = 'api',
+): ConfigIssue[] {
   try {
-    loadConfig(env);
+    loadConfig(env, role);
   } catch (error) {
     if (error instanceof ConfigError) {
       return error.issues;
@@ -47,6 +58,7 @@ describe('loadConfig: wartości domyślne', () => {
         exposeErrorDetails: true,
       },
       database: { url: DATABASE_URL, poolMax: 10 },
+      queues: { redisUrl: 'redis://localhost:6379', prefix: 'biddy', outboxPollIntervalMs: 250 },
       log: { level: 'debug', pretty: true },
       openapi: { enabled: true },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
@@ -65,11 +77,7 @@ describe('loadConfig: wartości domyślne', () => {
   });
 
   it('production: 0.0.0.0, info, JSON, OpenAPI wyłączone, proxy z sieci prywatnej', () => {
-    const config = loadConfig({
-      ...minimal,
-      NODE_ENV: 'production',
-      CORS_ORIGINS: 'https://biddy.pl',
-    });
+    const config = loadConfig({ ...production, CORS_ORIGINS: 'https://biddy.pl' });
 
     expect(config.http).toEqual({
       host: '0.0.0.0',
@@ -86,8 +94,7 @@ describe('loadConfig: wartości domyślne', () => {
 
   it('jawne zmienne nadpisują wartości domyślne', () => {
     const config = loadConfig({
-      ...minimal,
-      NODE_ENV: 'production',
+      ...production,
       API_HOST: '::',
       CORS_ORIGINS: 'https://biddy.pl',
       TRUST_PROXY: 'false',
@@ -99,9 +106,16 @@ describe('loadConfig: wartości domyślne', () => {
       SENTRY_ENVIRONMENT: 'staging',
       SENTRY_TRACES_SAMPLE_RATE: '0.25',
       APP_RELEASE: 'api@1.2.3',
+      QUEUE_PREFIX: 'biddy-staging',
+      OUTBOX_POLL_INTERVAL_MS: '1000',
     });
 
     expect(config.http.host).toBe('::');
+    expect(config.queues).toEqual({
+      redisUrl: 'redis://red-queue.internal:6379',
+      prefix: 'biddy-staging',
+      outboxPollIntervalMs: 1000,
+    });
     expect(config.http.trustProxy).toBe(false);
     expect(config.log).toEqual({ level: 'warn', pretty: true });
     expect(config.openapi.enabled).toBe(true);
@@ -162,19 +176,89 @@ describe('loadConfig: CORS_ORIGINS', () => {
   });
 
   it('na produkcji jest wymagane (domyślny localhost nie ma tam sensu)', () => {
-    const issues = issuesFor({ ...minimal, NODE_ENV: 'production' });
+    const issues = issuesFor(production);
     expect(issues.map((issue) => issue.variable)).toEqual(['CORS_ORIGINS']);
     expect(issues[0]?.message).toContain('brak zmiennej');
   });
 
   it('brak CORS_ORIGINS na produkcji trafia na jedną listę z innymi błędami', () => {
-    const issues = issuesFor({ ...minimal, NODE_ENV: 'production', LOG_LEVEL: 'loud' });
+    const issues = issuesFor({ ...production, LOG_LEVEL: 'loud' });
 
     expect(issues.map((issue) => issue.variable)).toEqual(['LOG_LEVEL', 'CORS_ORIGINS']);
   });
 
+  it('worker go nie wymaga (nie obsługuje HTTP)', () => {
+    expect(loadConfig(production, 'worker').env).toBe('production');
+  });
+
   it('przy błędnym NODE_ENV nie zgłasza CORS_ORIGINS (nie wiadomo, czy to produkcja)', () => {
     expect(variablesWithIssues({ ...minimal, NODE_ENV: 'prod' })).toEqual(['NODE_ENV']);
+  });
+});
+
+describe('loadConfig: kolejki (Redis, prefiks, relay outboxa)', () => {
+  it('poza produkcją domyślnie lokalny Redis z infra/docker-compose.yml', () => {
+    expect(loadConfig({ ...minimal, NODE_ENV: 'test' }).queues.redisUrl).toBe(
+      'redis://localhost:6379',
+    );
+  });
+
+  it.each<ProcessRole>(['api', 'worker'])(
+    'na produkcji REDIS_QUEUE_URL jest wymagany (%s)',
+    (role) => {
+      const issues = issuesFor(
+        { ...minimal, NODE_ENV: 'production', CORS_ORIGINS: 'https://biddy.pl' },
+        role,
+      );
+      expect(issues.map((issue) => issue.variable)).toEqual(['REDIS_QUEUE_URL']);
+      expect(issues[0]?.message).toContain('noeviction');
+    },
+  );
+
+  it('przyjmuje redis:// i rediss:// (TLS), także z numerem bazy', () => {
+    expect(
+      loadConfig({ ...minimal, REDIS_QUEUE_URL: 'rediss://user:pass@redis.example:6380/2' }).queues
+        .redisUrl,
+    ).toBe('rediss://user:pass@redis.example:6380/2');
+  });
+
+  it.each([
+    ['inny protokół', { REDIS_QUEUE_URL: 'http://localhost:6379' }, 'REDIS_QUEUE_URL'],
+    ['prefiks z dwukropkiem', { QUEUE_PREFIX: 'biddy:prod' }, 'QUEUE_PREFIX'],
+    ['prefiks z wielką literą', { QUEUE_PREFIX: 'Biddy' }, 'QUEUE_PREFIX'],
+    ['za krótki odstęp relaya', { OUTBOX_POLL_INTERVAL_MS: '5' }, 'OUTBOX_POLL_INTERVAL_MS'],
+    ['odstęp relaya nie liczbą', { OUTBOX_POLL_INTERVAL_MS: '1s' }, 'OUTBOX_POLL_INTERVAL_MS'],
+  ])('odrzuca: %s', (_label, env, variable) => {
+    expect(variablesWithIssues({ ...minimal, ...env })).toEqual([variable]);
+  });
+});
+
+describe('loadBullBoardConfig', () => {
+  it('nie wymaga DATABASE_URL; domyślnie lokalny Redis, prefiks biddy i port 3002 na 127.0.0.1', () => {
+    expect(loadBullBoardConfig({})).toEqual({
+      redisUrl: 'redis://localhost:6379',
+      prefix: 'biddy',
+      host: '127.0.0.1',
+      port: 3002,
+    });
+  });
+
+  it('czyta REDIS_QUEUE_URL, QUEUE_PREFIX i BULL_BOARD_PORT', () => {
+    expect(
+      loadBullBoardConfig({
+        REDIS_QUEUE_URL: 'redis://127.0.0.1:6390',
+        QUEUE_PREFIX: 'biddy-e2e',
+        BULL_BOARD_PORT: '4000',
+      }),
+    ).toMatchObject({ redisUrl: 'redis://127.0.0.1:6390', prefix: 'biddy-e2e', port: 4000 });
+  });
+
+  it('odmawia na produkcji (panel bez uwierzytelniania)', () => {
+    expect(() => loadBullBoardConfig({ NODE_ENV: 'production' })).toThrow(/tylko poza produkcją/);
+  });
+
+  it('zgłasza błędne zmienne jako ConfigError', () => {
+    expect(() => loadBullBoardConfig({ BULL_BOARD_PORT: '70000' })).toThrow(ConfigError);
   });
 });
 
@@ -307,9 +391,7 @@ describe('loadConfig: błędy', () => {
   });
 
   it('ignoruje zmienne spoza schematu (np. zmienne infrastruktury)', () => {
-    expect(() =>
-      loadConfig({ ...minimal, REDIS_QUEUE_URL: 'cokolwiek', FOO: 'bar' }),
-    ).not.toThrow();
+    expect(() => loadConfig({ ...minimal, MEILI_URL: 'cokolwiek', FOO: 'bar' })).not.toThrow();
   });
 
   it('ConfigError ma listę zmiennych w komunikacie, a formatConfigError dodaje wskazówkę', () => {
