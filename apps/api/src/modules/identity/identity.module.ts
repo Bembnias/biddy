@@ -10,6 +10,8 @@ import { registerAuthRoutes } from './auth/auth-routes.js';
 import { LoginThrottle } from './auth/login-throttle.js';
 import { CloudflareTurnstile, type TurnstileVerifier } from './auth/turnstile.js';
 import { AuthOptionsController, MeController, SessionController } from './me/me.controller.js';
+import { PhoneVerificationController } from './phone/phone.controller.js';
+import { PhoneVerificationService } from './phone/phone-verification.service.js';
 import { SessionGuard, SessionReader } from './session/session.guard.js';
 import { AUTH } from './session/session.js';
 import { TermsService } from './terms/terms.service.js';
@@ -17,13 +19,19 @@ import { TermsService } from './terms/terms.service.js';
 export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
 
 /**
- * Moduł domenowy `identity` (PROJECT.md §10.3): konta, sesje (Better Auth), regulamin.
+ * Moduł domenowy `identity` (PROJECT.md §10.3): konta, sesje (Better Auth), regulamin,
+ * weryfikacja telefonu (F-08).
  * Globalny, bo guardy sesji (@RequireSession, @RequireVerifiedEmail) używają go w innych
  * modułach. Trasy /v1/auth/* rejestruje tylko w procesie HTTP (w workerze nie ma serwera).
  */
 @Global()
 @Module({
-  controllers: [MeController, SessionController, AuthOptionsController],
+  controllers: [
+    MeController,
+    SessionController,
+    AuthOptionsController,
+    PhoneVerificationController,
+  ],
   providers: [
     {
       provide: TURNSTILE_VERIFIER,
@@ -32,6 +40,7 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     },
     LoginThrottle,
     TermsService,
+    PhoneVerificationService,
     {
       provide: AUTH,
       inject: [APP_CONFIG, DRIZZLE, MailQueue, TURNSTILE_VERIFIER, LoginThrottle, TermsService],

@@ -214,6 +214,11 @@ export const envSchema = z.object({
   SMTP_PORT: port().optional(),
   SMTP_USER: text().optional(),
   SMTP_PASSWORD: text().optional(),
+  // SMS-y z kodami weryfikacji telefonu (SMSAPI, F-08); bez tokenu atrapa (kod w logu).
+  SMSAPI_TOKEN: text().optional(),
+  SMSAPI_SENDER: text()
+    .regex(/^[A-Za-z0-9 .-]{1,11}$/, 'oczekiwano nazwy nadawcy do 11 znaków (litery, cyfry)')
+    .optional(),
 });
 
 /** Nazwy wszystkich zmiennych obsługiwanych przez schemat. */
@@ -249,6 +254,11 @@ export const DEVELOPMENT_AUTH_SECRET = 'biddy-development-only-auth-secret-01234
 export const DEFAULT_MAIL_FROM = 'Biddy <no-reply@biddy.local>';
 
 /** Transport e-maili: Resend (produkcja) albo SMTP (lokalnie Mailpit). */
+/** Wysyłka SMS-ów: SMSAPI albo atrapa (lokalnie i w testach; kod trafia do logu). */
+export type SmsTransportConfig =
+  | { readonly kind: 'smsapi'; readonly token: string; readonly sender: string | undefined }
+  | { readonly kind: 'log' };
+
 export type MailTransportConfig =
   | { readonly kind: 'resend'; readonly apiKey: string }
   | {
@@ -320,6 +330,7 @@ export interface AppConfig {
     readonly from: string;
     readonly transport: MailTransportConfig;
   };
+  readonly sms: SmsTransportConfig;
   readonly sentry: {
     readonly dsn: string | undefined;
     readonly environment: string;
@@ -436,6 +447,7 @@ function crossFieldIssues(
       ['WEB_URL', 'adres aplikacji web, np. https://biddy.pl'],
       ['TURNSTILE_SITE_KEY', 'klucz witryny Cloudflare Turnstile'],
       ['TURNSTILE_SECRET_KEY', 'klucz tajny Cloudflare Turnstile'],
+      ['SMSAPI_TOKEN', 'token API SMSAPI (kody weryfikacji telefonu)'],
     );
   }
   for (const [variable, hint] of required) {
@@ -562,6 +574,10 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
             }
           : { kind: 'resend', apiKey: vars.RESEND_API_KEY },
     },
+    sms:
+      vars.SMSAPI_TOKEN === undefined
+        ? { kind: 'log' }
+        : { kind: 'smsapi', token: vars.SMSAPI_TOKEN, sender: vars.SMSAPI_SENDER },
     sentry: {
       dsn: vars.SENTRY_DSN,
       environment: vars.SENTRY_ENVIRONMENT ?? vars.NODE_ENV,

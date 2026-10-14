@@ -28,6 +28,9 @@ vi.mock('@sentry/nestjs', async (importOriginal) => ({
 
 class ItemDto extends createZodDto(z.object({ id: z.string(), title: z.string() })) {}
 
+/** z.string().nullable() psuje dokument (nestjs-zod + @nestjs/swagger widzą tablicę). */
+class NullableNoteDto extends createZodDto(z.object({ note: z.string().nullable() })) {}
+
 /** Wartość domyślna: w wersji wejściowej pole jest opcjonalne, w wyjściowej wymagane. */
 class TaggedItemDto extends createZodDto(z.object({ tags: z.array(z.string()).default([]) })) {}
 
@@ -67,6 +70,18 @@ class OtherController {
 
 @Module({ controllers: [ContractController, OtherController] })
 class DuplicateOperationModule {}
+
+@Controller('nullable')
+class NullableController {
+  @Get()
+  @ZodResponse({ type: NullableNoteDto })
+  getNullableNote(): NullableNoteDto {
+    return { note: null };
+  }
+}
+
+@Module({ controllers: [NullableController] })
+class NullableStringModule {}
 
 const silent = new Writable({ write: (_chunk, _encoding, callback) => callback() });
 
@@ -147,6 +162,17 @@ describe('dokument OpenAPI dla generowanego klienta', () => {
     expect(schemas['TaggedItemDto']).toBeDefined();
     expect(schemas['TaggedItemDto']).not.toHaveProperty('required');
     expect(schemas['TaggedItemDto_Output']).toMatchObject({ required: ['tags'] });
+  });
+
+  it('z.string().nullable() (w kliencie byłaby tablica): błąd przy budowie dokumentu z podpowiedzią', async () => {
+    const error: unknown = await createApp(testConfig(), {
+      extraModules: [NullableStringModule],
+      logDestination: silent,
+    }).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(OpenApiContractError);
+    expect((error as Error).message).toMatch(
+      /NullableNoteDto.*z\.string\(\)\.min\(1\)\.nullable\(\)/,
+    );
   });
 
   it('powtórzona nazwa metody w dwóch kontrolerach: błąd przy budowie dokumentu', async () => {

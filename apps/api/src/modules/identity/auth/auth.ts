@@ -95,6 +95,9 @@ export function createAuth(deps: AuthDependencies) {
       modelName: 'users',
       additionalFields: {
         isAdultDeclaredAt: { type: 'date', required: false, input: false },
+        // Telefon ustawia tylko weryfikacja kodem SMS (PhoneVerificationService, F-08).
+        phoneNumber: { type: 'string', required: false, input: false },
+        phoneNumberVerifiedAt: { type: 'date', required: false, input: false },
         status: { type: 'string', required: false, input: false, defaultValue: 'ACTIVE' },
         staffRole: { type: 'string', required: false, input: false },
       },

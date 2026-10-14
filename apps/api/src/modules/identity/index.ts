@@ -2,7 +2,7 @@
  * Publiczne API modułu `identity` (PROJECT.md §10.3).
  *
  * Odpowiedzialność: konta i logowanie (Better Auth), sesje, weryfikacja e-maila, akceptacje
- * regulaminu; w kolejnych feature'ach telefon (F-08), limity i strike'i (F-61).
+ * regulaminu z oświadczeniem 18+, weryfikacja telefonu (F-08); dalej limity i strike'i (F-61).
  *
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
@@ -13,6 +13,7 @@ export {
   CurrentUser,
   RequireSession,
   RequireVerifiedEmail,
+  RequireVerifiedPhone,
   SessionGuard,
 } from './session/session.guard.js';
 export { type AuthenticatedUser } from './session/session.js';

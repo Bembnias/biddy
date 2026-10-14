@@ -1,4 +1,4 @@
-import { Controller, Get, Header, HttpCode, Inject, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Inject, Post, Req } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 import { ZodResponse, createZodDto } from 'nestjs-zod';
@@ -22,11 +22,23 @@ export class MeDto extends createZodDto(
     termsAccepted: z
       .boolean()
       .describe('Czy użytkownik zaakceptował aktualne wersje regulaminu i polityki prywatności'),
+    phoneNumber: z.e164().nullable().describe('Zweryfikowany numer telefonu (E.164) albo null'),
+    phoneVerified: z
+      .boolean()
+      .describe('Czy numer telefonu jest zweryfikowany (wymagane do licytowania i wystawiania)'),
     staffRole: z
       .enum(STAFF_ROLES)
       .nullable()
       .describe('Rola wewnętrzna (panel administracyjny) albo null'),
     createdAt: z.iso.datetime(),
+  }),
+) {}
+
+export class AcceptTermsDto extends createZodDto(
+  z.object({
+    adultDeclaration: z
+      .literal(true, { error: 'Potwierdź, że masz ukończone 18 lat.' })
+      .describe('Oświadczenie, że użytkownik ma ukończone 18 lat'),
   }),
 ) {}
 
@@ -47,6 +59,8 @@ export class MeController {
       email: user.email,
       emailVerified: user.emailVerified,
       termsAccepted: await this.terms.hasAcceptedCurrent(user.id),
+      phoneNumber: user.phoneNumber,
+      phoneVerified: user.phoneNumber !== null,
       staffRole: user.staffRole,
       createdAt: user.createdAt.toISOString(),
     };
@@ -56,15 +70,17 @@ export class MeController {
   @RequireSession()
   @HttpCode(204)
   @ApiOperation({
-    summary: 'Akceptacja aktualnych wersji regulaminu i polityki prywatności',
+    summary: 'Akceptacja aktualnych wersji regulaminu i polityki prywatności z oświadczeniem 18+',
     description: 'Np. po pierwszym logowaniu przez Google lub Apple albo po zmianie regulaminu.',
   })
   @ApiNoContentResponse({ description: 'Zapisano akceptację' })
   async acceptTerms(
     @CurrentUser() user: AuthenticatedUser,
+    @Body() _body: AcceptTermsDto,
     @Req() request: FastifyRequest,
   ): Promise<void> {
     await this.terms.acceptCurrent(user.id, request.ip);
+    await this.terms.declareAdult(user.id);
   }
 }
 
@@ -105,6 +121,7 @@ export class SessionUserDto extends createZodDto(
     name: z.string(),
     emailVerified: z.boolean(),
     termsAccepted: z.boolean(),
+    phoneVerified: z.boolean(),
   }),
 ) {}
 
@@ -142,6 +159,7 @@ export class SessionController {
         name: user.name,
         emailVerified: user.emailVerified,
         termsAccepted: await this.terms.hasAcceptedCurrent(user.id),
+        phoneVerified: user.phoneNumber !== null,
       },
     };
   }

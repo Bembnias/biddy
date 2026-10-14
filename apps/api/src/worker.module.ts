@@ -7,6 +7,7 @@ import { createLoggerModule } from './infra/logger/index.js';
 import { MailModule } from './infra/mail/index.js';
 import { OutboxModule } from './infra/outbox/index.js';
 import { QueuesModule, type QueueTuning } from './infra/queues/index.js';
+import { SmsModule } from './infra/sms/index.js';
 import { WorkerRuntimeModule } from './infra/worker/index.js';
 import { DOMAIN_MODULES } from './modules/index.js';
 
@@ -34,6 +35,7 @@ export class WorkerModule {
         QueuesModule.forRoot(options.tuning),
         OutboxModule,
         MailModule,
+        SmsModule,
         ...DOMAIN_MODULES,
         ...(options.extraModules ?? []),
         WorkerRuntimeModule,

@@ -64,6 +64,27 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Brak akceptacji regulaminu',
     detail: 'Zaakceptuj regulamin i politykę prywatności, aby kontynuować.',
   },
+  PHONE_NOT_VERIFIED: {
+    status: 403,
+    title: 'Niezweryfikowany telefon',
+    detail: 'Zweryfikuj numer telefonu, żeby licytować i wystawiać przedmioty.',
+  },
+  PHONE_NUMBER_TAKEN: {
+    status: 409,
+    title: 'Numer zajęty',
+    detail:
+      'Ten numer telefonu jest przypisany do innego konta. Jeden numer może mieć tylko jedno konto.',
+  },
+  PHONE_CODE_INVALID: {
+    status: 400,
+    title: 'Nieprawidłowy kod',
+    detail: 'Nieprawidłowy kod z SMS-a.',
+  },
+  PHONE_CODE_EXPIRED: {
+    status: 400,
+    title: 'Kod nieaktywny',
+    detail: 'Kod wygasł albo wykorzystano limit prób. Wyślij nowy kod.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

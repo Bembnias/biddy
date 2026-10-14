@@ -11,6 +11,8 @@ export interface DomainErrorOptions {
   readonly status?: number;
   /** Dodatkowe pola odpowiedzi (np. `minimumBid`). Nie mogą nadpisać pól standardowych. */
   readonly extensions?: Readonly<Record<string, unknown>>;
+  /** Nagłówki odpowiedzi, np. `retry-after` przy 429 RATE_LIMITED. */
+  readonly headers?: Readonly<Record<string, string>>;
   /** Pierwotna przyczyna (trafia do logów, nigdy do odpowiedzi). */
   readonly cause?: unknown;
 }
@@ -27,6 +29,7 @@ export class DomainError extends Error {
   readonly status: number;
   readonly detail: string;
   readonly extensions: Readonly<Record<string, unknown>>;
+  readonly headers: Readonly<Record<string, string>>;
 
   constructor(options: DomainErrorOptions) {
     const definition = ERROR_DEFINITIONS[options.code];
@@ -37,5 +40,6 @@ export class DomainError extends Error {
     this.status = options.status ?? definition.status;
     this.detail = detail;
     this.extensions = options.extensions ?? {};
+    this.headers = options.headers ?? {};
   }
 }

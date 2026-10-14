@@ -1278,7 +1278,8 @@ erDiagram
 
 ```
 # Auth (Better Auth, /auth/*)
-POST   /auth/sign-up | /auth/sign-in | /auth/sign-in/social | /auth/phone/send-otp | /auth/phone/verify
+POST   /auth/sign-up/email | /auth/sign-in/email | /auth/sign-in/social | /auth/sign-out | …
+POST   /me/phone-verification      { phoneNumber } → SMS z kodem      POST /me/phone-verification/confirm { code }
 
 # Użytkownicy
 GET    /me                         PATCH /me
@@ -1479,6 +1480,7 @@ Terminy w dniach roboczych (nadanie, nadanie zwrotu) liczy jedna funkcja w `pack
 - Rate limiting per IP i per użytkownik: oferty, wiadomości, OTP (Redis). Logowanie i trasy wysyłające e-maile liczą w Postgresie (F-07): mały ruch, a liczniki przetrwają restart Redisa.
 - Logowanie: po 5 nieudanych próbach na konto (20 z jednego IP, bo za adresem bywa wiele osób) wymagamy Turnstile i wprowadzamy rosnące opóźnienie: 2 s, 4 s… do 5 min. Liczniki w Postgresie, okno 24 h. **Bez twardej blokady konta**, bo pozwalałaby każdemu zablokować cudze konto.
 - Cloudflare WAF i Turnstile na rejestracji, resecie hasła i logowaniu (po progu nieudanych prób).
+- Kody SMS (weryfikacja telefonu, F-08): tylko polskie numery komórkowe (ochrona przed SMS pumping), wymagany potwierdzony e-mail, kolejny SMS po 60 s, maks. 3 na numer i 10 z IP na godzinę, 10 na konto na dobę. Kod ważny 5 minut, 5 prób, w bazie tylko HMAC.
 - CSRF: żądanie zmieniające stan z ciasteczkiem sesji musi mieć `Origin` aplikacji Biddy; do tego API przyjmuje tylko JSON. Token Bearer (mobile) nie podlega sprawdzeniu.
 - Upload tylko przez presigned URL z limitem rozmiaru i typu. Worker **ponownie koduje obraz i usuwa EXIF** (w tym GPS, czyli prywatność adresów domowych).
 - Sekrety poza repo. Szyfrowanie wrażliwych pól (dane DAC7) kluczem z KMS lub env.
@@ -1801,6 +1803,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 42 | Klucze obce tylko wewnątrz modułu; między modułami kolumny `uuid` bez FK | Przyjęta | §10.3, §13.1 |
 | 43 | Logowanie: Turnstile i przerwa po 5 porażkach na konto albo 20 z IP (liczniki w Postgresie); CSRF przez sprawdzanie `Origin` dla żądań z ciasteczkiem sesji | Przyjęta | §16.1 |
 | 44 | E-maile transakcyjne przez kolejkę `emails` w workerze (Resend na produkcji, SMTP lokalnie); job z linkiem z tokenem znika po wysłaniu | Przyjęta | §11.2 |
+| 45 | Weryfikacja telefonu własnymi endpointami `/v1/me/phone-verification` zamiast wtyczki telefonu Better Auth (bez logowania numerem, z limitami per numer i IP, w OpenAPI); SMS wysyłany synchronicznie (SMSAPI), bez kolejki | Przyjęta | §4, §16.1 |
+| 46 | Licytowanie i wystawianie za `@RequireVerifiedPhone()`: potwierdzony e-mail, oświadczenie 18+ i zweryfikowany telefon (1 numer = 1 konto, tylko numery polskie w MVP) | Przyjęta | §4, §16.2 |
 
 ---
 

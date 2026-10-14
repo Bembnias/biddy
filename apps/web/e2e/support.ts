@@ -1,6 +1,14 @@
 // Wspólne atrapy e2e: API wołane z przeglądarki (page.route) i widżet Cloudflare Turnstile.
 // Renderowanie na serwerze rozmawia z osobną atrapą (e2e/mock-api.ts).
-import { type Page, type Request, expect } from '@playwright/test';
+import {
+  type BrowserContext,
+  type Locator,
+  type Page,
+  type Request,
+  expect,
+} from '@playwright/test';
+
+import { SESSION_COOKIE } from './mock-api';
 
 /** Adres API, z którym rozmawia przeglądarka (domyślna konfiguracja buildu, src/env.ts). */
 export const BROWSER_API_URL = 'http://localhost:3001';
@@ -157,4 +165,45 @@ export async function settle(page: Page): Promise<void> {
         .map((animation) => animation.finished),
     ),
   );
+}
+
+/**
+ * Ciasteczko sesji na domenie aplikacji (SSR przekazuje je atrapie API). Na produkcji API ustawia
+ * je na wspólnej domenie (AUTH_COOKIE_DOMAIN), a w testach web i atrapa API mają różne hosty.
+ */
+export async function signInAs(
+  context: BrowserContext,
+  session: string,
+  baseURL: string | undefined,
+): Promise<void> {
+  await context.addCookies([
+    {
+      name: SESSION_COOKIE,
+      value: session,
+      url: baseURL ?? 'http://127.0.0.1:3100',
+      httpOnly: true,
+      sameSite: 'Lax',
+    },
+  ]);
+}
+
+/**
+ * Zaznacza pole wyboru (Radix) także tuż po nawigacji: kliknięcie przed hydratacją Reacta nic
+ * nie zmienia, więc ponawiamy, aż stan się zmieni.
+ */
+export async function checkWhenHydrated(checkbox: Locator): Promise<void> {
+  await expect(async () => {
+    await checkbox.check({ timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+}
+
+/**
+ * Otwiera stronę i czeka na hydratację Reacta: synchronizacja zegara (GET /v1/time, F-06) startuje
+ * dopiero w przeglądarce po hydratacji. Wcześniejsze wpisanie i kliknięcie trafiłoby w statyczny
+ * HTML (formularz wysłałby się natywnie). Wymaga {@link mockBrowserApi} przed wywołaniem.
+ */
+export async function gotoHydrated(page: Page, url: string): Promise<void> {
+  const hydrated = page.waitForRequest((request) => request.url().endsWith('/v1/time'));
+  await page.goto(url);
+  await hydrated;
 }

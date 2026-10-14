@@ -103,7 +103,9 @@
       "name": "Podaj imię wyświetlane (2–60 znaków).",
       "terms": "Zaakceptuj regulamin i politykę prywatności.",
       "adult": "Konto mogą założyć tylko osoby pełnoletnie.",
-      "passwordsDiffer": "Hasła nie są takie same."
+      "passwordsDiffer": "Hasła nie są takie same.",
+      "phone": "Podaj polski numer komórkowy, np. 500 600 700.",
+      "code": "Wpisz 6 cyfr kodu z SMS-a."
     },
     "fields": {
       "name": "Imię wyświetlane",
@@ -181,6 +183,29 @@
       "submit": "Akceptuję",
       "pending": "Zapisywanie…"
     },
+    "phone": {
+      "metaTitle": "Weryfikacja telefonu",
+      "title": "Zweryfikuj numer telefonu",
+      "changeTitle": "Zmień numer telefonu",
+      "intro": "Licytować i wystawiać przedmioty można po weryfikacji numeru. Jeden numer może mieć tylko jedno konto.",
+      "current": "Obecny numer: {phone}. Nowy numer zastąpi go po weryfikacji.",
+      "phoneLabel": "Numer telefonu",
+      "phoneHint": "Polski numer komórkowy, np. 500 600 700. Wyślemy na niego SMS z kodem.",
+      "send": "Wyślij kod",
+      "sending": "Wysyłanie…",
+      "codeSent": "Wysłaliśmy SMS z kodem na numer {phone}. Kod jest ważny 5 minut.",
+      "codeLabel": "Kod z SMS-a",
+      "codeHint": "6 cyfr",
+      "confirm": "Potwierdź",
+      "confirming": "Sprawdzanie…",
+      "resend": "Wyślij kod ponownie",
+      "resendIn": "Wyślij ponownie za {seconds} s",
+      "resent": "Wysłaliśmy nowy kod na numer {phone}.",
+      "changeNumber": "Zmień numer",
+      "emailFirstTitle": "Najpierw potwierdź adres e-mail",
+      "emailFirstText": "Weryfikacja telefonu wymaga potwierdzonego adresu e-mail. Kliknij link z wiadomości albo wyślij go ponownie na stronie konta.",
+      "goToAccount": "Przejdź do konta"
+    },
     "account": {
       "metaTitle": "Moje konto",
       "title": "Moje konto",
@@ -190,6 +215,11 @@
       "resendVerification": "Wyślij link ponownie",
       "resendPending": "Wysyłanie…",
       "resendDone": "Wysłaliśmy nowy link. Sprawdź skrzynkę.",
+      "phone": "Telefon",
+      "phoneVerified": "zweryfikowany",
+      "phoneNotVerified": "niezweryfikowany: zweryfikuj numer, żeby licytować i wystawiać",
+      "verifyPhone": "Zweryfikuj numer",
+      "changePhone": "Zmień numer",
       "memberSince": "Konto od",
       "signOut": "Wyloguj się",
       "signOutEverywhere": "Wyloguj ze wszystkich urządzeń",

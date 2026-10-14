@@ -1,10 +1,19 @@
 // Walidacja formularzy kont (react-hook-form + Zod, PROJECT.md §11.3). Komunikaty z next-intl,
-// reguły jak w API (hasło 10–128 znaków, e-mail, regulamin i 18+).
+// reguły jak w API (hasło 10–128 znaków, e-mail, regulamin i 18+, telefon i kod SMS).
 import { z } from 'zod';
 
 /** Tłumaczenie z sekcji `auth.validation` komunikatów. */
 export type ValidationMessages = (
-  key: 'email' | 'passwordMin' | 'passwordMax' | 'name' | 'terms' | 'adult' | 'passwordsDiffer',
+  key:
+    | 'email'
+    | 'passwordMin'
+    | 'passwordMax'
+    | 'name'
+    | 'terms'
+    | 'adult'
+    | 'passwordsDiffer'
+    | 'phone'
+    | 'code',
 ) => string;
 
 export const PASSWORD_MIN_LENGTH = 10;
@@ -56,4 +65,30 @@ export function newPasswordSchema(t: ValidationMessages) {
       message: t('passwordsDiffer'),
       path: ['confirmPassword'],
     });
+}
+
+/**
+ * 9 cyfr polskiego numeru z dowolnego zapisu (spacje, myślniki, nawiasy, `+48`, `0048`) albo
+ * `undefined`. Czy to numer komórkowy, sprawdza API (VALIDATION_FAILED z błędem pola).
+ */
+export function polishPhoneDigits(value: string): string | undefined {
+  const compact = value.replace(/[\s\-()]/g, '');
+  return /^(?:\+48|0048)?(\d{9})$/.exec(compact)?.[1];
+}
+
+export function phoneNumberSchema(t: ValidationMessages) {
+  return z.object({
+    phoneNumber: z.string().refine((value) => polishPhoneDigits(value) !== undefined, t('phone')),
+  });
+}
+
+export const PHONE_CODE_LENGTH = 6;
+
+export function phoneCodeSchema(t: ValidationMessages) {
+  return z.object({
+    code: z
+      .string()
+      .trim()
+      .regex(new RegExp(`^\\d{${PHONE_CODE_LENGTH}}$`), t('code')),
+  });
 }

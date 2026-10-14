@@ -36,8 +36,16 @@ export const ERROR_CODES = {
   CAPTCHA_REQUIRED: 'CAPTCHA_REQUIRED',
   /** Weryfikacja Turnstile nie powiodła się albo token wygasł. */
   CAPTCHA_FAILED: 'CAPTCHA_FAILED',
-  /** Brak akceptacji aktualnego regulaminu albo polityki prywatności. */
+  /** Brak akceptacji aktualnego regulaminu albo polityki prywatności (albo oświadczenia 18+). */
   TERMS_NOT_ACCEPTED: 'TERMS_NOT_ACCEPTED',
+  /** Operacja wymaga zweryfikowanego numeru telefonu (licytowanie, wystawianie). */
+  PHONE_NOT_VERIFIED: 'PHONE_NOT_VERIFIED',
+  /** Numer telefonu jest przypisany do innego konta (1 numer = 1 konto). */
+  PHONE_NUMBER_TAKEN: 'PHONE_NUMBER_TAKEN',
+  /** Nieprawidłowy kod SMS; rozszerzenie `remainingAttempts` podaje liczbę pozostałych prób. */
+  PHONE_CODE_INVALID: 'PHONE_CODE_INVALID',
+  /** Brak aktywnego kodu SMS (wygasł, wykorzystano próby albo wysłano nowszy). */
+  PHONE_CODE_EXPIRED: 'PHONE_CODE_EXPIRED',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

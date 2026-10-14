@@ -29,13 +29,18 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AcceptTermsDto,
+  ConfirmPhoneVerificationDto,
   MeDto,
+  PhoneVerificationDto,
   ProblemDetails,
-  SessionDto
+  SessionDto,
+  StartPhoneVerificationDto,
+  VerifiedPhoneDto
 } from '../model';
 
 import { apiFetch } from '../../fetcher';
-import type { ErrorType } from '../../fetcher';
+import type { ErrorType , BodyType } from '../../fetcher';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -222,16 +227,30 @@ export const getAcceptTermsUrl = () => {
 
 /**
  * Np. po pierwszym logowaniu przez Google lub Apple albo po zmianie regulaminu.
- * @summary Akceptacja aktualnych wersji regulaminu i polityki prywatności
+ * @summary Akceptacja aktualnych wersji regulaminu i polityki prywatności z oświadczeniem 18+
  */
-export const acceptTerms = async ( options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+export const acceptTerms = async (acceptTermsDto: AcceptTermsDto, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
 
-  return apiFetch<void>(getAcceptTermsUrl(),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<void>(getAcceptTermsUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(acceptTermsDto)
   }
 );}
 
@@ -242,8 +261,8 @@ export const acceptTerms = async ( options?: Parameters<typeof apiFetch>[1]): Pr
 export const getAcceptTermsMutationKey = () => ['acceptTerms'] as const;
 
 export const getAcceptTermsMutationOptions = <TError = ErrorType<ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptTerms>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof acceptTerms>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptTerms>>, TError,AcceptTermsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptTerms>>, TError,AcceptTermsMutationVariables, TContext> => {
 
 const mutationKey = getAcceptTermsMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -255,10 +274,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptTerms>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptTerms>>, AcceptTermsMutationVariables> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  acceptTerms(requestOptions)
+          return  acceptTerms(data,requestOptions)
         }
 
 
@@ -269,19 +288,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type AcceptTermsMutationResult = NonNullable<Awaited<ReturnType<typeof acceptTerms>>>
-
+    export type AcceptTermsMutationBody = BodyType<AcceptTermsDto>
     export type AcceptTermsMutationError = ErrorType<ProblemDetails>
-
+    export type AcceptTermsMutationVariables = {data: BodyType<AcceptTermsDto>}
 
     /**
- * @summary Akceptacja aktualnych wersji regulaminu i polityki prywatności
+ * @summary Akceptacja aktualnych wersji regulaminu i polityki prywatności z oświadczeniem 18+
  */
 export const useAcceptTerms = <TError = ErrorType<ProblemDetails>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptTerms>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptTerms>>, TError,AcceptTermsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof acceptTerms>>,
         TError,
-        void,
+        AcceptTermsMutationVariables,
         TContext
       > => {
       return useMutation(getAcceptTermsMutationOptions(options), queryClient);
@@ -441,3 +460,179 @@ export function useGetSessionSuspense<TData = Awaited<ReturnType<typeof getSessi
 
 
 
+export const getStartPhoneVerificationUrl = () => {
+
+
+
+
+  return `/v1/me/phone-verification`
+}
+
+/**
+ * Polskie numery komórkowe. Kod ważny 5 minut. Limity: kolejny SMS po 60 s, 3 na numer na godzinę, 10 z adresu IP na godzinę, 10 na konto na dobę (429 RATE_LIMITED z Retry-After). Numer innego konta: 409 PHONE_NUMBER_TAKEN (bez SMS-a).
+ * @summary Wysłanie kodu SMS na numer telefonu
+ */
+export const startPhoneVerification = async (startPhoneVerificationDto: StartPhoneVerificationDto, options?: Parameters<typeof apiFetch>[1]): Promise<PhoneVerificationDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PhoneVerificationDto>(getStartPhoneVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startPhoneVerificationDto)
+  }
+);}
+
+
+
+
+
+export const getStartPhoneVerificationMutationKey = () => ['startPhoneVerification'] as const;
+
+export const getStartPhoneVerificationMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startPhoneVerification>>, TError,StartPhoneVerificationMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startPhoneVerification>>, TError,StartPhoneVerificationMutationVariables, TContext> => {
+
+const mutationKey = getStartPhoneVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startPhoneVerification>>, StartPhoneVerificationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  startPhoneVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartPhoneVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof startPhoneVerification>>>
+    export type StartPhoneVerificationMutationBody = BodyType<StartPhoneVerificationDto>
+    export type StartPhoneVerificationMutationError = ErrorType<ProblemDetails>
+    export type StartPhoneVerificationMutationVariables = {data: BodyType<StartPhoneVerificationDto>}
+
+    /**
+ * @summary Wysłanie kodu SMS na numer telefonu
+ */
+export const useStartPhoneVerification = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startPhoneVerification>>, TError,StartPhoneVerificationMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof startPhoneVerification>>,
+        TError,
+        StartPhoneVerificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartPhoneVerificationMutationOptions(options), queryClient);
+    }
+    export const getConfirmPhoneVerificationUrl = () => {
+
+
+
+
+  return `/v1/me/phone-verification/confirm`
+}
+
+/**
+ * Maks. 5 prób na kod: zły kod to 400 PHONE_CODE_INVALID z `remainingAttempts`, brak aktywnego kodu (wygasł, limit prób, wysłano nowszy) to 400 PHONE_CODE_EXPIRED. Nowy numer zastępuje poprzedni.
+ * @summary Potwierdzenie numeru kodem z SMS-a
+ */
+export const confirmPhoneVerification = async (confirmPhoneVerificationDto: ConfirmPhoneVerificationDto, options?: Parameters<typeof apiFetch>[1]): Promise<VerifiedPhoneDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<VerifiedPhoneDto>(getConfirmPhoneVerificationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(confirmPhoneVerificationDto)
+  }
+);}
+
+
+
+
+
+export const getConfirmPhoneVerificationMutationKey = () => ['confirmPhoneVerification'] as const;
+
+export const getConfirmPhoneVerificationMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPhoneVerification>>, TError,ConfirmPhoneVerificationMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmPhoneVerification>>, TError,ConfirmPhoneVerificationMutationVariables, TContext> => {
+
+const mutationKey = getConfirmPhoneVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmPhoneVerification>>, ConfirmPhoneVerificationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmPhoneVerification(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmPhoneVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof confirmPhoneVerification>>>
+    export type ConfirmPhoneVerificationMutationBody = BodyType<ConfirmPhoneVerificationDto>
+    export type ConfirmPhoneVerificationMutationError = ErrorType<ProblemDetails>
+    export type ConfirmPhoneVerificationMutationVariables = {data: BodyType<ConfirmPhoneVerificationDto>}
+
+    /**
+ * @summary Potwierdzenie numeru kodem z SMS-a
+ */
+export const useConfirmPhoneVerification = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmPhoneVerification>>, TError,ConfirmPhoneVerificationMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmPhoneVerification>>,
+        TError,
+        ConfirmPhoneVerificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmPhoneVerificationMutationOptions(options), queryClient);
+    }

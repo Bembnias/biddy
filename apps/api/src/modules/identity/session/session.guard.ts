@@ -26,7 +26,9 @@ import {
   type RequestWithAuth,
 } from './session.js';
 
-const REQUIRE_VERIFIED_EMAIL = 'biddy:require-verified-email';
+/** Co trasa wymaga od konta poza sesją (metadane ustawiane przez dekoratory niżej). */
+type AccountRequirement = 'verified-email' | 'verified-phone';
+const ACCOUNT_REQUIREMENT = 'biddy:account-requirement';
 
 /** Odczyt sesji z nagłówków żądania (ciasteczko albo Bearer); null bez sesji. */
 @Injectable()
@@ -47,6 +49,11 @@ export class SessionReader {
         name: result.user.name,
         email: result.user.email,
         emailVerified: result.user.emailVerified,
+        adultDeclared: (result.user.isAdultDeclaredAt ?? null) !== null,
+        phoneNumber:
+          (result.user.phoneNumberVerifiedAt ?? null) === null
+            ? null
+            : (result.user.phoneNumber ?? null),
         status: (result.user.status ?? 'ACTIVE') as UserStatus,
         staffRole: (result.user.staffRole ?? null) as StaffRole | null,
         createdAt: new Date(result.user.createdAt),
@@ -57,9 +64,11 @@ export class SessionReader {
 
 /**
  * Sesja z ciasteczka albo tokenu Bearer (Better Auth). Bez sesji 401 UNAUTHORIZED, konto
- * zablokowane 403 FORBIDDEN, a przy @RequireVerifiedEmail niepotwierdzony e-mail 403
- * EMAIL_NOT_VERIFIED. Stan konta czytamy z bazy przy każdym żądaniu, więc potwierdzenie e-maila
- * i wylogowanie ze wszystkich urządzeń działają od razu.
+ * zablokowane 403 FORBIDDEN. @RequireVerifiedEmail: niepotwierdzony e-mail 403
+ * EMAIL_NOT_VERIFIED. @RequireVerifiedPhone: dodatkowo brak oświadczenia 18+ 403
+ * TERMS_NOT_ACCEPTED i niezweryfikowany telefon 403 PHONE_NOT_VERIFIED. Stan konta czytamy
+ * z bazy przy każdym żądaniu, więc weryfikacje i wylogowanie ze wszystkich urządzeń działają
+ * od razu.
  */
 @Injectable()
 export class SessionGuard implements CanActivate {
@@ -78,12 +87,24 @@ export class SessionGuard implements CanActivate {
     if (user.status === 'BANNED') {
       throw new DomainError({ code: 'FORBIDDEN', detail: 'Konto jest zablokowane.' });
     }
-    const requireVerified = this.reflector.getAllAndOverride<boolean | undefined>(
-      REQUIRE_VERIFIED_EMAIL,
+    const requirement = this.reflector.getAllAndOverride<AccountRequirement | undefined>(
+      ACCOUNT_REQUIREMENT,
       [context.getHandler(), context.getClass()],
     );
-    if (requireVerified === true && !user.emailVerified) {
+    if (requirement !== undefined && !user.emailVerified) {
       throw new DomainError({ code: 'EMAIL_NOT_VERIFIED' });
+    }
+    if (requirement === 'verified-phone') {
+      if (!user.adultDeclared) {
+        throw new DomainError({
+          code: 'TERMS_NOT_ACCEPTED',
+          status: 403,
+          detail: 'Zaakceptuj regulamin i potwierdź, że masz ukończone 18 lat.',
+        });
+      }
+      if (user.phoneNumber === null) {
+        throw new DomainError({ code: 'PHONE_NOT_VERIFIED' });
+      }
     }
     request[AUTH_CONTEXT] = session;
     // Sentry: tylko identyfikator, bez e-maila (RODO).
@@ -102,18 +123,33 @@ export function RequireSession(): MethodDecorator & ClassDecorator {
 }
 
 /**
- * Trasa wymaga zalogowania i potwierdzonego e-maila (licytowanie F-15, wystawianie F-14).
+ * Trasa wymaga zalogowania i potwierdzonego e-maila (np. wysłanie kodu SMS).
  * Niepotwierdzony e-mail: 403 EMAIL_NOT_VERIFIED.
  */
 export function RequireVerifiedEmail(): MethodDecorator & ClassDecorator {
-  return applyDecorators(SetMetadata(REQUIRE_VERIFIED_EMAIL, true), RequireSession());
+  return applyDecorators(
+    SetMetadata(ACCOUNT_REQUIREMENT, 'verified-email' satisfies AccountRequirement),
+    RequireSession(),
+  );
+}
+
+/**
+ * Trasa wymaga konta gotowego do handlu: potwierdzony e-mail, oświadczenie 18+ i zweryfikowany
+ * telefon (licytowanie F-15, wystawianie F-14; PROJECT.md §4). Kolejno 403 EMAIL_NOT_VERIFIED,
+ * TERMS_NOT_ACCEPTED, PHONE_NOT_VERIFIED.
+ */
+export function RequireVerifiedPhone(): MethodDecorator & ClassDecorator {
+  return applyDecorators(
+    SetMetadata(ACCOUNT_REQUIREMENT, 'verified-phone' satisfies AccountRequirement),
+    RequireSession(),
+  );
 }
 
 function authContext(context: ExecutionContext): AuthenticatedRequestContext {
   const auth = context.switchToHttp().getRequest<RequestWithAuth>()[AUTH_CONTEXT];
   if (auth === undefined) {
     throw new Error(
-      '@CurrentUser() wymaga @RequireSession() albo @RequireVerifiedEmail() na trasie',
+      '@CurrentUser() wymaga @RequireSession(), @RequireVerifiedEmail() albo @RequireVerifiedPhone() na trasie',
     );
   }
   return auth;

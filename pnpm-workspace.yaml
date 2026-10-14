@@ -44,6 +44,7 @@ catalog:
   '@next/eslint-plugin-next': 16.3.8
   next-intl: 4.14.9
   nodemailer: 10.0.16
+  libphonenumber-js: 1.13.14
   orval: 8.41.0
   pg: 8.23.1
   pino: 10.4.0

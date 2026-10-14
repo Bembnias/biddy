@@ -6,12 +6,17 @@
  * OpenAPI spec version: 0.0.0
  */
 
+export * from './acceptTermsDto';
 export * from './authOptionsDto';
 export * from './authOptionsDtoSocialProvidersItem';
+export * from './confirmPhoneVerificationDto';
 export * from './meDto';
 export * from './meDtoStaffRole';
+export * from './phoneVerificationDto';
 export * from './problemDetails';
 export * from './problemDetailsErrorsItem';
 export * from './serverTimeDto';
 export * from './sessionDto';
 export * from './sessionDtoUser';
+export * from './startPhoneVerificationDto';
+export * from './verifiedPhoneDto';

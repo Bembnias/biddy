@@ -17,7 +17,7 @@ import { signInWithEmail } from '@/lib/auth/auth-api';
 import { signInSchema } from '@/lib/auth/schemas';
 import { routes, withNext } from '@/lib/routes';
 
-import { FormAlert, TextField, useErrorMessage } from './form-parts';
+import { AuthForm, FormAlert, TextField, useErrorMessage } from './form-parts';
 import { SocialButtons } from './social-buttons';
 import { TurnstileField } from './turnstile-field';
 import { useValidationMessages } from './use-validation';
@@ -73,11 +73,7 @@ export function SignInForm({ next }: { readonly next: string }) {
   return (
     <div className="space-y-6">
       <SocialButtons next={next} />
-      <form
-        noValidate
-        onSubmit={(event) => void form.handleSubmit(submit)(event)}
-        className="space-y-4"
-      >
+      <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
         {error === undefined ? null : <FormAlert>{error}</FormAlert>}
         <TextField
           label={t('fields.email')}
@@ -103,7 +99,7 @@ export function SignInForm({ next }: { readonly next: string }) {
         >
           {isSubmitting ? t('signIn.pending') : t('signIn.submit')}
         </Button>
-      </form>
+      </AuthForm>
       <div className="space-y-2 text-sm">
         <p>
           <Link

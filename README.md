@@ -54,15 +54,15 @@ pnpm api:generate      # po zmianie endpointu albo DTO: kontrakt OpenAPI i klien
 
 Aplikacja web działa wtedy pod http://localhost:3000, API pod http://localhost:3001 (sonda http://localhost:3001/health, dokumentacja http://localhost:3001/docs), worker przetwarza joby i eventy domenowe, a podgląd kolejek (Bull Board) jest pod http://localhost:3002. Szczegóły: [Aplikacja web (apps/web)](#aplikacja-web-appsweb), [API (apps/api)](#api-appsapi) i [Kolejki, workery i outbox](#kolejki-workery-i-outbox).
 
-Konta testowe (tworzy je seed w `pnpm bootstrap` i `pnpm db:reset`), wszystkie z hasłem `Biddy-test-2026` i potwierdzonym e-mailem:
+Konta testowe (tworzy je seed w `pnpm bootstrap` i `pnpm db:reset`), wszystkie z hasłem `Biddy-test-2026`, potwierdzonym e-mailem i zweryfikowanym telefonem (mogą licytować i wystawiać):
 
-| E-mail                    | Kto                                |
-| ------------------------- | ---------------------------------- |
-| `kupujacy@biddy.local`    | Kasia Kupująca, zwykłe konto       |
-| `sprzedajacy@biddy.local` | Staszek Sprzedający, zwykłe konto  |
-| `admin@biddy.local`       | Ada Admin, rola wewnętrzna `admin` |
+| E-mail                    | Telefon        | Kto                                |
+| ------------------------- | -------------- | ---------------------------------- |
+| `kupujacy@biddy.local`    | `+48500000001` | Kasia Kupująca, zwykłe konto       |
+| `sprzedajacy@biddy.local` | `+48500000002` | Staszek Sprzedający, zwykłe konto  |
+| `admin@biddy.local`       | `+48500000003` | Ada Admin, rola wewnętrzna `admin` |
 
-Maile z linkami (weryfikacja adresu, reset hasła) wysyła worker, a lokalnie przechwytuje je Mailpit: http://localhost:8025.
+Maile z linkami (weryfikacja adresu, reset hasła) wysyła worker, a lokalnie przechwytuje je Mailpit: http://localhost:8025. Kody SMS weryfikacji telefonu lokalnie nie wychodzą: API zapisuje je w logu (`SMS (atrapa) do +48…`).
 
 ## Usługi
 
@@ -149,7 +149,7 @@ Na produkcji API i worker to dwa procesy z tego samego buildu: `pnpm --filter @b
 
 API czyta zmienne z `.env` w katalogu głównym (tworzy go `pnpm bootstrap`). Baza potrzebuje migracji przed pierwszym startem: `pnpm bootstrap` robi to sam, później wystarczy `pnpm db:reset` albo `pnpm --filter @biddy/api db:migrate`. API importuje zbudowany pakiet `@biddy/shared` (`packages/shared/dist`), więc na świeżym klonie uruchom najpierw `pnpm build`.
 
-Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL` i `RESEND_API_KEY`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL` i klucze Turnstile. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
+Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL` i `RESEND_API_KEY`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
 
 | Adres lokalny                   | Co to jest                                                                                                            |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -281,20 +281,26 @@ async onAuctionEnded(event: DomainEventOf<typeof AuctionEnded>, { tx }: DomainEv
 Konta, sesje, weryfikacja e-maila, reset hasła i logowanie Google/Apple obsługuje [Better Auth](https://www.better-auth.com) pod `/v1/auth/*` (moduł `identity`, `apps/api/src/modules/identity`). Pełny spec: [F-07](docs/features/F-07-rejestracja-logowanie.md).
 
 - **Sesja:** web dostaje ciasteczko `biddy.session_token` (httpOnly, `SameSite=Lax`, 30 dni, przedłużane raz na dobę), mobile token Bearer z nagłówka `set-auth-token` odpowiedzi logowania. Na produkcji ciasteczko ma wspólną domenę web i API (`AUTH_COOKIE_DOMAIN`).
-- **Endpointy Biddy:** `GET /v1/session` (zawsze 200, `{ "user": null }` dla gościa; nagłówek web), `GET /v1/me` (401 bez sesji), `POST /v1/me/terms-acceptances` (akceptacja regulaminu po pierwszym logowaniu Google/Apple), `GET /v1/auth-options` (dostawcy, klucz Turnstile, minimalna długość hasła).
-- **Błędy** Better Auth API zamienia na Problem Details z komunikatem po polsku, np. 401 `INVALID_EMAIL_OR_PASSWORD`. Kody Biddy: `TERMS_NOT_ACCEPTED`, `CAPTCHA_REQUIRED`, `CAPTCHA_FAILED`, `EMAIL_NOT_VERIFIED`.
+- **Endpointy Biddy:** `GET /v1/session` (zawsze 200, `{ "user": null }` dla gościa; nagłówek web), `GET /v1/me` (401 bez sesji), `POST /v1/me/terms-acceptances` z `{ "adultDeclaration": true }` (akceptacja regulaminu z oświadczeniem 18+ po pierwszym logowaniu Google/Apple), `GET /v1/auth-options` (dostawcy, klucz Turnstile, minimalna długość hasła).
+- **Błędy** Better Auth API zamienia na Problem Details z komunikatem po polsku, np. 401 `INVALID_EMAIL_OR_PASSWORD`. Kody Biddy: `TERMS_NOT_ACCEPTED`, `CAPTCHA_REQUIRED`, `CAPTCHA_FAILED`, `EMAIL_NOT_VERIFIED`, `PHONE_NOT_VERIFIED`, `PHONE_NUMBER_TAKEN`, `PHONE_CODE_INVALID`, `PHONE_CODE_EXPIRED`.
 - **Ochrona przed botami:** Cloudflare Turnstile (token w nagłówku `x-turnstile-token`) przy rejestracji i resecie hasła, a przy logowaniu po 5 nieudanych próbach na adres e-mail. Od tego progu rośnie też przerwa między próbami (2 s do 5 min, 429 `RATE_LIMITED` z `Retry-After`); próg dla adresu IP to 20. Lokalnie działają klucze testowe Cloudflare (widżet zawsze przechodzi, API sprawdza token bez sieci).
 - **CSRF:** żądanie zmieniające stan (POST, PUT, PATCH, DELETE) z ciasteczkiem sesji musi mieć nagłówek `Origin` z listy zaufanych (`CORS_ORIGINS` i `WEB_URL`), inaczej 403. Żądania z tokenem Bearer (mobile) nie mają ciasteczka, więc ich to nie dotyczy.
 - **E-maile** idą przez kolejkę `emails` (worker, Resend albo SMTP). Bez działającego workera link weryfikacyjny nie przyjdzie.
+- **Telefon (F-08):** `POST /v1/me/phone-verification` `{ phoneNumber }` wysyła SMS z 6-cyfrowym kodem (tylko polskie numery komórkowe, wymagany potwierdzony e-mail), `POST /v1/me/phone-verification/confirm` `{ code }` przypisuje numer do konta. Jeden numer = jedno konto. Kod ważny 5 minut, 5 prób. Limity wysyłki: kolejny SMS po 60 s, 3 na numer na godzinę, 10 z IP na godzinę, 10 na konto na dobę. SMS-y wysyła SMSAPI (`SMSAPI_TOKEN`), lokalnie atrapa z kodem w logu API. Spec: [F-08](docs/features/F-08-weryfikacja-telefonu.md).
 
-Endpoint wymagający sesji albo potwierdzonego e-maila:
+Endpoint wymagający sesji, potwierdzonego e-maila albo konta gotowego do handlu:
 
 ```ts
 @Controller('auctions')
 export class BidsController {
   @Post(':id/bids')
-  @RequireVerifiedEmail() // 401 bez sesji, 403 EMAIL_NOT_VERIFIED bez potwierdzonego adresu
+  // 401 bez sesji, potem 403: EMAIL_NOT_VERIFIED, TERMS_NOT_ACCEPTED (brak 18+), PHONE_NOT_VERIFIED
+  @RequireVerifiedPhone()
   placeBid(@CurrentUser() user: AuthenticatedUser) {}
+
+  @Post('watched/:id/alerts')
+  @RequireVerifiedEmail() // 403 EMAIL_NOT_VERIFIED bez potwierdzonego adresu
+  watchAlert(@CurrentUser() user: AuthenticatedUser) {}
 
   @Get('watched')
   @RequireSession() // wystarczy zalogowanie
@@ -316,6 +322,7 @@ DTO (nestjs-zod) + @ZodResponse  →  apps/api/openapi.json  →  orval  →  pa
 - Wejście endpointu opisuje DTO z `createZodDto` (walidacja i OpenAPI), wyjście `@ZodResponse({ type: Dto })`. Odpowiedź przechodzi przez schemat DTO, więc pola spoza kontraktu nie trafiają do klienta, a niezgodność z DTO kończy się błędem 500.
 - `operationId` to nazwa metody kontrolera, np. `getServerTime` daje w kliencie funkcję `getServerTime()` i hooki `useGetServerTime()` i `useGetServerTimeSuspense()`. Nazwy metod muszą być unikalne w całym API: powtórzenie przerywa start API z błędem `OpenApiContractError`.
 - Każda operacja ma w kontrakcie odpowiedź `default` z `ProblemDetails`, więc błąd w kliencie ma typ `ApiError<ProblemDetails>` z polem `code`.
+- Pole tekstowe z `null` zapisuj z formatem albo ograniczeniem: `z.uuid().nullable()`, `z.e164().nullable()`, `z.string().min(1).nullable()`. Samo `z.string().nullable()` nestjs-zod przekazuje do Swaggera tak, że w kliencie wychodzi `string[]`; API odmawia startu z `OpenApiContractError` i wskazuje pole.
 - Po zmianie endpointu albo DTO uruchom `pnpm api:generate` i commituj `apps/api/openapi.json` razem z `packages/api-client/src/generated`. Plików wygenerowanych nie edytuj. `pnpm api:check` (w `pnpm check` i w CI) generuje oba w katalogu tymczasowym i porównuje z repozytorium.
 - `apps/api/openapi.json` nie zależy od środowiska (stała konfiguracja, wersja z `package.json`), więc w diffie pull requesta widać tylko zmiany kontraktu.
 
@@ -407,6 +414,7 @@ Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.examp
 | `/reset-hasla`           | Prośba o link do nowego hasła (Turnstile).                                                 |
 | `/nowe-haslo`            | Ustawienie nowego hasła z linku; wylogowuje ze wszystkich urządzeń.                        |
 | `/akceptacja-regulaminu` | Regulamin i 18+ po pierwszym logowaniu Google/Apple.                                       |
+| `/weryfikacja-telefonu`  | Numer → SMS z kodem → potwierdzenie (wymaga potwierdzonego e-maila). Powrót: `?next=`.     |
 | `/konto`                 | Renderowane na serwerze z sesją; bez sesji przekierowuje na logowanie.                     |
 
 Formularze wołają Better Auth przez `src/lib/auth/auth-api.ts` (zwykłe `apiFetch`, bez klienta Better Auth w paczce), walidacja to Zod i React Hook Form z komunikatami po polsku (`src/lib/auth/schemas.ts`). Nagłówek pokazuje „Moje konto” albo „Zaloguj się” według `GET /v1/session`.

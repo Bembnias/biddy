@@ -15,13 +15,22 @@ export const SESSIONS = {
   member: 'e2e-session-member',
   /** Konto z Google przed akceptacją regulaminu. */
   withoutTerms: 'e2e-session-without-terms',
+  /** Potwierdzony e-mail, bez zweryfikowanego telefonu (F-08). */
+  emailVerified: 'e2e-session-email-verified',
+  /** Potwierdzony e-mail i zweryfikowany telefon: może licytować i wystawiać. */
+  phoneVerified: 'e2e-session-phone-verified',
 } as const;
+
+/** Numer telefonu konta z sesją `phoneVerified`. */
+export const MEMBER_PHONE = '+48500600700';
 
 export const MEMBER = {
   id: '01960000-0000-7000-8000-000000000001',
   name: 'Kasia Kupująca',
   email: 'kupujacy@biddy.local',
   emailVerified: false,
+  phoneNumber: null,
+  phoneVerified: false,
   staffRole: null,
   createdAt: '2026-10-01T10:00:00.000Z',
 } as const;
@@ -64,8 +73,20 @@ function handle(request: IncomingMessage, response: ServerResponse): void {
   }
   if (request.method === 'GET' && path === '/v1/me') {
     const session = cookieValue(request, SESSION_COOKIE);
-    if (session === SESSIONS.member || session === SESSIONS.withoutTerms) {
-      send(response, 200, { ...MEMBER, termsAccepted: session === SESSIONS.member });
+    const me = {
+      [SESSIONS.member]: { ...MEMBER, termsAccepted: true },
+      [SESSIONS.withoutTerms]: { ...MEMBER, termsAccepted: false },
+      [SESSIONS.emailVerified]: { ...MEMBER, emailVerified: true, termsAccepted: true },
+      [SESSIONS.phoneVerified]: {
+        ...MEMBER,
+        emailVerified: true,
+        termsAccepted: true,
+        phoneNumber: MEMBER_PHONE,
+        phoneVerified: true,
+      },
+    }[session ?? ''];
+    if (me !== undefined) {
+      send(response, 200, me);
       return;
     }
     send(response, 401, problem(401, 'UNAUTHORIZED', 'Zaloguj się.', path));

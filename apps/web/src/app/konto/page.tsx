@@ -1,10 +1,11 @@
-import { getMe, isApiError, type MeDto } from '@biddy/api-client';
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 
 import { ResendVerificationButton, SignOutButtons } from '@/components/auth/account-actions';
-import { withSessionCookies } from '@/lib/api/server';
+import { Button } from '@/components/ui/button';
+import { loadMeOrRedirect } from '@/lib/api/me';
+import { formatPhoneNumber } from '@/lib/phone';
 import { routes, withNext } from '@/lib/routes';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -13,22 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /** Konto renderowane na serwerze z sesją z ciasteczka (SSR); bez sesji przekierowanie na logowanie. */
-async function loadMe(): Promise<MeDto> {
-  try {
-    return await getMe(await withSessionCookies());
-  } catch (error) {
-    if (isApiError(error) && error.status === 401) {
-      redirect(withNext(routes.signIn, routes.account));
-    }
-    throw error;
-  }
-}
-
 export default async function AccountPage() {
-  const me = await loadMe();
-  if (!me.termsAccepted) {
-    redirect(withNext(routes.acceptTerms, routes.account));
-  }
+  const me = await loadMeOrRedirect(routes.account);
   const t = await getTranslations('auth.account');
   const format = await getFormatter();
   return (
@@ -49,6 +36,22 @@ export default async function AccountPage() {
               <ResendVerificationButton email={me.email} />
             </dd>
           )}
+        </div>
+        <div>
+          <dt className="text-sm font-medium text-muted-foreground">{t('phone')}</dt>
+          <dd className="mt-1">
+            {me.phoneNumber === null ? null : `${formatPhoneNumber(me.phoneNumber)} `}
+            <span className={me.phoneVerified ? 'text-success' : 'text-destructive'}>
+              ({me.phoneVerified ? t('phoneVerified') : t('phoneNotVerified')})
+            </span>
+          </dd>
+          <dd className="mt-3">
+            <Button asChild variant="outline">
+              <Link href={withNext(routes.verifyPhone, routes.account)}>
+                {me.phoneVerified ? t('changePhone') : t('verifyPhone')}
+              </Link>
+            </Button>
+          </dd>
         </div>
         <div>
           <dt className="text-sm font-medium text-muted-foreground">{t('memberSince')}</dt>

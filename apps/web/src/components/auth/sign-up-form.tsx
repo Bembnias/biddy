@@ -18,7 +18,7 @@ import { signUpSchema } from '@/lib/auth/schemas';
 import { routes, withNext } from '@/lib/routes';
 
 import { ConsentCheckboxes } from './consent-checkboxes';
-import { FormAlert, TextField, useErrorMessage } from './form-parts';
+import { AuthForm, FormAlert, TextField, useErrorMessage } from './form-parts';
 import { SocialButtons } from './social-buttons';
 import { TurnstileField } from './turnstile-field';
 import { useValidationMessages } from './use-validation';
@@ -82,11 +82,7 @@ export function SignUpForm({ next }: { readonly next: string }) {
   return (
     <div className="space-y-6">
       <SocialButtons next={next} />
-      <form
-        noValidate
-        onSubmit={(event) => void form.handleSubmit(submit)(event)}
-        className="space-y-4"
-      >
+      <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
         {error === undefined ? null : <FormAlert>{error}</FormAlert>}
         <TextField
           label={t('fields.name')}
@@ -125,7 +121,7 @@ export function SignUpForm({ next }: { readonly next: string }) {
         >
           {isSubmitting ? t('signUp.pending') : t('signUp.submit')}
         </Button>
-      </form>
+      </AuthForm>
       <p className="text-sm text-muted-foreground">
         {t('signUp.hasAccount')}{' '}
         <Link

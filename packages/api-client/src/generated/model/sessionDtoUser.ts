@@ -16,4 +16,5 @@ export type SessionDtoUser = {
   name: string;
   emailVerified: boolean;
   termsAccepted: boolean;
+  phoneVerified: boolean;
 } | null;

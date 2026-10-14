@@ -94,7 +94,7 @@ Migracja `0002_identity` (moduł `identity`, `src/modules/identity/db/identity.s
 - Better Auth (`/v1/auth/*`): `sign-up/email`, `sign-in/email`, `sign-in/social`, `callback/:provider`, `sign-out`, `get-session`, `send-verification-email`, `verify-email`, `request-password-reset`, `reset-password`, `revoke-sessions`. Każdy błąd to Problem Details z komunikatem po polsku (jak w całym API) i dodatkowym polem `message` (format klienta Better Auth). Kody Better Auth zostają (np. `INVALID_EMAIL_OR_PASSWORD`, `USER_ALREADY_EXISTS`), a z hooków Biddy: `CAPTCHA_REQUIRED` (403), `CAPTCHA_FAILED` (403), `RATE_LIMITED` (429, `Retry-After`), `TERMS_NOT_ACCEPTED` (400).
 - `GET /v1/me` → `MeDto` (`id`, `name`, `email`, `emailVerified`, `termsAccepted`, `staffRole`, `createdAt`); 401 bez sesji.
 - `GET /v1/session` → `{ user: { id, name, emailVerified, termsAccepted } | null }`; zawsze 200.
-- `POST /v1/me/terms-acceptances` → 204; zapisuje aktualne wersje `TERMS` i `PRIVACY`.
+- `POST /v1/me/terms-acceptances` → 204; zapisuje aktualne wersje `TERMS` i `PRIVACY`. Od F-08 wymaga `{ adultDeclaration: true }` i zapisuje też oświadczenie 18+ (`is_adult_declared_at`).
 - `GET /v1/auth-options` → `{ socialProviders: ('google' | 'apple')[], turnstileSiteKey, passwordMinLength }`.
 - Eventy domenowe: brak w F-07. `UserRegistered` powstanie razem z pierwszym konsumentem (F-20: e-mail powitalny, F-36: reguły antyfraudowe). Better Auth zakłada konto we własnej transakcji, więc event trzeba będzie zapisać w outboxie z hooka `databaseHooks.user.create` w tej samej transakcji (albo dodać go przy pierwszym zapisie w module konsumenta).
 

@@ -1,5 +1,6 @@
 // Konta testowe dla `pnpm db:reset` (zadanie db:seed, src/seed.ts): kupujący, sprzedający i admin
-// z potwierdzonym e-mailem i zaakceptowanym regulaminem. Tylko lokalnie i w testach: src/seed.ts
+// z potwierdzonym e-mailem, zaakceptowanym regulaminem (z 18+) i zweryfikowanym telefonem, więc
+// mogą od razu licytować i wystawiać. SMS-y na te numery nie są wysyłane. Tylko lokalnie i w testach: src/seed.ts
 // odmawia przy NODE_ENV=production. Ponowne uruchomienie niczego nie dubluje.
 import { LEGAL_DOCUMENTS, LEGAL_DOCUMENT_VERSIONS } from '@biddy/shared';
 import { hashPassword } from 'better-auth/crypto';
@@ -15,10 +16,26 @@ export const TEST_USERS: readonly {
   readonly email: string;
   readonly name: string;
   readonly staffRole: StaffRole | null;
+  readonly phoneNumber: string;
 }[] = [
-  { email: 'kupujacy@biddy.local', name: 'Kasia Kupująca', staffRole: null },
-  { email: 'sprzedajacy@biddy.local', name: 'Staszek Sprzedający', staffRole: null },
-  { email: 'admin@biddy.local', name: 'Ada Admin', staffRole: 'admin' },
+  {
+    email: 'kupujacy@biddy.local',
+    name: 'Kasia Kupująca',
+    staffRole: null,
+    phoneNumber: '+48500000001',
+  },
+  {
+    email: 'sprzedajacy@biddy.local',
+    name: 'Staszek Sprzedający',
+    staffRole: null,
+    phoneNumber: '+48500000002',
+  },
+  {
+    email: 'admin@biddy.local',
+    name: 'Ada Admin',
+    staffRole: 'admin',
+    phoneNumber: '+48500000003',
+  },
 ];
 
 /** Tworzy brakujące konta testowe; zwraca adresy kont dodanych w tym uruchomieniu. */
@@ -27,13 +44,16 @@ export async function seedTestUsers(db: Database): Promise<string[]> {
   const password = await hashPassword(TEST_USER_PASSWORD);
   for (const user of TEST_USERS) {
     await db.transaction(async (tx) => {
+      const now = new Date();
       const [row] = await tx
         .insert(users)
         .values({
           name: user.name,
           email: user.email,
           emailVerified: true,
-          isAdultDeclaredAt: new Date(),
+          isAdultDeclaredAt: now,
+          phoneNumber: user.phoneNumber,
+          phoneNumberVerifiedAt: now,
           staffRole: user.staffRole,
         })
         .onConflictDoNothing({ target: users.email })

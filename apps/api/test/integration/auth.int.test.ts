@@ -322,6 +322,7 @@ describe('logowanie', () => {
         name: 'Jan Testowy',
         emailVerified: false,
         termsAccepted: true,
+        phoneVerified: false,
       },
     });
   });
@@ -333,18 +334,25 @@ describe('CSRF (sesja w ciasteczku)', () => {
     const signedUp = await signUp(email);
     const cookie = cookiesOf(signedUp);
 
+    const body = { adultDeclaration: true };
     const foreign = await call('POST', '/v1/me/terms-acceptances', {
+      body,
       cookie,
       origin: 'https://zla-strona.example',
     });
     expect(foreign.statusCode).toBe(403);
     expect(problemOf(foreign).code).toBe('FORBIDDEN');
 
-    const missingOrigin = await call('POST', '/v1/me/terms-acceptances', { cookie, origin: null });
+    const missingOrigin = await call('POST', '/v1/me/terms-acceptances', {
+      body,
+      cookie,
+      origin: null,
+    });
     expect(missingOrigin.statusCode).toBe(403);
 
-    expect((await call('POST', '/v1/me/terms-acceptances', { cookie })).statusCode).toBe(204);
+    expect((await call('POST', '/v1/me/terms-acceptances', { body, cookie })).statusCode).toBe(204);
     const bearer = await call('POST', '/v1/me/terms-acceptances', {
+      body,
       origin: null,
       headers: { authorization: `Bearer ${String(signedUp.headers['set-auth-token'])}` },
     });

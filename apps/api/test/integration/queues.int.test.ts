@@ -198,6 +198,7 @@ describe('joby cykliczne (@ScheduledJob)', () => {
     const schedulers = await app.get(JobQueues).queue('maintenance').getJobSchedulers();
     expect(schedulers.map((scheduler) => scheduler.key).sort()).toEqual([
       'identity.login-failures-cleanup',
+      'identity.phone-verifications-cleanup',
       'outbox.cleanup',
       'test.tick',
     ]);

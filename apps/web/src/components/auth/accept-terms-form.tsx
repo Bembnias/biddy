@@ -11,10 +11,13 @@ import { Button } from '@/components/ui/button';
 import { consentSchema } from '@/lib/auth/schemas';
 
 import { ConsentCheckboxes } from './consent-checkboxes';
-import { FormAlert, useErrorMessage } from './form-parts';
+import { AuthForm, FormAlert, useErrorMessage } from './form-parts';
 import { useValidationMessages } from './use-validation';
 
-/** Akceptacja regulaminu po pierwszym logowaniu przez Google lub Apple (POST /v1/me/terms-acceptances). */
+/**
+ * Akceptacja regulaminu z oświadczeniem 18+ po pierwszym logowaniu przez Google lub Apple
+ * (POST /v1/me/terms-acceptances).
+ */
 export function AcceptTermsForm({ next }: { readonly next: string }) {
   const t = useTranslations('auth.acceptTerms');
   const router = useRouter();
@@ -28,18 +31,15 @@ export function AcceptTermsForm({ next }: { readonly next: string }) {
   const { errors } = form.formState;
 
   const submit = async () => {
-    await accept.mutateAsync();
+    // Schemat formularza wymaga zaznaczenia obu pól, więc oświadczenie 18+ jest zawsze true.
+    await accept.mutateAsync({ data: { adultDeclaration: true } });
     await queryClient.invalidateQueries({ queryKey: getGetSessionQueryKey() });
     router.push(next);
     router.refresh();
   };
 
   return (
-    <form
-      noValidate
-      onSubmit={(event) => void form.handleSubmit(submit)(event)}
-      className="space-y-4"
-    >
+    <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
       <p className="text-muted-foreground">{t('text')}</p>
       {accept.error === null ? null : <FormAlert>{errorMessage(accept.error)}</FormAlert>}
       <ConsentCheckboxes
@@ -52,6 +52,6 @@ export function AcceptTermsForm({ next }: { readonly next: string }) {
       <Button type="submit" className="h-10 w-full" disabled={accept.isPending}>
         {accept.isPending ? t('pending') : t('submit')}
       </Button>
-    </form>
+    </AuthForm>
   );
 }

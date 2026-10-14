@@ -1,5 +1,6 @@
 // Tabele modułu identity: konta i sesje Better Auth (users, sessions, accounts, verifications),
-// limit zapytań Better Auth (rate_limits), akceptacje regulaminu i nieudane logowania.
+// limit zapytań Better Auth (rate_limits), akceptacje regulaminu, nieudane logowania
+// i weryfikacje numeru telefonu (F-08).
 // ID to UUIDv7 nadawane przez aplikację (ADR-10, advanced.database.generateId w auth.ts).
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts).
@@ -39,8 +40,11 @@ export const users = pgTable(
     email: text().notNull(),
     emailVerified: boolean().notNull().default(false),
     image: text(),
-    /** Oświadczenie 18+ przy rejestracji (weryfikacja z telefonem w F-08). */
+    /** Oświadczenie 18+: przy rejestracji e-mailem albo akceptacji regulaminu (Google, Apple). */
     isAdultDeclaredAt: timestamp({ withTimezone: true }),
+    /** Zweryfikowany numer telefonu (E.164); jeden numer = jedno konto (F-08). */
+    phoneNumber: text(),
+    phoneNumberVerifiedAt: timestamp({ withTimezone: true }),
     status: text().$type<UserStatus>().notNull().default('ACTIVE'),
     staffRole: text().$type<StaffRole>(),
     createdAt: createdAt(),
@@ -48,6 +52,11 @@ export const users = pgTable(
   },
   (table) => [
     uniqueIndex('users_email_key').on(table.email),
+    uniqueIndex('users_phone_number_key').on(table.phoneNumber),
+    check(
+      'users_phone_number_check',
+      sql`(${table.phoneNumber} is null) = (${table.phoneNumberVerifiedAt} is null)`,
+    ),
     check('users_status_check', sql`${table.status} in ('ACTIVE', 'LIMITED', 'BANNED')`),
     check(
       'users_staff_role_check',
@@ -160,3 +169,32 @@ export const loginFailures = pgTable(
   },
   (table) => [index().on(table.lastFailureAt)],
 );
+
+/**
+ * Kody SMS weryfikacji telefonu (F-08): HMAC kodu, licznik prób i termin. Z tej tabeli liczymy
+ * limity wysyłki (per konto, numer i IP). Zweryfikowane wpisy zostają jako historia numerów
+ * konta (sygnał powiązanych kont, F-36); niepotwierdzone usuwa job cykliczny po dobie.
+ */
+export const phoneVerifications = pgTable(
+  'phone_verifications',
+  {
+    id: idColumn(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    phoneNumber: text().notNull(),
+    codeHash: text().notNull(),
+    ip: text(),
+    attempts: integer().notNull().default(0),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    verifiedAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index().on(table.userId, table.createdAt),
+    index().on(table.phoneNumber, table.createdAt),
+    index().on(table.ip, table.createdAt),
+  ],
+);
+
+export type PhoneVerification = typeof phoneVerifications.$inferSelect;

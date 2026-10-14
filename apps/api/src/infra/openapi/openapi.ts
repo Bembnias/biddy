@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 
 import { PROBLEM_CONTENT_TYPE } from '@biddy/shared';
+import { ModulesContainer } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, type OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
@@ -126,6 +127,82 @@ function assertUniqueOperationIds(document: OpenAPIObject): void {
   }
 }
 
+/** Klucz metadanych @ApiResponse z @nestjs/swagger (tam @ZodResponse zapisuje typ odpowiedzi). */
+const API_RESPONSE_METADATA = 'swagger/apiResponse';
+
+interface ZodDtoClass {
+  readonly name: string;
+  _OPENAPI_METADATA_FACTORY(): unknown;
+}
+
+function isZodDtoClass(value: unknown): value is ZodDtoClass {
+  return typeof value === 'function' && '_OPENAPI_METADATA_FACTORY' in value;
+}
+
+/** DTO z nestjs-zod użyte w kontrolerach: parametry metod i typy odpowiedzi. */
+function controllerDtos(app: NestFastifyApplication): ZodDtoClass[] {
+  const dtos = new Set<ZodDtoClass>();
+  for (const module of app.get(ModulesContainer).values()) {
+    for (const wrapper of module.controllers.values()) {
+      const prototype = (wrapper.metatype as { prototype?: Record<string, unknown> } | null)
+        ?.prototype;
+      if (prototype === undefined) {
+        continue;
+      }
+      for (const key of Object.getOwnPropertyNames(prototype)) {
+        const handler = prototype[key];
+        if (key === 'constructor' || typeof handler !== 'function') {
+          continue;
+        }
+        const params = (Reflect.getMetadata('design:paramtypes', prototype, key) ??
+          []) as unknown[];
+        const responses = (Reflect.getMetadata(API_RESPONSE_METADATA, handler) ?? {}) as Record<
+          string,
+          { type?: unknown }
+        >;
+        for (const candidate of [...params, ...Object.values(responses).map((r) => r.type)]) {
+          if (isZodDtoClass(candidate)) {
+            dtos.add(candidate);
+          }
+        }
+      }
+    }
+  }
+  return [...dtos];
+}
+
+/**
+ * Prymityw z `.nullable()` bez dodatkowych ograniczeń (np. `z.string().nullable()`) Zod zapisuje
+ * skrótem `type: ['string', 'null']`, którego nestjs-zod nie zamienia na OpenAPI 3.0, a
+ * @nestjs/swagger czyta go jako tablicę: klient dostałby `string[]` zamiast `string | null`.
+ * W gotowym dokumencie wygląda to jak zwykła tablica, więc sprawdzamy metadane DTO.
+ */
+function assertNoNullableShorthand(app: NestFastifyApplication): void {
+  const broken: string[] = [];
+  const visit = (value: unknown, path: string): void => {
+    if (typeof value !== 'object' || value === null) {
+      return;
+    }
+    const node = value as Record<string, unknown>;
+    if (Array.isArray(node['type']) && node['type'].includes('null')) {
+      broken.push(path);
+    }
+    for (const [key, child] of Object.entries(node)) {
+      visit(child, `${path}.${key}`);
+    }
+  };
+  for (const dto of controllerDtos(app)) {
+    visit(dto._OPENAPI_METADATA_FACTORY(), dto.name);
+  }
+  if (broken.length > 0) {
+    throw new OpenApiContractError(
+      `Pole nullable zapisane jako tablica typów w ${broken.join(', ')} (w kliencie byłoby tablicą). ` +
+        'Zwykle to z.string().nullable(): użyj formatu (z.uuid(), z.email(), z.e164(), ' +
+        'z.iso.datetime()) albo ograniczenia (z.string().min(1).nullable()).',
+    );
+  }
+}
+
 const OUTPUT_SUFFIX = '_Output';
 const SCHEMA_REF_PREFIX = '#/components/schemas/';
 
@@ -171,6 +248,7 @@ export function createOpenApiDocument(
   app: NestFastifyApplication,
   config: AppConfig,
 ): OpenAPIObject {
+  assertNoNullableShorthand(app);
   const base = new DocumentBuilder()
     .setTitle('Biddy API')
     .setDescription(

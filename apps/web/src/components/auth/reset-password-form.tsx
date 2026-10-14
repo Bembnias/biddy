@@ -12,7 +12,7 @@ import { resetPassword } from '@/lib/auth/auth-api';
 import { newPasswordSchema } from '@/lib/auth/schemas';
 import { routes } from '@/lib/routes';
 
-import { FormAlert, TextField, useErrorMessage } from './form-parts';
+import { AuthForm, FormAlert, TextField, useErrorMessage } from './form-parts';
 import { useValidationMessages } from './use-validation';
 
 /** Nowe hasło z tokenem z linku (API unieważnia potem wszystkie sesje). */
@@ -52,11 +52,7 @@ export function ResetPasswordForm({ token }: { readonly token: string }) {
   }
 
   return (
-    <form
-      noValidate
-      onSubmit={(event) => void form.handleSubmit(submit)(event)}
-      className="space-y-4"
-    >
+    <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
       <p className="text-muted-foreground">{t('resetPassword.text')}</p>
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
       <TextField
@@ -77,6 +73,6 @@ export function ResetPasswordForm({ token }: { readonly token: string }) {
       <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
         {isSubmitting ? t('resetPassword.pending') : t('resetPassword.submit')}
       </Button>
-    </form>
+    </AuthForm>
   );
 }

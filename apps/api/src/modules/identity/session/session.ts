@@ -9,6 +9,10 @@ export interface AuthenticatedUser {
   readonly name: string;
   readonly email: string;
   readonly emailVerified: boolean;
+  /** Oświadczenie 18+ (rejestracja e-mailem albo akceptacja regulaminu po Google/Apple). */
+  readonly adultDeclared: boolean;
+  /** Zweryfikowany numer telefonu (E.164) albo null (F-08). */
+  readonly phoneNumber: string | null;
   readonly status: UserStatus;
   readonly staffRole: StaffRole | null;
   readonly createdAt: Date;

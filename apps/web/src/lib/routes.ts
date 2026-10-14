@@ -10,6 +10,7 @@ export const routes = {
   resetPassword: '/nowe-haslo',
   verifyEmail: '/weryfikacja-email',
   acceptTerms: '/akceptacja-regulaminu',
+  verifyPhone: '/weryfikacja-telefonu',
   account: '/konto',
   about: '/o-nas',
   contact: '/kontakt',

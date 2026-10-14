@@ -129,6 +129,13 @@ describe('ProblemDetailsFilter', () => {
     });
   });
 
+  it('nagłówki błędu domenowego (np. Retry-After przy 429) trafiają do odpowiedzi', () => {
+    const { reply, host } = setup();
+    filter.catch(new DomainError({ code: 'RATE_LIMITED', headers: { 'retry-after': '42' } }), host);
+    expect(reply.statusCode).toBe(429);
+    expect(reply.headers['retry-after']).toBe('42');
+  });
+
   it('instance to ścieżka bez parametrów zapytania (mogą zawierać tokeny)', () => {
     const { reply, host } = setup({ url: '/v1/auth/reset?token=abc' });
     filter.catch(new NotFoundException(), host);

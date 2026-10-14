@@ -151,7 +151,7 @@ Feature'y są full-stackowe, więc to podział „kto prowadzi”, a nie sztywny
 
 Uwagi:
 
-- F-15 potrzebuje F-08 tylko do guarda „zweryfikowany telefon”. Do czasu F-08 używamy zaślepki guarda, żeby łańcuch auth (F-05 → F-06 → F-07 → F-08) nie wydłużał ścieżki.
+- F-15 potrzebuje F-08 tylko do guarda „zweryfikowany telefon” (`@RequireVerifiedPhone()`, gotowy od F-08).
 - F-24 zależy od modelu `items` (gabaryt, przewoźnicy), a nie od całego kreatora F-14. Model uzgadniamy na początku Etapu 1.
 - F-28 zawiera endpoint decyzji w sporze (`POST /admin/disputes/:id/decision`), a F-34 dodaje do niego UI. Dzięki temu nie ma cyklu F-28 ↔ F-34.
 
@@ -340,12 +340,14 @@ flowchart TD
 
 ### F-08 · Weryfikacja telefonu i 18+ · `S`
 
+> Pełny spec: [docs/features/F-08-weryfikacja-telefonu.md](features/F-08-weryfikacja-telefonu.md).
+
 **Cel:** jedno konto na osobę i podstawowa ochrona przed fałszywymi kontami.
 
 **Zakres:**
 - Kod SMS przez SMSAPI (adapter `SmsProvider` + fake w dev).
 - Unikalność numeru, oświadczenie 18+.
-- Guard `requireVerifiedPhone` dla licytowania i wystawiania.
+- Guard `@RequireVerifiedPhone()` dla licytowania i wystawiania (e-mail, 18+ i telefon).
 
 **Kryteria akceptacji:**
 - Jeden numer można przypisać tylko do jednego konta.

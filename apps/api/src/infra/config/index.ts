@@ -24,6 +24,7 @@ export {
   type OAuthProviderConfig,
   type ProcessRole,
   type SentryOptions,
+  type SmsTransportConfig,
   type TrustProxy,
 } from './config.js';
 export { ConfigModule } from './config.module.js';

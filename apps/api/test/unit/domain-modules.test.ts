@@ -8,6 +8,7 @@ import { ConfigModule, loadConfig } from '../../src/infra/config/index.js';
 import { DbModule } from '../../src/infra/db/index.js';
 import { MailModule } from '../../src/infra/mail/index.js';
 import { QueuesModule } from '../../src/infra/queues/index.js';
+import { SmsModule } from '../../src/infra/sms/index.js';
 import { DOMAIN_MODULES } from '../../src/modules/index.js';
 
 /** Moduły backendu z PROJECT.md §10.3, w kolejności z tabeli. */
@@ -80,6 +81,7 @@ describe('DOMAIN_MODULES', () => {
         DbModule,
         QueuesModule.forRoot(),
         MailModule,
+        SmsModule,
         ...DOMAIN_MODULES,
       ],
     }).compile();

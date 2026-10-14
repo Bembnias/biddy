@@ -50,6 +50,16 @@ export function TextField({
   );
 }
 
+/**
+ * Formularz kont: walidacja w JS (`noValidate`), a `method="post"` na wypadek wysłania przed
+ * hydratacją (wolne łącze, Enter tuż po wpisaniu): natywne wysłanie metodą GET wstawiłoby
+ * e-mail, hasło albo numer telefonu do adresu URL (historia przeglądarki, logi serwera).
+ * POST tylko przeładowuje stronę.
+ */
+export function AuthForm(props: Omit<ComponentProps<'form'>, 'method' | 'noValidate' | 'action'>) {
+  return <form noValidate method="post" {...props} />;
+}
+
 /** Komunikat błędu formularza (czytniki ekranu odczytują go od razu). */
 export function FormAlert({ children }: { readonly children: ReactNode }) {
   return (

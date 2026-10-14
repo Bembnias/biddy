@@ -19,6 +19,14 @@ export interface MeDto {
   /** Czy użytkownik zaakceptował aktualne wersje regulaminu i polityki prywatności */
   termsAccepted: boolean;
   /**
+     * Zweryfikowany numer telefonu (E.164) albo null
+     * @nullable
+     * @pattern ^\+[1-9]\d{6,14}$
+     */
+  phoneNumber: string | null;
+  /** Czy numer telefonu jest zweryfikowany (wymagane do licytowania i wystawiania) */
+  phoneVerified: boolean;
+  /**
      * Rola wewnętrzna (panel administracyjny) albo null
      * @nullable
      */

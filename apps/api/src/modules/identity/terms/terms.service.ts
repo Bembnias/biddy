@@ -1,9 +1,9 @@
 import { LEGAL_DOCUMENTS, LEGAL_DOCUMENT_VERSIONS } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 
 import { type Database, DRIZZLE } from '../../../infra/db/index.js';
-import { termsAcceptances } from '../db/identity.schema.js';
+import { termsAcceptances, users } from '../db/identity.schema.js';
 
 /** Akceptacje regulaminu i polityki prywatności z wersją, czasem i IP (PROJECT.md §13.3). */
 @Injectable()
@@ -20,6 +20,14 @@ export class TermsService {
         ip: ip ?? null,
       })),
     );
+  }
+
+  /** Oświadczenie 18+ (pierwsze zostaje: data ma znaczenie dowodowe). */
+  async declareAdult(userId: string, now = new Date()): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ isAdultDeclaredAt: now, updatedAt: now })
+      .where(and(eq(users.id, userId), isNull(users.isAdultDeclaredAt)));
   }
 
   /** Czy użytkownik zaakceptował aktualne wersje wszystkich dokumentów. */

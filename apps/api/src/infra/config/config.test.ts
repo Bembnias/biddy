@@ -31,6 +31,7 @@ const production = {
   WEB_URL: 'https://biddy.pl',
   TURNSTILE_SITE_KEY: '0x4AAAAAAA-site',
   TURNSTILE_SECRET_KEY: '0x4AAAAAAA-secret',
+  SMSAPI_TOKEN: 'smsapi-token',
 } as const;
 
 function issuesFor(
@@ -90,6 +91,7 @@ describe('loadConfig: wartości domyślne', () => {
       },
       log: { level: 'debug', pretty: true },
       openapi: { enabled: true },
+      sms: { kind: 'log' },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
     });
   });
@@ -262,6 +264,23 @@ describe('loadConfig: kolejki (Redis, prefiks, relay outboxa)', () => {
   });
 });
 
+describe('loadConfig: SMS-y (F-08)', () => {
+  it('bez SMSAPI_TOKEN atrapa (kod w logu), z tokenem SMSAPI z opcjonalnym nadawcą', () => {
+    expect(loadConfig(minimal).sms).toEqual({ kind: 'log' });
+    expect(loadConfig({ ...minimal, SMSAPI_TOKEN: 't0k3n', SMSAPI_SENDER: 'Biddy' }).sms).toEqual({
+      kind: 'smsapi',
+      token: 't0k3n',
+      sender: 'Biddy',
+    });
+  });
+
+  it('odrzuca nazwę nadawcy dłuższą niż 11 znaków', () => {
+    expect(variablesWithIssues({ ...minimal, SMSAPI_SENDER: 'Biddy-Aukcje-PL' })).toEqual([
+      'SMSAPI_SENDER',
+    ]);
+  });
+});
+
 describe('loadConfig: konta i e-maile (F-07)', () => {
   it('na produkcji API wymaga sekretu, adresów, Turnstile i Resend; worker tylko Resend', () => {
     const missing = {
@@ -275,6 +294,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
         'API_PUBLIC_URL',
         'BETTER_AUTH_SECRET',
         'RESEND_API_KEY',
+        'SMSAPI_TOKEN',
         'TURNSTILE_SECRET_KEY',
         'TURNSTILE_SITE_KEY',
         'WEB_URL',
@@ -607,6 +627,8 @@ describe('.env.example (sekcja API)', () => {
         'TURNSTILE_SITE_KEY',
         'TURNSTILE_SECRET_KEY',
         'RESEND_API_KEY',
+        'SMSAPI_TOKEN',
+        'SMSAPI_SENDER',
       ]),
     );
     expect(loadConfig({ ...example, ...documented })).toEqual(loadConfig(example));

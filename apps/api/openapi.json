@@ -46,6 +46,16 @@
         "description": "Np. po pierwszym logowaniu przez Google lub Apple albo po zmianie regulaminu.",
         "operationId": "acceptTerms",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptTermsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": "Zapisano akceptację"
@@ -69,7 +79,7 @@
             "bearer": []
           }
         ],
-        "summary": "Akceptacja aktualnych wersji regulaminu i polityki prywatności",
+        "summary": "Akceptacja aktualnych wersji regulaminu i polityki prywatności z oświadczeniem 18+",
         "tags": [
           "me"
         ]
@@ -136,6 +146,108 @@
         "summary": "Metody logowania i konfiguracja formularzy",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/v1/me/phone-verification": {
+      "post": {
+        "description": "Polskie numery komórkowe. Kod ważny 5 minut. Limity: kolejny SMS po 60 s, 3 na numer na godzinę, 10 z adresu IP na godzinę, 10 na konto na dobę (429 RATE_LIMITED z Retry-After). Numer innego konta: 409 PHONE_NUMBER_TAKEN (bez SMS-a).",
+        "operationId": "startPhoneVerification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartPhoneVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Kod wysłany",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneVerificationDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Wysłanie kodu SMS na numer telefonu",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/phone-verification/confirm": {
+      "post": {
+        "description": "Maks. 5 prób na kod: zły kod to 400 PHONE_CODE_INVALID z `remainingAttempts`, brak aktywnego kodu (wygasł, limit prób, wysłano nowszy) to 400 PHONE_CODE_EXPIRED. Nowy numer zastępuje poprzedni.",
+        "operationId": "confirmPhoneVerification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPhoneVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Numer zweryfikowany",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiedPhoneDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Potwierdzenie numeru kodem z SMS-a",
+        "tags": [
+          "me"
         ]
       }
     },
@@ -221,6 +333,17 @@
             "type": "boolean",
             "description": "Czy użytkownik zaakceptował aktualne wersje regulaminu i polityki prywatności"
           },
+          "phoneNumber": {
+            "type": "string",
+            "format": "e164",
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "description": "Zweryfikowany numer telefonu (E.164) albo null",
+            "nullable": true
+          },
+          "phoneVerified": {
+            "type": "boolean",
+            "description": "Czy numer telefonu jest zweryfikowany (wymagane do licytowania i wystawiania)"
+          },
           "staffRole": {
             "type": "string",
             "enum": [
@@ -245,10 +368,27 @@
           "email",
           "emailVerified",
           "termsAccepted",
+          "phoneNumber",
+          "phoneVerified",
           "staffRole",
           "createdAt"
         ],
         "additionalProperties": false
+      },
+      "AcceptTermsDto": {
+        "type": "object",
+        "properties": {
+          "adultDeclaration": {
+            "type": "boolean",
+            "description": "Oświadczenie, że użytkownik ma ukończone 18 lat",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "adultDeclaration"
+        ]
       },
       "SessionDto": {
         "type": "object",
@@ -269,13 +409,17 @@
               },
               "termsAccepted": {
                 "type": "boolean"
+              },
+              "phoneVerified": {
+                "type": "boolean"
               }
             },
             "required": [
               "id",
               "name",
               "emailVerified",
-              "termsAccepted"
+              "termsAccepted",
+              "phoneVerified"
             ],
             "additionalProperties": false,
             "description": "Zalogowany użytkownik albo null (gość)",
@@ -316,6 +460,82 @@
           "socialProviders",
           "turnstileSiteKey",
           "passwordMinLength"
+        ],
+        "additionalProperties": false
+      },
+      "StartPhoneVerificationDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Polski numer komórkowy w dowolnym zapisie, np. `500 600 700` albo `+48500600700`"
+          }
+        },
+        "required": [
+          "phoneNumber"
+        ]
+      },
+      "PhoneVerificationDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "format": "e164",
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "description": "Numer w formacie E.164, na który wysłano kod"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Do kiedy kod jest ważny"
+          },
+          "resendAvailableAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Od kiedy można wysłać kolejny kod"
+          }
+        },
+        "required": [
+          "phoneNumber",
+          "expiresAt",
+          "resendAvailableAt"
+        ],
+        "additionalProperties": false
+      },
+      "ConfirmPhoneVerificationDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^\\d{6}$",
+            "description": "Kod z SMS-a"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "VerifiedPhoneDto": {
+        "type": "object",
+        "properties": {
+          "phoneNumber": {
+            "type": "string",
+            "format": "e164",
+            "pattern": "^\\+[1-9]\\d{6,14}$",
+            "description": "Zweryfikowany numer (E.164)"
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "phoneNumber",
+          "verifiedAt"
         ],
         "additionalProperties": false
       },

@@ -14,7 +14,7 @@ import { requestPasswordReset } from '@/lib/auth/auth-api';
 import { emailOnlySchema } from '@/lib/auth/schemas';
 import { routes } from '@/lib/routes';
 
-import { FormAlert, TextField, useErrorMessage } from './form-parts';
+import { AuthForm, FormAlert, TextField, useErrorMessage } from './form-parts';
 import { TurnstileField } from './turnstile-field';
 import { useValidationMessages } from './use-validation';
 
@@ -63,11 +63,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form
-      noValidate
-      onSubmit={(event) => void form.handleSubmit(submit)(event)}
-      className="space-y-4"
-    >
+    <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
       <p className="text-muted-foreground">{t('forgotPassword.text')}</p>
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
       <TextField
@@ -81,6 +77,6 @@ export function ForgotPasswordForm() {
       <Button type="submit" className="h-10 w-full" disabled={isSubmitting || token === undefined}>
         {isSubmitting ? t('forgotPassword.pending') : t('forgotPassword.submit')}
       </Button>
-    </form>
+    </AuthForm>
   );
 }
