@@ -296,5 +296,25 @@
       "pending": "Zapisywanie…",
       "cancel": "Anuluj"
     }
+  },
+  "catalog": {
+    "picker": {
+      "category": "Kategoria",
+      "subcategory": "Podkategoria",
+      "choose": "Wybierz",
+      "selected": "Wybrano: {path}",
+      "chooseLeaf": "Wybierz podkategorię, żeby przejść dalej.",
+      "loadError": "Nie udało się wczytać kategorii.",
+      "retry": "Spróbuj ponownie"
+    },
+    "notices": {
+      "brandSensitive": "Kategoria narażona na podróbki: dodasz więcej zdjęć, w tym metki i kodów.",
+      "restricted": "Kategoria z ograniczeniami: oferta przejdzie moderację przed publikacją."
+    },
+    "attributes": {
+      "title": "Szczegóły przedmiotu",
+      "required": "wymagane",
+      "choose": "Wybierz"
+    }
   }
 }

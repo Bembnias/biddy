@@ -312,6 +312,16 @@ export class BidsController {
 
 Konto zablokowane (`BANNED`) dostaje 403 `FORBIDDEN` na każdym endpoincie z sesją.
 
+### Kategorie i atrybuty (F-11)
+
+Moduł `catalog` (`apps/api/src/modules/catalog`): drzewo kategorii (`ltree`, ścieżki ze slugów) z atrybutami zależnymi od kategorii. Spec: [F-11](docs/features/F-11-kategorie-i-atrybuty.md).
+
+- **Atrybuty** to definicje w formacie z `@biddy/shared` (`text`, `number`, `select`, `boolean`, z etykietą, wymagalnością, limitami i opcjami), dziedziczone po ścieżce od kategorii głównej. Ta sama funkcja `validateAttributes` sprawdza wartości w API i w formularzu web; z definicji powstaje też JSON Schema.
+- **API:** `GET /v1/categories` (aktywne kategorie w kolejności drzewa, z flagami) i `GET /v1/categories/{id}/schema` (atrybuty, flagi, zasady, JSON Schema). Inne moduły walidują atrybuty przedmiotu przez `CategoryService.validateItemAttributes` (przedmiot tylko w aktywnym liściu).
+- **Flagi** `is_restricted` (moderacja przed publikacją) i `is_brand_sensitive` (więcej zdjęć) dziedziczą się w dół drzewa.
+- **Drzewo** z seeda pochodzi z migracji danych (`drizzle/0006_initial_categories.sql`), więc jest w każdym środowisku. Zmiany kategorii i atrybutów to nowe migracje (do czasu panelu admina, F-34). Przedmioty przechowują atrybuty tak, jak je zapisano: walidacja działa przy zapisie, a wyświetlanie (`describeAttributes`) toleruje zmiany schematu.
+- **Web:** `CategoryPicker` i `AttributeFields` (`apps/web/src/components/catalog`) z `attributesSchema` (`src/lib/catalog`) dla kreatora wystawiania (F-14).
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):

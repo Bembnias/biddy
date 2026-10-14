@@ -33,6 +33,9 @@
     "test:watch": "vitest",
     "clean": "rm -rf dist .turbo"
   },
+  "dependencies": {
+    "zod": "catalog:"
+  },
   "devDependencies": {
     "@biddy/config": "workspace:*",
     "eslint": "catalog:",

@@ -1,4 +1,4 @@
-import type { ErrorCode } from '@biddy/shared';
+import type { ErrorCode, ProblemFieldError } from '@biddy/shared';
 
 import { ERROR_DEFINITIONS } from './error-catalog.js';
 
@@ -11,6 +11,8 @@ export interface DomainErrorOptions {
   readonly status?: number;
   /** Dodatkowe pola odpowiedzi (np. `minimumBid`). Nie mogą nadpisać pól standardowych. */
   readonly extensions?: Readonly<Record<string, unknown>>;
+  /** Błędy pól (np. przy VALIDATION_FAILED z reguł domenowych), jak przy walidacji DTO. */
+  readonly errors?: readonly ProblemFieldError[];
   /** Nagłówki odpowiedzi, np. `retry-after` przy 429 RATE_LIMITED. */
   readonly headers?: Readonly<Record<string, string>>;
   /** Pierwotna przyczyna (trafia do logów, nigdy do odpowiedzi). */
@@ -30,6 +32,7 @@ export class DomainError extends Error {
   readonly detail: string;
   readonly extensions: Readonly<Record<string, unknown>>;
   readonly headers: Readonly<Record<string, string>>;
+  readonly errors: readonly ProblemFieldError[] | undefined;
 
   constructor(options: DomainErrorOptions) {
     const definition = ERROR_DEFINITIONS[options.code];
@@ -41,5 +44,6 @@ export class DomainError extends Error {
     this.detail = detail;
     this.extensions = options.extensions ?? {};
     this.headers = options.headers ?? {};
+    this.errors = options.errors;
   }
 }

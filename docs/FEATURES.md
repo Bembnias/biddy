@@ -399,6 +399,8 @@ flowchart TD
 
 ### F-11 · Kategorie i atrybuty · `M`
 
+> Pełny spec: [docs/features/F-11-kategorie-i-atrybuty.md](features/F-11-kategorie-i-atrybuty.md).
+
 **Cel:** drzewo kategorii z atrybutami zależnymi od kategorii (np. rozmiar dla mody, model dla elektroniki).
 
 **Zakres:**

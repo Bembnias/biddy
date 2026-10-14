@@ -1,0 +1,16 @@
+export {
+  ATTRIBUTE_TEXT_MAX_LENGTH,
+  ATTRIBUTE_TYPES,
+  type AttributeDefinition,
+  type AttributeIssue,
+  type AttributeType,
+  type AttributeValidation,
+  type AttributeValues,
+  type DescribedAttribute,
+  attributeDefinitionSchema,
+  attributeDefinitionsSchema,
+  attributesJsonSchema,
+  describeAttributes,
+  inheritAttributes,
+  validateAttributes,
+} from './attributes.js';

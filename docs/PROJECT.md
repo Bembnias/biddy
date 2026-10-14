@@ -1221,7 +1221,7 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `categories` | id, parent_id, path (ltree), slug, name, attribute_schema (jsonb, JSON Schema), is_restricted, is_active |
+| `categories` | id, parent_id, path (ltree ze slugów), slug (unikalny), name, position, attributes (jsonb: definicje atrybutów w formacie z `@biddy/shared`, z których powstaje JSON Schema), is_restricted, is_brand_sensitive, listing_notice, is_active (F-11) |
 | `items` | id, seller_id, category_id, title, description, condition (enum), brand, attributes (jsonb), package_size, weight_g, dims, allowed_carriers (text[]), location_city, created_at |
 | `item_media` | id, item_id, storage_key, width, height, position, moderation_status |
 | `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status, start_price, reserve_price, buy_now_price, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, starts_at, ends_at, original_ends_at, extension_policy, version, created_at |
@@ -1810,6 +1810,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 49 | Wersja (release) w Sentry i `/health` to SHA commita z platformy (`RENDER_GIT_COMMIT`, `VERCEL_GIT_COMMIT_SHA`) | Przyjęta | §18.3 |
 | 50 | Adresy w module `identity` (dane użytkownika); zamówienia i przesyłki kopiują adres, więc edycja nie zmienia historii. Zmiana profilu tylko przez `PATCH /v1/me` (trasa Better Auth `/update-user` zablokowana), reguły imienia wyświetlanego wspólne w `@biddy/shared` | Przyjęta | §10.3, §13.3 |
 | 51 | Web: szkielet ładowania (`loading.tsx`) tylko w segmentach konta; strony publiczne renderują się w całości przed odpowiedzią, żeby `notFound()` dawało prawdziwe 404 (SEO profili i aukcji) | Przyjęta | §11.3 |
+| 52 | Atrybuty kategorii jako definicje w formacie Biddy (`text`, `number`, `select`, `boolean`; `@biddy/shared`), a nie dowolny JSON Schema: z nich walidacja (web i API), formularz i JSON Schema. Dziedziczenie po ścieżce w drzewie, przedmiot tylko w aktywnym liściu | Przyjęta | §13.3 |
+| 53 | Drzewo kategorii i jego zmiany (do panelu admina, F-34) to migracje danych, więc kategorie są w każdym środowisku; przedmioty przechowują atrybuty tak, jak je zapisano, a walidacja działa tylko przy zapisie | Przyjęta | §13.3 |
 
 ---
 

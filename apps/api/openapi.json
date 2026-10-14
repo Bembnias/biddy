@@ -537,6 +537,84 @@
         ]
       }
     },
+    "/v1/categories": {
+      "get": {
+        "description": "Płaska lista w kolejności drzewa (w głąb); drzewo buduje się z parentId.",
+        "operationId": "getCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Kategorie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryDto"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Aktywne kategorie",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
+    "/v1/categories/{id}/schema": {
+      "get": {
+        "operationId": "getCategorySchema",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schemat kategorii",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategorySchemaDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Atrybuty, flagi i zasady kategorii",
+        "tags": [
+          "categories"
+        ]
+      }
+    },
     "/v1/time": {
       "get": {
         "operationId": "getServerTime",
@@ -1018,6 +1096,328 @@
           "name",
           "memberSince",
           "phoneVerified"
+        ],
+        "additionalProperties": false
+      },
+      "CategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Kategoria nadrzędna albo null (kategoria główna)",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Slugi od kategorii głównej do tej kategorii"
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Poziom w drzewie (0 = kategoria główna)"
+          },
+          "isLeaf": {
+            "type": "boolean",
+            "description": "Liść drzewa: tylko tu można wystawić przedmiot"
+          },
+          "isRestricted": {
+            "type": "boolean",
+            "description": "Kategoria z ograniczeniami (moderacja przed publikacją); dziedziczona"
+          },
+          "isBrandSensitive": {
+            "type": "boolean",
+            "description": "Kategoria narażona na podróbki (więcej zdjęć, metki i kody); dziedziczona"
+          }
+        },
+        "required": [
+          "id",
+          "parentId",
+          "slug",
+          "name",
+          "path",
+          "depth",
+          "isLeaf",
+          "isRestricted",
+          "isBrandSensitive"
+        ],
+        "additionalProperties": false
+      },
+      "CategorySchemaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "parentId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Kategoria nadrzędna albo null (kategoria główna)",
+            "nullable": true
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Slugi od kategorii głównej do tej kategorii"
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Poziom w drzewie (0 = kategoria główna)"
+          },
+          "isLeaf": {
+            "type": "boolean",
+            "description": "Liść drzewa: tylko tu można wystawić przedmiot"
+          },
+          "isRestricted": {
+            "type": "boolean",
+            "description": "Kategoria z ograniczeniami (moderacja przed publikacją); dziedziczona"
+          },
+          "isBrandSensitive": {
+            "type": "boolean",
+            "description": "Kategoria narażona na podróbki (więcej zdjęć, metki i kody); dziedziczona"
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]{0,39}$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "hint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "text"
+                      ]
+                    },
+                    "maxLength": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]{0,39}$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "hint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "number"
+                      ]
+                    },
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    },
+                    "integer": {
+                      "type": "boolean"
+                    },
+                    "unit": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 10
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]{0,39}$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "hint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "select"
+                      ]
+                    },
+                    "options": {
+                      "minItems": 1,
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,39}$"
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "type",
+                    "options"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-zA-Z0-9]{0,39}$"
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "hint": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "boolean"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "type"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "description": "Atrybuty obowiązujące w kategorii (także dziedziczone), w kolejności formularza"
+          },
+          "listingNotice": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Zasady wystawiania w tej kategorii albo null",
+            "nullable": true
+          },
+          "jsonSchema": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "JSON Schema (2020-12) wartości atrybutów przedmiotu"
+          }
+        },
+        "required": [
+          "id",
+          "parentId",
+          "slug",
+          "name",
+          "path",
+          "depth",
+          "isLeaf",
+          "isRestricted",
+          "isBrandSensitive",
+          "attributes",
+          "listingNotice",
+          "jsonSchema"
         ],
         "additionalProperties": false
       },
