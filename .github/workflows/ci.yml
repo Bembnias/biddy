@@ -1,11 +1,11 @@
 # CI: lint, typecheck, testy jednostkowe, formatowanie, aktualność klienta API i build (job
 # „checks”), testy integracyjne z Testcontainers na prawdziwym Postgresie i Redisie w Dockerze
-# (job „integration”) oraz testy e2e aplikacji web w Playwright (job „web”).
-# Uruchamia się dla każdego pull requesta i każdego pusha do main.
+# (job „integration”), obraz API z testem dymnym (job „api-image”) oraz testy e2e aplikacji web
+# w Playwright (job „web”). Uruchamia się dla każdego pull requesta i każdego pusha do main.
 #
-# F-09 (CI/CD i środowiska) rozszerzy ten workflow o wdrożenia: migracje jako osobny krok przed
-# deployem, staging na Render i Vercel po merge'u do main, preview deployments dla web
-# i Sentry releases.
+# Wdrożenia (F-09, docs/deployment.md) nie są tu krokami: Render wdraża API i workera z main po
+# zielonych checkach tego workflow (render.yaml: autoDeployTrigger: checksPass), a Vercel buduje
+# web dla main (staging) i preview dla każdego pull requesta.
 name: CI
 
 on:
@@ -14,7 +14,7 @@ on:
     branches: [main]
 
 # Nowy push do tego samego pull requesta anuluje poprzedni przebieg. Na main każdy commit
-# przechodzi pełne sprawdzenie (F-09 dołoży tu deploy, którego nie wolno przerwać w połowie).
+# przechodzi pełne sprawdzenie: od jego wyniku zależy deploy stagingu na Render.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -24,6 +24,10 @@ permissions:
 
 env:
   TURBO_TELEMETRY_DISABLED: 1
+  # Zdalny cache Turborepo (Vercel), gdy skonfigurowany: sekret TURBO_TOKEN i zmienna TURBO_TEAM
+  # w ustawieniach repozytorium. Bez nich działa sam cache lokalny (actions/cache).
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
   checks:
@@ -107,6 +111,63 @@ jobs:
 
       - name: Testy integracyjne
         run: pnpm test:integration
+
+  api-image:
+    name: Obraz API (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Postgres i Redis jak na Render; Redis ma domyślnie maxmemory-policy noeviction, którego
+    # wymaga worker.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: biddy
+          POSTGRES_PASSWORD: biddy
+          POSTGRES_DB: biddy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U biddy -d biddy"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Ten sam Dockerfile i kontekst co w render.yaml; warstwy w cache GitHub Actions.
+      - name: Build obrazu API
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          tags: biddy-api:ci
+          load: true
+          cache-from: type=gha,scope=api-image
+          cache-to: type=gha,scope=api-image,mode=max
+
+      # Migracje (preDeployCommand), API (/health, /ready) i worker z gotowego obrazu.
+      - name: Test dymny obrazu
+        env:
+          IMAGE: biddy-api:ci
+          DATABASE_URL: postgres://biddy:biddy@127.0.0.1:5432/biddy
+          REDIS_QUEUE_URL: redis://127.0.0.1:6379
+        run: .github/scripts/smoke-api-image.sh
 
   web:
     name: Aplikacja web (Playwright)

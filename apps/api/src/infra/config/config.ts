@@ -191,6 +191,9 @@ export const envSchema = z.object({
     .transform(Number)
     .optional(),
   APP_RELEASE: text().optional(),
+  // SHA commita, który Render podaje sam przy każdym deployu: wersja dla Sentry, gdy brak
+  // APP_RELEASE (F-09).
+  RENDER_GIT_COMMIT: text().optional(),
   // Konta i logowanie (Better Auth, F-07).
   API_PUBLIC_URL: url(['https:', 'http:'], 'https://api.biddy.pl').optional(),
   WEB_URL: url(['https:', 'http:'], 'https://biddy.pl').optional(),
@@ -509,7 +512,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
 
   return {
     env: vars.NODE_ENV,
-    release: vars.APP_RELEASE,
+    release: vars.APP_RELEASE ?? vars.RENDER_GIT_COMMIT,
     http: {
       host,
       port: vars.PORT ?? vars.API_PORT ?? 3001,
@@ -600,10 +603,11 @@ const sentryEnvSchema = envSchema.pick({
   SENTRY_ENVIRONMENT: true,
   SENTRY_TRACES_SAMPLE_RATE: true,
   APP_RELEASE: true,
+  RENDER_GIT_COMMIT: true,
 });
 
 /**
- * Czyta tylko zmienne Sentry (oraz NODE_ENV i APP_RELEASE). Zwraca undefined, gdy SENTRY_DSN
+ * Czyta tylko zmienne Sentry (oraz NODE_ENV, APP_RELEASE i RENDER_GIT_COMMIT). Zwraca undefined, gdy SENTRY_DSN
  * jest pusty albo zmienne są błędne: wtedy start i tak przerwie loadConfig w main.ts z pełną
  * listą błędów, więc tutaj niczego nie zgłaszamy.
  */
@@ -616,7 +620,7 @@ export function loadSentryOptions(env: RawEnv): SentryOptions | undefined {
   return {
     dsn,
     environment: vars.SENTRY_ENVIRONMENT ?? vars.NODE_ENV,
-    release: vars.APP_RELEASE,
+    release: vars.APP_RELEASE ?? vars.RENDER_GIT_COMMIT,
     tracesSampleRate: vars.SENTRY_TRACES_SAMPLE_RATE ?? 0,
   };
 }

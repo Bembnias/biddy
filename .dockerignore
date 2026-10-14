@@ -1,0 +1,17 @@
+# Kontekst budowy obrazów Docker (apps/api/Dockerfile): bez zależności, wyników buildów,
+# sekretów i plików lokalnych. Obraz instaluje i buduje wszystko sam.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+**/playwright-report
+**/test-results
+**/.lighthouse
+.git
+.github
+.env
+.env.*
+!.env.example
+**/.DS_Store

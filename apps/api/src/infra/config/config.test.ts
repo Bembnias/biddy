@@ -564,6 +564,16 @@ describe('loadSentryOptions', () => {
     });
   });
 
+  it('release: APP_RELEASE, a bez niego SHA commita z Render (RENDER_GIT_COMMIT)', () => {
+    const dsn = 'https://abc@o1.ingest.de.sentry.io/2';
+    expect(loadSentryOptions({ SENTRY_DSN: dsn, RENDER_GIT_COMMIT: 'f00d' })?.release).toBe('f00d');
+    expect(
+      loadSentryOptions({ SENTRY_DSN: dsn, RENDER_GIT_COMMIT: 'f00d', APP_RELEASE: 'api@1' })
+        ?.release,
+    ).toBe('api@1');
+    expect(loadConfig({ ...minimal, RENDER_GIT_COMMIT: 'f00d' }).release).toBe('f00d');
+  });
+
   it('nie zależy od innych zmiennych (brak DATABASE_URL nie przeszkadza)', () => {
     expect(
       loadSentryOptions({ SENTRY_DSN: 'https://abc@o1.ingest.de.sentry.io/2' })?.environment,

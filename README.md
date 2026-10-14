@@ -4,6 +4,7 @@ Biddy to marketplace C2C z licytacjami czasowymi. Kupujący płaci za Pakiet Och
 
 - Specyfikacja produktu i architektury: [docs/PROJECT.md](docs/PROJECT.md)
 - Lista feature speców z szacunkami i zależnościami: [docs/FEATURES.md](docs/FEATURES.md)
+- Wdrożenia i środowiska (staging, preview, migracje, wycofanie wersji): [docs/deployment.md](docs/deployment.md)
 
 ## Wymagania
 
@@ -435,9 +436,20 @@ GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) działa 
 
 - job `checks`: `pnpm build` i `pnpm check` (lint, typecheck, testy jednostkowe, formatowanie, aktualność kontraktu i klienta API),
 - job `integration`: `pnpm build` i `pnpm test:integration` (Docker jest na runnerach GitHub z Ubuntu),
+- job `api-image`: obraz API z `apps/api/Dockerfile` (ten sam co na Render) i test dymny gotowego obrazu: migracje, `/health`, `/ready` i start workera ([`.github/scripts/smoke-api-image.sh`](.github/scripts/smoke-api-image.sh)),
 - job `web`: build aplikacji web i testy e2e w Playwright (Chromium); przy błędzie raport Playwright jako artefakt.
 
-Oba joby korzystają z cache magazynu pnpm i cache Turborepo. Nowy push do pull requesta anuluje poprzedni przebieg. Wdrożenia (staging, preview, migracje przed deployem) dojdą w F-09.
+Joby korzystają z cache magazynu pnpm i cache Turborepo (zdalnego, gdy repozytorium ma `TURBO_TOKEN` i `TURBO_TEAM`), a obraz API z cache warstw Docker. Nowy push do pull requesta anuluje poprzedni przebieg.
+
+## Wdrożenia
+
+Staging wdraża się sam z `main`, a każdy pull request ma preview aplikacji web ([docs/deployment.md](docs/deployment.md), F-09):
+
+- **API i worker:** Render ([`render.yaml`](render.yaml)), jeden obraz Docker ([`apps/api/Dockerfile`](apps/api/Dockerfile)). Deploy rusza po zielonym CI na commicie z `main`. Migracje wykonuje krok przed startem nowej wersji; nieudana migracja zatrzymuje deploy, a poprzednia wersja działa dalej.
+- **Web:** Vercel ([`apps/web/vercel.json`](apps/web/vercel.json)): `main` to staging (https://staging.biddy.pl), pull requesty to preview na API stagingu.
+- **Wersja** w Sentry i w `/health` to SHA commita (`RENDER_GIT_COMMIT`, `VERCEL_GIT_COMMIT_SHA`).
+
+Obraz API lokalnie: `docker build -f apps/api/Dockerfile -t biddy-api .` (z katalogu głównego). Plik [`.pnpmfile.cjs`](.pnpmfile.cjs) usuwa z `better-auth` opcjonalne peery innych frameworków (Next.js, React, Vitest), które inaczej trafiałyby do obrazu.
 
 ## Struktura repozytorium
 
@@ -455,6 +467,7 @@ biddy/
 │     │                    # queues (BullMQ), outbox (eventy domenowe), worker
 │     ├─ src/main.ts       # proces API; src/worker.ts: proces workera; src/bull-board.ts: podgląd kolejek
 │     ├─ drizzle/          # migracje SQL (drizzle-kit)
+│     ├─ Dockerfile        # obraz API i workera (Render), budowany z katalogu głównego
 │     ├─ openapi.json      # kontrakt OpenAPI (pnpm api:generate), źródło klienta API
 │     └─ test/             # testy: unit/ (bez Dockera), integration/ (Testcontainers)
 ├─ packages/
@@ -465,8 +478,9 @@ biddy/
 ├─ infra/
 │  ├─ docker-compose.yml   # usługi lokalne: Postgres, 2× Redis, Meilisearch, RustFS, Mailpit
 │  └─ scripts/             # bootstrap, env:check, infra:up, storage:setup, db:reset, mail:test
-├─ docs/                   # PROJECT.md (specyfikacja), FEATURES.md (feature specy)
-├─ .github/workflows/      # CI (GitHub Actions)
+├─ docs/                   # PROJECT.md (specyfikacja), FEATURES.md, features/ (specy), deployment.md
+├─ .github/workflows/      # CI (GitHub Actions); scripts/: test dymny obrazu API
+├─ render.yaml             # Blueprint Render: staging API, worker, Postgres, Key Value
 ├─ .env.example            # szablon zmiennych środowiskowych
 ├─ turbo.json              # zadania Turborepo
 └─ pnpm-workspace.yaml     # pakiety workspace i catalog: wspólne wersje narzędzi

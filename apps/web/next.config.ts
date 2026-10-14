@@ -48,6 +48,8 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  // Source mapy pod tym samym release co zdarzenia z przeglądarki (SHA commita na Vercel).
+  ...(publicConfig.release === undefined ? {} : { release: { name: publicConfig.release } }),
   silent: !process.env.CI,
   telemetry: false,
 });

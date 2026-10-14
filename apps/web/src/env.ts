@@ -73,9 +73,31 @@ export const publicEnvSchema = z
 
 export type PublicEnv = z.output<typeof publicEnvSchema>;
 
-/** Zmienne NEXT_PUBLIC_* wymienione z nazwy (tylko tak Next.js wkleja je do kodu przeglądarki). */
-export function publicEnvInput(): Record<string, string | undefined> {
+/**
+ * Wartości domyślne z platformy (zmienne systemowe Vercel, F-09): preview deployment dostaje
+ * środowisko `preview` i własny adres, a release to SHA commita (ten sam w Sentry i source
+ * mapach). Ustawione jawnie zmienne NEXT_PUBLIC_* wygrywają.
+ */
+export function platformDefaults(
+  env: Record<string, string | undefined> = process.env,
+): Record<string, string | undefined> {
+  const preview = env['VERCEL_ENV'] === 'preview';
+  const deploymentHost = env['VERCEL_URL'];
   return {
+    NEXT_PUBLIC_ENVIRONMENT: preview ? 'preview' : undefined,
+    NEXT_PUBLIC_SITE_URL:
+      preview && deploymentHost !== undefined && deploymentHost !== ''
+        ? `https://${deploymentHost}`
+        : undefined,
+    NEXT_PUBLIC_APP_RELEASE: env['VERCEL_GIT_COMMIT_SHA'],
+  };
+}
+
+/** Zmienne NEXT_PUBLIC_* wymienione z nazwy (tylko tak Next.js wkleja je do kodu przeglądarki). */
+export function publicEnvInput(
+  defaults: Record<string, string | undefined> = platformDefaults(),
+): Record<string, string | undefined> {
+  const explicit: Record<string, string | undefined> = {
     NEXT_PUBLIC_ENVIRONMENT: process.env.NEXT_PUBLIC_ENVIRONMENT,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
@@ -84,6 +106,12 @@ export function publicEnvInput(): Record<string, string | undefined> {
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_APP_RELEASE: process.env.NEXT_PUBLIC_APP_RELEASE,
   };
+  return Object.fromEntries(
+    Object.entries(explicit).map(([key, value]) => [
+      key,
+      value === undefined || value.trim() === '' ? defaults[key] : value,
+    ]),
+  );
 }
 
 /** Błędna konfiguracja: wszystkie złe zmienne naraz, po polsku. */

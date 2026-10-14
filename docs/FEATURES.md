@@ -359,6 +359,8 @@ flowchart TD
 
 ### F-09 · CI/CD i środowiska · `M`
 
+> Runbook: [docs/deployment.md](deployment.md). Konfiguracja: `render.yaml`, `apps/api/Dockerfile`, `apps/web/vercel.json`, `.github/workflows/ci.yml`.
+
 **Cel:** automatyczne testy i wdrożenia od pierwszego tygodnia.
 
 **Zakres:**

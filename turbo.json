@@ -12,7 +12,14 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env"],
-      "env": ["NEXT_PUBLIC_*", "SENTRY_ORG", "SENTRY_PROJECT"],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "VERCEL_ENV",
+        "VERCEL_URL",
+        "VERCEL_GIT_COMMIT_SHA"
+      ],
       "passThroughEnv": ["SENTRY_AUTH_TOKEN", "CI"]
     },
     "lint": {

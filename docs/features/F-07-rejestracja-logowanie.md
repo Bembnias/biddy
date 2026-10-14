@@ -143,4 +143,4 @@ PostHog (po zgodzie): `sign_up_completed` (`method`: `email`/`google`/`apple`), 
 
 - Klucze Google i Apple (konta deweloperskie, §20 Faza 0): **domyślnie** kod gotowy, logowanie społecznościowe wyłączone do czasu kluczy.
 - Treść regulaminu i polityki prywatności (prawnik, F-41): **domyślnie** wersje `2026-10-01` i linki do stron z F-41.
-- Dostawca e-maili na produkcji: Resend (§11.2); klucz API w F-09.
+- Dostawca e-maili na produkcji: Resend (§11.2); klucz API w panelu Render (`RESEND_API_KEY`, [deployment.md](../deployment.md)).

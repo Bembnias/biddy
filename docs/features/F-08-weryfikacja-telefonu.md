@@ -133,5 +133,5 @@ PostHog (po zgodzie): `phone_verification_started`, `phone_verified`.
 
 ## Otwarte pytania
 
-- Pole nadawcy SMS „Biddy” wymaga rejestracji w SMSAPI: **domyślnie** `SMSAPI_SENDER` pusty (domyślny nadawca konta SMSAPI) do czasu rejestracji nazwy (F-09).
+- Pole nadawcy SMS „Biddy” wymaga rejestracji w SMSAPI: **domyślnie** `SMSAPI_SENDER` pusty (domyślny nadawca konta SMSAPI) do czasu rejestracji nazwy (zmienna w panelu Render, [deployment.md](../deployment.md)).
 - Koszt SMS-ów: **domyślnie** limity jak wyżej; po starcie monitoring liczby wysyłek dziennie (alert w F-09/F-34).

@@ -1,9 +1,15 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { WebConfigError, parsePublicEnv, publicEnvInput, serverApiUrl } from './env';
+import {
+  WebConfigError,
+  parsePublicEnv,
+  platformDefaults,
+  publicEnvInput,
+  serverApiUrl,
+} from './env';
 
 describe('parsePublicEnv', () => {
   it('lokalnie: wartości domyślne (API na 3001, strona na 3000, PostHog EU, bez Sentry)', () => {
@@ -81,6 +87,54 @@ describe('serverApiUrl (API_INTERNAL_URL)', () => {
     expect(() => serverApiUrl('https://api.biddy.pl', 'api.internal')).toThrow(
       '• API_INTERNAL_URL:',
     );
+  });
+});
+
+describe('platformDefaults (Vercel)', () => {
+  const preview = {
+    VERCEL_ENV: 'preview',
+    VERCEL_URL: 'biddy-web-abc123-biddy.vercel.app',
+    VERCEL_GIT_COMMIT_SHA: 'f00dcafe',
+  };
+
+  it('preview: środowisko preview, adres deploymentu i SHA commita jako release', () => {
+    expect(platformDefaults(preview)).toEqual({
+      NEXT_PUBLIC_ENVIRONMENT: 'preview',
+      NEXT_PUBLIC_SITE_URL: 'https://biddy-web-abc123-biddy.vercel.app',
+      NEXT_PUBLIC_APP_RELEASE: 'f00dcafe',
+    });
+  });
+
+  it('produkcja Vercel i lokalnie: środowisko i adres tylko ze zmiennych NEXT_PUBLIC_*', () => {
+    expect(platformDefaults({ ...preview, VERCEL_ENV: 'production' })).toEqual({
+      NEXT_PUBLIC_ENVIRONMENT: undefined,
+      NEXT_PUBLIC_SITE_URL: undefined,
+      NEXT_PUBLIC_APP_RELEASE: 'f00dcafe',
+    });
+    expect(Object.values(platformDefaults({})).every((value) => value === undefined)).toBe(true);
+  });
+
+  it('jawne NEXT_PUBLIC_* wygrywają, puste wartości nie', () => {
+    const defaults = platformDefaults(preview);
+    vi.stubEnv('NEXT_PUBLIC_ENVIRONMENT', '');
+    vi.stubEnv('NEXT_PUBLIC_APP_RELEASE', 'web@1.0.0');
+    try {
+      expect(publicEnvInput(defaults)).toMatchObject({
+        NEXT_PUBLIC_ENVIRONMENT: 'preview',
+        NEXT_PUBLIC_APP_RELEASE: 'web@1.0.0',
+      });
+      expect(
+        parsePublicEnv({
+          ...publicEnvInput(defaults),
+          NEXT_PUBLIC_API_URL: 'https://api.staging.biddy.pl',
+        }),
+      ).toMatchObject({
+        environment: 'preview',
+        siteUrl: 'https://biddy-web-abc123-biddy.vercel.app',
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

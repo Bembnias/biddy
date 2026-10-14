@@ -1571,7 +1571,7 @@ Odpowiedzi nie blokują Etapów 0–1. Do czasu ich otrzymania obowiązują decy
 ### 18.2 CI/CD (GitHub Actions)
 
 - **Na każdy PR:** lint, typecheck, testy jednostkowe i integracyjne (Testcontainers), build zmienionych pakietów (Turborepo), sprawdzenie, czy wygenerowany klient API jest aktualny, Playwright smoke na preview.
-- **Merge do `main`:** deploy na staging. Migracje bazy (drizzle-kit) uruchamia osobny krok **przed** deployem nowej wersji, migracje są wstecznie kompatybilne (expand → contract).
+- **Merge do `main`:** deploy na staging. Render wdraża API i workera dopiero po zielonych checkach CI na commicie (`autoDeployTrigger: checksPass`), Vercel buduje web. Migracje bazy uruchamia osobny krok **przed** startem nowej wersji (`preDeployCommand`); nieudana migracja przerywa deploy, a poprzednia wersja działa dalej. Migracje są wstecznie kompatybilne (expand → contract). Runbook: [deployment.md](deployment.md).
 - **Release na produkcję:** tag lub ręczne zatwierdzenie.
 - **Mobile:** EAS Build na tagach. EAS Update dla poprawek JS z kanałami `preview` i `production`.
 
@@ -1805,6 +1805,9 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 44 | E-maile transakcyjne przez kolejkę `emails` w workerze (Resend na produkcji, SMTP lokalnie); job z linkiem z tokenem znika po wysłaniu | Przyjęta | §11.2 |
 | 45 | Weryfikacja telefonu własnymi endpointami `/v1/me/phone-verification` zamiast wtyczki telefonu Better Auth (bez logowania numerem, z limitami per numer i IP, w OpenAPI); SMS wysyłany synchronicznie (SMSAPI), bez kolejki | Przyjęta | §4, §16.1 |
 | 46 | Licytowanie i wystawianie za `@RequireVerifiedPhone()`: potwierdzony e-mail, oświadczenie 18+ i zweryfikowany telefon (1 numer = 1 konto, tylko numery polskie w MVP) | Przyjęta | §4, §16.2 |
+| 47 | API i worker jako jeden obraz Docker (`apps/api/Dockerfile`, `turbo prune`), migracje jako `preDeployCommand` obu usług; staging z Blueprintu Render (`render.yaml`) wdrażany z `main` po zielonym CI (`checksPass`) | Przyjęta | §11.6, §18.2 |
+| 48 | Staging: `staging.biddy.pl` (Vercel, środowisko Production projektu) i `api.staging.biddy.pl` (Render); preview Vercel na API stagingu, bez sesji (CORS i ciasteczko tylko dla `staging.biddy.pl`) | Tymczasowa | §18.1 |
+| 49 | Wersja (release) w Sentry i `/health` to SHA commita z platformy (`RENDER_GIT_COMMIT`, `VERCEL_GIT_COMMIT_SHA`) | Przyjęta | §18.3 |
 
 ---
 
