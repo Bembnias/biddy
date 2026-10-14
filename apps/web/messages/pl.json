@@ -100,12 +100,18 @@
       "email": "Podaj poprawny adres e-mail.",
       "passwordMin": "Hasło musi mieć co najmniej 10 znaków.",
       "passwordMax": "Hasło może mieć najwyżej 128 znaków.",
-      "name": "Podaj imię wyświetlane (2–60 znaków).",
       "terms": "Zaakceptuj regulamin i politykę prywatności.",
       "adult": "Konto mogą założyć tylko osoby pełnoletnie.",
       "passwordsDiffer": "Hasła nie są takie same.",
       "phone": "Podaj polski numer komórkowy, np. 500 600 700.",
-      "code": "Wpisz 6 cyfr kodu z SMS-a."
+      "code": "Wpisz 6 cyfr kodu z SMS-a.",
+      "nameLength": "Imię wyświetlane musi mieć od 2 do 60 znaków.",
+      "nameCharacters": "Imię wyświetlane może zawierać litery, cyfry, spacje, kropkę, myślnik, podkreślnik i apostrof.",
+      "nameContact": "Imię wyświetlane nie może zawierać numeru telefonu ani adresu strony.",
+      "recipientName": "Podaj imię i nazwisko albo nazwę firmy (2–100 znaków).",
+      "street": "Podaj ulicę z numerem (2–100 znaków).",
+      "postalCode": "Podaj kod pocztowy w formacie 00-000.",
+      "city": "Podaj miasto (2–60 znaków)."
     },
     "fields": {
       "name": "Imię wyświetlane",
@@ -221,10 +227,74 @@
       "verifyPhone": "Zweryfikuj numer",
       "changePhone": "Zmień numer",
       "memberSince": "Konto od",
+      "profileSection": "Profil i adresy",
+      "editProfile": "Edytuj profil",
+      "addresses": "Adresy",
+      "viewPublicProfile": "Zobacz swój profil publiczny",
       "signOut": "Wyloguj się",
       "signOutEverywhere": "Wyloguj ze wszystkich urządzeń",
       "signOutEverywhereHint": "Np. po zgubieniu telefonu. Wylogujemy też aplikację mobilną."
     },
     "genericError": "Coś poszło nie tak. Spróbuj ponownie za chwilę."
+  },
+  "profile": {
+    "settings": {
+      "metaTitle": "Edycja profilu",
+      "title": "Edycja profilu",
+      "text": "Imię wyświetlane widzą inni użytkownicy, np. przy ofertach i na Twoim profilu.",
+      "nameLabel": "Imię wyświetlane",
+      "nameHint": "2–60 znaków, bez numeru telefonu i adresu strony.",
+      "submit": "Zapisz",
+      "pending": "Zapisywanie…",
+      "saved": "Zapisano.",
+      "viewPublic": "Zobacz profil publiczny",
+      "back": "Wróć do konta"
+    },
+    "public": {
+      "metaDescription": "Profil użytkownika {name} na Biddy: aukcje i oceny.",
+      "memberSince": "Na Biddy od {date}",
+      "phoneVerified": "Zweryfikowany telefon",
+      "activeAuctions": "Aktywne aukcje",
+      "noActiveAuctions": "Brak aktywnych aukcji.",
+      "ratings": "Oceny",
+      "noRatings": "Oceny pojawią się po pierwszych transakcjach."
+    },
+    "avatarLabel": "Zdjęcie profilowe: {name}"
+  },
+  "addresses": {
+    "metaTitle": "Adresy",
+    "title": "Adresy",
+    "text": "Adres domyślny dostawy podpowiemy przy zakupie, a domyślny adres nadania przy wysyłce paczki.",
+    "add": "Dodaj adres",
+    "empty": "Nie masz jeszcze adresów.",
+    "defaultDelivery": "Domyślny adres dostawy",
+    "defaultSender": "Domyślny adres nadania",
+    "edit": "Edytuj",
+    "setDefault": "Ustaw jako domyślny do dostawy",
+    "setSenderDefault": "Ustaw jako domyślny do nadania",
+    "delete": "Usuń",
+    "deleteTitle": "Usunąć adres?",
+    "deleteText": "Adres {address} zniknie z listy. Zamówienia, które już go użyły, nie zmienią się.",
+    "deleteConfirm": "Usuń adres",
+    "cancel": "Anuluj",
+    "limit": "Możesz zapisać najwyżej {max} adresów.",
+    "back": "Wróć do konta",
+    "form": {
+      "newTitle": "Nowy adres",
+      "editTitle": "Edycja adresu",
+      "recipientName": "Imię i nazwisko albo firma",
+      "street": "Ulica i numer",
+      "streetHint": "Np. ul. Długa 5/12",
+      "postalCode": "Kod pocztowy",
+      "city": "Miasto",
+      "phone": "Telefon",
+      "phoneHint": "Przewoźnik wyśle na niego powiadomienie o paczce.",
+      "country": "Kraj: Polska",
+      "isDefault": "Domyślny adres dostawy",
+      "isSenderDefault": "Domyślny adres nadania",
+      "submit": "Zapisz adres",
+      "pending": "Zapisywanie…",
+      "cancel": "Anuluj"
+    }
   }
 }

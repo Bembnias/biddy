@@ -39,6 +39,54 @@
         "tags": [
           "me"
         ]
+      },
+      "patch": {
+        "operationId": "updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Zalogowany użytkownik po zmianie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zmiana profilu (imię wyświetlane)",
+        "tags": [
+          "me"
+        ]
       }
     },
     "/v1/me/terms-acceptances": {
@@ -251,6 +299,244 @@
         ]
       }
     },
+    "/v1/me/addresses": {
+      "get": {
+        "operationId": "getMyAddresses",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Adresy (najpierw domyślny)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AddressDto"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Adresy zalogowanego użytkownika",
+        "tags": [
+          "me"
+        ]
+      },
+      "post": {
+        "description": "Pierwszy adres staje się domyślny do dostawy i nadania. Najwyżej 10 adresów (409 ADDRESS_LIMIT_REACHED).",
+        "operationId": "createAddress",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Zapisany adres",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nowy adres",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/addresses/{id}": {
+      "patch": {
+        "operationId": "updateAddress",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAddressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Zmieniony adres",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zmiana adresu albo ustawienie go jako domyślnego",
+        "tags": [
+          "me"
+        ]
+      },
+      "delete": {
+        "description": "Usunięcie domyślnego adresu nie wybiera nowego domyślnego.",
+        "operationId": "deleteAddress",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Adres usunięty"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Usunięcie adresu",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "operationId": "getPublicProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profil publiczny",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProfileDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Profil publiczny użytkownika",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/v1/time": {
       "get": {
         "operationId": "getServerTime",
@@ -374,6 +660,19 @@
           "createdAt"
         ],
         "additionalProperties": false
+      },
+      "UpdateMeDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Imię wyświetlane (2–60 znaków, bez danych kontaktowych)"
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "AcceptTermsDto": {
         "type": "object",
@@ -536,6 +835,189 @@
         "required": [
           "phoneNumber",
           "verifiedAt"
+        ],
+        "additionalProperties": false
+      },
+      "AddressDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "recipientName": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "enum": [
+              "PL"
+            ]
+          },
+          "phone": {
+            "type": "string",
+            "format": "e164",
+            "pattern": "^\\+[1-9]\\d{6,14}$"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Domyślny adres dostawy"
+          },
+          "isSenderDefault": {
+            "type": "boolean",
+            "description": "Domyślny adres nadania"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "recipientName",
+          "street",
+          "postalCode",
+          "city",
+          "country",
+          "phone",
+          "isDefault",
+          "isSenderDefault",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "CreateAddressDto": {
+        "type": "object",
+        "properties": {
+          "recipientName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "description": "Imię i nazwisko albo nazwa firmy"
+          },
+          "street": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "description": "Ulica z numerem domu i lokalu"
+          },
+          "postalCode": {
+            "type": "string",
+            "maxLength": 10,
+            "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+          },
+          "city": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Telefon odbiorcy dla przewoźnika (polski numer komórkowy)"
+          },
+          "isDefault": {
+            "description": "Domyślny adres dostawy",
+            "type": "boolean"
+          },
+          "isSenderDefault": {
+            "description": "Domyślny adres nadania",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "recipientName",
+          "street",
+          "postalCode",
+          "city",
+          "phone"
+        ]
+      },
+      "UpdateAddressDto": {
+        "type": "object",
+        "properties": {
+          "recipientName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "description": "Imię i nazwisko albo nazwa firmy"
+          },
+          "street": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "description": "Ulica z numerem domu i lokalu"
+          },
+          "postalCode": {
+            "type": "string",
+            "maxLength": 10,
+            "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+          },
+          "city": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Telefon odbiorcy dla przewoźnika (polski numer komórkowy)"
+          },
+          "isDefault": {
+            "description": "Ustawia adres jako domyślny do dostawy (poprzedni traci flagę)",
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "isSenderDefault": {
+            "description": "Ustawia adres jako domyślny do nadania (poprzedni traci flagę)",
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        }
+      },
+      "PublicProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Imię wyświetlane"
+          },
+          "memberSince": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Data założenia konta"
+          },
+          "phoneVerified": {
+            "type": "boolean",
+            "description": "Czy konto ma zweryfikowany numer telefonu"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "memberSince",
+          "phoneVerified"
         ],
         "additionalProperties": false
       },

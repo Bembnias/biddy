@@ -29,6 +29,13 @@
       "when": 1791917707424,
       "tag": "0003_phone_verification",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791991496496,
+      "tag": "0004_addresses",
+      "breakpoints": true
     }
   ]
 }

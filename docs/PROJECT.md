@@ -1210,7 +1210,7 @@ erDiagram
 | `terms_acceptances` | id, user_id, document (`TERMS`/`PRIVACY`), version, accepted_at, ip |
 | `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, order_id, auction_id, issued_by (system/admin), statement_of_reasons, expires_at, appeal_status, revoked_at, created_at |
 | `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider). |
-| `addresses` | id, user_id, name, street, city, postal_code, country, phone, is_default, is_sender_default |
+| `addresses` | id, user_id, recipient_name, street, postal_code, city, country, phone, is_default, is_sender_default (moduł `identity`; najwyżej jeden domyślny adres dostawy i nadania na konto, F-10) |
 | `payment_methods` (v1) | id, user_id, provider_ref, type, brand, last4, is_default (tylko referencje/tokeny operatora, **żadnych danych kart**) |
 | `devices` | id, user_id, platform (`WEB`/`IOS`/`ANDROID`), push_token (Expo), web_push_subscription (jsonb: endpoint, klucze), fingerprint, last_seen_at |
 | `user_follows` | follower_id, seller_id, created_at (obserwowani sprzedawcy) |
@@ -1283,8 +1283,8 @@ POST   /me/phone-verification      { phoneNumber } → SMS z kodem      POST /me
 
 # Użytkownicy
 GET    /me                         PATCH /me
-GET    /users/:id                  (profil publiczny, oceny)
-CRUD   /me/addresses
+GET    /users/:id                  (profil publiczny: imię, data dołączenia, znaczek telefonu; oceny w F-30)
+GET    /me/addresses               POST /me/addresses           PATCH|DELETE /me/addresses/:id
 POST   /me/terms-acceptances       (akceptacja aktualnej wersji regulaminu / polityki)
 POST   /me/seller-onboarding       → rejestracja sprzedawcy i KYC u operatora
 GET    /me/balance                 POST /me/payouts             PATCH /me/payout-settings
@@ -1808,6 +1808,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 47 | API i worker jako jeden obraz Docker (`apps/api/Dockerfile`, `turbo prune`), migracje jako `preDeployCommand` obu usług; staging z Blueprintu Render (`render.yaml`) wdrażany z `main` po zielonym CI (`checksPass`) | Przyjęta | §11.6, §18.2 |
 | 48 | Staging: `staging.biddy.pl` (Vercel, środowisko Production projektu) i `api.staging.biddy.pl` (Render); preview Vercel na API stagingu, bez sesji (CORS i ciasteczko tylko dla `staging.biddy.pl`) | Tymczasowa | §18.1 |
 | 49 | Wersja (release) w Sentry i `/health` to SHA commita z platformy (`RENDER_GIT_COMMIT`, `VERCEL_GIT_COMMIT_SHA`) | Przyjęta | §18.3 |
+| 50 | Adresy w module `identity` (dane użytkownika); zamówienia i przesyłki kopiują adres, więc edycja nie zmienia historii. Zmiana profilu tylko przez `PATCH /v1/me` (trasa Better Auth `/update-user` zablokowana), reguły imienia wyświetlanego wspólne w `@biddy/shared` | Przyjęta | §10.3, §13.3 |
+| 51 | Web: szkielet ładowania (`loading.tsx`) tylko w segmentach konta; strony publiczne renderują się w całości przed odpowiedzią, żeby `notFound()` dawało prawdziwe 404 (SEO profili i aukcji) | Przyjęta | §11.3 |
 
 ---
 

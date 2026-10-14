@@ -85,6 +85,11 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Kod nieaktywny',
     detail: 'Kod wygasł albo wykorzystano limit prób. Wyślij nowy kod.',
   },
+  ADDRESS_LIMIT_REACHED: {
+    status: 409,
+    title: 'Limit adresów',
+    detail: 'Możesz zapisać najwyżej 10 adresów. Usuń adres, którego nie używasz.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

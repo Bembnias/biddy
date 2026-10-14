@@ -30,12 +30,16 @@ import type {
 
 import type {
   AcceptTermsDto,
+  AddressDto,
   ConfirmPhoneVerificationDto,
+  CreateAddressDto,
   MeDto,
   PhoneVerificationDto,
   ProblemDetails,
   SessionDto,
   StartPhoneVerificationDto,
+  UpdateAddressDto,
+  UpdateMeDto,
   VerifiedPhoneDto
 } from '../model';
 
@@ -217,7 +221,94 @@ export function useGetMeSuspense<TData = Awaited<ReturnType<typeof getMe>>, TErr
 
 
 
-export const getAcceptTermsUrl = () => {
+export const getUpdateMeUrl = () => {
+
+
+
+
+  return `/v1/me`
+}
+
+/**
+ * @summary Zmiana profilu (imię wyświetlane)
+ */
+export const updateMe = async (updateMeDto: UpdateMeDto, options?: Parameters<typeof apiFetch>[1]): Promise<MeDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<MeDto>(getUpdateMeUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateMeDto)
+  }
+);}
+
+
+
+
+
+export const getUpdateMeMutationKey = () => ['updateMe'] as const;
+
+export const getUpdateMeMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMe>>, TError,UpdateMeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMe>>, TError,UpdateMeMutationVariables, TContext> => {
+
+const mutationKey = getUpdateMeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMe>>, UpdateMeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMe(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMeMutationResult = NonNullable<Awaited<ReturnType<typeof updateMe>>>
+    export type UpdateMeMutationBody = BodyType<UpdateMeDto>
+    export type UpdateMeMutationError = ErrorType<ProblemDetails>
+    export type UpdateMeMutationVariables = {data: BodyType<UpdateMeDto>}
+
+    /**
+ * @summary Zmiana profilu (imię wyświetlane)
+ */
+export const useUpdateMe = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMe>>, TError,UpdateMeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateMe>>,
+        TError,
+        UpdateMeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateMeMutationOptions(options), queryClient);
+    }
+    export const getAcceptTermsUrl = () => {
 
 
 
@@ -635,4 +726,409 @@ export const useConfirmPhoneVerification = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getConfirmPhoneVerificationMutationOptions(options), queryClient);
+    }
+    export const getGetMyAddressesUrl = () => {
+
+
+
+
+  return `/v1/me/addresses`
+}
+
+/**
+ * @summary Adresy zalogowanego użytkownika
+ */
+export const getMyAddresses = async ( options?: Parameters<typeof apiFetch>[1]): Promise<AddressDto[]> => {
+
+  return apiFetch<AddressDto[]>(getGetMyAddressesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyAddressesQueryKey = () => {
+    return [
+    `/v1/me/addresses`
+    ] as const;
+    }
+
+
+export const getGetMyAddressesQueryOptions = <TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAddressesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAddresses>>> = ({ signal }) => getMyAddresses({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyAddressesQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAddresses>>>
+export type GetMyAddressesQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyAddresses<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAddresses>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAddresses>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAddresses<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAddresses>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAddresses>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAddresses<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Adresy zalogowanego użytkownika
+ */
+
+export function useGetMyAddresses<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyAddressesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyAddressesSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAddressesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAddresses>>> = ({ signal }) => getMyAddresses({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyAddressesSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAddresses>>>
+export type GetMyAddressesSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyAddressesSuspense<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAddressesSuspense<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAddressesSuspense<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Adresy zalogowanego użytkownika
+ */
+
+export function useGetMyAddressesSuspense<TData = Awaited<ReturnType<typeof getMyAddresses>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAddresses>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyAddressesSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getCreateAddressUrl = () => {
+
+
+
+
+  return `/v1/me/addresses`
+}
+
+/**
+ * Pierwszy adres staje się domyślny do dostawy i nadania. Najwyżej 10 adresów (409 ADDRESS_LIMIT_REACHED).
+ * @summary Nowy adres
+ */
+export const createAddress = async (createAddressDto: CreateAddressDto, options?: Parameters<typeof apiFetch>[1]): Promise<AddressDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<AddressDto>(getCreateAddressUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createAddressDto)
+  }
+);}
+
+
+
+
+
+export const getCreateAddressMutationKey = () => ['createAddress'] as const;
+
+export const getCreateAddressMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAddress>>, TError,CreateAddressMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAddress>>, TError,CreateAddressMutationVariables, TContext> => {
+
+const mutationKey = getCreateAddressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAddress>>, CreateAddressMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAddress(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAddressMutationResult = NonNullable<Awaited<ReturnType<typeof createAddress>>>
+    export type CreateAddressMutationBody = BodyType<CreateAddressDto>
+    export type CreateAddressMutationError = ErrorType<ProblemDetails>
+    export type CreateAddressMutationVariables = {data: BodyType<CreateAddressDto>}
+
+    /**
+ * @summary Nowy adres
+ */
+export const useCreateAddress = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAddress>>, TError,CreateAddressMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createAddress>>,
+        TError,
+        CreateAddressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAddressMutationOptions(options), queryClient);
+    }
+    export const getUpdateAddressUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/addresses/${id}`
+}
+
+/**
+ * @summary Zmiana adresu albo ustawienie go jako domyślnego
+ */
+export const updateAddress = async (id: string,
+    updateAddressDto: UpdateAddressDto, options?: Parameters<typeof apiFetch>[1]): Promise<AddressDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<AddressDto>(getUpdateAddressUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateAddressDto)
+  }
+);}
+
+
+
+
+
+export const getUpdateAddressMutationKey = () => ['updateAddress'] as const;
+
+export const getUpdateAddressMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAddress>>, TError,UpdateAddressMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAddress>>, TError,UpdateAddressMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAddressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAddress>>, UpdateAddressMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAddress(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAddressMutationResult = NonNullable<Awaited<ReturnType<typeof updateAddress>>>
+    export type UpdateAddressMutationBody = BodyType<UpdateAddressDto>
+    export type UpdateAddressMutationError = ErrorType<ProblemDetails>
+    export type UpdateAddressMutationVariables = {id: string;data: BodyType<UpdateAddressDto>}
+
+    /**
+ * @summary Zmiana adresu albo ustawienie go jako domyślnego
+ */
+export const useUpdateAddress = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAddress>>, TError,UpdateAddressMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateAddress>>,
+        TError,
+        UpdateAddressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAddressMutationOptions(options), queryClient);
+    }
+    export const getDeleteAddressUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/addresses/${id}`
+}
+
+/**
+ * Usunięcie domyślnego adresu nie wybiera nowego domyślnego.
+ * @summary Usunięcie adresu
+ */
+export const deleteAddress = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getDeleteAddressUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAddressMutationKey = () => ['deleteAddress'] as const;
+
+export const getDeleteAddressMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAddress>>, TError,DeleteAddressMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAddress>>, TError,DeleteAddressMutationVariables, TContext> => {
+
+const mutationKey = getDeleteAddressMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAddress>>, DeleteAddressMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteAddress(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAddressMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAddress>>>
+
+    export type DeleteAddressMutationError = ErrorType<ProblemDetails>
+    export type DeleteAddressMutationVariables = {id: string}
+
+    /**
+ * @summary Usunięcie adresu
+ */
+export const useDeleteAddress = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAddress>>, TError,DeleteAddressMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAddress>>,
+        TError,
+        DeleteAddressMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteAddressMutationOptions(options), queryClient);
     }

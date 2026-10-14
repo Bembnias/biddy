@@ -1,5 +1,7 @@
 // Walidacja formularzy kont (react-hook-form + Zod, PROJECT.md §11.3). Komunikaty z next-intl,
-// reguły jak w API (hasło 10–128 znaków, e-mail, regulamin i 18+, telefon i kod SMS).
+// reguły jak w API (hasło 10–128 znaków, e-mail, imię wyświetlane i kod pocztowy z
+// @biddy/shared, regulamin i 18+, telefon i kod SMS).
+import { type DisplayNameIssue, displayNameIssue, normalizePostalCode } from '@biddy/shared';
 import { z } from 'zod';
 
 /** Tłumaczenie z sekcji `auth.validation` komunikatów. */
@@ -8,12 +10,18 @@ export type ValidationMessages = (
     | 'email'
     | 'passwordMin'
     | 'passwordMax'
-    | 'name'
+    | 'nameLength'
+    | 'nameCharacters'
+    | 'nameContact'
     | 'terms'
     | 'adult'
     | 'passwordsDiffer'
     | 'phone'
-    | 'code',
+    | 'code'
+    | 'recipientName'
+    | 'street'
+    | 'postalCode'
+    | 'city',
 ) => string;
 
 export const PASSWORD_MIN_LENGTH = 10;
@@ -33,13 +41,33 @@ function password(t: ValidationMessages) {
     .max(PASSWORD_MAX_LENGTH, t('passwordMax'));
 }
 
+const NAME_MESSAGE_KEYS: Readonly<Record<DisplayNameIssue, Parameters<ValidationMessages>[0]>> = {
+  length: 'nameLength',
+  characters: 'nameCharacters',
+  contact: 'nameContact',
+};
+
+/** Imię wyświetlane: reguły z @biddy/shared (te same w API), komunikat z next-intl. */
+function displayName(t: ValidationMessages) {
+  return z.string().superRefine((value, ctx) => {
+    const issue = displayNameIssue(value);
+    if (issue !== undefined) {
+      ctx.addIssue({ code: 'custom', message: t(NAME_MESSAGE_KEYS[issue]) });
+    }
+  });
+}
+
+export function profileSchema(t: ValidationMessages) {
+  return z.object({ name: displayName(t) });
+}
+
 export function signInSchema(t: ValidationMessages) {
   return z.object({ email: email(t), password: z.string().min(1, t('passwordMin')) });
 }
 
 export function signUpSchema(t: ValidationMessages) {
   return z.object({
-    name: z.string().trim().min(2, t('name')).max(60, t('name')),
+    name: displayName(t),
     email: email(t),
     password: password(t),
     acceptTerms: z.boolean().refine((accepted) => accepted, t('terms')),
@@ -90,5 +118,18 @@ export function phoneCodeSchema(t: ValidationMessages) {
       .string()
       .trim()
       .regex(new RegExp(`^\\d{${PHONE_CODE_LENGTH}}$`), t('code')),
+  });
+}
+
+/** Adres dostawy albo nadania (reguły jak w API: POST /v1/me/addresses). */
+export function addressSchema(t: ValidationMessages) {
+  return z.object({
+    recipientName: z.string().trim().min(2, t('recipientName')).max(100, t('recipientName')),
+    street: z.string().trim().min(2, t('street')).max(100, t('street')),
+    postalCode: z
+      .string()
+      .refine((value) => normalizePostalCode(value) !== undefined, t('postalCode')),
+    city: z.string().trim().min(2, t('city')).max(60, t('city')),
+    phone: z.string().refine((value) => polishPhoneDigits(value) !== undefined, t('phone')),
   });
 }

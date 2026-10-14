@@ -7,16 +7,22 @@
  */
 
 export * from './acceptTermsDto';
+export * from './addressDto';
+export * from './addressDtoCountry';
 export * from './authOptionsDto';
 export * from './authOptionsDtoSocialProvidersItem';
 export * from './confirmPhoneVerificationDto';
+export * from './createAddressDto';
 export * from './meDto';
 export * from './meDtoStaffRole';
 export * from './phoneVerificationDto';
 export * from './problemDetails';
 export * from './problemDetailsErrorsItem';
+export * from './publicProfileDto';
 export * from './serverTimeDto';
 export * from './sessionDto';
 export * from './sessionDtoUser';
 export * from './startPhoneVerificationDto';
+export * from './updateAddressDto';
+export * from './updateMeDto';
 export * from './verifiedPhoneDto';

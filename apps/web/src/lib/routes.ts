@@ -12,6 +12,9 @@ export const routes = {
   acceptTerms: '/akceptacja-regulaminu',
   verifyPhone: '/weryfikacja-telefonu',
   account: '/konto',
+  profileSettings: '/konto/profil',
+  addresses: '/konto/adresy',
+  newAddress: '/konto/adresy/nowy',
   about: '/o-nas',
   contact: '/kontakt',
   helpCenter: '/pomoc',
@@ -21,6 +24,16 @@ export const routes = {
   terms: '/regulamin',
   privacy: '/polityka-prywatnosci',
 } as const;
+
+/** Profil publiczny użytkownika (F-10). */
+export function publicProfileUrl(userId: string): string {
+  return `/u/${userId}`;
+}
+
+/** Edycja adresu (F-10). */
+export function editAddressUrl(addressId: string): string {
+  return `${routes.addresses}/${addressId}`;
+}
 
 /** Adres wyszukiwarki z frazą, np. `/szukaj?q=retro+gaming`. */
 export function searchUrl(query: string): string {

@@ -1,6 +1,10 @@
 // Atrapa API dla renderowania na serwerze w testach e2e: Next.js woła ją z Server Components
 // (API_INTERNAL_URL w playwright.config.ts). Żądania przeglądarki do API przechwytuje
 // page.route (e2e/support.ts). Uruchamia ją Playwright: `node e2e/mock-api.ts`.
+//
+// Sesja to wartość ciasteczka z SESSIONS, opcjonalnie z sufiksem testu (`…-test-1`): każdy test
+// ma wtedy własny stan adresów (testy działają równolegle). Stan ustawia test przez
+// PUT /__e2e/addresses?session=… (e2e/support.ts, setSsrAddresses).
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
 
 /** Port atrapy (Playwright podaje go też Next.js jako API_INTERNAL_URL). */
@@ -65,14 +69,66 @@ function problem(status: number, code: string, detail: string, instance: string)
   };
 }
 
-function handle(request: IncomingMessage, response: ServerResponse): void {
-  const path = new URL(request.url ?? '/', 'http://atrapa').pathname;
+/** Adresy (DTO z API) według pełnej wartości ciasteczka sesji. */
+const addressesBySession = new Map<string, unknown[]>();
+
+/** Rodzaj sesji z wartości ciasteczka (najdłuższy pasujący prefiks z SESSIONS). */
+function sessionKind(session: string | undefined): string | undefined {
+  if (session === undefined) {
+    return undefined;
+  }
+  return Object.values(SESSIONS)
+    .filter((kind) => session === kind || session.startsWith(`${kind}-`))
+    .sort((left, right) => right.length - left.length)[0];
+}
+
+async function readJson(request: IncomingMessage): Promise<unknown> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(chunk as Buffer);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
+}
+
+async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  const url = new URL(request.url ?? '/', 'http://atrapa');
+  const path = url.pathname;
   if (path === '/health') {
     send(response, 200, { status: 'ok' });
     return;
   }
+  if (request.method === 'PUT' && path === '/__e2e/addresses') {
+    addressesBySession.set(
+      url.searchParams.get('session') ?? '',
+      (await readJson(request)) as unknown[],
+    );
+    send(response, 200, { ok: true });
+    return;
+  }
+  const session = cookieValue(request, SESSION_COOKIE);
+  if (request.method === 'GET' && path === '/v1/me/addresses') {
+    if (sessionKind(session) === undefined) {
+      send(response, 401, problem(401, 'UNAUTHORIZED', 'Zaloguj się.', path));
+      return;
+    }
+    send(response, 200, addressesBySession.get(session ?? '') ?? []);
+    return;
+  }
+  const profile = /^\/v1\/users\/([^/]+)$/.exec(path);
+  if (request.method === 'GET' && profile !== null) {
+    if (profile[1] === MEMBER.id) {
+      send(response, 200, {
+        id: MEMBER.id,
+        name: MEMBER.name,
+        memberSince: MEMBER.createdAt,
+        phoneVerified: true,
+      });
+      return;
+    }
+    send(response, 404, problem(404, 'NOT_FOUND', 'Nie znaleziono profilu.', path));
+    return;
+  }
   if (request.method === 'GET' && path === '/v1/me') {
-    const session = cookieValue(request, SESSION_COOKIE);
     const me = {
       [SESSIONS.member]: { ...MEMBER, termsAccepted: true },
       [SESSIONS.withoutTerms]: { ...MEMBER, termsAccepted: false },
@@ -84,7 +140,7 @@ function handle(request: IncomingMessage, response: ServerResponse): void {
         phoneNumber: MEMBER_PHONE,
         phoneVerified: true,
       },
-    }[session ?? ''];
+    }[sessionKind(session) ?? ''];
     if (me !== undefined) {
       send(response, 200, me);
       return;
@@ -96,7 +152,12 @@ function handle(request: IncomingMessage, response: ServerResponse): void {
 }
 
 if (import.meta.main) {
-  createServer(handle).listen(MOCK_API_PORT, '127.0.0.1', () => {
+  createServer((request, response) => {
+    handle(request, response).catch((error: unknown) => {
+      console.error(error);
+      send(response, 500, problem(500, 'INTERNAL_ERROR', 'Błąd atrapy API.', request.url ?? '/'));
+    });
+  }).listen(MOCK_API_PORT, '127.0.0.1', () => {
     console.log(`Atrapa API e2e: http://127.0.0.1:${MOCK_API_PORT}`);
   });
 }

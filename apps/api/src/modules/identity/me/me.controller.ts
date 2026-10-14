@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, HttpCode, Inject, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Inject, Patch, Post, Req } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 import { ZodResponse, createZodDto } from 'nestjs-zod';
@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { APP_CONFIG, type AppConfig } from '../../../infra/config/index.js';
 import { PASSWORD_MIN_LENGTH } from '../auth/auth.js';
 import { STAFF_ROLES } from '../db/identity.schema.js';
+import { ProfileService, displayNameField } from '../profile/profile.service.js';
 import { CurrentUser, RequireSession, SessionReader } from '../session/session.guard.js';
 import type { AuthenticatedUser } from '../session/session.js';
 import { TermsService } from '../terms/terms.service.js';
@@ -42,10 +43,15 @@ export class AcceptTermsDto extends createZodDto(
   }),
 ) {}
 
+export class UpdateMeDto extends createZodDto(z.object({ name: displayNameField() })) {}
+
 @ApiTags('me')
 @Controller('me')
 export class MeController {
-  constructor(private readonly terms: TermsService) {}
+  constructor(
+    private readonly terms: TermsService,
+    private readonly profiles: ProfileService,
+  ) {}
 
   @Get()
   @RequireSession()
@@ -53,6 +59,23 @@ export class MeController {
   @ApiOperation({ summary: 'Zalogowany użytkownik' })
   @ZodResponse({ status: 200, description: 'Zalogowany użytkownik', type: MeDto })
   async getMe(@CurrentUser() user: AuthenticatedUser): Promise<MeDto> {
+    return this.toMeDto(user);
+  }
+
+  @Patch()
+  @RequireSession()
+  @Header('cache-control', 'no-store')
+  @ApiOperation({ summary: 'Zmiana profilu (imię wyświetlane)' })
+  @ZodResponse({ status: 200, description: 'Zalogowany użytkownik po zmianie', type: MeDto })
+  async updateMe(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: UpdateMeDto,
+  ): Promise<MeDto> {
+    const name = await this.profiles.rename(user.id, body.name);
+    return this.toMeDto({ ...user, name });
+  }
+
+  private async toMeDto(user: AuthenticatedUser): Promise<MeDto> {
     return {
       id: user.id,
       name: user.name,

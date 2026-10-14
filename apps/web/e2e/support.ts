@@ -8,7 +8,7 @@ import {
   expect,
 } from '@playwright/test';
 
-import { SESSION_COOKIE } from './mock-api';
+import { MOCK_API_PORT, SESSION_COOKIE } from './mock-api';
 
 /** Adres API, z którym rozmawia przeglądarka (domyślna konfiguracja buildu, src/env.ts). */
 export const BROWSER_API_URL = 'http://localhost:3001';
@@ -162,7 +162,8 @@ export async function settle(page: Page): Promise<void> {
       document
         .getAnimations()
         .filter((animation) => animation instanceof CSSTransition)
-        .map((animation) => animation.finished),
+        // Przerwane przejście (np. nowy stan przycisku) odrzuca `finished`: wtedy już się skończyło.
+        .map((animation) => animation.finished.catch(() => undefined)),
     ),
   );
 }
@@ -206,4 +207,19 @@ export async function gotoHydrated(page: Page, url: string): Promise<void> {
   const hydrated = page.waitForRequest((request) => request.url().endsWith('/v1/time'));
   await page.goto(url);
   await hydrated;
+}
+
+/**
+ * Stan adresów w atrapie SSR (e2e/mock-api.ts) dla sesji testu: strona /konto/adresy renderuje
+ * się na serwerze, więc po zmianie w przeglądarce (router.refresh) musi zobaczyć nowy stan.
+ */
+export async function setSsrAddresses(
+  session: string,
+  addresses: readonly unknown[],
+): Promise<void> {
+  const response = await fetch(
+    `http://127.0.0.1:${MOCK_API_PORT}/__e2e/addresses?${new URLSearchParams({ session }).toString()}`,
+    { method: 'PUT', body: JSON.stringify(addresses) },
+  );
+  expect(response.ok).toBe(true);
 }

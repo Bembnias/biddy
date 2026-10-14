@@ -382,6 +382,8 @@ flowchart TD
 
 ### F-10 · Profil i adresy · `S`
 
+> Pełny spec: [docs/features/F-10-profil-i-adresy.md](features/F-10-profil-i-adresy.md).
+
 **Cel:** użytkownik zarządza swoim profilem i adresami dostaw.
 
 **Zakres:**

@@ -1,6 +1,6 @@
 // Tabele modułu identity: konta i sesje Better Auth (users, sessions, accounts, verifications),
-// limit zapytań Better Auth (rate_limits), akceptacje regulaminu, nieudane logowania
-// i weryfikacje numeru telefonu (F-08).
+// limit zapytań Better Auth (rate_limits), akceptacje regulaminu, nieudane logowania,
+// weryfikacje numeru telefonu (F-08) i adresy (F-10).
 // ID to UUIDv7 nadawane przez aplikację (ADR-10, advanced.database.generateId w auth.ts).
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts).
@@ -198,3 +198,48 @@ export const phoneVerifications = pgTable(
 );
 
 export type PhoneVerification = typeof phoneVerifications.$inferSelect;
+
+/** Kraje adresów (MVP: Polska, przewoźnicy krajowi). */
+export const ADDRESS_COUNTRIES = ['PL'] as const;
+export type AddressCountry = (typeof ADDRESS_COUNTRIES)[number];
+
+/**
+ * Adresy użytkownika (F-10): dostawy i nadania. Najwyżej jeden domyślny adres dostawy i jeden
+ * domyślny adres nadania na konto (indeksy unikalne częściowe). Zamówienia i przesyłki zapisują
+ * kopię adresu, więc edycja i usunięcie nie zmieniają historii.
+ */
+export const addresses = pgTable(
+  'addresses',
+  {
+    id: idColumn(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Imię i nazwisko albo nazwa firmy odbiorcy. */
+    recipientName: text().notNull(),
+    /** Ulica z numerem domu i lokalu. */
+    street: text().notNull(),
+    /** Kod pocztowy NN-NNN. */
+    postalCode: text().notNull(),
+    city: text().notNull(),
+    country: text().$type<AddressCountry>().notNull().default('PL'),
+    /** Telefon dla przewoźnika (E.164). */
+    phone: text().notNull(),
+    isDefault: boolean().notNull().default(false),
+    isSenderDefault: boolean().notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    index().on(table.userId, table.createdAt),
+    uniqueIndex('addresses_default_key')
+      .on(table.userId)
+      .where(sql`${table.isDefault}`),
+    uniqueIndex('addresses_sender_default_key')
+      .on(table.userId)
+      .where(sql`${table.isSenderDefault}`),
+    check('addresses_country_check', sql`${table.country} in ('PL')`),
+  ],
+);
+
+export type Address = typeof addresses.$inferSelect;

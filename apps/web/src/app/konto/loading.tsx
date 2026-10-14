@@ -2,7 +2,11 @@ import { useTranslations } from 'next-intl';
 
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Stan ładowania segmentu (strony z danymi z API): szkielet z komunikatem dla czytników. */
+/**
+ * Stan ładowania stron konta (dane z API po sesji): szkielet z komunikatem dla czytników.
+ * Celowo nie w app/: granica Suspense nad stronami publicznymi wysyłałaby status 200, zanim
+ * strona wywoła notFound() (profil, później aukcje), a roboty potrzebują prawdziwego 404.
+ */
 export default function Loading() {
   const t = useTranslations();
   return (

@@ -6,7 +6,7 @@ import { ResendVerificationButton, SignOutButtons } from '@/components/auth/acco
 import { Button } from '@/components/ui/button';
 import { loadMeOrRedirect } from '@/lib/api/me';
 import { formatPhoneNumber } from '@/lib/phone';
-import { routes, withNext } from '@/lib/routes';
+import { publicProfileUrl, routes, withNext } from '@/lib/routes';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('auth.account');
@@ -58,6 +58,22 @@ export default async function AccountPage() {
           <dd className="mt-1">{format.dateTime(new Date(me.createdAt), { dateStyle: 'long' })}</dd>
         </div>
       </dl>
+      <section aria-labelledby="profile-section" className="mt-8">
+        <h2 id="profile-section" className="text-xl font-semibold">
+          {t('profileSection')}
+        </h2>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link href={routes.profileSettings}>{t('editProfile')}</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={routes.addresses}>{t('addresses')}</Link>
+          </Button>
+          <Button asChild variant="link" className="px-0">
+            <Link href={publicProfileUrl(me.id)}>{t('viewPublicProfile')}</Link>
+          </Button>
+        </div>
+      </section>
       <div className="mt-8">
         <SignOutButtons />
       </div>

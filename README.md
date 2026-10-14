@@ -283,10 +283,11 @@ Konta, sesje, weryfikacja e-maila, reset hasła i logowanie Google/Apple obsług
 
 - **Sesja:** web dostaje ciasteczko `biddy.session_token` (httpOnly, `SameSite=Lax`, 30 dni, przedłużane raz na dobę), mobile token Bearer z nagłówka `set-auth-token` odpowiedzi logowania. Na produkcji ciasteczko ma wspólną domenę web i API (`AUTH_COOKIE_DOMAIN`).
 - **Endpointy Biddy:** `GET /v1/session` (zawsze 200, `{ "user": null }` dla gościa; nagłówek web), `GET /v1/me` (401 bez sesji), `POST /v1/me/terms-acceptances` z `{ "adultDeclaration": true }` (akceptacja regulaminu z oświadczeniem 18+ po pierwszym logowaniu Google/Apple), `GET /v1/auth-options` (dostawcy, klucz Turnstile, minimalna długość hasła).
-- **Błędy** Better Auth API zamienia na Problem Details z komunikatem po polsku, np. 401 `INVALID_EMAIL_OR_PASSWORD`. Kody Biddy: `TERMS_NOT_ACCEPTED`, `CAPTCHA_REQUIRED`, `CAPTCHA_FAILED`, `EMAIL_NOT_VERIFIED`, `PHONE_NOT_VERIFIED`, `PHONE_NUMBER_TAKEN`, `PHONE_CODE_INVALID`, `PHONE_CODE_EXPIRED`.
+- **Błędy** Better Auth API zamienia na Problem Details z komunikatem po polsku, np. 401 `INVALID_EMAIL_OR_PASSWORD`. Kody Biddy: `TERMS_NOT_ACCEPTED`, `CAPTCHA_REQUIRED`, `CAPTCHA_FAILED`, `EMAIL_NOT_VERIFIED`, `PHONE_NOT_VERIFIED`, `PHONE_NUMBER_TAKEN`, `PHONE_CODE_INVALID`, `PHONE_CODE_EXPIRED`, `ADDRESS_LIMIT_REACHED`.
 - **Ochrona przed botami:** Cloudflare Turnstile (token w nagłówku `x-turnstile-token`) przy rejestracji i resecie hasła, a przy logowaniu po 5 nieudanych próbach na adres e-mail. Od tego progu rośnie też przerwa między próbami (2 s do 5 min, 429 `RATE_LIMITED` z `Retry-After`); próg dla adresu IP to 20. Lokalnie działają klucze testowe Cloudflare (widżet zawsze przechodzi, API sprawdza token bez sieci).
 - **CSRF:** żądanie zmieniające stan (POST, PUT, PATCH, DELETE) z ciasteczkiem sesji musi mieć nagłówek `Origin` z listy zaufanych (`CORS_ORIGINS` i `WEB_URL`), inaczej 403. Żądania z tokenem Bearer (mobile) nie mają ciasteczka, więc ich to nie dotyczy.
 - **E-maile** idą przez kolejkę `emails` (worker, Resend albo SMTP). Bez działającego workera link weryfikacyjny nie przyjdzie.
+- **Profil i adresy (F-10):** `PATCH /v1/me` `{ name }` zmienia imię wyświetlane (2–60 znaków, bez numeru telefonu i adresu strony; reguły w `@biddy/shared`, także przy rejestracji). Trasa Better Auth `/v1/auth/update-user` jest zablokowana. `GET /v1/users/{id}` to profil publiczny bez danych kontaktowych (konto zablokowane: 404). Adresy: `GET/POST /v1/me/addresses`, `PATCH/DELETE /v1/me/addresses/{id}`; najwyżej 10, po jednym domyślnym do dostawy i nadania, kod pocztowy `NN-NNN`. Inne moduły pobierają adresy przez `AddressService` z `modules/identity`. Spec: [F-10](docs/features/F-10-profil-i-adresy.md).
 - **Telefon (F-08):** `POST /v1/me/phone-verification` `{ phoneNumber }` wysyła SMS z 6-cyfrowym kodem (tylko polskie numery komórkowe, wymagany potwierdzony e-mail), `POST /v1/me/phone-verification/confirm` `{ code }` przypisuje numer do konta. Jeden numer = jedno konto. Kod ważny 5 minut, 5 prób. Limity wysyłki: kolejny SMS po 60 s, 3 na numer na godzinę, 10 z IP na godzinę, 10 na konto na dobę. SMS-y wysyła SMSAPI (`SMSAPI_TOKEN`), lokalnie atrapa z kodem w logu API. Spec: [F-08](docs/features/F-08-weryfikacja-telefonu.md).
 
 Endpoint wymagający sesji, potwierdzonego e-maila albo konta gotowego do handlu:
@@ -417,6 +418,11 @@ Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.examp
 | `/akceptacja-regulaminu` | Regulamin i 18+ po pierwszym logowaniu Google/Apple.                                       |
 | `/weryfikacja-telefonu`  | Numer → SMS z kodem → potwierdzenie (wymaga potwierdzonego e-maila). Powrót: `?next=`.     |
 | `/konto`                 | Renderowane na serwerze z sesją; bez sesji przekierowuje na logowanie.                     |
+| `/konto/profil`          | Imię wyświetlane (reguły z `@biddy/shared`, te same w API).                                |
+| `/konto/adresy`          | Adresy dostawy i nadania: dodawanie, edycja, domyślne, usuwanie z potwierdzeniem.          |
+| `/u/{id}`                | Profil publiczny (SSR): imię, data dołączenia, znaczek telefonu; bez danych kontaktowych.  |
+
+Szkielet ładowania (`app/konto/loading.tsx`) jest tylko w segmentach konta. Strony publiczne renderują się w całości przed odpowiedzią, dzięki czemu `notFound()` daje prawdziwe 404 (przy globalnym `loading.tsx` Next wysyła 200, zanim strona się wyrenderuje).
 
 Formularze wołają Better Auth przez `src/lib/auth/auth-api.ts` (zwykłe `apiFetch`, bez klienta Better Auth w paczce), walidacja to Zod i React Hook Form z komunikatami po polsku (`src/lib/auth/schemas.ts`). Nagłówek pokazuje „Moje konto” albo „Zaloguj się” według `GET /v1/session`.
 

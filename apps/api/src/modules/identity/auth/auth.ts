@@ -2,6 +2,12 @@
 // web, token Bearer dla mobile), weryfikacja e-maila i reset hasła. Trasy pod /v1/auth/*
 // (auth-routes.ts). Reguły Biddy dokładamy hookami: regulamin i 18+ przy rejestracji,
 // Turnstile, licznik nieudanych logowań (§16.1).
+import {
+  DISPLAY_NAME_MAX_LENGTH,
+  DISPLAY_NAME_MESSAGES,
+  displayNameIssue,
+  normalizeDisplayName,
+} from '@biddy/shared';
 import { Logger } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
@@ -177,10 +183,18 @@ export function createAuth(deps: AuthDependencies) {
       user: {
         create: {
           before: (user, ctx) => {
-            if (ctx?.path === '/sign-up/email') {
-              return Promise.resolve({ data: { ...user, isAdultDeclaredAt: new Date() } });
-            }
-            return Promise.resolve();
+            // Imię z rejestracji przeszło reguły w hooku `before`; imię z Google/Apple tylko
+            // normalizujemy i przycinamy (użytkownik zmieni je w profilu, F-10).
+            const name = [...normalizeDisplayName(user.name)]
+              .slice(0, DISPLAY_NAME_MAX_LENGTH)
+              .join('');
+            return Promise.resolve({
+              data: {
+                ...user,
+                name,
+                ...(ctx?.path === '/sign-up/email' ? { isAdultDeclaredAt: new Date() } : {}),
+              },
+            });
           },
           after: async (user, ctx) => {
             // Konta z Google/Apple akceptują regulamin przy pierwszym wejściu (POST /v1/me/terms-acceptances).
@@ -197,7 +211,25 @@ export function createAuth(deps: AuthDependencies) {
         if (ctx.request === undefined) {
           return;
         }
+        if (ctx.path === '/update-user') {
+          // Profil zmienia PATCH /v1/me z regułami Biddy (F-10); ta trasa pozwalała ustawić
+          // dowolne imię i adres obrazka.
+          throw authError('FORBIDDEN', 'FORBIDDEN', 'Profil zmienisz w ustawieniach konta.');
+        }
         if (ctx.path === '/sign-up/email') {
+          const name = bodyField(ctx, 'name');
+          const nameIssue = typeof name === 'string' ? displayNameIssue(name) : 'length';
+          if (nameIssue !== undefined) {
+            throw authError('BAD_REQUEST', 'VALIDATION_FAILED', DISPLAY_NAME_MESSAGES[nameIssue]);
+          }
+          if (bodyField(ctx, 'image') !== undefined) {
+            // Zdjęcie profilowe tylko przez upload Biddy (F-12), nie dowolny adres URL.
+            throw authError(
+              'BAD_REQUEST',
+              'VALIDATION_FAILED',
+              'Zdjęcie profilowe dodasz po założeniu konta.',
+            );
+          }
           if (
             bodyField(ctx, 'acceptTerms') !== true ||
             bodyField(ctx, 'adultDeclaration') !== true
