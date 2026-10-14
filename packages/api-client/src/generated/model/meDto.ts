@@ -12,6 +12,11 @@ export interface MeDto {
   id: string;
   /** Imię wyświetlane */
   name: string;
+  /**
+     * Zdjęcie profilowe (WebP 256 px) albo null
+     * @nullable
+     */
+  avatarUrl: string | null;
   /** @pattern ^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$ */
   email: string;
   /** Czy adres e-mail jest potwierdzony (wymagane do licytowania i wystawiania) */

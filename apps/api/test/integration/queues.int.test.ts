@@ -199,6 +199,7 @@ describe('joby cykliczne (@ScheduledJob)', () => {
     expect(schedulers.map((scheduler) => scheduler.key).sort()).toEqual([
       'identity.login-failures-cleanup',
       'identity.phone-verifications-cleanup',
+      'media.orphans-cleanup',
       'outbox.cleanup',
       'test.tick',
     ]);

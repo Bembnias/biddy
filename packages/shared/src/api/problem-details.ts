@@ -48,6 +48,8 @@ export const ERROR_CODES = {
   PHONE_CODE_EXPIRED: 'PHONE_CODE_EXPIRED',
   /** Osiągnięto limit zapisanych adresów (F-10). */
   ADDRESS_LIMIT_REACHED: 'ADDRESS_LIMIT_REACHED',
+  /** Plik zdjęcia nie dotarł do magazynu przed potwierdzeniem uploadu (F-12). */
+  MEDIA_NOT_UPLOADED: 'MEDIA_NOT_UPLOADED',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

@@ -1049,8 +1049,8 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 | Realtime | **Socket.IO** + `@socket.io/redis-adapter` | Alt.: zarządzany Ably/Pusher przy dużej skali |
 | Cache / rate limit / pub-sub | **Redis** (druga instancja, `allkeys-lru`) | Oddzielona od kolejek, żeby zapełniony cache nie blokował jobów |
 | Wyszukiwarka | **Meilisearch** (Cloud, EU) | Fasety, tolerancja literówek, proste API. Alt.: Typesense; OpenSearch przy dużej skali. |
-| Pliki | **Cloudflare R2** (S3 API) + Cloudflare Image Transformations | Brak opłat za egress, CDN |
-| Moderacja obrazów | Sightengine lub AWS Rekognition | NSFW, broń, przemoc |
+| Pliki | **Cloudflare R2** (S3 API) za CDN, warianty zdjęć z workera (sharp) | Brak opłat za egress, CDN. Gotowe warianty WebP zamiast Cloudflare Image Transformations: stały koszt i ten sam wynik lokalnie (F-12). |
+| Moderacja obrazów | Sightengine lub AWS Rekognition | NSFW, broń, przemoc. Adapter `ImageModerator`; do wyboru dostawcy atrapa (F-12). |
 | E-mail | **Resend** + **React Email** (`packages/emails`) | Alt.: Postmark, AWS SES |
 | SMS / OTP | **SMSAPI.pl** | Polski dostawca, tani, dobre doręczalności. Alt.: Twilio. |
 | Push | **Expo Push Service** (FCM/APNs pod spodem) | |
@@ -1206,7 +1206,7 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `users` | id, email, phone, phone_verified_at, display_name, avatar_key, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), bidding_blocked_until, listing_blocked_until, limits (jsonb, nadpisania §4.1), created_at |
+| `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), bidding_blocked_until, listing_blocked_until, limits (jsonb, nadpisania §4.1), created_at |
 | `terms_acceptances` | id, user_id, document (`TERMS`/`PRIVACY`), version, accepted_at, ip |
 | `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, order_id, auction_id, issued_by (system/admin), statement_of_reasons, expires_at, appeal_status, revoked_at, created_at |
 | `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider). |
@@ -1223,7 +1223,8 @@ erDiagram
 |---|---|
 | `categories` | id, parent_id, path (ltree ze slugów), slug (unikalny), name, position, attributes (jsonb: definicje atrybutów w formacie z `@biddy/shared`, z których powstaje JSON Schema), is_restricted, is_brand_sensitive, listing_notice, is_active (F-11) |
 | `items` | id, seller_id, category_id, title, description, condition (enum), brand, attributes (jsonb), package_size, weight_g, dims, allowed_carriers (text[]), location_city, created_at |
-| `item_media` | id, item_id, storage_key, width, height, position, moderation_status |
+| `media` | id, owner_id, purpose (`ITEM_PHOTO`/`AVATAR`), status (`PENDING_UPLOAD`/`PROCESSING`/`READY`/`FLAGGED`/`REJECTED`), content_type, size_bytes, width, height, rejection_reason, moderation_labels, attached_at, processed_at (moduł `media`, F-12; nieprzypisane znikają po 24 h) |
+| `item_media` | item_id, media_id, position (F-14; plik, wymiary i moderacja w `media`) |
 | `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status, start_price, reserve_price, buy_now_price, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, starts_at, ends_at, original_ends_at, extension_policy, version, created_at |
 | `bids` | id, auction_id, bidder_id, amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, idempotency_key (unique per bidder), ip, device_id, created_at |
 | `watchlist` | user_id, auction_id, created_at |
@@ -1299,7 +1300,8 @@ POST   /me/devices                 (rejestracja web push / Expo push)   DELETE /
 
 # Katalog i media
 GET    /categories                 GET /categories/:id/schema
-POST   /media/upload-url           POST /media/:id/complete
+POST   /media/uploads              POST /media/:id/complete      GET /media/:id    DELETE /media/:id
+PUT    /me/avatar                  DELETE /me/avatar
 
 # Aukcje
 POST   /auctions                   (szkic z przedmiotem)
@@ -1482,7 +1484,7 @@ Terminy w dniach roboczych (nadanie, nadanie zwrotu) liczy jedna funkcja w `pack
 - Cloudflare WAF i Turnstile na rejestracji, resecie hasła i logowaniu (po progu nieudanych prób).
 - Kody SMS (weryfikacja telefonu, F-08): tylko polskie numery komórkowe (ochrona przed SMS pumping), wymagany potwierdzony e-mail, kolejny SMS po 60 s, maks. 3 na numer i 10 z IP na godzinę, 10 na konto na dobę. Kod ważny 5 minut, 5 prób, w bazie tylko HMAC.
 - CSRF: żądanie zmieniające stan z ciasteczkiem sesji musi mieć `Origin` aplikacji Biddy; do tego API przyjmuje tylko JSON. Token Bearer (mobile) nie podlega sprawdzeniu.
-- Upload tylko przez presigned URL z limitem rozmiaru i typu. Worker **ponownie koduje obraz i usuwa EXIF** (w tym GPS, czyli prywatność adresów domowych).
+- Upload tylko przez presigned PUT z podpisanym typem i rozmiarem, do prywatnego kubełka. Worker **ponownie koduje obraz i usuwa EXIF** (w tym GPS, czyli prywatność adresów domowych), a publiczny kubełek dostaje tylko przetworzone warianty (F-12).
 - Sekrety poza repo. Szyfrowanie wrażliwych pól (dane DAC7) kluczem z KMS lub env.
 - Webhooki: weryfikacja podpisu i idempotencja (`processed_webhooks`).
 - Zmiana konta do wypłat: potwierdzenie e-mailem, **blokada wypłat na 48 h** i powiadomienie na wszystkie urządzenia.
@@ -1812,6 +1814,10 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 51 | Web: szkielet ładowania (`loading.tsx`) tylko w segmentach konta; strony publiczne renderują się w całości przed odpowiedzią, żeby `notFound()` dawało prawdziwe 404 (SEO profili i aukcji) | Przyjęta | §11.3 |
 | 52 | Atrybuty kategorii jako definicje w formacie Biddy (`text`, `number`, `select`, `boolean`; `@biddy/shared`), a nie dowolny JSON Schema: z nich walidacja (web i API), formularz i JSON Schema. Dziedziczenie po ścieżce w drzewie, przedmiot tylko w aktywnym liściu | Przyjęta | §13.3 |
 | 53 | Drzewo kategorii i jego zmiany (do panelu admina, F-34) to migracje danych, więc kategorie są w każdym środowisku; przedmioty przechowują atrybuty tak, jak je zapisano, a walidacja działa tylko przy zapisie | Przyjęta | §13.3 |
+| 54 | Zdjęcia w trzech kubełkach: prywatny `uploads` (oryginały z EXIF, kwarantanna moderacji), publiczny `media` (tylko przetworzone warianty), `documents`. Upload przez presigned PUT z podpisanym typem i dokładnym rozmiarem (R2 nie ma presigned POST z limitem rozmiaru) | Przyjęta | §16.1 |
+| 55 | Przetwarzanie zdjęć w workerze (sharp: format z treści, limit 40 MP, WebP bez metadanych, warianty z góry) zamiast Cloudflare Image Transformations; nieprzypisane zdjęcia sprząta job po 24 h | Przyjęta | §11.2, §16.1 |
+| 56 | Moderacja obrazów przez adapter `ImageModerator`; do wyboru dostawcy (przed startem) atrapa. Zdjęcie oznaczone nie jest publiczne, event `MediaFlagged` zasila kolejkę moderacji (F-35) | Tymczasowa | §11.2, §16.1 |
+| 57 | Zdjęcie profilowe przez `PUT/DELETE /v1/me/avatar` w module `media` (on woła publiczne API `identity`, nie odwrotnie); `users.avatar_url` trzyma gotowy adres, więc sesja i profil nie pytają modułu `media` | Przyjęta | §10.3, §13.3 |
 
 ---
 

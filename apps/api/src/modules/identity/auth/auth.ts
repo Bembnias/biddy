@@ -104,6 +104,9 @@ export function createAuth(deps: AuthDependencies) {
         // Telefon ustawia tylko weryfikacja kodem SMS (PhoneVerificationService, F-08).
         phoneNumber: { type: 'string', required: false, input: false },
         phoneNumberVerifiedAt: { type: 'date', required: false, input: false },
+        // Zdjęcie profilowe ustawia tylko moduł media (PUT /v1/me/avatar, F-12).
+        avatarMediaId: { type: 'string', required: false, input: false },
+        avatarUrl: { type: 'string', required: false, input: false },
         status: { type: 'string', required: false, input: false, defaultValue: 'ACTIVE' },
         staffRole: { type: 'string', required: false, input: false },
       },

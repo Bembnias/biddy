@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Test dymny obrazu API (apps/api/Dockerfile) tak, jak uruchamia go Render (F-09):
 # migracje jako krok przed deployem (dwa razy: drugi raz nic nie robi), API odpowiada na /health
-# i /ready, a worker działa po starcie (m.in. sprawdza noeviction Redisa kolejek).
+# i /ready, a worker działa po starcie (m.in. sprawdza noeviction Redisa kolejek). Do tego sharp
+# (natywny libvips dla musl w obrazie Alpine) przetwarza zdjęcie.
 #
 # Użycie: IMAGE=biddy-api:ci DATABASE_URL=… REDIS_QUEUE_URL=… .github/scripts/smoke-api-image.sh
 # W CI Postgres i Redis to kontenery usług GitHub Actions (sieć hosta). Lokalnie można podać
@@ -29,6 +30,10 @@ ENV_ARGS=(
   -e TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
   -e RESEND_API_KEY=re_smoke_test
   -e SMSAPI_TOKEN=smoke-test
+  -e S3_ENDPOINT=https://smoke-test.eu.r2.cloudflarestorage.com
+  -e S3_ACCESS_KEY_ID=smoke-test
+  -e S3_SECRET_ACCESS_KEY=smoke-test
+  -e MEDIA_PUBLIC_URL=https://media.staging.biddy.pl
   -e RENDER_GIT_COMMIT="${GITHUB_SHA:-smoke}"
 )
 PUBLISH=()
@@ -49,6 +54,16 @@ fail() {
   docker logs smoke-worker 2>&1 | tail -50 || true
   exit 1
 }
+
+echo '== sharp w obrazie (przetwarzanie zdjęć, F-12)'
+docker run --rm "${IMAGE}" node --input-type=module -e "
+const { default: sharp } = await import('sharp');
+const png = await sharp({ create: { width: 400, height: 300, channels: 3, background: '#3a7' } }).png().toBuffer();
+const webp = await sharp(png).resize(320).webp().toBuffer();
+const { format, width } = await sharp(webp).metadata();
+if (format !== 'webp' || width !== 320) throw new Error(format + ' ' + width);
+console.log('sharp', sharp.versions.sharp, 'libvips', sharp.versions.vips, 'OK');
+" || fail 'sharp nie działa w obrazie'
 
 echo '== Migracje (preDeployCommand)'
 docker run --rm --network "${NETWORK}" "${ENV_ARGS[@]}" "${IMAGE}" node dist/infra/db/migrate.js

@@ -316,5 +316,39 @@
       "required": "wymagane",
       "choose": "Wybierz"
     }
+  },
+  "media": {
+    "errors": {
+      "type": "Dodaj zdjęcie JPEG, PNG albo WebP.",
+      "size": "Zdjęcie jest za duże: maksymalnie 15 MB.",
+      "upload": "Nie udało się wysłać zdjęcia. Sprawdź połączenie i spróbuj ponownie.",
+      "timeout": "Przetwarzanie zdjęcia trwa za długo. Spróbuj ponownie za chwilę."
+    },
+    "uploader": {
+      "label": "Zdjęcia",
+      "count": "Zdjęcia ({count}/{max})",
+      "add": "Dodaj zdjęcia",
+      "hint": "JPEG, PNG albo WebP, do 15 MB. Pierwsze zdjęcie jest zdjęciem głównym.",
+      "cover": "Zdjęcie główne",
+      "uploading": "Wysyłanie {name}",
+      "processing": "Przetwarzanie…",
+      "flagged": "Zdjęcie czeka na sprawdzenie przez moderatora.",
+      "moveLeft": "Przesuń zdjęcie {position} w lewo",
+      "moveRight": "Przesuń zdjęcie {position} w prawo",
+      "remove": "Usuń zdjęcie {position}",
+      "photo": "Zdjęcie {position}",
+      "limit": "Możesz dodać najwyżej {max} zdjęć."
+    },
+    "avatar": {
+      "title": "Zdjęcie profilowe",
+      "change": "Zmień zdjęcie",
+      "add": "Dodaj zdjęcie",
+      "remove": "Usuń zdjęcie",
+      "uploading": "Wysyłanie…",
+      "saved": "Zapisano zdjęcie profilowe.",
+      "removed": "Usunięto zdjęcie profilowe.",
+      "flagged": "Zdjęcie czeka na sprawdzenie przez moderatora. Wybierz inne albo spróbuj później.",
+      "hint": "JPEG, PNG albo WebP, do 15 MB. Zdjęcie przytniemy do kwadratu."
+    }
   }
 }

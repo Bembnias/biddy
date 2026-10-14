@@ -32,6 +32,10 @@ const production = {
   TURNSTILE_SITE_KEY: '0x4AAAAAAA-site',
   TURNSTILE_SECRET_KEY: '0x4AAAAAAA-secret',
   SMSAPI_TOKEN: 'smsapi-token',
+  S3_ENDPOINT: 'https://konto.r2.cloudflarestorage.com',
+  S3_ACCESS_KEY_ID: 'r2-key',
+  S3_SECRET_ACCESS_KEY: 'r2-secret',
+  MEDIA_PUBLIC_URL: 'https://media.biddy.pl',
 } as const;
 
 function issuesFor(
@@ -92,6 +96,16 @@ describe('loadConfig: wartości domyślne', () => {
       log: { level: 'debug', pretty: true },
       openapi: { enabled: true },
       sms: { kind: 'log' },
+      storage: {
+        endpoint: 'http://localhost:9000',
+        region: 'us-east-1',
+        accessKeyId: 'biddy-local',
+        secretAccessKey: 'biddy-local-secret',
+        forcePathStyle: true,
+        mediaBucket: 'biddy-media',
+        uploadsBucket: 'biddy-uploads',
+        mediaPublicUrl: 'http://localhost:9000/biddy-media',
+      },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
     });
   });
@@ -264,6 +278,34 @@ describe('loadConfig: kolejki (Redis, prefiks, relay outboxa)', () => {
   });
 });
 
+describe('loadConfig: magazyn plików (F-12)', () => {
+  it('produkcja: R2 z publicznym adresem CDN (bez ukośnika na końcu)', () => {
+    const config = loadConfig({
+      ...production,
+      CORS_ORIGINS: 'https://biddy.pl',
+      S3_REGION: 'auto',
+      S3_FORCE_PATH_STYLE: 'false',
+      MEDIA_PUBLIC_URL: 'https://media.biddy.pl/',
+    });
+    expect(config.storage).toEqual({
+      endpoint: 'https://konto.r2.cloudflarestorage.com',
+      region: 'auto',
+      accessKeyId: 'r2-key',
+      secretAccessKey: 'r2-secret',
+      forcePathStyle: false,
+      mediaBucket: 'biddy-media',
+      uploadsBucket: 'biddy-uploads',
+      mediaPublicUrl: 'https://media.biddy.pl',
+    });
+  });
+
+  it('odrzuca złą nazwę kubełka', () => {
+    expect(variablesWithIssues({ ...minimal, S3_BUCKET_UPLOADS: 'Uploads_Bucket' })).toEqual([
+      'S3_BUCKET_UPLOADS',
+    ]);
+  });
+});
+
 describe('loadConfig: SMS-y (F-08)', () => {
   it('bez SMSAPI_TOKEN atrapa (kod w logu), z tokenem SMSAPI z opcjonalnym nadawcą', () => {
     expect(loadConfig(minimal).sms).toEqual({ kind: 'log' });
@@ -282,7 +324,7 @@ describe('loadConfig: SMS-y (F-08)', () => {
 });
 
 describe('loadConfig: konta i e-maile (F-07)', () => {
-  it('na produkcji API wymaga sekretu, adresów, Turnstile i Resend; worker tylko Resend', () => {
+  it('na produkcji API wymaga sekretu, adresów, Turnstile, Resend i S3; worker Resend i S3', () => {
     const missing = {
       ...minimal,
       NODE_ENV: 'production',
@@ -293,14 +335,24 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
       [
         'API_PUBLIC_URL',
         'BETTER_AUTH_SECRET',
+        'MEDIA_PUBLIC_URL',
         'RESEND_API_KEY',
+        'S3_ACCESS_KEY_ID',
+        'S3_ENDPOINT',
+        'S3_SECRET_ACCESS_KEY',
         'SMSAPI_TOKEN',
         'TURNSTILE_SECRET_KEY',
         'TURNSTILE_SITE_KEY',
         'WEB_URL',
       ].sort(),
     );
-    expect(issuesFor(missing, 'worker').map((issue) => issue.variable)).toEqual(['RESEND_API_KEY']);
+    expect(issuesFor(missing, 'worker').map((issue) => issue.variable)).toEqual([
+      'RESEND_API_KEY',
+      'S3_ENDPOINT',
+      'S3_ACCESS_KEY_ID',
+      'S3_SECRET_ACCESS_KEY',
+      'MEDIA_PUBLIC_URL',
+    ]);
   });
 
   it('produkcja: Resend, bezpieczne ciasteczka, adresy bez ukośnika na końcu', () => {
@@ -639,6 +691,7 @@ describe('.env.example (sekcja API)', () => {
         'RESEND_API_KEY',
         'SMSAPI_TOKEN',
         'SMSAPI_SENDER',
+        'MEDIA_PUBLIC_URL',
       ]),
     );
     expect(loadConfig({ ...example, ...documented })).toEqual(loadConfig(example));

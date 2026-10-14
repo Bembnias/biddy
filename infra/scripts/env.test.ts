@@ -197,10 +197,12 @@ describe('parseInfraEnv', () => {
       MAILPIT_UI_PORT: '9001',
       MAILPIT_UI_URL: 'http://localhost:9001',
       S3_BUCKET_DOCUMENTS: example['S3_BUCKET_MEDIA'] ?? '',
+      S3_BUCKET_UPLOADS: example['S3_BUCKET_MEDIA'] ?? '',
     });
     expectIssues(issues, [
       ['MAILPIT_UI_PORT', 'RUSTFS_CONSOLE_PORT'],
       ['S3_BUCKET_DOCUMENTS', 'S3_BUCKET_MEDIA'],
+      ['S3_BUCKET_UPLOADS', 'oryginały zdjęć'],
     ]);
   });
 

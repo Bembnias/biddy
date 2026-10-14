@@ -10,6 +10,7 @@ export class PublicProfileDto extends createZodDto(
   z.object({
     id: z.uuid(),
     name: z.string().describe('Imię wyświetlane'),
+    avatarUrl: z.url().nullable().describe('Zdjęcie profilowe (WebP 256 px) albo null'),
     memberSince: z.iso.datetime().describe('Data założenia konta'),
     phoneVerified: z.boolean().describe('Czy konto ma zweryfikowany numer telefonu'),
   }),
@@ -38,6 +39,7 @@ export class UsersController {
     return {
       id: profile.id,
       name: profile.name,
+      avatarUrl: profile.avatarUrl,
       memberSince: profile.memberSince.toISOString(),
       phoneVerified: profile.phoneVerified,
     };

@@ -43,6 +43,14 @@ function oneOf<const T extends readonly [string, ...string[]]>(values: T) {
   });
 }
 
+/** Nazwa kubełka S3: 3–63 znaki, małe litery, cyfry, kropki i myślniki. */
+function bucketName() {
+  return text().regex(
+    /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/,
+    'oczekiwano nazwy kubełka (3–63 znaki: małe litery, cyfry, kropki, myślniki)',
+  );
+}
+
 function url(protocols: readonly string[], example: string, extra?: (url: URL) => boolean) {
   const schemes = protocols.map((protocol) => `${protocol}//`).join(' lub ');
   return text().refine((value) => {
@@ -222,6 +230,17 @@ export const envSchema = z.object({
   SMSAPI_SENDER: text()
     .regex(/^[A-Za-z0-9 .-]{1,11}$/, 'oczekiwano nazwy nadawcy do 11 znaków (litery, cyfry)')
     .optional(),
+  // Magazyn plików S3 (F-12): Cloudflare R2 na produkcji, lokalnie RustFS (te same zmienne co
+  // `pnpm storage:setup`).
+  S3_ENDPOINT: url(['https:', 'http:'], 'https://<konto>.r2.cloudflarestorage.com').optional(),
+  S3_REGION: text().optional(),
+  S3_ACCESS_KEY_ID: text().optional(),
+  S3_SECRET_ACCESS_KEY: text().optional(),
+  S3_FORCE_PATH_STYLE: boolean().optional(),
+  S3_BUCKET_MEDIA: bucketName().optional(),
+  S3_BUCKET_UPLOADS: bucketName().optional(),
+  /** Publiczny adres kubełka media (CDN), np. https://media.biddy.pl. */
+  MEDIA_PUBLIC_URL: url(['https:', 'http:'], 'https://media.biddy.pl').optional(),
 });
 
 /** Nazwy wszystkich zmiennych obsługiwanych przez schemat. */
@@ -257,6 +276,21 @@ export const DEVELOPMENT_AUTH_SECRET = 'biddy-development-only-auth-secret-01234
 export const DEFAULT_MAIL_FROM = 'Biddy <no-reply@biddy.local>';
 
 /** Transport e-maili: Resend (produkcja) albo SMTP (lokalnie Mailpit). */
+/** Magazyn plików S3 (F-12). */
+export interface StorageConfig {
+  readonly endpoint: string;
+  readonly region: string;
+  readonly accessKeyId: string;
+  readonly secretAccessKey: string;
+  readonly forcePathStyle: boolean;
+  /** Publiczny kubełek przetworzonych zdjęć (za CDN). */
+  readonly mediaBucket: string;
+  /** Prywatny kubełek oryginałów i zdjęć zatrzymanych przez moderację. */
+  readonly uploadsBucket: string;
+  /** Adres, pod którym klienci czytają obiekty kubełka media (bez ukośnika na końcu). */
+  readonly mediaPublicUrl: string;
+}
+
 /** Wysyłka SMS-ów: SMSAPI albo atrapa (lokalnie i w testach; kod trafia do logu). */
 export type SmsTransportConfig =
   | { readonly kind: 'smsapi'; readonly token: string; readonly sender: string | undefined }
@@ -334,6 +368,7 @@ export interface AppConfig {
     readonly transport: MailTransportConfig;
   };
   readonly sms: SmsTransportConfig;
+  readonly storage: StorageConfig;
   readonly sentry: {
     readonly dsn: string | undefined;
     readonly environment: string;
@@ -442,6 +477,10 @@ function crossFieldIssues(
   }
   const required: [string, string][] = [
     ['RESEND_API_KEY', 'na produkcji e-maile (weryfikacja, reset hasła) wysyła Resend'],
+    ['S3_ENDPOINT', 'adres S3 Cloudflare R2, np. https://<konto>.r2.cloudflarestorage.com'],
+    ['S3_ACCESS_KEY_ID', 'klucz dostępu R2 (token API z uprawnieniem do kubełków)'],
+    ['S3_SECRET_ACCESS_KEY', 'sekret klucza R2'],
+    ['MEDIA_PUBLIC_URL', 'publiczny adres kubełka media (CDN), np. https://media.biddy.pl'],
   ];
   if (role === 'api') {
     required.push(
@@ -577,6 +616,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
             }
           : { kind: 'resend', apiKey: vars.RESEND_API_KEY },
     },
+    storage: storageConfig(vars),
     sms:
       vars.SMSAPI_TOKEN === undefined
         ? { kind: 'log' }
@@ -622,6 +662,23 @@ export function loadSentryOptions(env: RawEnv): SentryOptions | undefined {
     environment: vars.SENTRY_ENVIRONMENT ?? vars.NODE_ENV,
     release: vars.APP_RELEASE ?? vars.RENDER_GIT_COMMIT,
     tracesSampleRate: vars.SENTRY_TRACES_SAMPLE_RATE ?? 0,
+  };
+}
+
+/** Wartości domyślne jak lokalny RustFS z infra/docker-compose.yml i .env.example. */
+function storageConfig(vars: z.output<typeof envSchema>): StorageConfig {
+  const endpoint = (vars.S3_ENDPOINT ?? 'http://localhost:9000').replace(/\/+$/, '');
+  const forcePathStyle = vars.S3_FORCE_PATH_STYLE ?? true;
+  const mediaBucket = vars.S3_BUCKET_MEDIA ?? 'biddy-media';
+  return {
+    endpoint,
+    region: vars.S3_REGION ?? 'us-east-1',
+    accessKeyId: vars.S3_ACCESS_KEY_ID ?? 'biddy-local',
+    secretAccessKey: vars.S3_SECRET_ACCESS_KEY ?? 'biddy-local-secret',
+    forcePathStyle,
+    mediaBucket,
+    uploadsBucket: vars.S3_BUCKET_UPLOADS ?? 'biddy-uploads',
+    mediaPublicUrl: (vars.MEDIA_PUBLIC_URL ?? `${endpoint}/${mediaBucket}`).replace(/\/+$/, ''),
   };
 }
 

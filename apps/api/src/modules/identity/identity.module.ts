@@ -64,7 +64,7 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     SessionReader,
     SessionGuard,
   ],
-  exports: [AUTH, SessionReader, SessionGuard, TermsService, AddressService],
+  exports: [AUTH, SessionReader, SessionGuard, TermsService, AddressService, ProfileService],
 })
 export class IdentityModule implements OnModuleInit {
   constructor(

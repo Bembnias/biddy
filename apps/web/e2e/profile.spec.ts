@@ -93,7 +93,7 @@ test('edycja profilu: zapis imienia i błąd reguł imienia', async ({ page, con
 
   await name.fill('Kasia Nowa');
   await main.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(main.getByRole('status')).toHaveText('Zapisano.');
+  await expect(main.getByRole('status').filter({ hasText: 'Zapisano.' })).toBeVisible();
   expect(api.requests('PATCH /v1/me')[0]?.postDataJSON()).toEqual({ name: 'Kasia Nowa' });
   await axe(page);
 });

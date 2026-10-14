@@ -13,6 +13,8 @@ export interface AuthenticatedUser {
   readonly adultDeclared: boolean;
   /** Zweryfikowany numer telefonu (E.164) albo null (F-08). */
   readonly phoneNumber: string | null;
+  /** Publiczny adres zdjęcia profilowego albo null (F-12). */
+  readonly avatarUrl: string | null;
   readonly status: UserStatus;
   readonly staffRole: StaffRole | null;
   readonly createdAt: Date;

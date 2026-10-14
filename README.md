@@ -82,8 +82,11 @@ Wszystkie usługi działają w Dockerze (projekt compose `biddy`) i są dostępn
 
 Kubełki S3 tworzone przez `pnpm storage:setup`:
 
-- `biddy-media`: zdjęcia aukcji. Reguła CORS pozwala przeglądarce z `http://localhost:3000` (zmienna `S3_CORS_ORIGINS`) na `PUT`, `GET` i `HEAD`, czyli upload przez presigned URL.
+- `biddy-uploads`: prywatny, oryginały zdjęć prosto z przeglądarki (z EXIF) i zdjęcia zatrzymane przez moderację. Reguła CORS pozwala przeglądarce z `http://localhost:3000` (zmienna `S3_CORS_ORIGINS`) na `PUT`, czyli upload przez presigned URL.
+- `biddy-media`: publiczny do odczytu (polityka `s3:GetObject`), tylko przetworzone zdjęcia WebP bez metadanych. CORS: `GET` i `HEAD`.
 - `biddy-documents`: dokumenty prywatne (etykiety, dowody w sporach, faktury), bez CORS.
+
+Kubełek uploads musi być inny niż media i documents (`pnpm env:check` to sprawdza): oryginał z GPS nie może trafić do publicznego kubełka.
 
 **Dlaczego RustFS, a nie MinIO:** MinIO przestało publikować obrazy Dockera w wersji community. RustFS jest zgodny z API S3 i MinIO, ma licencję Apache 2.0. Lokalnie używa tylko adresów w stylu ścieżki (`S3_FORCE_PATH_STYLE=true`).
 
@@ -113,7 +116,7 @@ Wszystkie uruchamiasz z katalogu głównego.
 | `pnpm lint`             | ESLint (flat config, reguły z informacją o typach).                                                                                   |
 | `pnpm typecheck`        | `tsc --noEmit` we wszystkich pakietach.                                                                                               |
 | `pnpm test`             | Testy jednostkowe (Vitest).                                                                                                           |
-| `pnpm test:integration` | Testy integracyjne (Testcontainers): własny Postgres i Redis w kontenerach. Wymaga Dockera, nie wymaga `pnpm infra:up`.               |
+| `pnpm test:integration` | Testy integracyjne (Testcontainers): własny Postgres, Redis i RustFS w kontenerach. Wymaga Dockera, nie wymaga `pnpm infra:up`.       |
 | `pnpm check`            | `lint`, `typecheck`, `test`, `format:check` i `api:check` razem.                                                                      |
 | `pnpm api:generate`     | Zapisuje kontrakt OpenAPI (`apps/api/openapi.json`) i generuje z niego klienta (`packages/api-client/src/generated`).                 |
 | `pnpm api:check`        | Sprawdza bez zmian w plikach, czy kontrakt i klient zgadzają się z kodem API (CI). Gdy nie, uruchom `pnpm api:generate`.              |
@@ -150,7 +153,7 @@ Na produkcji API i worker to dwa procesy z tego samego buildu: `pnpm --filter @b
 
 API czyta zmienne z `.env` w katalogu głównym (tworzy go `pnpm bootstrap`). Baza potrzebuje migracji przed pierwszym startem: `pnpm bootstrap` robi to sam, później wystarczy `pnpm db:reset` albo `pnpm --filter @biddy/api db:migrate`. API importuje zbudowany pakiet `@biddy/shared` (`packages/shared/dist`), więc na świeżym klonie uruchom najpierw `pnpm build`.
 
-Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL` i `RESEND_API_KEY`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
+Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` i `MEDIA_PUBLIC_URL`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
 
 | Adres lokalny                   | Co to jest                                                                                                            |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -322,6 +325,28 @@ Moduł `catalog` (`apps/api/src/modules/catalog`): drzewo kategorii (`ltree`, ś
 - **Drzewo** z seeda pochodzi z migracji danych (`drizzle/0006_initial_categories.sql`), więc jest w każdym środowisku. Zmiany kategorii i atrybutów to nowe migracje (do czasu panelu admina, F-34). Przedmioty przechowują atrybuty tak, jak je zapisano: walidacja działa przy zapisie, a wyświetlanie (`describeAttributes`) toleruje zmiany schematu.
 - **Web:** `CategoryPicker` i `AttributeFields` (`apps/web/src/components/catalog`) z `attributesSchema` (`src/lib/catalog`) dla kreatora wystawiania (F-14).
 
+### Zdjęcia (F-12)
+
+Moduł `media` (`apps/api/src/modules/media`): upload prosto z przeglądarki do magazynu S3, przetwarzanie w workerze, moderacja i sprzątanie. Spec: [F-12](docs/features/F-12-zdjecia.md).
+
+```
+przeglądarka ── POST /v1/media/uploads ──► API: rekord PENDING_UPLOAD + presigned PUT (15 min)
+             ── PUT (plik) ──────────────► kubełek uploads: incoming/{właściciel}/{id}
+             ── POST /v1/media/{id}/complete ► API: PROCESSING, job media.process (kolejka media)
+worker (sharp) ─ format z treści, limit 40 MP, obrót z EXIF, WebP bez metadanych, warianty
+             ├─ READY:    warianty w kubełku media (publiczne, niezmienne)
+             ├─ FLAGGED:  kopia w uploads/quarantine/, event MediaFlagged (outbox), nic publicznego
+             └─ REJECTED: powód po polsku (nie obraz, za małe, za duże)
+przeglądarka ── GET /v1/media/{id} co 1 s, aż status przestanie być PROCESSING
+```
+
+- **Typy i limity:** JPEG, PNG, WebP do 15 MB (podpisane w presigned PUT: typ i dokładny rozmiar; R2 nie ma presigned POST z limitem). HEIC z iPhone'a Safari zamienia na JPEG przy wyborze pliku. 50 uploadów na konto na godzinę (429).
+- **Warianty:** zdjęcie przedmiotu `thumb` 320, `medium` 800, `large` 1600 px (min. 300 px na krótszym boku); zdjęcie profilowe kwadrat `small` 96 i `large` 256 px. Adresy: `MEDIA_PUBLIC_URL/{items|avatars}/{id}/{wariant}.webp`.
+- **Moderacja:** adapter `ImageModerator`; atrapa oznacza obrazy prawie w całości czerwone (do testów i ręcznego sprawdzenia). Prawdziwy dostawca przed startem.
+- **Przypisanie i sprzątanie:** inne moduły oznaczają zdjęcia jako użyte przez `MediaService.attach` (przedmiot w F-14). Job `media.orphans-cleanup` co godzinę usuwa nieprzypisane zdjęcia starsze niż 24 h (oznaczone przez moderację po 30 dniach) razem z plikami.
+- **Zdjęcie profilowe:** `PUT /v1/me/avatar` `{ mediaId }` (zdjęcie `AVATAR` w stanie `READY`) i `DELETE /v1/me/avatar`. Adres trafia do `avatarUrl` w `/v1/me`, `/v1/session` i profilu publicznym.
+- **Web:** `PhotoUploader` (`apps/web/src/components/media`: wiele zdjęć, postęp, zdjęcie główne, kolejność, statusy; dla F-14) i `AvatarSettings` na `/konto/profil`. Upload i odpytywanie statusu: `src/lib/media/upload.ts`.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
@@ -379,12 +404,12 @@ Testy (`*.test.ts` i katalog `test/`) mogą importować wszystko.
 
 ### Testy API
 
-| Polecenie                                          | Co sprawdza                                                                                                                                                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm --filter @biddy/api test`                    | Testy jednostkowe i testy aplikacji w procesie (`fastify.inject()`). Bez Dockera i bez bazy.                                                                                                      |
-| `pnpm test:integration`                            | Testy integracyjne z `apps/api/test/integration`. Testcontainers uruchamia własny Postgres 17 i Redis 7.4, stosuje migracje i testuje API oraz worker (także jako osobny proces). Wymaga Dockera. |
-| `pnpm --filter @biddy/api-client test`             | Fetcher i wygenerowane hooki w komponencie React (happy-dom), z podmienionym `fetch`.                                                                                                             |
-| `pnpm --filter @biddy/api-client test:integration` | Klient na prawdziwym API (proces `apps/api`) ze strony pod originem web: ścieżki, typy odpowiedzi, Problem Details i CORS. Bez Dockera (uruchamia go też `pnpm test:integration`).                |
+| Polecenie                                          | Co sprawdza                                                                                                                                                                                               |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter @biddy/api test`                    | Testy jednostkowe i testy aplikacji w procesie (`fastify.inject()`). Bez Dockera i bez bazy.                                                                                                              |
+| `pnpm test:integration`                            | Testy integracyjne z `apps/api/test/integration`. Testcontainers uruchamia własny Postgres 17, Redis 7.4 i RustFS, stosuje migracje i testuje API oraz worker (także jako osobny proces). Wymaga Dockera. |
+| `pnpm --filter @biddy/api-client test`             | Fetcher i wygenerowane hooki w komponencie React (happy-dom), z podmienionym `fetch`.                                                                                                                     |
+| `pnpm --filter @biddy/api-client test:integration` | Klient na prawdziwym API (proces `apps/api`) ze strony pod originem web: ścieżki, typy odpowiedzi, Problem Details i CORS. Bez Dockera (uruchamia go też `pnpm test:integration`).                        |
 
 Testy integracyjne nie korzystają z `pnpm infra:up` ani z `.env`. Kontenery znikają po zakończeniu testów. Każdy plik testów workera dostaje własną bazę, a każdy worker własny prefiks kluczy BullMQ, więc pliki działają równolegle.
 
@@ -428,9 +453,9 @@ Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.examp
 | `/akceptacja-regulaminu` | Regulamin i 18+ po pierwszym logowaniu Google/Apple.                                       |
 | `/weryfikacja-telefonu`  | Numer → SMS z kodem → potwierdzenie (wymaga potwierdzonego e-maila). Powrót: `?next=`.     |
 | `/konto`                 | Renderowane na serwerze z sesją; bez sesji przekierowuje na logowanie.                     |
-| `/konto/profil`          | Imię wyświetlane (reguły z `@biddy/shared`, te same w API).                                |
+| `/konto/profil`          | Zdjęcie profilowe (F-12) i imię wyświetlane (reguły z `@biddy/shared`, te same w API).     |
 | `/konto/adresy`          | Adresy dostawy i nadania: dodawanie, edycja, domyślne, usuwanie z potwierdzeniem.          |
-| `/u/{id}`                | Profil publiczny (SSR): imię, data dołączenia, znaczek telefonu; bez danych kontaktowych.  |
+| `/u/{id}`                | Profil publiczny (SSR): zdjęcie, imię, data dołączenia, znaczek telefonu; bez kontaktu.    |
 
 Szkielet ładowania (`app/konto/loading.tsx`) jest tylko w segmentach konta. Strony publiczne renderują się w całości przed odpowiedzią, dzięki czemu `notFound()` daje prawdziwe 404 (przy globalnym `loading.tsx` Next wysyła 200, zanim strona się wyrenderuje).
 
@@ -535,7 +560,7 @@ Potem `pnpm env:check` (wykryje niezgodny port) i `pnpm infra:up` (compose odtwo
 
 **`pnpm api:check`: „Klient API jest nieaktualny”.** Kod API (endpoint, DTO, nazwa metody) zmienił się bez regeneracji klienta. Uruchom `pnpm api:generate` i dodaj do commita `apps/api/openapi.json` oraz `packages/api-client/src/generated`. Komunikat wymienia pliki, które się różnią. Generowanie wymaga zbudowanego `@biddy/shared` (`pnpm build`).
 
-**`pnpm test:integration` nie może uruchomić kontenera.** Testy integracyjne potrzebują działającego Dockera (`docker info`). Testcontainers pobiera przy pierwszym uruchomieniu obrazy `postgres:17-alpine`, `redis:7.4-alpine` i `testcontainers/ryuk` (sprząta kontenery po przerwanych testach). Jeśli `testcontainers/ryuk` nie da się pobrać, uruchom testy z `TESTCONTAINERS_RYUK_DISABLED=true`. Kontenery znikają wtedy tylko po normalnym zakończeniu testów.
+**`pnpm test:integration` nie może uruchomić kontenera.** Testy integracyjne potrzebują działającego Dockera (`docker info`). Testcontainers pobiera przy pierwszym uruchomieniu obrazy `postgres:17-alpine`, `redis:7.4-alpine`, `rustfs/rustfs` i `testcontainers/ryuk` (sprząta kontenery po przerwanych testach). Jeśli `testcontainers/ryuk` nie da się pobrać, uruchom testy z `TESTCONTAINERS_RYUK_DISABLED=true`. Kontenery znikają wtedy tylko po normalnym zakończeniu testów.
 
 **Klasa Tailwinda nic nie robi (np. `bg-blue-500`, `font-serif`).** Motyw ma tylko wartości z design tokens. Użyj klasy semantycznej (`bg-primary`) albo dodaj token w `packages/design-tokens/src/tokens.ts` i przebuduj pakiet (`pnpm build`).
 

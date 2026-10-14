@@ -39,13 +39,14 @@ Jednorazowo, w tej kolejności. Klucze i hasła trafiają tylko do paneli platfo
 - **Sentry** (region EU): projekty `biddy-api` i `biddy-web`. Potrzebne: DSN obu projektów i token organizacji do uploadu source map (`SENTRY_AUTH_TOKEN`). Opcjonalnie integracja z GitHubem (commity w release).
 - **Resend:** domena `staging.biddy.pl` z rekordami DNS, klucz API.
 - **Cloudflare Turnstile:** widżet dla `staging.biddy.pl` (klucz witryny i klucz tajny).
+- **Cloudflare R2** (zdjęcia i dokumenty, F-12): konfiguracja w sekcji [Cloudflare R2](#cloudflare-r2-pliki) niżej. Potrzebne: endpoint S3 konta, klucz dostępu i sekret.
 - **SMSAPI.pl:** token API. Nazwa nadawcy (`SMSAPI_SENDER`) wymaga rejestracji w SMSAPI; do tego czasu zostaw pustą.
 - **Google i Apple** (opcjonalnie): klienci OAuth z callbackiem `https://api.staging.biddy.pl/v1/auth/callback/google` (i `/apple`).
 
 ### 2. Render (API, worker, Postgres, Key Value)
 
 1. Render → **New → Blueprint** → repozytorium Biddy, plik `render.yaml`, gałąź `main`.
-2. Render pyta o wartości `sync: false`: wpisz DSN Sentry (`biddy-api`), klucze Resend, Turnstile i SMSAPI; klucze Google i Apple zostaw puste, jeśli logowanie społecznościowe ma być wyłączone. `BETTER_AUTH_SECRET` Render generuje sam (worker kopiuje go z API).
+2. Render pyta o wartości `sync: false`: wpisz DSN Sentry (`biddy-api`), klucze Resend, Turnstile i SMSAPI, endpoint i klucze R2 (w API i workerze te same); klucze Google i Apple zostaw puste, jeśli logowanie społecznościowe ma być wyłączone. `BETTER_AUTH_SECRET` Render generuje sam (worker kopiuje go z API).
 3. Po utworzeniu usług: **biddy-staging-api → Settings → Custom Domains** → `api.staging.biddy.pl`.
 4. Pierwszy deploy wykona migracje na pustej bazie. Kont testowych z seeda na stagingu nie ma (seed odmawia przy `NODE_ENV=production`); konta zakłada się przez rejestrację.
 
@@ -75,6 +76,7 @@ Render GitHub App musi mieć dostęp do checków repozytorium, inaczej `checksPa
 
 - `staging.biddy.pl` → rekord wskazany przez Vercel.
 - `api.staging.biddy.pl` → `CNAME` na adres usługi z Render (`biddy-staging-api.onrender.com`).
+- `media.staging.biddy.pl` → rekord dodaje R2 przy podpięciu domeny do kubełka (niżej); ten musi być za proxy Cloudflare (cache CDN).
 
 Na początek oba rekordy **bez proxy Cloudflare** (szara chmurka). Proxy Cloudflare przed API wymaga zmiany `TRUST_PROXY` (niżej).
 
@@ -87,12 +89,42 @@ Na początek oba rekordy **bez proxy Cloudflare** (szara chmurka). Proxy Cloudfl
 
 Pełny opis zmiennych jest w [`.env.example`](../.env.example). Na stagingu:
 
-- **Wspólne dla API i workera** (grupa `biddy-staging-shared` w `render.yaml`): `NODE_ENV=production`, `LOG_LEVEL`, `SENTRY_ENVIRONMENT=staging`, `SENTRY_TRACES_SAMPLE_RATE`, `QUEUE_PREFIX`, `WEB_URL`, `MAIL_FROM`.
+- **Wspólne dla API i workera** (grupa `biddy-staging-shared` w `render.yaml`): `NODE_ENV=production`, `LOG_LEVEL`, `SENTRY_ENVIRONMENT=staging`, `SENTRY_TRACES_SAMPLE_RATE`, `QUEUE_PREFIX`, `WEB_URL`, `MAIL_FROM`, R2 bez sekretów (`S3_REGION=auto`, `S3_FORCE_PATH_STYLE`, `S3_BUCKET_MEDIA`, `S3_BUCKET_UPLOADS`, `MEDIA_PUBLIC_URL`).
+- **Sekrety w obu usługach** (`sync: false`): `SENTRY_DSN`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
 - **Z zasobów Render:** `DATABASE_URL` (Postgres), `REDIS_QUEUE_URL` (Key Value `noeviction`), `REDIS_CACHE_URL` (Key Value `allkeys-lru`, używany od F-15). Adresy wewnętrzne: bazy i Redisa nie widać z internetu (`ipAllowList: []`).
 - **Tylko API:** `API_PUBLIC_URL`, `CORS_ORIGINS`, `AUTH_COOKIE_DOMAIN`, `OPENAPI_ENABLED=true` (Swagger UI pod `/docs` na stagingu) i sekrety.
 - **Ustawiane przez Render:** `PORT`, `RENDER_GIT_COMMIT`.
 
 Nowa zmienna API: dopisz ją do `.env.example`, a jeśli staging jej wymaga, do `render.yaml` (sekret jako `sync: false` i ręcznie w panelu usługi, bo `sync: false` działa tylko przy tworzeniu Blueprintu).
+
+## Cloudflare R2 (pliki)
+
+Trzy kubełki na środowisko ([F-12](features/F-12-zdjecia.md)). Twórz je z **jurysdykcją EU** (dane w UE); endpoint S3 ma wtedy postać `https://<ID_KONTA>.eu.r2.cloudflarestorage.com` (`S3_ENDPOINT`). Lokalnie to samo robi `pnpm storage:setup` na RustFS.
+
+| Kubełek                   | Dostęp                                                     | Zawartość                                                    |
+| ------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
+| `biddy-staging-uploads`   | prywatny, CORS dla PUT                                     | oryginały zdjęć z EXIF (`incoming/`), kwarantanna moderacji  |
+| `biddy-staging-media`     | publiczny przez własną domenę `media.staging.biddy.pl`     | przetworzone zdjęcia WebP bez metadanych                     |
+| `biddy-staging-documents` | prywatny                                                   | etykiety, dowody w sporach, faktury (od F-24)                |
+
+1. **R2 → Create bucket** dla każdego kubełka (Location: jurysdykcja EU).
+2. **`biddy-staging-media` → Settings → Custom Domains** → `media.staging.biddy.pl`. Publiczny adres `r2.dev` zostaw wyłączony. Pliki wariantów są niezmienne (`cache-control: public, max-age=31536000, immutable`), więc CDN może je trzymać bez końca.
+3. **`biddy-staging-uploads` → Settings → CORS Policy:**
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://staging.biddy.pl"],
+       "AllowedMethods": ["PUT"],
+       "AllowedHeaders": ["*"],
+       "ExposeHeaders": ["ETag"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+4. **`biddy-staging-uploads` → Settings → Object lifecycle rules:** prefiks `incoming/`, usuwanie po 2 dniach. To zabezpieczenie: oryginały usuwa worker po przetworzeniu, a porzucone uploady job sprzątania po 24 h.
+5. **R2 → Manage API tokens → Create API token:** uprawnienie „Object Read & Write”, tylko kubełki stagingu. Access Key ID i Secret Access Key to `S3_ACCESS_KEY_ID` i `S3_SECRET_ACCESS_KEY` w API i workerze.
+
+Sprawdzenie po deployu: zmiana zdjęcia profilowego na `/konto/profil` na stagingu. Zdjęcie ma adres `https://media.staging.biddy.pl/avatars/…/large.webp`, a w kubełku uploads nie zostaje plik z `incoming/`.
 
 ## Migracje: zasady
 
@@ -124,10 +156,11 @@ Jeśli przed API stoi proxy Cloudflare (pomarańczowa chmurka), `remoteAddress` 
 
 ## Preview deployments: ograniczenia
 
-Preview działa pod `*.vercel.app` i rozmawia z API stagingu. Strony renderowane na serwerze i statyczne działają, ale wywołania API z przeglądarki blokuje CORS (API stagingu ufa tylko `https://staging.biddy.pl`), a ciasteczko sesji z `staging.biddy.pl` do `*.vercel.app` nie trafia. **Preview służy do przeglądu interfejsu; logowanie i dane testuj na stagingu.** Pełne preview z sesją wymaga adresów preview pod `biddy.pl` (Vercel Preview Deployment Suffix, plan Pro) i dopisania ich do `CORS_ORIGINS`.
+Preview działa pod `*.vercel.app` i rozmawia z API stagingu. Strony renderowane na serwerze i statyczne działają, ale wywołania API z przeglądarki blokuje CORS (API stagingu ufa tylko `https://staging.biddy.pl`), a ciasteczko sesji z `staging.biddy.pl` do `*.vercel.app` nie trafia. **Preview służy do przeglądu interfejsu; logowanie i dane testuj na stagingu.** Pełne preview z sesją wymaga adresów preview pod `biddy.pl` (Vercel Preview Deployment Suffix, plan Pro) i dopisania ich do `CORS_ORIGINS` oraz do reguły CORS kubełka uploads (upload zdjęć).
 
 ## Rozwiązywanie problemów
 
+- **Upload zdjęcia kończy się błędem w przeglądarce:** w konsoli błąd CORS = brak originu w regule CORS kubełka uploads (krok 3 w „Cloudflare R2”). Status 403 z R2 = zła para kluczy albo token bez dostępu do kubełka.
 - **Worker restartuje się zaraz po starcie:** w logach `maxmemory-policy`: Key Value kolejek musi mieć `noeviction` (`render.yaml`, F-04).
 - **API nie startuje, w logach lista zmiennych:** brakuje wymaganej zmiennej produkcyjnej (lista w README, „API (apps/api)”). Uzupełnij ją w panelu usługi.
 - **Render nie wdraża po merge'u:** sprawdź, czy wszystkie checki CI na commicie są zielone i czy Render GitHub App ma dostęp do checków. Zmiana tylko poza `buildFilter` (np. same dokumenty) celowo nie wdraża API.

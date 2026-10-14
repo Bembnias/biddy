@@ -19,7 +19,7 @@ Użytkownik zarządza swoim profilem i adresami ([PROJECT.md §4](../PROJECT.md#
 
 - **Profil:** `PATCH /v1/me` zmienia imię wyświetlane. Reguły imienia są wspólne dla web i API (`@biddy/shared`) i obowiązują także przy rejestracji: 2–60 znaków po przycięciu i scaleniu spacji; litery, cyfry, spacja, kropka, myślnik, podkreślnik i apostrof. Imię nie może zawierać danych kontaktowych: adresu WWW ani co najmniej 6 cyfr (np. numeru telefonu). Obchodzenie płatności przez kontakt poza platformą jest główną drogą oszustw (PROJECT.md §16.2).
 - **Better Auth:** zmiana profilu tylko przez `PATCH /v1/me`. Trasa `/v1/auth/update-user` jest zablokowana (pozwalała ustawić dowolne imię i adres obrazka z pominięciem reguł), a rejestracja odrzuca pole `image` i stosuje reguły imienia.
-- **Avatar:** do F-12 inicjały imienia na kolorowym tle (kolor z identyfikatora). Upload, przycinanie i moderacja zdjęcia to F-12; obrazek z Google/Apple (`users.image`) nie jest pokazywany publicznie.
+- **Avatar:** inicjały imienia na kolorowym tle (kolor z identyfikatora), jeśli użytkownik nie ma zdjęcia profilowego. Upload, przycinanie i moderacja zdjęcia to F-12 (dostarczone: `PUT /v1/me/avatar`); obrazek z Google/Apple (`users.image`) nie jest pokazywany publicznie.
 - **Profil publiczny:** `GET /v1/users/{id}` i strona `/u/{id}`: imię, inicjały, „Na Biddy od” (miesiąc i rok), znaczek „Zweryfikowany telefon”, sekcja aktywnych aukcji (pusta do F-14/F-18) i miejsce na oceny (F-30). Bez e-maila, telefonu, adresów i statusu konta. Konto zablokowane ma 404.
 - **Adresy:** `GET/POST /v1/me/addresses`, `PATCH/DELETE /v1/me/addresses/{id}`. Pola: odbiorca (imię i nazwisko albo firma), ulica z numerem, kod pocztowy, miasto, telefon (polski komórkowy, potrzebny przewoźnikom), kraj (`PL`). Maks. 10 adresów na konto.
   - Adres domyślny dostawy i domyślny adres nadania: najwyżej po jednym na konto (indeksy unikalne częściowe w bazie). Ustawienie nowego domyślnego zdejmuje flagę z poprzedniego w tej samej transakcji.
@@ -70,7 +70,7 @@ Użytkownik zarządza swoim profilem i adresami ([PROJECT.md §4](../PROJECT.md#
 Migracja `0004_addresses` (moduł `identity`):
 
 - `addresses`: `id`, `user_id` → `users` (FK, kaskada), `recipient_name`, `street`, `postal_code`, `city`, `country` (`PL`), `phone` (E.164), `is_default`, `is_sender_default`, `created_at`, `updated_at`. Indeksy unikalne częściowe: (`user_id`) gdzie `is_default`, (`user_id`) gdzie `is_sender_default`; indeks (`user_id`, `created_at`).
-- `users`: bez zmian (`name` to imię wyświetlane; `avatar_key` doda F-12).
+- `users`: bez zmian (`name` to imię wyświetlane; `avatar_media_id` i `avatar_url` dodało F-12).
 
 ## API i zdarzenia
 

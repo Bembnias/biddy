@@ -90,6 +90,11 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Limit adresów',
     detail: 'Możesz zapisać najwyżej 10 adresów. Usuń adres, którego nie używasz.',
   },
+  MEDIA_NOT_UPLOADED: {
+    status: 409,
+    title: 'Brak pliku',
+    detail: 'Plik nie dotarł do magazynu. Wyślij zdjęcie ponownie.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

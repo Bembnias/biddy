@@ -1,8 +1,10 @@
 // Kubełki S3 w RustFS: idempotentne tworzenie i reguła CORS dla uploadu z przeglądarki.
 import {
+  type CORSRule,
   CreateBucketCommand,
   HeadBucketCommand,
   PutBucketCorsCommand,
+  PutBucketPolicyCommand,
   S3Client,
   S3ServiceException,
 } from '@aws-sdk/client-s3';
@@ -95,9 +97,23 @@ async function ensureBucket(client: S3Client, env: InfraEnv, bucket: string): Pr
   }
 }
 
-/** Reguła CORS: przeglądarka wysyła zdjęcia prosto do S3 przez presigned PUT (PROJECT.md §16.1). */
-async function applyMediaCors(client: S3Client, env: InfraEnv): Promise<void> {
-  const bucket = env.S3_BUCKET_MEDIA;
+function isUnsupported(error: unknown): boolean {
+  return (
+    error instanceof S3ServiceException &&
+    (error.name === 'NotImplemented' || httpStatus(error) === 501)
+  );
+}
+
+/**
+ * Reguły CORS (F-12): przeglądarka wysyła oryginały zdjęć prosto do prywatnego kubełka
+ * uploads przez presigned PUT, a przetworzone zdjęcia czyta z publicznego kubełka media.
+ */
+async function applyCors(
+  client: S3Client,
+  env: InfraEnv,
+  bucket: string,
+  methods: CORSRule['AllowedMethods'],
+): Promise<void> {
   try {
     await client.send(
       new PutBucketCorsCommand({
@@ -106,7 +122,7 @@ async function applyMediaCors(client: S3Client, env: InfraEnv): Promise<void> {
           CORSRules: [
             {
               AllowedOrigins: env.S3_CORS_ORIGINS,
-              AllowedMethods: ['PUT', 'GET', 'HEAD'],
+              AllowedMethods: methods,
               AllowedHeaders: ['*'],
               ExposeHeaders: ['ETag'],
               MaxAgeSeconds: 3600,
@@ -115,12 +131,11 @@ async function applyMediaCors(client: S3Client, env: InfraEnv): Promise<void> {
         },
       }),
     );
-    log.info(`Kubełek ${bucket}: CORS dla ${env.S3_CORS_ORIGINS.join(', ')} (PUT, GET, HEAD)`);
+    log.info(
+      `Kubełek ${bucket}: CORS dla ${env.S3_CORS_ORIGINS.join(', ')} (${methods?.join(', ') ?? ''})`,
+    );
   } catch (error) {
-    const status = httpStatus(error);
-    const unsupported =
-      error instanceof S3ServiceException && (error.name === 'NotImplemented' || status === 501);
-    if (!unsupported) {
+    if (!isUnsupported(error)) {
       throw storageError(error, env, `Ustawienie CORS kubełka ${bucket}`);
     }
     log.note(
@@ -130,17 +145,50 @@ async function applyMediaCors(client: S3Client, env: InfraEnv): Promise<void> {
 }
 
 /**
- * Tworzy brakujące kubełki i ustawia CORS. Można uruchamiać wielokrotnie.
+ * Publiczny odczyt kubełka media (lokalny odpowiednik publicznego kubełka R2 za CDN): są w nim
+ * tylko przetworzone, zatwierdzone zdjęcia bez metadanych.
+ */
+async function applyPublicRead(client: S3Client, env: InfraEnv, bucket: string): Promise<void> {
+  try {
+    await client.send(
+      new PutBucketPolicyCommand({
+        Bucket: bucket,
+        Policy: JSON.stringify({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Principal: { AWS: ['*'] },
+              Action: ['s3:GetObject'],
+              Resource: [`arn:aws:s3:::${bucket}/*`],
+            },
+          ],
+        }),
+      }),
+    );
+    log.info(`Kubełek ${bucket}: publiczny odczyt obiektów`);
+  } catch (error) {
+    if (!isUnsupported(error)) {
+      throw storageError(error, env, `Ustawienie publicznego odczytu kubełka ${bucket}`);
+    }
+    log.note(`Serwer S3 nie obsługuje PutBucketPolicy, kubełek ${bucket} nie jest publiczny.`);
+  }
+}
+
+/**
+ * Tworzy brakujące kubełki, ustawia CORS i publiczny odczyt media. Można uruchamiać wielokrotnie.
  * Odmawia (CliError) dla serwera S3 spoza tej maszyny i dla NODE_ENV=production.
  */
 export async function setupStorage(env: InfraEnv): Promise<void> {
   assertStorageAllowed(env);
   const client = createS3Client(env);
   try {
-    for (const bucket of [env.S3_BUCKET_MEDIA, env.S3_BUCKET_DOCUMENTS]) {
+    for (const bucket of [env.S3_BUCKET_MEDIA, env.S3_BUCKET_DOCUMENTS, env.S3_BUCKET_UPLOADS]) {
       await ensureBucket(client, env, bucket);
     }
-    await applyMediaCors(client, env);
+    await applyCors(client, env, env.S3_BUCKET_UPLOADS, ['PUT']);
+    await applyCors(client, env, env.S3_BUCKET_MEDIA, ['GET', 'HEAD']);
+    await applyPublicRead(client, env, env.S3_BUCKET_MEDIA);
   } finally {
     client.destroy();
   }

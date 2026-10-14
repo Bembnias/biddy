@@ -16,6 +16,7 @@ export class MeDto extends createZodDto(
   z.object({
     id: z.uuid(),
     name: z.string().describe('Imię wyświetlane'),
+    avatarUrl: z.url().nullable().describe('Zdjęcie profilowe (WebP 256 px) albo null'),
     email: z.email(),
     emailVerified: z
       .boolean()
@@ -79,6 +80,7 @@ export class MeController {
     return {
       id: user.id,
       name: user.name,
+      avatarUrl: user.avatarUrl,
       email: user.email,
       emailVerified: user.emailVerified,
       termsAccepted: await this.terms.hasAcceptedCurrent(user.id),
@@ -142,6 +144,7 @@ export class SessionUserDto extends createZodDto(
   z.object({
     id: z.uuid(),
     name: z.string(),
+    avatarUrl: z.url().nullable(),
     emailVerified: z.boolean(),
     termsAccepted: z.boolean(),
     phoneVerified: z.boolean(),
@@ -180,6 +183,7 @@ export class SessionController {
       user: {
         id: user.id,
         name: user.name,
+        avatarUrl: user.avatarUrl,
         emailVerified: user.emailVerified,
         termsAccepted: await this.terms.hasAcceptedCurrent(user.id),
         phoneVerified: user.phoneNumber !== null,

@@ -132,6 +132,7 @@ export const infraEnvSchema = z.object({
   S3_FORCE_PATH_STYLE: z.stringbool({ error: 'oczekiwano true lub false' }),
   S3_BUCKET_MEDIA: bucket(),
   S3_BUCKET_DOCUMENTS: bucket(),
+  S3_BUCKET_UPLOADS: bucket(),
   S3_CORS_ORIGINS: originList(),
 
   // Poczta (Mailpit lokalnie, Resend na produkcji)
@@ -250,6 +251,13 @@ export function checkConsistency(env: InfraEnv): EnvIssue[] {
     issues.push({
       variable: 'S3_BUCKET_DOCUMENTS',
       message: 'musi się różnić od S3_BUCKET_MEDIA (dokumenty są prywatne, media nie)',
+    });
+  }
+  if ([env.S3_BUCKET_MEDIA, env.S3_BUCKET_DOCUMENTS].includes(env.S3_BUCKET_UPLOADS)) {
+    issues.push({
+      variable: 'S3_BUCKET_UPLOADS',
+      message:
+        'musi się różnić od S3_BUCKET_MEDIA i S3_BUCKET_DOCUMENTS (oryginały zdjęć z EXIF są prywatne)',
     });
   }
 

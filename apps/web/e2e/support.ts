@@ -151,12 +151,15 @@ export async function stubTurnstile(page: Page): Promise<void> {
 
 /**
  * Czeka, aż strona się ustabilizuje przed axe-core: przyciski formularzy są aktywne (np. po
- * tokenie Turnstile), a przejścia CSS skończone (w trakcie animacji kontrast bywa za niski).
+ * tokenie Turnstile), tytuł dokumentu jest na miejscu (po router.refresh), a przejścia CSS
+ * skończone (w trakcie animacji kontrast bywa za niski).
  */
 export async function settle(page: Page): Promise<void> {
   for (const button of await page.locator('main button[type="submit"]').all()) {
     await expect(button).toBeEnabled();
   }
+  // Odświeżenie danych z serwera (router.refresh) na chwilę podmienia metadane, w tym <title>.
+  await page.waitForFunction(() => document.title !== '');
   await page.evaluate(() =>
     Promise.all(
       document
@@ -207,6 +210,15 @@ export async function gotoHydrated(page: Page, url: string): Promise<void> {
   const hydrated = page.waitForRequest((request) => request.url().endsWith('/v1/time'));
   await page.goto(url);
   await hydrated;
+}
+
+/** Nadpisania pól /v1/me w atrapie SSR dla sesji testu (np. avatarUrl po zapisie). */
+export async function setSsrMe(session: string, patch: Record<string, unknown>): Promise<void> {
+  const response = await fetch(
+    `http://127.0.0.1:${MOCK_API_PORT}/__e2e/me?${new URLSearchParams({ session }).toString()}`,
+    { method: 'PUT', body: JSON.stringify(patch) },
+  );
+  expect(response.ok).toBe(true);
 }
 
 /**

@@ -419,6 +419,8 @@ flowchart TD
 
 ### F-12 · Zdjęcia: upload i przetwarzanie · `M`
 
+> Pełny spec: [docs/features/F-12-zdjecia.md](features/F-12-zdjecia.md).
+
 **Cel:** bezpieczny upload zdjęć z ochroną prywatności i moderacją.
 
 **Zakres:**

@@ -39,6 +39,11 @@ export const QUEUE_DEFINITIONS = {
     description: 'Joby cykliczne infrastruktury, np. sprzątanie outboxa',
     concurrency: 1,
   },
+  media: {
+    description:
+      'Przetwarzanie zdjęć: weryfikacja, usunięcie EXIF, warianty WebP i moderacja (F-12)',
+    concurrency: 2,
+  },
   emails: {
     description:
       'Wysyłka e-maili (weryfikacja adresu, reset hasła). Treść zawiera linki z tokenami, więc job znika po wysłaniu',

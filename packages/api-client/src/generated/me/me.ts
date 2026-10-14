@@ -31,12 +31,14 @@ import type {
 import type {
   AcceptTermsDto,
   AddressDto,
+  AvatarDto,
   ConfirmPhoneVerificationDto,
   CreateAddressDto,
   MeDto,
   PhoneVerificationDto,
   ProblemDetails,
   SessionDto,
+  SetAvatarDto,
   StartPhoneVerificationDto,
   UpdateAddressDto,
   UpdateMeDto,
@@ -1131,4 +1133,164 @@ export const useDeleteAddress = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getDeleteAddressMutationOptions(options), queryClient);
+    }
+    export const getSetAvatarUrl = () => {
+
+
+
+
+  return `/v1/me/avatar`
+}
+
+/**
+ * @summary Ustawienie zdjęcia profilowego
+ */
+export const setAvatar = async (setAvatarDto: SetAvatarDto, options?: Parameters<typeof apiFetch>[1]): Promise<AvatarDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<AvatarDto>(getSetAvatarUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setAvatarDto)
+  }
+);}
+
+
+
+
+
+export const getSetAvatarMutationKey = () => ['setAvatar'] as const;
+
+export const getSetAvatarMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAvatar>>, TError,SetAvatarMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setAvatar>>, TError,SetAvatarMutationVariables, TContext> => {
+
+const mutationKey = getSetAvatarMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setAvatar>>, SetAvatarMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  setAvatar(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetAvatarMutationResult = NonNullable<Awaited<ReturnType<typeof setAvatar>>>
+    export type SetAvatarMutationBody = BodyType<SetAvatarDto>
+    export type SetAvatarMutationError = ErrorType<ProblemDetails>
+    export type SetAvatarMutationVariables = {data: BodyType<SetAvatarDto>}
+
+    /**
+ * @summary Ustawienie zdjęcia profilowego
+ */
+export const useSetAvatar = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAvatar>>, TError,SetAvatarMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setAvatar>>,
+        TError,
+        SetAvatarMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetAvatarMutationOptions(options), queryClient);
+    }
+    export const getDeleteAvatarUrl = () => {
+
+
+
+
+  return `/v1/me/avatar`
+}
+
+/**
+ * @summary Usunięcie zdjęcia profilowego
+ */
+export const deleteAvatar = async ( options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getDeleteAvatarUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAvatarMutationKey = () => ['deleteAvatar'] as const;
+
+export const getDeleteAvatarMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAvatar>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAvatar>>, TError,void, TContext> => {
+
+const mutationKey = getDeleteAvatarMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAvatar>>, void> = () => {
+
+
+          return  deleteAvatar(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAvatarMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAvatar>>>
+
+    export type DeleteAvatarMutationError = ErrorType<ProblemDetails>
+
+
+    /**
+ * @summary Usunięcie zdjęcia profilowego
+ */
+export const useDeleteAvatar = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAvatar>>, TError,void, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAvatar>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteAvatarMutationOptions(options), queryClient);
     }

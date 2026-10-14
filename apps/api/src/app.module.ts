@@ -12,6 +12,7 @@ import { MailModule } from './infra/mail/index.js';
 import { OutboxModule } from './infra/outbox/index.js';
 import { QueuesModule } from './infra/queues/index.js';
 import { SmsModule } from './infra/sms/index.js';
+import { StorageModule } from './infra/storage/index.js';
 import { TimeModule } from './infra/time/index.js';
 import { DOMAIN_MODULES } from './modules/index.js';
 
@@ -40,6 +41,7 @@ export class AppModule {
         OutboxModule,
         MailModule,
         SmsModule,
+        StorageModule,
         ...DOMAIN_MODULES,
         HealthModule,
         TimeModule,

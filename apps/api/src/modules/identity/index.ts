@@ -11,6 +11,7 @@
  */
 export { IdentityModule } from './identity.module.js';
 export { AddressService, MAX_ADDRESSES } from './addresses/address.service.js';
+export { ProfileService } from './profile/profile.service.js';
 export {
   CurrentUser,
   RequireSession,

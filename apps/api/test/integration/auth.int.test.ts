@@ -323,6 +323,7 @@ describe('logowanie', () => {
         emailVerified: false,
         termsAccepted: true,
         phoneVerified: false,
+        avatarUrl: null,
       },
     });
   });

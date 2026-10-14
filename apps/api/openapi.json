@@ -615,6 +615,283 @@
         ]
       }
     },
+    "/v1/media/uploads": {
+      "post": {
+        "description": "JPEG, PNG albo WebP do 15 MB. Plik wyślij metodą PUT pod upload.url z nagłówkami upload.headers, potem wywołaj POST /v1/media/{id}/complete. Najwyżej 50 zdjęć na godzinę (429).",
+        "operationId": "createUpload",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Zdjęcie i adres uploadu",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nowe zdjęcie: adres presigned PUT",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/v1/media/{id}/complete": {
+      "post": {
+        "description": "Idempotentne. Stan sprawdzaj przez GET /v1/media/{id}. Pliku nie ma w magazynie: 409 MEDIA_NOT_UPLOADED.",
+        "operationId": "completeUpload",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Zdjęcie w przetwarzaniu",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Plik wysłany: przetwarzanie",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/v1/media/{id}": {
+      "get": {
+        "operationId": "getMedia",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zdjęcie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stan zdjęcia (tylko właściciel)",
+        "tags": [
+          "media"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteMedia",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Zdjęcie usunięte"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Usunięcie nieużytego zdjęcia",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/v1/me/avatar": {
+      "put": {
+        "operationId": "setAvatar",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAvatarDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Zdjęcie profilowe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AvatarDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ustawienie zdjęcia profilowego",
+        "tags": [
+          "me"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteAvatar",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Zdjęcie profilowe usunięte"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Usunięcie zdjęcia profilowego",
+        "tags": [
+          "me"
+        ]
+      }
+    },
     "/v1/time": {
       "get": {
         "operationId": "getServerTime",
@@ -684,6 +961,12 @@
             "type": "string",
             "description": "Imię wyświetlane"
           },
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Zdjęcie profilowe (WebP 256 px) albo null",
+            "nullable": true
+          },
           "email": {
             "type": "string",
             "format": "email",
@@ -729,6 +1012,7 @@
         "required": [
           "id",
           "name",
+          "avatarUrl",
           "email",
           "emailVerified",
           "termsAccepted",
@@ -781,6 +1065,11 @@
               "name": {
                 "type": "string"
               },
+              "avatarUrl": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true
+              },
               "emailVerified": {
                 "type": "boolean"
               },
@@ -794,6 +1083,7 @@
             "required": [
               "id",
               "name",
+              "avatarUrl",
               "emailVerified",
               "termsAccepted",
               "phoneVerified"
@@ -1080,6 +1370,12 @@
             "type": "string",
             "description": "Imię wyświetlane"
           },
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Zdjęcie profilowe (WebP 256 px) albo null",
+            "nullable": true
+          },
           "memberSince": {
             "type": "string",
             "format": "date-time",
@@ -1094,6 +1390,7 @@
         "required": [
           "id",
           "name",
+          "avatarUrl",
           "memberSince",
           "phoneVerified"
         ],
@@ -1418,6 +1715,289 @@
           "attributes",
           "listingNotice",
           "jsonSchema"
+        ],
+        "additionalProperties": false
+      },
+      "CreateUploadDto": {
+        "type": "object",
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "ITEM_PHOTO",
+              "AVATAR"
+            ],
+            "description": "Zdjęcie przedmiotu albo zdjęcie profilowe"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ]
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 15728640,
+            "description": "Dokładny rozmiar pliku w bajtach (podpisany w adresie uploadu)"
+          }
+        },
+        "required": [
+          "purpose",
+          "contentType",
+          "sizeBytes"
+        ]
+      },
+      "UploadDto": {
+        "type": "object",
+        "properties": {
+          "media": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "purpose": {
+                "type": "string",
+                "enum": [
+                  "ITEM_PHOTO",
+                  "AVATAR"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PENDING_UPLOAD",
+                  "PROCESSING",
+                  "READY",
+                  "FLAGGED",
+                  "REJECTED"
+                ],
+                "description": "PENDING_UPLOAD → PROCESSING → READY (publiczne), FLAGGED (czeka na moderatora) albo REJECTED"
+              },
+              "width": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "nullable": true
+              },
+              "height": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "nullable": true
+              },
+              "urls": {
+                "type": "object",
+                "properties": {
+                  "thumb": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "medium": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "small": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "large": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "required": [
+                  "large"
+                ],
+                "additionalProperties": false,
+                "description": "Publiczne adresy wariantów WebP (tylko READY)",
+                "nullable": true
+              },
+              "rejectionReason": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Powód odrzucenia (REJECTED)",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "id",
+              "purpose",
+              "status",
+              "width",
+              "height",
+              "urls",
+              "rejectionReason",
+              "createdAt"
+            ],
+            "additionalProperties": false
+          },
+          "upload": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "Presigned PUT do prywatnego kubełka"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "PUT"
+                ]
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Nagłówki do wysłania z plikiem (Content-Length ustawia przeglądarka)"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "url",
+              "method",
+              "headers",
+              "expiresAt"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "media",
+          "upload"
+        ],
+        "additionalProperties": false
+      },
+      "MediaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "ITEM_PHOTO",
+              "AVATAR"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING_UPLOAD",
+              "PROCESSING",
+              "READY",
+              "FLAGGED",
+              "REJECTED"
+            ],
+            "description": "PENDING_UPLOAD → PROCESSING → READY (publiczne), FLAGGED (czeka na moderatora) albo REJECTED"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "height": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "urls": {
+            "type": "object",
+            "properties": {
+              "thumb": {
+                "type": "string",
+                "format": "uri"
+              },
+              "medium": {
+                "type": "string",
+                "format": "uri"
+              },
+              "small": {
+                "type": "string",
+                "format": "uri"
+              },
+              "large": {
+                "type": "string",
+                "format": "uri"
+              }
+            },
+            "required": [
+              "large"
+            ],
+            "additionalProperties": false,
+            "description": "Publiczne adresy wariantów WebP (tylko READY)",
+            "nullable": true
+          },
+          "rejectionReason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Powód odrzucenia (REJECTED)",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "purpose",
+          "status",
+          "width",
+          "height",
+          "urls",
+          "rejectionReason",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "SetAvatarDto": {
+        "type": "object",
+        "properties": {
+          "mediaId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Zdjęcie AVATAR w stanie READY (POST /v1/media/uploads)"
+          }
+        },
+        "required": [
+          "mediaId"
+        ]
+      },
+      "AvatarDto": {
+        "type": "object",
+        "properties": {
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Publiczny adres zdjęcia profilowego (WebP 256 px)"
+          }
+        },
+        "required": [
+          "avatarUrl"
         ],
         "additionalProperties": false
       },

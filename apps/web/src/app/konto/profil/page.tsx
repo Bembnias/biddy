@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 import { AccountPage } from '@/components/account/account-page';
+import { AvatarSettings } from '@/components/media/avatar-settings';
 import { ProfileForm } from '@/components/profile/profile-form';
 import { loadMeOrRedirect } from '@/lib/api/me';
 import { publicProfileUrl, routes } from '@/lib/routes';
@@ -22,7 +23,8 @@ export default async function ProfileSettingsPage() {
       text={t('text')}
       back={{ href: routes.account, label: t('back') }}
     >
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="space-y-8 rounded-lg border border-border bg-card p-6">
+        <AvatarSettings userId={me.id} name={me.name} avatarUrl={me.avatarUrl} />
         <ProfileForm name={me.name} />
       </div>
       <p className="mt-6 text-sm">

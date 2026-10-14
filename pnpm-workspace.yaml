@@ -6,6 +6,7 @@ packages:
 # Jedno miejsce z wersjami narzędzi współdzielonych przez pakiety (`"zależność": "catalog:"`).
 catalog:
   '@aws-sdk/client-s3': 3.1147.0
+  '@aws-sdk/s3-request-presigner': 3.1147.0
   '@axe-core/playwright': 4.13.0
   '@bull-board/api': 9.10.4
   '@bull-board/fastify': 9.10.4
@@ -59,6 +60,7 @@ catalog:
   react-dom: 19.3.0
   reflect-metadata: 0.2.2
   rxjs: 7.8.2
+  sharp: 0.35.5
   '@sentry/nestjs': 11.6.0
   '@sentry/nextjs': 11.6.0
   '@swc-node/register': 1.12.1

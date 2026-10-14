@@ -57,6 +57,9 @@ WORKDIR /app
 COPY --from=production-deps --chown=node:node /repo/package.json ./
 COPY --from=production-deps --chown=node:node /repo/node_modules ./node_modules
 COPY --from=production-deps --chown=node:node /repo/apps/api/node_modules ./apps/api/node_modules
+# Pakiety workspace razem z własnymi zależnościami (np. zod w @biddy/shared): Node szuka ich
+# w node_modules obok pakietu.
+COPY --from=production-deps --chown=node:node /repo/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=builder --chown=node:node /repo/packages/shared/package.json ./packages/shared/
 COPY --from=builder --chown=node:node /repo/packages/shared/dist ./packages/shared/dist
 COPY --from=builder --chown=node:node /repo/apps/api/package.json ./apps/api/

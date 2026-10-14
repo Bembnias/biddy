@@ -207,7 +207,7 @@ describe('profil: imię wyświetlane', () => {
 });
 
 describe('profil publiczny', () => {
-  it('tylko imię, data dołączenia i znaczek telefonu; bez e-maila, telefonu i adresów', async () => {
+  it('tylko imię, zdjęcie, data dołączenia i znaczek telefonu; bez e-maila, telefonu i adresów', async () => {
     const user = await createUser();
     await addAddress(user);
     await pool.query(
@@ -219,8 +219,19 @@ describe('profil publiczny', () => {
     expect(response.statusCode).toBe(200);
     expect(response.headers['cache-control']).toBe('public, max-age=60');
     const body = response.json<Record<string, unknown>>();
-    expect(Object.keys(body).sort()).toEqual(['id', 'memberSince', 'name', 'phoneVerified']);
-    expect(body).toMatchObject({ id: user.id, name: 'Ola Profil', phoneVerified: true });
+    expect(Object.keys(body).sort()).toEqual([
+      'avatarUrl',
+      'id',
+      'memberSince',
+      'name',
+      'phoneVerified',
+    ]);
+    expect(body).toMatchObject({
+      id: user.id,
+      name: 'Ola Profil',
+      phoneVerified: true,
+      avatarUrl: null,
+    });
     for (const secret of [user.email, '500600711', '500 600 700', 'Marszałkowska', '00-950']) {
       expect(response.body).not.toContain(secret);
     }

@@ -2,13 +2,17 @@ import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { Test } from '@nestjs/testing';
+import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
 
 import { ConfigModule, loadConfig } from '../../src/infra/config/index.js';
 import { DbModule } from '../../src/infra/db/index.js';
+import { createLoggerModule } from '../../src/infra/logger/index.js';
 import { MailModule } from '../../src/infra/mail/index.js';
+import { OutboxModule } from '../../src/infra/outbox/index.js';
 import { QueuesModule } from '../../src/infra/queues/index.js';
 import { SmsModule } from '../../src/infra/sms/index.js';
+import { StorageModule } from '../../src/infra/storage/index.js';
 import { DOMAIN_MODULES } from '../../src/modules/index.js';
 
 /** Moduły backendu z PROJECT.md §10.3, w kolejności z tabeli. */
@@ -79,9 +83,12 @@ describe('DOMAIN_MODULES', () => {
       imports: [
         ConfigModule.forRoot(config),
         DbModule,
+        createLoggerModule(pino({ level: 'silent' })),
         QueuesModule.forRoot(),
         MailModule,
+        OutboxModule,
         SmsModule,
+        StorageModule,
         ...DOMAIN_MODULES,
       ],
     }).compile();

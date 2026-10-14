@@ -28,27 +28,45 @@ export function avatarColor(userId: string): string {
 }
 
 /**
- * Avatar użytkownika: do F-12 (zdjęcie profilowe) inicjały na kolorowym tle. Obrazek z Google
- * lub Apple nie jest pokazywany (profil publiczny pokazuje tylko dane z Biddy).
+ * Avatar użytkownika: zdjęcie profilowe (F-12, przetworzony kwadrat WebP) albo inicjały na
+ * kolorowym tle. Obrazek z Google lub Apple nie jest pokazywany (tylko zdjęcia z Biddy).
  */
 export function UserAvatar({
   userId,
   name,
   label,
+  imageUrl,
   size = 'md',
 }: {
   readonly userId: string;
   readonly name: string;
   readonly label: string;
+  readonly imageUrl?: string | null;
   readonly size?: 'md' | 'lg';
 }) {
+  const dimensions = size === 'lg' ? 'size-20' : 'size-10';
+  if (imageUrl !== undefined && imageUrl !== null) {
+    const pixels = size === 'lg' ? 80 : 40;
+    return (
+      // Gotowy wariant WebP z CDN (256 px); optymalizacja Next.js nic by tu nie dała.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt={label}
+        width={pixels}
+        height={pixels}
+        className={cn('shrink-0 rounded-full object-cover', dimensions)}
+      />
+    );
+  }
   return (
     <span
       role="img"
       aria-label={label}
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-full font-semibold',
-        size === 'lg' ? 'size-20 text-2xl' : 'size-10 text-base',
+        dimensions,
+        size === 'lg' ? 'text-2xl' : 'text-base',
         avatarColor(userId),
       )}
     >

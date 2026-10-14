@@ -54,6 +54,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
           userId={profile.id}
           name={profile.name}
           label={t('avatarLabel', { name: profile.name })}
+          imageUrl={profile.avatarUrl}
           size="lg"
         />
         <div>

@@ -27,6 +27,18 @@ envVarGroups:
         value: https://staging.biddy.pl
       - key: MAIL_FROM
         value: Biddy Staging <no-reply@staging.biddy.pl>
+      # Cloudflare R2 (F-12): kubełki i konfiguracja w docs/deployment.md. Endpoint i klucze są
+      # w usługach (sync: false).
+      - key: S3_REGION
+        value: auto
+      - key: S3_FORCE_PATH_STYLE
+        value: 'true'
+      - key: S3_BUCKET_MEDIA
+        value: biddy-staging-media
+      - key: S3_BUCKET_UPLOADS
+        value: biddy-staging-uploads
+      - key: MEDIA_PUBLIC_URL
+        value: https://media.staging.biddy.pl
 
 services:
   - type: web
@@ -96,6 +108,12 @@ services:
         sync: false
       - key: TURNSTILE_SECRET_KEY
         sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
       - key: SMSAPI_TOKEN
         sync: false
       - key: SMSAPI_SENDER
@@ -158,6 +176,12 @@ services:
       - key: SENTRY_DSN
         sync: false
       - key: RESEND_API_KEY
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
         sync: false
 
   # Kolejki BullMQ: noeviction (inaczej worker nie wystartuje, F-04) i trwałość danych.

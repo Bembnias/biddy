@@ -35,6 +35,7 @@ export const MEMBER = {
   emailVerified: false,
   phoneNumber: null,
   phoneVerified: false,
+  avatarUrl: null,
   staffRole: null,
   createdAt: '2026-10-01T10:00:00.000Z',
 } as const;
@@ -71,6 +72,8 @@ function problem(status: number, code: string, detail: string, instance: string)
 
 /** Adresy (DTO z API) według pełnej wartości ciasteczka sesji. */
 const addressesBySession = new Map<string, unknown[]>();
+/** Nadpisania pól /v1/me według pełnej wartości ciasteczka sesji (np. avatarUrl po zapisie). */
+const meBySession = new Map<string, Record<string, unknown>>();
 
 /** Rodzaj sesji z wartości ciasteczka (najdłuższy pasujący prefiks z SESSIONS). */
 function sessionKind(session: string | undefined): string | undefined {
@@ -97,6 +100,14 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     send(response, 200, { status: 'ok' });
     return;
   }
+  if (request.method === 'PUT' && path === '/__e2e/me') {
+    meBySession.set(
+      url.searchParams.get('session') ?? '',
+      (await readJson(request)) as Record<string, unknown>,
+    );
+    send(response, 200, { ok: true });
+    return;
+  }
   if (request.method === 'PUT' && path === '/__e2e/addresses') {
     addressesBySession.set(
       url.searchParams.get('session') ?? '',
@@ -120,6 +131,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
       send(response, 200, {
         id: MEMBER.id,
         name: MEMBER.name,
+        avatarUrl: null,
         memberSince: MEMBER.createdAt,
         phoneVerified: true,
       });
@@ -142,7 +154,7 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
       },
     }[sessionKind(session) ?? ''];
     if (me !== undefined) {
-      send(response, 200, me);
+      send(response, 200, { ...me, ...meBySession.get(session ?? '') });
       return;
     }
     send(response, 401, problem(401, 'UNAUTHORIZED', 'Zaloguj się.', path));

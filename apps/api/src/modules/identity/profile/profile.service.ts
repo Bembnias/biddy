@@ -25,6 +25,7 @@ export function displayNameField() {
 export interface PublicProfile {
   readonly id: string;
   readonly name: string;
+  readonly avatarUrl: string | null;
   readonly memberSince: Date;
   readonly phoneVerified: boolean;
 }
@@ -43,12 +44,39 @@ export class ProfileService {
     return normalized;
   }
 
+  /**
+   * Ustawia albo usuwa zdjęcie profilowe (wywołuje moduł media po sprawdzeniu zdjęcia, F-12).
+   * Zwraca identyfikator poprzedniego zdjęcia, żeby moduł media mógł je zwolnić.
+   */
+  async setAvatar(
+    userId: string,
+    avatar: { readonly mediaId: string; readonly url: string } | null,
+  ): Promise<string | null> {
+    return this.db.transaction(async (tx) => {
+      const [current] = await tx
+        .select({ mediaId: users.avatarMediaId })
+        .from(users)
+        .where(eq(users.id, userId))
+        .for('update');
+      await tx
+        .update(users)
+        .set({
+          avatarMediaId: avatar?.mediaId ?? null,
+          avatarUrl: avatar?.url ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userId));
+      return current?.mediaId ?? null;
+    });
+  }
+
   /** Profil publiczny albo undefined (nieznane albo zablokowane konto). */
   async publicProfile(userId: string): Promise<PublicProfile | undefined> {
     const [row] = await this.db
       .select({
         id: users.id,
         name: users.name,
+        avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
         phoneNumberVerifiedAt: users.phoneNumberVerifiedAt,
       })
@@ -59,6 +87,7 @@ export class ProfileService {
       : {
           id: row.id,
           name: row.name,
+          avatarUrl: row.avatarUrl,
           memberSince: row.createdAt,
           phoneVerified: row.phoneNumberVerifiedAt !== null,
         };

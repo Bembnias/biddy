@@ -3,16 +3,19 @@ import { vi } from 'vitest';
 
 /**
  * Atrapa API dla klienta (F-05): odpowiedzi według ścieżki, reszta 404 Problem Details. Wartość
- * to ciało JSON albo funkcja zwracająca `Response` (nowy obiekt przy każdym wywołaniu, bo treść
- * odpowiedzi da się odczytać tylko raz).
+ * to ciało JSON albo funkcja (dostaje metodę HTTP) zwracająca ciało albo `Response` (nowy obiekt
+ * przy każdym wywołaniu, bo treść odpowiedzi da się odczytać tylko raz).
  */
 export function mockApi(responses: Readonly<Record<string, unknown>>) {
-  const fetchMock = vi.fn<typeof fetch>((input) => {
+  const fetchMock = vi.fn<typeof fetch>((input, init) => {
     const url = new URL(
       typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
     );
     const entry = responses[url.pathname];
-    const body: unknown = typeof entry === 'function' ? (entry as () => unknown)() : entry;
+    const body: unknown =
+      typeof entry === 'function'
+        ? (entry as (method: string) => unknown)(init?.method?.toUpperCase() ?? 'GET')
+        : entry;
     if (body instanceof Response) {
       return Promise.resolve(body);
     }

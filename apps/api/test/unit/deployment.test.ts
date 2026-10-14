@@ -37,6 +37,23 @@ describe('apps/api/Dockerfile', () => {
     expect(dockerfile).toMatch(/COPY .*\/repo\/apps\/api\/drizzle \.\/apps\/api\/drizzle/);
     expect(dockerfile).toMatch(/^USER node$/m);
   });
+
+  it('pakiety workspace w obrazie mają swoje zależności produkcyjne (node_modules)', () => {
+    const packages = [
+      ...dockerfile.matchAll(/^COPY --from=builder .*\/repo\/packages\/([\w-]+)\/dist /gm),
+    ].map(([, name]) => name ?? '');
+    expect(packages).toContain('shared');
+    for (const name of packages) {
+      const manifest = JSON.parse(read(`packages/${name}/package.json`)) as {
+        dependencies?: Record<string, string>;
+      };
+      if (Object.keys(manifest.dependencies ?? {}).length > 0) {
+        expect(dockerfile, name).toContain(
+          `COPY --from=production-deps --chown=node:node /repo/packages/${name}/node_modules ./packages/${name}/node_modules`,
+        );
+      }
+    }
+  });
 });
 
 describe('render.yaml', () => {

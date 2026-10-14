@@ -54,6 +54,7 @@ export class SessionReader {
           (result.user.phoneNumberVerifiedAt ?? null) === null
             ? null
             : (result.user.phoneNumber ?? null),
+        avatarUrl: result.user.avatarUrl ?? null,
         status: (result.user.status ?? 'ACTIVE') as UserStatus,
         staffRole: (result.user.staffRole ?? null) as StaffRole | null,
         createdAt: new Date(result.user.createdAt),

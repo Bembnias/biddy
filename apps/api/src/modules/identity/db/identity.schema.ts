@@ -45,6 +45,10 @@ export const users = pgTable(
     /** Zweryfikowany numer telefonu (E.164); jeden numer = jedno konto (F-08). */
     phoneNumber: text(),
     phoneNumberVerifiedAt: timestamp({ withTimezone: true }),
+    /** Zdjęcie profilowe (moduł media; uuid bez FK między modułami, F-12). */
+    avatarMediaId: uuid(),
+    /** Publiczny adres zdjęcia profilowego, ustawiany przez moduł media razem z avatarMediaId. */
+    avatarUrl: text(),
     status: text().$type<UserStatus>().notNull().default('ACTIVE'),
     staffRole: text().$type<StaffRole>(),
     createdAt: createdAt(),
