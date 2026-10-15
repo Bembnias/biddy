@@ -24,12 +24,20 @@ function processEnv(env: Record<string, string>): NodeJS.ProcessEnv {
 }
 
 /** Uruchamia plik TypeScript z katalogu apps/api (np. src/worker.ts) w osobnym procesie Node. */
-export function startScript(script: string, env: Record<string, string>): StartedProcess {
-  const child = spawn(process.execPath, ['--import', '@swc-node/register/esm-register', script], {
-    cwd: API_DIR,
-    env: processEnv(env),
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+export function startScript(
+  script: string,
+  env: Record<string, string>,
+  args: readonly string[] = [],
+): StartedProcess {
+  const child = spawn(
+    process.execPath,
+    ['--import', '@swc-node/register/esm-register', script, ...args],
+    {
+      cwd: API_DIR,
+      env: processEnv(env),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
   let stdout = '';
   let stderr = '';
   child.stdout?.on('data', (chunk: Buffer) => (stdout += chunk.toString()));

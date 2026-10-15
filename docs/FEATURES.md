@@ -439,6 +439,8 @@ flowchart TD
 
 ### F-13 · Kalkulator POK i cenniki · `S`
 
+> Pełny spec: [docs/features/F-13-pok-i-cenniki.md](features/F-13-pok-i-cenniki.md).
+
 **Cel:** jedna, wspólna logika opłat i kroków przebicia dla frontu i backendu.
 
 **Zakres:**

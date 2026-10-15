@@ -2,7 +2,7 @@
   "name": "@biddy/shared",
   "version": "0.0.0",
   "private": true,
-  "description": "Logika współdzielona przez web, mobile i API: kwoty (Money), kalendarz dni roboczych",
+  "description": "Logika współdzielona przez web, mobile i API: kwoty (Money), POK i kroki przebicia, kalendarz dni roboczych",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.cjs",
@@ -39,6 +39,7 @@
   "devDependencies": {
     "@biddy/config": "workspace:*",
     "eslint": "catalog:",
+    "fast-check": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

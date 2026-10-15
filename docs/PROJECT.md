@@ -1237,7 +1237,7 @@ erDiagram
 |---|---|
 | `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, cancelled_at, chargeback_status, second_chance_offer_id, created_at |
 | `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb), is_active (false po anulowaniu zamówienia) |
-| `fee_schedules` | id, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), category_id (nullable), valid_from, valid_to |
+| `fee_schedules` | id, currency, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), vat_rate_bp, valid_from, valid_to, note (moduł `payments`, F-13; okresy bez nakładania, wiersz niezmienny poza zamknięciem; category_id dojdzie z cennikami per kategoria) |
 | `payments` | id, order_id, provider, provider_payment_id, method, amount, status, failure_reason, idempotency_key, raw (jsonb), created_at |
 | `refunds` | id, order_id, payment_id, dispute_id, reason (`DISPUTE`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, raw (jsonb), created_at |
 | `chargebacks` | id, payment_id, order_id, amount, reason, status, liable_party (`PLATFORM`/`SELLER`), provider_ref, evidence_submitted_at, opened_at, closed_at |
@@ -1300,6 +1300,7 @@ POST   /me/devices                 (rejestracja web push / Expo push)   DELETE /
 
 # Katalog i media
 GET    /categories                 GET /categories/:id/schema
+GET    /fee-schedules/current      (cennik POK, F-13)
 POST   /media/uploads              POST /media/:id/complete      GET /media/:id    DELETE /media/:id
 PUT    /me/avatar                  DELETE /me/avatar
 
@@ -1818,6 +1819,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 55 | Przetwarzanie zdjęć w workerze (sharp: format z treści, limit 40 MP, WebP bez metadanych, warianty z góry) zamiast Cloudflare Image Transformations; nieprzypisane zdjęcia sprząta job po 24 h | Przyjęta | §11.2, §16.1 |
 | 56 | Moderacja obrazów przez adapter `ImageModerator`; do wyboru dostawcy (przed startem) atrapa. Zdjęcie oznaczone nie jest publiczne, event `MediaFlagged` zasila kolejkę moderacji (F-35) | Tymczasowa | §11.2, §16.1 |
 | 57 | Zdjęcie profilowe przez `PUT/DELETE /v1/me/avatar` w module `media` (on woła publiczne API `identity`, nie odwrotnie); `users.avatar_url` trzyma gotowy adres, więc sesja i profil nie pytają modułu `media` | Przyjęta | §10.3, §13.3 |
+| 58 | POK: jedno zaokrąglenie half-up dla całej części zmiennej (suma iloczynów na bigint), stawka VAT częścią cennika; kroki przebicia jako stała w `@biddy/shared`, nie w bazie (replay ofert) | Przyjęta | §3.1, §6.3, §7.7 |
+| 59 | Cenniki POK wersjonowane okresem `[valid_from, valid_to)` z wykluczeniem nakładania (btree_gist) i triggerem niezmienności; zmiana stawek skryptem `fees:publish` do czasu panelu admina (F-34); jeden cennik globalny, cenniki per kategoria później | Przyjęta | §3.1, §13.3 |
 
 ---
 

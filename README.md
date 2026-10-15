@@ -347,6 +347,24 @@ przeglądarka ── GET /v1/media/{id} co 1 s, aż status przestanie być PROCE
 - **Zdjęcie profilowe:** `PUT /v1/me/avatar` `{ mediaId }` (zdjęcie `AVATAR` w stanie `READY`) i `DELETE /v1/me/avatar`. Adres trafia do `avatarUrl` w `/v1/me`, `/v1/session` i profilu publicznym.
 - **Web:** `PhotoUploader` (`apps/web/src/components/media`: wiele zdjęć, postęp, zdjęcie główne, kolejność, statusy; dla F-14) i `AvatarSettings` na `/konto/profil`. Upload i odpytywanie statusu: `src/lib/media/upload.ts`.
 
+### POK i kroki przebicia (F-13)
+
+Jedna implementacja dla web, mobile i API w `@biddy/shared` (`src/pricing`). Spec: [F-13](docs/features/F-13-pok-i-cenniki.md).
+
+- **`calculatePok(kwota, cennik)`**: Pakiet Ochrony Kupujących = opłata stała + progi krańcowe (startowo 2,99 zł + 7% do 1000 zł + 4% nadwyżki), jedno zaokrąglenie half-up do grosza, rozbicie na netto i VAT. Monotoniczność i brak skoków na granicach progów sprawdzają testy property-based (fast-check).
+- **`bidIncrement(cena)` i `minimumNextBid({ startPrice, currentPrice })`**: tabela kroków przebicia z PROJECT.md §6.3. Jest w kodzie, a nie w bazie, bo silnik licytacji przelicza historię ofert od nowa.
+- **Cenniki** w tabeli `fee_schedules` (moduł `payments`): wersje z okresem `[valid_from, valid_to)`, w walucie zawsze dokładnie jedna obowiązująca (ograniczenie wykluczające). Wiersz jest niezmienny (trigger), bo zamówienie zapisuje `fee_schedule_id` i przelicza się według niego (`FeeScheduleService.recalculate`). Startowy cennik pochodzi z migracji `0009_initial_fee_schedule`.
+- **API:** `GET /v1/fee-schedules/current` (publiczny, cache 60 s). Inne moduły biorą POK z `FeeScheduleService.quote` (razem z `feeScheduleId` do zapisania w zamówieniu).
+- **Web:** `TotalPrice` (`apps/web/src/components/pricing`): „Licytujesz 100 zł · zapłacisz 109,99 zł + dostawa od 12,99 zł” i rozwijane „Skąd ta kwota?”.
+
+**Zmiana stawek** (bez deployu, do czasu panelu admina F-34): zapisz cennik w pliku JSON i uruchom podgląd, a potem to samo z `--confirm`:
+
+```bash
+pnpm --filter @biddy/api fees:publish -- --file cennik.json --from 2027-01-01T00:00:00+01:00
+```
+
+Plik: `{"currency":"PLN","fixedFee":299,"tiers":[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}],"vatRateBp":2300}` (kwoty w groszach, stawki w punktach bazowych: 700 = 7%). Podgląd pokazuje POK dla przykładowych kwot według bieżącego i nowego cennika. Publikacja zamyka bieżący cennik dokładnie w chwili `--from` (najwcześniej teraz). Na stagingu: powłoka usługi API w Render, `node dist/fees-publish.js --file … --from … --confirm`.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
@@ -515,7 +533,7 @@ biddy/
 │  ├─ api-client/          # klient API z orval: funkcje, hooki TanStack Query, fetcher (ApiError)
 │  ├─ config/              # wspólna konfiguracja: tsconfig, ESLint, Prettier
 │  ├─ design-tokens/       # kolory, typografia, promienie → motyw Tailwind 4 (web) i wartości JS (mobile)
-│  └─ shared/              # logika współdzielona: Money, dni robocze i święta, kody błędów API
+│  └─ shared/              # logika współdzielona: Money, POK i kroki przebicia, dni robocze, kody błędów API
 ├─ infra/
 │  ├─ docker-compose.yml   # usługi lokalne: Postgres, 2× Redis, Meilisearch, RustFS, Mailpit
 │  └─ scripts/             # bootstrap, env:check, infra:up, storage:setup, db:reset, mail:test

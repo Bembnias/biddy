@@ -350,5 +350,25 @@
       "flagged": "Zdjęcie czeka na sprawdzenie przez moderatora. Wybierz inne albo spróbuj później.",
       "hint": "JPEG, PNG albo WebP, do 15 MB. Zdjęcie przytniemy do kwadratu."
     }
+  },
+  "pricing": {
+    "total": {
+      "lead": "{kind, select, maxBid {Licytujesz do} buyNow {Kupujesz za} other {Licytujesz}} {amount}",
+      "pay": "{kind, select, maxBid {zapłacisz najwyżej} other {zapłacisz}}",
+      "shipping": "+ dostawa od {shipping}",
+      "calculating": "Liczymy kwotę łączną…",
+      "unavailable": "+ Pakiet Ochrony Kupujących",
+      "details": "Skąd ta kwota?",
+      "amount": "{kind, select, maxBid {Twoje maksimum} buyNow {Cena Kup teraz} other {Kwota oferty}}",
+      "pok": "Pakiet Ochrony Kupujących",
+      "pokRule": "{fixedFee} + {rates}",
+      "tierOnly": "{rate} kwoty",
+      "tierFirst": "{rate} kwoty do {upTo}",
+      "tierMiddle": "{rate} od {from} do {upTo}",
+      "tierLast": "{rate} nadwyżki",
+      "subtotal": "Razem bez dostawy",
+      "shippingRow": "Dostawa",
+      "shippingFrom": "od {shipping} (wybierasz {kind, select, buyNow {po zakupie} other {po wygranej}})"
+    }
   }
 }

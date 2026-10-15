@@ -19,6 +19,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/infra/db/migrate.ts",
     "db:seed": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/seed.ts",
+    "fees:publish": "node --env-file-if-exists=../../.env --import @swc-node/register/esm-register src/fees-publish.ts",
     "db:studio": "drizzle-kit studio",
     "openapi:export": "node --import @swc-node/register/esm-register src/openapi-export.ts",
     "clean": "rm -rf dist .turbo"

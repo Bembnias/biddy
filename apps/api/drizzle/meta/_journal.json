@@ -57,6 +57,20 @@
       "when": 1792002769215,
       "tag": "0007_media",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792055066013,
+      "tag": "0008_fee_schedules",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792055084359,
+      "tag": "0009_initial_fee_schedule",
+      "breakpoints": true
     }
   ]
 }
