@@ -1,5 +1,5 @@
 // Adresy stron w jednym miejscu (polskie ścieżki). Część stron powstanie w kolejnych feature'ach:
-// wyszukiwarka (F-19), kreator (F-14), logowanie (F-07), strony prawne i pomoc (F-41).
+// wyszukiwarka (F-19), strony prawne i pomoc (F-41).
 export const routes = {
   home: '/',
   search: '/szukaj',
@@ -15,6 +15,7 @@ export const routes = {
   profileSettings: '/konto/profil',
   addresses: '/konto/adresy',
   newAddress: '/konto/adresy/nowy',
+  myAuctions: '/konto/aukcje',
   about: '/o-nas',
   contact: '/kontakt',
   helpCenter: '/pomoc',
@@ -28,6 +29,13 @@ export const routes = {
 /** Profil publiczny użytkownika (F-10). */
 export function publicProfileUrl(userId: string): string {
   return `/u/${userId}`;
+}
+
+/** Kreator aukcji dla szkicu albo aukcji bez ofert (F-14), opcjonalnie od wskazanego kroku. */
+export function listingWizardUrl(auctionId: string, step?: string): string {
+  return step === undefined
+    ? `${routes.sell}/${auctionId}`
+    : `${routes.sell}/${auctionId}?krok=${step}`;
 }
 
 /** Edycja adresu (F-10). */

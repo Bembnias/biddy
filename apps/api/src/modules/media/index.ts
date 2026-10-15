@@ -7,6 +7,6 @@
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
  */
 export { MediaModule } from './media.module.js';
-export { MediaService } from './media.service.js';
-export { MEDIA_PURPOSES, type MediaPurpose } from './db/media.schema.js';
+export { type MediaDescription, MediaService } from './media.service.js';
+export { MEDIA_PURPOSES, type MediaPurpose, type MediaStatus } from './db/media.schema.js';
 export { MediaFlagged } from './media.events.js';

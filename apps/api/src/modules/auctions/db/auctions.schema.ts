@@ -1,0 +1,108 @@
+// Tabele modułu auctions: aukcje (F-14). Oferty dojdą w F-15, zamykanie w F-16.
+// ID to UUIDv7 nadawane przez aplikację (ADR-10). Kwoty w groszach (bigint, PROJECT.md §13.1).
+//
+// Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts).
+import type { CurrencyCode } from '@biddy/shared';
+import { sql } from 'drizzle-orm';
+import {
+  bigint,
+  char,
+  check,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
+
+import { idColumn } from '../../../infra/db/ids.js';
+
+/**
+ * DRAFT → ACTIVE | PENDING_REVIEW (moderacja, F-35) → ACTIVE → ENDED_SOLD | ENDED_UNSOLD (F-16);
+ * ACTIVE i PENDING_REVIEW → CANCELLED. SCHEDULED (planowany start) dojdzie w v1.
+ */
+export const AUCTION_STATUSES = [
+  'DRAFT',
+  'PENDING_REVIEW',
+  'ACTIVE',
+  'ENDED_SOLD',
+  'ENDED_UNSOLD',
+  'CANCELLED',
+] as const;
+export type AuctionStatus = (typeof AUCTION_STATUSES)[number];
+
+/** Dlaczego aukcja czeka na moderatora. */
+export const REVIEW_REASONS = ['RESTRICTED_CATEGORY', 'WORD_FILTER'] as const;
+export type ReviewReason = (typeof REVIEW_REASONS)[number];
+
+const money = () => bigint({ mode: 'number' });
+
+export const auctions = pgTable(
+  'auctions',
+  {
+    id: idColumn(),
+    /** Krótki publiczny identyfikator do adresu `/a/{slug}-{publicId}` (F-18). */
+    publicId: text().notNull(),
+    /** Przedmiot z modułu catalog (uuid bez FK między modułami). */
+    itemId: uuid().notNull(),
+    /** Sprzedający (konto z modułu identity). */
+    sellerId: uuid().notNull(),
+    type: text().$type<'TIMED'>().notNull().default('TIMED'),
+    status: text().$type<AuctionStatus>().notNull().default('DRAFT'),
+    currency: char({ length: 3 }).$type<CurrencyCode>().notNull().default('PLN'),
+    startPrice: money(),
+    /** Cena minimalna: ukryta przed kupującymi. */
+    reservePrice: money(),
+    buyNowPrice: money(),
+    durationDays: integer(),
+    /** Stan licytacji (F-15): aktualna cena, lider i jego ukryte maksimum, liczba ofert. */
+    currentPrice: money(),
+    leaderId: uuid(),
+    leaderMaxAmount: money(),
+    bidCount: integer().notNull().default(0),
+    reviewReasons: text()
+      .array()
+      .$type<ReviewReason[]>()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    /** Słowa z filtra, przez które aukcja trafiła do moderacji (dla moderatora, F-35). */
+    reviewTerms: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    startsAt: timestamp({ withTimezone: true }),
+    endsAt: timestamp({ withTimezone: true }),
+    /** Koniec przed przedłużeniami anti-snipingu (F-15). */
+    originalEndsAt: timestamp({ withTimezone: true }),
+    publishedAt: timestamp({ withTimezone: true }),
+    cancelledAt: timestamp({ withTimezone: true }),
+    /** Licznik zmian (optymistyczne blokowanie i kolejność zdarzeń). */
+    version: integer().notNull().default(0),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('auctions_public_id_key').on(table.publicId),
+    uniqueIndex('auctions_item_id_key').on(table.itemId),
+    index().on(table.sellerId, table.status),
+    index('auctions_active_ends_at_index')
+      .on(table.endsAt)
+      .where(sql`${table.status} = 'ACTIVE'`),
+    check(
+      'auctions_status_check',
+      sql`${table.status} in ('DRAFT', 'PENDING_REVIEW', 'ACTIVE', 'ENDED_SOLD', 'ENDED_UNSOLD', 'CANCELLED')`,
+    ),
+    check(
+      'auctions_prices_check',
+      sql`(${table.startPrice} is null or ${table.startPrice} >= 0) and (${table.reservePrice} is null or ${table.reservePrice} >= 0) and (${table.buyNowPrice} is null or ${table.buyNowPrice} >= 0)`,
+    ),
+    check(
+      'auctions_published_check',
+      sql`${table.status} in ('DRAFT', 'PENDING_REVIEW', 'CANCELLED') or (${table.startsAt} is not null and ${table.endsAt} is not null and ${table.startPrice} is not null)`,
+    ),
+  ],
+);
+
+export type Auction = typeof auctions.$inferSelect;

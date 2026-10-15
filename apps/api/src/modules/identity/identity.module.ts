@@ -15,6 +15,7 @@ import { AuthOptionsController, MeController, SessionController } from './me/me.
 import { PhoneVerificationController } from './phone/phone.controller.js';
 import { PhoneVerificationService } from './phone/phone-verification.service.js';
 import { ProfileService } from './profile/profile.service.js';
+import { SellerStandingService } from './seller/seller-standing.service.js';
 import { UsersController } from './profile/users.controller.js';
 import { SessionGuard, SessionReader } from './session/session.guard.js';
 import { AUTH } from './session/session.js';
@@ -24,7 +25,7 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
 
 /**
  * Moduł domenowy `identity` (PROJECT.md §10.3): konta, sesje (Better Auth), regulamin,
- * weryfikacja telefonu (F-08), profil i adresy (F-10).
+ * weryfikacja telefonu (F-08), profil i adresy (F-10), stan sprzedawcy (F-14).
  * Globalny, bo guardy sesji (@RequireSession, @RequireVerifiedEmail) używają go w innych
  * modułach. Trasy /v1/auth/* rejestruje tylko w procesie HTTP (w workerze nie ma serwera).
  */
@@ -49,6 +50,7 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     PhoneVerificationService,
     ProfileService,
     AddressService,
+    SellerStandingService,
     {
       provide: AUTH,
       inject: [APP_CONFIG, DRIZZLE, MailQueue, TURNSTILE_VERIFIER, LoginThrottle, TermsService],
@@ -64,7 +66,15 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     SessionReader,
     SessionGuard,
   ],
-  exports: [AUTH, SessionReader, SessionGuard, TermsService, AddressService, ProfileService],
+  exports: [
+    AUTH,
+    SessionReader,
+    SessionGuard,
+    TermsService,
+    AddressService,
+    ProfileService,
+    SellerStandingService,
+  ],
 })
 export class IdentityModule implements OnModuleInit {
   constructor(

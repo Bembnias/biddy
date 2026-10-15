@@ -19,8 +19,14 @@ interface Entry {
   readonly name: string;
   readonly state: EntryState;
   readonly progress: number;
-  readonly media?: MediaDto;
+  readonly media?: Pick<MediaDto, 'id'> & { readonly urls?: { readonly thumb?: string } | null };
   readonly error?: string;
+}
+
+/** Zdjęcie już zapisane (np. w szkicu aukcji): identyfikator i miniatura. */
+export interface ExistingPhoto {
+  readonly id: string;
+  readonly thumbUrl: string;
 }
 
 let counter = 0;
@@ -28,19 +34,35 @@ let counter = 0;
 /**
  * Zdjęcia przedmiotu (F-12; kreator w F-14): wiele plików naraz, postęp, przetwarzanie
  * w workerze, zdjęcie główne (pierwsze), kolejność przyciskami i usuwanie. `onChange` dostaje
- * identyfikatory gotowych zdjęć w kolejności.
+ * identyfikatory gotowych zdjęć w kolejności. `initial`: zdjęcia już zapisane (szkic aukcji);
+ * `deleteOnRemove={false}`: usunięte zdjęcie zwalnia dopiero zapis właściciela (szkic).
  */
 export function PhotoUploader({
   max = MAX_ITEM_PHOTOS,
+  initial = [],
+  deleteOnRemove = true,
   onChange,
+  describedBy,
 }: {
   readonly max?: number;
+  readonly initial?: readonly ExistingPhoto[];
+  readonly deleteOnRemove?: boolean;
   readonly onChange?: (mediaIds: string[]) => void;
+  /** Dodatkowy opis pola dodawania (np. błąd kroku kreatora). */
+  readonly describedBy?: string | undefined;
 }) {
   const t = useTranslations('media');
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
-  const [entries, setEntries] = useState<readonly Entry[]>([]);
+  const [entries, setEntries] = useState<readonly Entry[]>(() =>
+    initial.map((photo) => ({
+      key: `saved-${photo.id}`,
+      name: photo.id,
+      state: 'ready',
+      progress: 1,
+      media: { id: photo.id, urls: { thumb: photo.thumbUrl } },
+    })),
+  );
   const notify = useEffectEvent((mediaIds: string[]) => {
     onChange?.(mediaIds);
   });
@@ -125,7 +147,7 @@ export function PhotoUploader({
 
   const remove = (entry: Entry) => {
     setEntries((current) => current.filter((candidate) => candidate.key !== entry.key));
-    if (entry.media !== undefined) {
+    if (entry.media !== undefined && deleteOnRemove) {
       // Nieużyte zdjęcie i tak zniknie przy sprzątaniu po dobie; błąd usunięcia pomijamy.
       deleteMedia(entry.media.id).catch(() => undefined);
     }
@@ -147,7 +169,7 @@ export function PhotoUploader({
           multiple
           className="sr-only"
           aria-label={t('uploader.add')}
-          aria-describedby={hintId}
+          aria-describedby={describedBy === undefined ? hintId : `${hintId} ${describedBy}`}
           disabled={full}
           onChange={(event) => {
             add(event.target.files);

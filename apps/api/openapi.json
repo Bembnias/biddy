@@ -892,6 +892,465 @@
         ]
       }
     },
+    "/v1/auctions": {
+      "post": {
+        "operationId": "createAuctionDraft",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Pusty szkic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nowy szkic aukcji",
+        "tags": [
+          "auctions"
+        ]
+      }
+    },
+    "/v1/auctions/{id}": {
+      "patch": {
+        "description": "Szkic: autozapis częściowych danych (sprawdzany tylko format pól). Aukcja aktywna bez ofert: pełna walidacja jak przy publikacji. Pominięte pole bez zmian, null czyści pole.",
+        "operationId": "updateAuction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListingPatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aukcja po zmianie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zmiana szkicu albo aukcji bez ofert",
+        "tags": [
+          "auctions"
+        ]
+      },
+      "delete": {
+        "operationId": "deleteAuctionDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Szkic usunięty"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Usunięcie szkicu",
+        "tags": [
+          "auctions"
+        ]
+      }
+    },
+    "/v1/auctions/{id}/publish": {
+      "post": {
+        "description": "Wynik: ACTIVE albo PENDING_REVIEW (moderacja). Braki jako błędy pól (400 VALIDATION_FAILED).",
+        "operationId": "publishAuction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opublikowana aukcja",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publikacja szkicu",
+        "tags": [
+          "auctions"
+        ]
+      }
+    },
+    "/v1/auctions/{id}/cancel": {
+      "post": {
+        "operationId": "cancelAuction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aukcja anulowana",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Anulowanie aukcji (§6.6)",
+        "tags": [
+          "auctions"
+        ]
+      }
+    },
+    "/v1/auctions/{id}/relist": {
+      "post": {
+        "operationId": "relistAuction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Nowy szkic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ponowne wystawienie: kopia zakończonej aukcji jako szkic",
+        "tags": [
+          "auctions"
+        ]
+      }
+    },
+    "/v1/me/auctions": {
+      "get": {
+        "description": "Najnowsze zmiany najpierw, maks. 100.",
+        "operationId": "getMyAuctions",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filtr statusów (parametr można powtórzyć)",
+            "schema": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "DRAFT",
+                  "PENDING_REVIEW",
+                  "ACTIVE",
+                  "ENDED_SOLD",
+                  "ENDED_UNSOLD",
+                  "CANCELLED"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aukcje",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuctionSummaryDto"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Moje aukcje i szkice",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/auctions/{id}": {
+      "get": {
+        "operationId": "getMyAuction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aukcja",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Moja aukcja albo szkic",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/selling-limits": {
+      "get": {
+        "operationId": "getSellingLimits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Limity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SellingLimitsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Limity sprzedawcy (§4.1)",
+        "tags": [
+          "me"
+        ]
+      }
+    },
     "/v1/fee-schedules/current": {
       "get": {
         "description": "Opłata stała, progi krańcowe i stawka VAT. Kwoty w groszach, stawki w punktach bazowych (700 = 7%).",
@@ -936,6 +1395,41 @@
         "summary": "Bieżący cennik POK",
         "tags": [
           "fee-schedules"
+        ]
+      }
+    },
+    "/v1/shipping/carriers": {
+      "get": {
+        "operationId": "getCarriers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Przewoźnicy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CarrierDto"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Przewoźnicy i obsługiwane gabaryty",
+        "tags": [
+          "shipping"
         ]
       }
     },
@@ -2048,6 +2542,597 @@
         ],
         "additionalProperties": false
       },
+      "ListingDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "publicId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PENDING_REVIEW",
+              "ACTIVE",
+              "ENDED_SOLD",
+              "ENDED_UNSOLD",
+              "CANCELLED"
+            ]
+          },
+          "editable": {
+            "type": "boolean",
+            "description": "Szkic albo aukcja bez ofert: można zmieniać"
+          },
+          "bidCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "LIKE_NEW",
+              "VERY_GOOD",
+              "GOOD",
+              "FAIR",
+              "FOR_PARTS",
+              null
+            ],
+            "nullable": true
+          },
+          "brand": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "packageSize": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "XL",
+              null
+            ],
+            "nullable": true
+          },
+          "weightGrams": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "lengthCm": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "widthCm": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "heightCm": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "allowedCarriers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PENDING_UPLOAD",
+                    "PROCESSING",
+                    "READY",
+                    "FLAGGED",
+                    "REJECTED"
+                  ]
+                },
+                "urls": {
+                  "type": "object",
+                  "properties": {
+                    "thumb": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "medium": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "large": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "thumb",
+                    "medium",
+                    "large"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Adresy wariantów WebP (tylko READY)",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "urls"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "startPrice": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "reservePrice": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Cena minimalna (widoczna tylko dla sprzedającego)",
+            "nullable": true
+          },
+          "buyNowPrice": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "durationDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "reviewReasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "RESTRICTED_CATEGORY",
+                "WORD_FILTER"
+              ]
+            }
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "status",
+          "editable",
+          "bidCount",
+          "currency",
+          "categoryId",
+          "attributes",
+          "title",
+          "description",
+          "condition",
+          "brand",
+          "packageSize",
+          "weightGrams",
+          "lengthCm",
+          "widthCm",
+          "heightCm",
+          "allowedCarriers",
+          "photos",
+          "startPrice",
+          "reservePrice",
+          "buyNowPrice",
+          "durationDays",
+          "reviewReasons",
+          "startsAt",
+          "endsAt",
+          "publishedAt",
+          "cancelledAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "ListingPatchDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 10000,
+            "nullable": true
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "LIKE_NEW",
+              "VERY_GOOD",
+              "GOOD",
+              "FAIR",
+              "FOR_PARTS",
+              null
+            ],
+            "nullable": true
+          },
+          "brand": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "packageSize": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "XL",
+              null
+            ],
+            "nullable": true
+          },
+          "weightGrams": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000,
+            "description": "Waga paczki w gramach",
+            "nullable": true
+          },
+          "lengthCm": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "Centymetry",
+            "nullable": true
+          },
+          "widthCm": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "Centymetry",
+            "nullable": true
+          },
+          "heightCm": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "description": "Centymetry",
+            "nullable": true
+          },
+          "allowedCarriers": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "mediaIds": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "description": "Zdjęcia w kolejności (pierwsze = główne); tylko gotowe (READY)"
+          },
+          "startPrice": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000000,
+            "description": "Kwota w groszach",
+            "nullable": true
+          },
+          "reservePrice": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000000,
+            "description": "Kwota w groszach",
+            "nullable": true
+          },
+          "buyNowPrice": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000000000,
+            "description": "Kwota w groszach",
+            "nullable": true
+          },
+          "durationDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "description": "1, 3, 5, 7 albo 10 dni",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PublishListingDto": {
+        "type": "object",
+        "properties": {
+          "kycNoticeAccepted": {
+            "description": "Potwierdzenie informacji o weryfikacji tożsamości (wymagane przy pierwszej publikacji)",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuctionSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "publicId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PENDING_REVIEW",
+              "ACTIVE",
+              "ENDED_SOLD",
+              "ENDED_UNSOLD",
+              "CANCELLED"
+            ]
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "coverUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Miniatura zdjęcia głównego",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "startPrice": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "currentPrice": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "bidCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "status",
+          "editable",
+          "title",
+          "coverUrl",
+          "currency",
+          "startPrice",
+          "currentPrice",
+          "bidCount",
+          "endsAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "SellingLimitsDto": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "VERIFIED",
+              "KYC"
+            ],
+            "description": "Poziom sprzedawcy (§4.1)"
+          },
+          "maxActiveAuctions": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "activeAuctions": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Aktywne i czekające na moderatora"
+          },
+          "maxAuctionValue": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Maks. wartość aukcji w groszach albo null",
+            "nullable": true
+          },
+          "kycVerified": {
+            "type": "boolean"
+          },
+          "kycRequiredAbove": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Wartość aukcji (grosze), powyżej której wymagane jest KYC"
+          },
+          "listingBlockedUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "kycNoticeAccepted": {
+            "type": "boolean",
+            "description": "Czy sprzedawca potwierdził informację o KYC"
+          }
+        },
+        "required": [
+          "level",
+          "maxActiveAuctions",
+          "activeAuctions",
+          "maxAuctionValue",
+          "kycVerified",
+          "kycRequiredAbove",
+          "listingBlockedUntil",
+          "kycNoticeAccepted"
+        ],
+        "additionalProperties": false
+      },
       "FeeScheduleDto": {
         "type": "object",
         "properties": {
@@ -2125,6 +3210,49 @@
           "id",
           "validFrom",
           "validTo"
+        ],
+        "additionalProperties": false
+      },
+      "CarrierDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Identyfikator usługi, np. inpost-paczkomat"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "LOCKER",
+              "PICKUP_POINT",
+              "COURIER"
+            ],
+            "description": "Paczkomat, punkt odbioru albo kurier"
+          },
+          "packageSizes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "S",
+                "M",
+                "L",
+                "XL"
+              ]
+            },
+            "description": "Obsługiwane gabaryty"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "packageSizes"
         ],
         "additionalProperties": false
       },

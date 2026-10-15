@@ -365,6 +365,18 @@ pnpm --filter @biddy/api fees:publish -- --file cennik.json --from 2027-01-01T00
 
 Plik: `{"currency":"PLN","fixedFee":299,"tiers":[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}],"vatRateBp":2300}` (kwoty w groszach, stawki w punktach bazowych: 700 = 7%). Podgląd pokazuje POK dla przykładowych kwot według bieżącego i nowego cennika. Publikacja zamyka bieżący cennik dokładnie w chwili `--from` (najwcześniej teraz). Na stagingu: powłoka usługi API w Render, `node dist/fees-publish.js --file … --from … --confirm`.
 
+### Wystawianie aukcji (F-14)
+
+Kreator aukcji i model przedmiotu oraz aukcji. Spec: [F-14](docs/features/F-14-kreator-aukcji.md).
+
+- **Moduły:** `catalog` trzyma przedmiot (`items`, `item_media`), `auctions` aukcję i cały proces (`ListingService`), `shipping` przewoźników z gabarytami (`shipping_carriers`, start z migracji `0011_initial_carriers`), `trust-safety` filtr słów, `identity` stan sprzedawcy (`SellerStandingService`: poziom i limity §4.1, KYC, blokada wystawiania, potwierdzenie informacji o KYC). `auctions` woła publiczne API pozostałych modułów w swojej transakcji (`tx`), z blokadą wiersza aukcji.
+- **Reguły** w `@biddy/shared` (`validateListing`): zdjęcia 1–20 (4 i marka w kategoriach narażonych na podróbki), kategoria-liść z atrybutami, tytuł 10–80, opis 30–5000 znaków, stan, gabaryt (XL z wymiarami i wagą), przewoźnicy obsługujący gabaryt, cena wywoławcza ≥ 1 zł, minimalna ≥ wywoławczej, Kup teraz ≥ 130% i ≥ minimalnej, czas 1/3/5/7/10 dni, limit wartości aukcji. Te same komunikaty w kreatorze i w API.
+- **Statusy:** `DRAFT` → `ACTIVE` albo `PENDING_REVIEW` (kategoria z ograniczeniami, słowo niejednoznaczne; akceptacja w F-35) → `ENDED_*` (F-16) albo `CANCELLED`.
+- **API:** `POST /v1/auctions` (szkic), `PATCH /v1/auctions/{id}` (autozapis szkicu; aukcja bez ofert z pełną walidacją), `DELETE` (szkic), `POST …/publish`, `…/cancel`, `…/relist`; odczyt sprzedającego `GET /v1/me/auctions`, `GET /v1/me/auctions/{id}`, `GET /v1/me/selling-limits`; `GET /v1/shipping/carriers`. Eventy: `AuctionPublished`, `AuctionSubmittedForReview`, `AuctionUpdated`, `AuctionCancelled`.
+- **Publikacja** wymaga zweryfikowanego telefonu, przy pierwszej publikacji potwierdzenia informacji o weryfikacji tożsamości (zapisanego z datą), braku blokady wystawiania (`LISTING_BLOCKED`) i miejsca w limicie aktywnych aukcji (`LISTING_LIMIT_REACHED`; nowe konto: 5 aukcji, wartość do 500 zł). Po pierwszej ofercie aukcji nie da się zmienić (`AUCTION_HAS_BIDS`), a z ofertami nie da się jej anulować w ostatnich 12 h (`AUCTION_CANCEL_TOO_LATE`).
+- **Filtr słów** (`apps/api/src/modules/trust-safety/content-filter/listing-terms.ts`): lista startowa z §17. `BLOCK` odrzuca publikację z błędem pola, `REVIEW` kieruje aukcję do moderacji. Zmiana listy to zmiana tego pliku (do czasu konfiguracji moderacji w F-35).
+- **Web:** `/wystaw` (szkice, nowa aukcja, limity), `/wystaw/{id}?krok=…` (kreator w 6 krokach z autozapisem po 1 s), `/konto/aukcje` (Moje aukcje: edycja, anulowanie, ponowne wystawienie).
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
@@ -461,19 +473,22 @@ Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.examp
 
 ### Konta w web
 
-| Strona                   | Co robi                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------ |
-| `/logowanie`             | E-mail i hasło, Google, Apple. Turnstile pojawia się, gdy API go zażąda. Powrót: `?next=`. |
-| `/rejestracja`           | Konto e-mail: regulamin, oświadczenie 18+, Turnstile, potem „Sprawdź skrzynkę”.            |
-| `/weryfikacja-email`     | Tu wraca link weryfikacyjny z e-maila (sukces albo link wygasły).                          |
-| `/reset-hasla`           | Prośba o link do nowego hasła (Turnstile).                                                 |
-| `/nowe-haslo`            | Ustawienie nowego hasła z linku; wylogowuje ze wszystkich urządzeń.                        |
-| `/akceptacja-regulaminu` | Regulamin i 18+ po pierwszym logowaniu Google/Apple.                                       |
-| `/weryfikacja-telefonu`  | Numer → SMS z kodem → potwierdzenie (wymaga potwierdzonego e-maila). Powrót: `?next=`.     |
-| `/konto`                 | Renderowane na serwerze z sesją; bez sesji przekierowuje na logowanie.                     |
-| `/konto/profil`          | Zdjęcie profilowe (F-12) i imię wyświetlane (reguły z `@biddy/shared`, te same w API).     |
-| `/konto/adresy`          | Adresy dostawy i nadania: dodawanie, edycja, domyślne, usuwanie z potwierdzeniem.          |
-| `/u/{id}`                | Profil publiczny (SSR): zdjęcie, imię, data dołączenia, znaczek telefonu; bez kontaktu.    |
+| Strona                   | Co robi                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| `/logowanie`             | E-mail i hasło, Google, Apple. Turnstile pojawia się, gdy API go zażąda. Powrót: `?next=`.  |
+| `/rejestracja`           | Konto e-mail: regulamin, oświadczenie 18+, Turnstile, potem „Sprawdź skrzynkę”.             |
+| `/weryfikacja-email`     | Tu wraca link weryfikacyjny z e-maila (sukces albo link wygasły).                           |
+| `/reset-hasla`           | Prośba o link do nowego hasła (Turnstile).                                                  |
+| `/nowe-haslo`            | Ustawienie nowego hasła z linku; wylogowuje ze wszystkich urządzeń.                         |
+| `/akceptacja-regulaminu` | Regulamin i 18+ po pierwszym logowaniu Google/Apple.                                        |
+| `/weryfikacja-telefonu`  | Numer → SMS z kodem → potwierdzenie (wymaga potwierdzonego e-maila). Powrót: `?next=`.      |
+| `/konto`                 | Renderowane na serwerze z sesją; bez sesji przekierowuje na logowanie.                      |
+| `/konto/profil`          | Zdjęcie profilowe (F-12) i imię wyświetlane (reguły z `@biddy/shared`, te same w API).      |
+| `/konto/adresy`          | Adresy dostawy i nadania: dodawanie, edycja, domyślne, usuwanie z potwierdzeniem.           |
+| `/konto/aukcje`          | Moje aukcje (F-14): szkice, aktywne, w moderacji, zakończone; edycja, anulowanie, ponownie. |
+| `/wystaw`                | Start wystawiania: szkice, nowa aukcja, limity sprzedawcy (F-14).                           |
+| `/wystaw/{id}`           | Kreator aukcji w 6 krokach z autozapisem i publikacją (F-14).                               |
+| `/u/{id}`                | Profil publiczny (SSR): zdjęcie, imię, data dołączenia, znaczek telefonu; bez kontaktu.     |
 
 Szkielet ładowania (`app/konto/loading.tsx`) jest tylko w segmentach konta. Strony publiczne renderują się w całości przed odpowiedzią, dzięki czemu `notFound()` daje prawdziwe 404 (przy globalnym `loading.tsx` Next wysyła 200, zanim strona się wyrenderuje).
 

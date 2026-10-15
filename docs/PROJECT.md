@@ -1206,7 +1206,7 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), bidding_blocked_until, listing_blocked_until, limits (jsonb, nadpisania §4.1), created_at |
+| `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), bidding_blocked_until, listing_blocked_until, seller_kyc_notice_accepted_at, limits (jsonb, nadpisania §4.1), created_at |
 | `terms_acceptances` | id, user_id, document (`TERMS`/`PRIVACY`), version, accepted_at, ip |
 | `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, order_id, auction_id, issued_by (system/admin), statement_of_reasons, expires_at, appeal_status, revoked_at, created_at |
 | `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider). |
@@ -1222,10 +1222,10 @@ erDiagram
 | Tabela | Kolumny |
 |---|---|
 | `categories` | id, parent_id, path (ltree ze slugów), slug (unikalny), name, position, attributes (jsonb: definicje atrybutów w formacie z `@biddy/shared`, z których powstaje JSON Schema), is_restricted, is_brand_sensitive, listing_notice, is_active (F-11) |
-| `items` | id, seller_id, category_id, title, description, condition (enum), brand, attributes (jsonb), package_size, weight_g, dims, allowed_carriers (text[]), location_city, created_at |
+| `items` | id, seller_id, category_id, title, description, condition (`NEW`/`LIKE_NEW`/`VERY_GOOD`/`GOOD`/`FAIR`/`FOR_PARTS`), brand, attributes (jsonb), package_size (`S`/`M`/`L`/`XL`), weight_grams, length_cm, width_cm, height_cm, allowed_carriers (text[]), created_at, updated_at (moduł `catalog`, F-14; pola puste w szkicu, lokalizacja z adresu nadania w F-18) |
 | `media` | id, owner_id, purpose (`ITEM_PHOTO`/`AVATAR`), status (`PENDING_UPLOAD`/`PROCESSING`/`READY`/`FLAGGED`/`REJECTED`), content_type, size_bytes, width, height, rejection_reason, moderation_labels, attached_at, processed_at (moduł `media`, F-12; nieprzypisane znikają po 24 h) |
-| `item_media` | item_id, media_id, position (F-14; plik, wymiary i moderacja w `media`) |
-| `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status, start_price, reserve_price, buy_now_price, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, starts_at, ends_at, original_ends_at, extension_policy, version, created_at |
+| `item_media` | item_id, media_id, position (F-14; plik, wymiary i moderacja w `media`; to samo zdjęcie może być w kopii przedmiotu po ponownym wystawieniu) |
+| `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status (`DRAFT`/`PENDING_REVIEW`/`ACTIVE`/`ENDED_SOLD`/`ENDED_UNSOLD`/`CANCELLED`), currency, start_price, reserve_price, buy_now_price, duration_days, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, review_reasons, review_terms, starts_at, ends_at, original_ends_at, published_at, cancelled_at, version, created_at, updated_at (F-14; extension_policy w F-15) |
 | `bids` | id, auction_id, bidder_id, amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, idempotency_key (unique per bidder), ip, device_id, created_at |
 | `watchlist` | user_id, auction_id, created_at |
 | `saved_searches` (v1) | id, user_id, query (jsonb), notify, created_at |
@@ -1305,8 +1305,10 @@ POST   /media/uploads              POST /media/:id/complete      GET /media/:id 
 PUT    /me/avatar                  DELETE /me/avatar
 
 # Aukcje
-POST   /auctions                   (szkic z przedmiotem)
+POST   /auctions                   (szkic z przedmiotem)        DELETE /auctions/:id (szkic)
 PATCH  /auctions/:id               POST /auctions/:id/publish   POST /auctions/:id/cancel
+GET    /me/auctions                GET /me/auctions/:id         GET /me/selling-limits
+GET    /shipping/carriers          (przewoźnicy i gabaryty, F-14)
 GET    /auctions                   (wyszukiwanie — proxy do Meilisearch z filtrami)
 GET    /auctions/:id               GET /auctions/:id/bids       (historia, zanonimizowana)
 POST   /auctions/:id/bids          { maxAmount }            + nagłówek Idempotency-Key
@@ -1371,7 +1373,7 @@ type UserWon = { type: 'user.won'; auctionId: string; orderId: string; paymentDu
 
 ### 14.3 Eventy domenowe (outbox)
 
-- **Aukcje:** `AuctionPublished`, `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
+- **Aukcje:** `AuctionPublished`, `AuctionSubmittedForReview`, `AuctionUpdated` (zmiana przed pierwszą ofertą), `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
 - **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`.
 - **Spory i pieniądze:** `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged`.
 - **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `ReviewPublished`, `ReportCreated`.
@@ -1821,6 +1823,10 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 57 | Zdjęcie profilowe przez `PUT/DELETE /v1/me/avatar` w module `media` (on woła publiczne API `identity`, nie odwrotnie); `users.avatar_url` trzyma gotowy adres, więc sesja i profil nie pytają modułu `media` | Przyjęta | §10.3, §13.3 |
 | 58 | POK: jedno zaokrąglenie half-up dla całej części zmiennej (suma iloczynów na bigint), stawka VAT częścią cennika; kroki przebicia jako stała w `@biddy/shared`, nie w bazie (replay ofert) | Przyjęta | §3.1, §6.3, §7.7 |
 | 59 | Cenniki POK wersjonowane okresem `[valid_from, valid_to)` z wykluczeniem nakładania (btree_gist) i triggerem niezmienności; zmiana stawek skryptem `fees:publish` do czasu panelu admina (F-34); jeden cennik globalny, cenniki per kategoria później | Przyjęta | §3.1, §13.3 |
+| 60 | Wystawianie: przedmiot w module `catalog`, aukcja i proces w `auctions`; `auctions` woła publiczne API innych modułów w swojej transakcji (`tx`) z blokadą wiersza aukcji, więc edycja nie przeplecie się z pierwszą ofertą. Reguły kompletności (`validateListing`) wspólne dla web i API | Przyjęta | §10.3, §13.3 |
+| 61 | Po pierwszej ofercie aukcja jest zablokowana w całości (nie tylko cena, opis i zdjęcia); aukcja w kategorii z ograniczeniami albo ze słowem niejednoznacznym czeka na moderatora (`PENDING_REVIEW`), a słowo zakazane odrzuca publikację | Przyjęta | §6.6, §17 |
+| 62 | Przed pierwszą publikacją sprzedawca potwierdza informację, że wypłata wymaga weryfikacji tożsamości; potwierdzenie z datą w `users` jako dowód poinformowania (lekcja UOKiK/Vinted) | Przyjęta | §17 |
+| 63 | Kategorie narażone na podróbki: min. 4 zdjęcia (w tym metka lub kod) i obowiązkowa marka; przewoźnicy i gabaryty jako tabela `shipping_carriers` (konfiguracja w bazie) | Tymczasowa | §8.2, §16.2 |
 
 ---
 

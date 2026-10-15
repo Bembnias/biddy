@@ -458,6 +458,8 @@ flowchart TD
 
 ### F-14 · Kreator aukcji (web) · `L`
 
+> Pełny spec: [docs/features/F-14-kreator-aukcji.md](features/F-14-kreator-aukcji.md).
+
 **Cel:** sprzedający wystawia przedmiot na licytację w kilka minut.
 
 **Zakres:**

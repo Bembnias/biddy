@@ -5,7 +5,7 @@
 
 ## Kontekst i cel
 
-Kupujący płaci za zamówienie wylicytowaną kwotę, Pakiet Ochrony Kupujących (POK) i dostawę ([PROJECT.md §3.1](../PROJECT.md#31-pakiet-ochrony-kupujących-pok)). Kwotę POK widać przy każdym przycisku licytacji („Licytujesz 100 zł · zapłacisz 109,99 zł + dostawa od 12,99 zł”), liczy ją backend przy tworzeniu zamówienia (F-24) i księguje ledger (F-22). Jeśli front i backend liczą inaczej, kupujący widzi jedną kwotę, a płaci inną: to problem konsumencki (UOKiK) i problem zaufania. Podobnie z krokami przebicia ([§6.3](../PROJECT.md#63-kroki-przebicia)): formularz oferty (F-16) i silnik licytacji (F-15) muszą znać tę samą minimalną kolejną ofertę.
+Kupujący płaci za zamówienie wylicytowaną kwotę, Pakiet Ochrony Kupujących (POK) i dostawę ([PROJECT.md §3.1](../PROJECT.md#31-pakiet-ochrony-kupujących-pok)). Kwotę POK widać przy każdym przycisku licytacji („Licytujesz 100 zł · zapłacisz 109,99 zł + dostawa od 12,99 zł”), liczy ją backend przy tworzeniu zamówienia (F-16) i księguje ledger (F-22). Jeśli front i backend liczą inaczej, kupujący widzi jedną kwotę, a płaci inną: to problem konsumencki (UOKiK) i problem zaufania. Podobnie z krokami przebicia ([§6.3](../PROJECT.md#63-kroki-przebicia)): formularz oferty (F-18) i silnik licytacji (F-15) muszą znać tę samą minimalną kolejną ofertę.
 
 F-13 dostarcza jedną implementację obu reguł w `@biddy/shared` oraz wersjonowany cennik POK w bazie, który można zmienić bez deployu, a zamówienie zawsze da się przeliczyć według cennika, z którym powstało.
 
@@ -26,7 +26,7 @@ F-13 dostarcza jedną implementację obu reguł w `@biddy/shared` oraz wersjonow
 - **Cennik** (`FeeSchedule`): waluta, opłata stała (grosze), progi `[{ upTo, bp }]` (górna granica progu w groszach, `null` = bez limitu; stawka w punktach bazowych, 700 = 7%) i stawka VAT (`vatRateBp`, 2300 = 23%). Schemat Zod `feeScheduleSchema` (w `@biddy/shared`) sprawdza: co najmniej jeden próg, rosnące granice, `null` tylko w ostatnim progu, stawki 0–10 000 bp, opłata stała ≥ 0. VAT jest częścią cennika, więc zmiana stawki VAT to nowy cennik, a stare zamówienia zostają przy swojej.
 - **Kroki przebicia** (`@biddy/shared`): tabela z §6.3, `bidIncrement(cena)` i `minimumNextBid({ startPrice, currentPrice })` (bez ofert: cena wywoławcza; z ofertami: cena + krok). Tabela jest w kodzie, nie w bazie: silnik licytacji (F-15) przelicza historię ofert od nowa (§15.6) i musi dostać ten sam wynik.
 - **Tabela `fee_schedules`** (moduł `payments`, §7.8): wersje cennika z okresem obowiązywania `[valid_from, valid_to)`. W danej walucie w każdej chwili obowiązuje dokładnie jeden cennik (ograniczenie wykluczające w Postgresie). Wiersz jest **niezmienny**: wolno tylko zamknąć otwarty cennik (ustawić `valid_to`), a usuwanie jest zablokowane (trigger). Startowy cennik z §3.1 to migracja danych, więc jest w każdym środowisku.
-- **Publiczne API modułu `payments`** (`FeeScheduleService`) dla zamówień (F-24) i panelu admina (F-34):
+- **Publiczne API modułu `payments`** (`FeeScheduleService`) dla zamówień (F-16) i panelu admina (F-34):
   - `current(currency, at)`: cennik obowiązujący w danej chwili;
   - `quote(kwota)`: POK według bieżącego cennika razem z `feeScheduleId` do zapisania w zamówieniu;
   - `recalculate(kwota, feeScheduleId)`: POK według cennika zamówienia (np. przy anulowaniu części zamówienia);
@@ -37,13 +37,13 @@ F-13 dostarcza jedną implementację obu reguł w `@biddy/shared` oraz wersjonow
   - oferta: „Licytujesz 100 zł · zapłacisz 109,99 zł + dostawa od 12,99 zł”;
   - maksimum (licytacja automatyczna): „Licytujesz do 500 zł · zapłacisz najwyżej 537,99 zł + dostawa od 12,99 zł”;
   - Kup teraz: „Kupujesz za 300 zł · zapłacisz 323,99 zł + dostawa od 12,99 zł”.
-  Pod spodem rozwijane „Skąd ta kwota?”: kwota, POK z opisem progów („2,99 zł + 7% kwoty do 1000 zł + 4% nadwyżki”) i dostawa. Bez ceny dostawy komponent pomija „+ dostawa od”. Komponent sam pobiera cennik (`GET /v1/fee-schedules/current`, ważny 60 s), a strona renderowana na serwerze (F-18) może podać go od razu (`initialFeeSchedule`). Panel licytacji (F-16) użyje go przy przycisku oferty.
+  Pod spodem rozwijane „Skąd ta kwota?”: kwota, POK z opisem progów („2,99 zł + 7% kwoty do 1000 zł + 4% nadwyżki”) i dostawa. Bez ceny dostawy komponent pomija „+ dostawa od”. Komponent sam pobiera cennik (`GET /v1/fee-schedules/current`, ważny 60 s), a strona renderowana na serwerze (F-18) może podać go od razu (`initialFeeSchedule`). Panel licytacji (F-18) użyje go przy przycisku oferty.
 
 ## Poza zakresem
 
 - Cenniki per kategoria (§3.1: „docelowo”): kolumna `category_id` dojdzie razem z regułą wyboru cennika dla zamówienia z przedmiotami z wielu kategorii.
 - Cennik dostaw Biddy (feature dostaw) i wybór dostawy; tu tylko kwota „dostawa od” podana z zewnątrz.
-- Tabela `orders` i zapis `fee_schedule_id` w zamówieniu (F-24); F-13 daje `quote`/`recalculate`, które to umożliwiają.
+- Tabela `orders` i zapis `fee_schedule_id` w zamówieniu (F-16); F-13 daje `quote`/`recalculate`, które to umożliwiają.
 - Edycja cenników w panelu admina (F-34), minimalny POK (dźwignia z §3.2, decyzja po becie), reguła Kup teraz ≥ 130% ceny wywoławczej (kreator, F-14).
 
 ## UX
@@ -67,7 +67,7 @@ Licytujesz 100 zł · zapłacisz 109,99 zł + dostawa od 12,99 zł
 | Brak ceny dostawy | bez „+ dostawa od” |
 | Zmiana kwoty w formularzu | kwota łączna przelicza się od razu (bez zapytań do API) |
 
-Przy przycisku licytacji (F-16) komponent może działać bez rozwijanej części (`withDetails={false}`).
+Przy przycisku licytacji (F-18) komponent może działać bez rozwijanej części (`withDetails={false}`).
 
 ## Model danych
 
@@ -95,13 +95,13 @@ Migracje `0008_fee_schedules` (tabela, rozszerzenie `btree_gist`, ograniczenia, 
 
 ## Bezpieczeństwo i prywatność
 
-- Klient tylko wyświetla kwotę łączną; kwotę do zapłaty zawsze liczy backend (F-24), więc zmanipulowany cennik w przeglądarce niczego nie zmienia.
+- Klient tylko wyświetla kwotę łączną; kwotę do zapłaty zawsze liczy backend (F-16, F-25), więc zmanipulowany cennik w przeglądarce niczego nie zmienia.
 - Cennik jest niezmienny w bazie (trigger), więc nawet błąd w kodzie nie zmieni kwot istniejących zamówień.
 - Brak danych osobowych.
 
 ## Analityka
 
-Brak w F-13 (zdarzenia licytacji w F-16).
+Brak w F-13 (zdarzenia licytacji w F-15 i F-18).
 
 ## Kryteria akceptacji
 
@@ -116,7 +116,7 @@ Brak w F-13 (zdarzenia licytacji w F-16).
 - **Shared, jednostkowe:** przykłady z §3.1 i §3.2, half-up, granice progów, walidacja cennika (`feeScheduleSchema`), kroki przebicia na granicach; **property-based (fast-check):** monotoniczność, przyrost najwyżej o grosz, zgodność z wzorem na liczbach wymiernych, netto + VAT = brutto, minimalna kolejna oferta > aktualnej ceny.
 - **API, integracyjne (Postgres w Testcontainers):** cennik startowy z migracji, `GET /v1/fee-schedules/current` (dane, cache, nieobsługiwana waluta), `publish` (zamknięcie poprzedniego, granica okresów, data w przeszłości), `recalculate` po zmianie cennika, niezmienność wiersza (UPDATE i DELETE odrzucone), wykluczenie nakładających się okresów, skrypt `fees:publish` jako osobny proces (podgląd, publikacja, błędy).
 - **Web, jednostkowe:** `TotalPrice` (trzy warianty, bez dostawy, ładowanie, brak cennika, opis progów, cennik z serwera bez zapytania, przeliczenie przy zmianie kwoty).
-- **Web, e2e:** brak w F-13 (komponent nie ma jeszcze strony); pokryje go e2e panelu licytacji (F-16).
+- **Web, e2e:** brak w F-13 (komponent nie ma jeszcze strony); pokryje go e2e panelu licytacji (F-18).
 
 ## Otwarte pytania
 

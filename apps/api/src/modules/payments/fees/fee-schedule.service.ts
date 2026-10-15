@@ -1,5 +1,5 @@
 // Cenniki POK (F-13): wersje z okresem obowiązywania i kalkulator z @biddy/shared. Zamówienie
-// (F-24) bierze `quote` i zapisuje `feeScheduleId`, a przeliczenie zamówienia (`recalculate`)
+// (F-16) bierze `quote` i zapisuje `feeScheduleId`, a przeliczenie zamówienia (`recalculate`)
 // zawsze używa tego samego cennika, nawet po zmianie stawek.
 import {
   calculatePok,

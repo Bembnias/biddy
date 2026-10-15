@@ -71,6 +71,20 @@
       "when": 1792055084359,
       "tag": "0009_initial_fee_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792056573200,
+      "tag": "0010_listing",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792056580349,
+      "tag": "0011_initial_carriers",
+      "breakpoints": true
     }
   ]
 }

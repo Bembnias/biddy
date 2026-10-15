@@ -95,6 +95,26 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Brak pliku',
     detail: 'Plik nie dotarł do magazynu. Wyślij zdjęcie ponownie.',
   },
+  LISTING_BLOCKED: {
+    status: 403,
+    title: 'Blokada wystawiania',
+    detail: 'Masz czasową blokadę wystawiania aukcji. Szczegóły i odwołanie znajdziesz w koncie.',
+  },
+  LISTING_LIMIT_REACHED: {
+    status: 409,
+    title: 'Limit aktywnych aukcji',
+    detail: 'Osiągnięto limit aktywnych aukcji. Poczekaj, aż któraś się zakończy.',
+  },
+  AUCTION_HAS_BIDS: {
+    status: 409,
+    title: 'Aukcja ma oferty',
+    detail: 'Po pierwszej ofercie nie można zmieniać aukcji.',
+  },
+  AUCTION_CANCEL_TOO_LATE: {
+    status: 409,
+    title: 'Za późno na anulowanie',
+    detail: 'Aukcji z ofertami nie można anulować w ostatnich 12 godzinach.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

@@ -2,8 +2,8 @@
  * Publiczne API modułu `identity` (PROJECT.md §10.3).
  *
  * Odpowiedzialność: konta i logowanie (Better Auth), sesje, weryfikacja e-maila, akceptacje
- * regulaminu z oświadczeniem 18+, weryfikacja telefonu (F-08), profil i adresy (F-10); dalej
- * limity i strike'i (F-61).
+ * regulaminu z oświadczeniem 18+, weryfikacja telefonu (F-08), profil i adresy (F-10), stan
+ * sprzedawcy (F-14); dalej limity i strike'i (F-61).
  *
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
@@ -12,6 +12,7 @@
 export { IdentityModule } from './identity.module.js';
 export { AddressService, MAX_ADDRESSES } from './addresses/address.service.js';
 export { ProfileService } from './profile/profile.service.js';
+export { type SellerStanding, SellerStandingService } from './seller/seller-standing.service.js';
 export {
   CurrentUser,
   RequireSession,

@@ -9,3 +9,9 @@
 export { CatalogModule } from './catalog.module.js';
 export { CategoryService } from './categories/category.service.js';
 export type { CategoryNode, CategorySchema } from './categories/category-tree.js';
+export {
+  type ItemDetails,
+  type ItemPatch,
+  ItemService,
+  type ItemUpdate,
+} from './items/item.service.js';

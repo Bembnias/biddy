@@ -31,12 +31,16 @@ import type {
 import type {
   AcceptTermsDto,
   AddressDto,
+  AuctionSummaryDto,
   AvatarDto,
   ConfirmPhoneVerificationDto,
   CreateAddressDto,
+  GetMyAuctionsParams,
+  ListingDto,
   MeDto,
   PhoneVerificationDto,
   ProblemDetails,
+  SellingLimitsDto,
   SessionDto,
   SetAvatarDto,
   StartPhoneVerificationDto,
@@ -1294,3 +1298,482 @@ export const useDeleteAvatar = <TError = ErrorType<ProblemDetails>,
       > => {
       return useMutation(getDeleteAvatarMutationOptions(options), queryClient);
     }
+    export const getGetMyAuctionsUrl = (params?: GetMyAuctionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["status"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
+
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/me/auctions?${stringifiedParams}` : `/v1/me/auctions`
+}
+
+/**
+ * Najnowsze zmiany najpierw, maks. 100.
+ * @summary Moje aukcje i szkice
+ */
+export const getMyAuctions = async (params?: GetMyAuctionsParams, options?: Parameters<typeof apiFetch>[1]): Promise<AuctionSummaryDto[]> => {
+
+  return apiFetch<AuctionSummaryDto[]>(getGetMyAuctionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyAuctionsQueryKey = (params?: GetMyAuctionsParams,) => {
+    return [
+    `/v1/me/auctions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMyAuctionsQueryOptions = <TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(params?: GetMyAuctionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAuctionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAuctions>>> = ({ signal }) => getMyAuctions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyAuctionsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAuctions>>>
+export type GetMyAuctionsQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyAuctions<TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(
+ params: undefined |  GetMyAuctionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAuctions>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAuctions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAuctions<TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyAuctionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAuctions>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAuctions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAuctions<TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyAuctionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Moje aukcje i szkice
+ */
+
+export function useGetMyAuctions<TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyAuctionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyAuctionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyAuctionsSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(params?: GetMyAuctionsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAuctionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAuctions>>> = ({ signal }) => getMyAuctions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyAuctionsSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAuctions>>>
+export type GetMyAuctionsSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyAuctionsSuspense<TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(
+ params: undefined |  GetMyAuctionsParams, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAuctionsSuspense<TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyAuctionsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAuctionsSuspense<TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyAuctionsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Moje aukcje i szkice
+ */
+
+export function useGetMyAuctionsSuspense<TData = Awaited<ReturnType<typeof getMyAuctions>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyAuctionsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuctions>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyAuctionsSuspenseQueryOptions(params,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyAuctionUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/auctions/${id}`
+}
+
+/**
+ * @summary Moja aukcja albo szkic
+ */
+export const getMyAuction = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<ListingDto> => {
+
+  return apiFetch<ListingDto>(getGetMyAuctionUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyAuctionQueryKey = (id: string,) => {
+    return [
+    `/v1/me/auctions/${id}`
+    ] as const;
+    }
+
+
+export const getGetMyAuctionQueryOptions = <TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAuctionQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAuction>>> = ({ signal }) => getMyAuction(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyAuctionQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAuction>>>
+export type GetMyAuctionQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyAuction<TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAuction>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAuction>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAuction<TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyAuction>>,
+          TError,
+          Awaited<ReturnType<typeof getMyAuction>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAuction<TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Moja aukcja albo szkic
+ */
+
+export function useGetMyAuction<TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyAuctionQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyAuctionSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyAuctionQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyAuction>>> = ({ signal }) => getMyAuction(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyAuctionSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyAuction>>>
+export type GetMyAuctionSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyAuctionSuspense<TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAuctionSuspense<TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyAuctionSuspense<TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Moja aukcja albo szkic
+ */
+
+export function useGetMyAuctionSuspense<TData = Awaited<ReturnType<typeof getMyAuction>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyAuction>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyAuctionSuspenseQueryOptions(id,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetSellingLimitsUrl = () => {
+
+
+
+
+  return `/v1/me/selling-limits`
+}
+
+/**
+ * @summary Limity sprzedawcy (§4.1)
+ */
+export const getSellingLimits = async ( options?: Parameters<typeof apiFetch>[1]): Promise<SellingLimitsDto> => {
+
+  return apiFetch<SellingLimitsDto>(getGetSellingLimitsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSellingLimitsQueryKey = () => {
+    return [
+    `/v1/me/selling-limits`
+    ] as const;
+    }
+
+
+export const getGetSellingLimitsQueryOptions = <TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSellingLimitsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSellingLimits>>> = ({ signal }) => getSellingLimits({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSellingLimitsQueryResult = NonNullable<Awaited<ReturnType<typeof getSellingLimits>>>
+export type GetSellingLimitsQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetSellingLimits<TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSellingLimits>>,
+          TError,
+          Awaited<ReturnType<typeof getSellingLimits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSellingLimits<TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSellingLimits>>,
+          TError,
+          Awaited<ReturnType<typeof getSellingLimits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSellingLimits<TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Limity sprzedawcy (§4.1)
+ */
+
+export function useGetSellingLimits<TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSellingLimitsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetSellingLimitsSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSellingLimitsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSellingLimits>>> = ({ signal }) => getSellingLimits({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetSellingLimitsSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getSellingLimits>>>
+export type GetSellingLimitsSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetSellingLimitsSuspense<TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSellingLimitsSuspense<TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSellingLimitsSuspense<TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Limity sprzedawcy (§4.1)
+ */
+
+export function useGetSellingLimitsSuspense<TData = Awaited<ReturnType<typeof getSellingLimits>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSellingLimits>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSellingLimitsSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+

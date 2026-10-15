@@ -4,7 +4,8 @@
 //
 // Sesja to wartość ciasteczka z SESSIONS, opcjonalnie z sufiksem testu (`…-test-1`): każdy test
 // ma wtedy własny stan adresów (testy działają równolegle). Stan ustawia test przez
-// PUT /__e2e/addresses?session=… (e2e/support.ts, setSsrAddresses).
+// PUT /__e2e/addresses?session=… (e2e/support.ts, setSsrAddresses), a aukcji (kreator, Moje aukcje,
+// F-14) przez PUT /__e2e/auctions?session=… (setSsrAuctions).
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
 
 /** Port atrapy (Playwright podaje go też Next.js jako API_INTERNAL_URL). */
@@ -74,6 +75,27 @@ function problem(status: number, code: string, detail: string, instance: string)
 const addressesBySession = new Map<string, unknown[]>();
 /** Nadpisania pól /v1/me według pełnej wartości ciasteczka sesji (np. avatarUrl po zapisie). */
 const meBySession = new Map<string, Record<string, unknown>>();
+/** Aukcje sprzedającego (ListingDto) według sesji testu. */
+const auctionsBySession = new Map<string, Record<string, unknown>[]>();
+
+/** ListingDto → AuctionSummaryDto (lista Moje aukcje). */
+function summary(listing: Record<string, unknown>): Record<string, unknown> {
+  const photos = listing['photos'] as { urls: { thumb: string } | null }[] | undefined;
+  return {
+    id: listing['id'],
+    publicId: listing['publicId'],
+    status: listing['status'],
+    editable: listing['editable'],
+    title: listing['title'],
+    coverUrl: photos?.[0]?.urls?.thumb ?? null,
+    currency: listing['currency'],
+    startPrice: listing['startPrice'],
+    currentPrice: null,
+    bidCount: listing['bidCount'],
+    endsAt: listing['endsAt'],
+    updatedAt: listing['updatedAt'],
+  };
+}
 
 /** Rodzaj sesji z wartości ciasteczka (najdłuższy pasujący prefiks z SESSIONS). */
 function sessionKind(session: string | undefined): string | undefined {
@@ -116,7 +138,34 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     send(response, 200, { ok: true });
     return;
   }
+  if (request.method === 'PUT' && path === '/__e2e/auctions') {
+    auctionsBySession.set(
+      url.searchParams.get('session') ?? '',
+      (await readJson(request)) as Record<string, unknown>[],
+    );
+    send(response, 200, { ok: true });
+    return;
+  }
   const session = cookieValue(request, SESSION_COOKIE);
+  if (request.method === 'GET' && path.startsWith('/v1/me/auctions')) {
+    if (sessionKind(session) === undefined) {
+      send(response, 401, problem(401, 'UNAUTHORIZED', 'Zaloguj się.', path));
+      return;
+    }
+    const auctions = auctionsBySession.get(session ?? '') ?? [];
+    const one = /^\/v1\/me\/auctions\/([^/]+)$/.exec(path);
+    if (one === null) {
+      send(response, 200, auctions.map(summary));
+      return;
+    }
+    const found = auctions.find((auction) => auction['id'] === one[1]);
+    if (found === undefined) {
+      send(response, 404, problem(404, 'NOT_FOUND', 'Nie znaleziono aukcji.', path));
+      return;
+    }
+    send(response, 200, found);
+    return;
+  }
   if (request.method === 'GET' && path === '/v1/me/addresses') {
     if (sessionKind(session) === undefined) {
       send(response, 401, problem(401, 'UNAUTHORIZED', 'Zaloguj się.', path));

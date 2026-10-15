@@ -58,6 +58,19 @@ export default async function AccountPage() {
           <dd className="mt-1">{format.dateTime(new Date(me.createdAt), { dateStyle: 'long' })}</dd>
         </div>
       </dl>
+      <section aria-labelledby="selling-section" className="mt-8">
+        <h2 id="selling-section" className="text-xl font-semibold">
+          {t('sellingSection')}
+        </h2>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link href={routes.myAuctions}>{t('myAuctions')}</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={routes.sell}>{t('sell')}</Link>
+          </Button>
+        </div>
+      </section>
       <section aria-labelledby="profile-section" className="mt-8">
         <h2 id="profile-section" className="text-xl font-semibold">
           {t('profileSection')}

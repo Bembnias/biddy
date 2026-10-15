@@ -5,3 +5,4 @@ export * from './legal/index.js';
 export * from './users/index.js';
 export * from './catalog/index.js';
 export * from './pricing/index.js';
+export * from './listing/index.js';

@@ -4,12 +4,12 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, gte, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 
 import { APP_CONFIG, type AppConfig } from '../../infra/config/index.js';
-import { type Database, DRIZZLE, newId } from '../../infra/db/index.js';
+import { type Database, DRIZZLE, newId, type Transaction } from '../../infra/db/index.js';
 import { DomainError } from '../../infra/http/index.js';
 import { Outbox } from '../../infra/outbox/index.js';
 import { JobHandler, JobQueues, type JobRun, ScheduledJob } from '../../infra/queues/index.js';
 import { OBJECT_STORAGE, type ObjectStorage } from '../../infra/storage/index.js';
-import { type Media, type MediaPurpose, media } from './db/media.schema.js';
+import { type Media, type MediaPurpose, type MediaStatus, media } from './db/media.schema.js';
 import { MediaFlagged } from './media.events.js';
 import { incomingKey, quarantineKey, variantKey } from './media-keys.js';
 import { IMAGE_MODERATOR, type ImageModerator } from './processing/image-moderator.js';
@@ -42,6 +42,14 @@ export interface UploadTarget {
 
 function notFound(): DomainError {
   return new DomainError({ code: 'NOT_FOUND', detail: 'Nie znaleziono zdjęcia.' });
+}
+
+/** Zdjęcie z publicznymi adresami wariantów (null, gdy nie jest READY). */
+export interface MediaDescription {
+  readonly id: string;
+  readonly purpose: MediaPurpose;
+  readonly status: MediaStatus;
+  readonly urls: Record<string, string> | null;
 }
 
 @Injectable()
@@ -185,12 +193,19 @@ export class MediaService {
   /**
    * Oznacza zdjęcia jako użyte (przedmiot w F-14, zdjęcie profilowe). Każde musi należeć do
    * właściciela, mieć przeznaczenie `purpose` i status READY; inaczej 400 VALIDATION_FAILED.
+   * Z `tx` działa w transakcji wywołującego (np. zapis szkicu aukcji).
    */
-  async attach(ownerId: string, mediaIds: readonly string[], purpose: MediaPurpose): Promise<void> {
+  async attach(
+    ownerId: string,
+    mediaIds: readonly string[],
+    purpose: MediaPurpose,
+    tx?: Transaction,
+  ): Promise<void> {
     if (mediaIds.length === 0) {
       return;
     }
-    const rows = await this.db
+    const db = tx ?? this.db;
+    const rows = await db
       .select({ id: media.id, status: media.status, purpose: media.purpose })
       .from(media)
       .where(and(eq(media.ownerId, ownerId), inArray(media.id, [...mediaIds])));
@@ -209,21 +224,46 @@ export class MediaService {
         })),
       });
     }
-    await this.db
+    await db
       .update(media)
       .set({ attachedAt: new Date(), updatedAt: new Date() })
       .where(and(inArray(media.id, [...mediaIds]), isNull(media.attachedAt)));
   }
 
   /** Zdjęcia przestają być użyte; znikną z kolejnym sprzątaniem. */
-  async detach(ownerId: string, mediaIds: readonly string[]): Promise<void> {
+  async detach(ownerId: string, mediaIds: readonly string[], tx?: Transaction): Promise<void> {
     if (mediaIds.length === 0) {
       return;
     }
-    await this.db
+    await (tx ?? this.db)
       .update(media)
       .set({ attachedAt: null, updatedAt: new Date() })
       .where(and(eq(media.ownerId, ownerId), inArray(media.id, [...mediaIds])));
+  }
+
+  /**
+   * Stan i publiczne adresy zdjęć właściciela w kolejności `mediaIds` (np. zdjęcia szkicu
+   * aukcji). Zdjęć cudzych albo nieistniejących nie ma w wyniku.
+   */
+  async describe(
+    ownerId: string,
+    mediaIds: readonly string[],
+    tx?: Transaction,
+  ): Promise<MediaDescription[]> {
+    if (mediaIds.length === 0) {
+      return [];
+    }
+    const rows = await (tx ?? this.db)
+      .select({ id: media.id, purpose: media.purpose, status: media.status })
+      .from(media)
+      .where(and(eq(media.ownerId, ownerId), inArray(media.id, [...mediaIds])));
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return mediaIds.flatMap((id) => {
+      const row = byId.get(id);
+      return row === undefined
+        ? []
+        : [{ id, purpose: row.purpose, status: row.status, urls: this.publicUrls(row) }];
+    });
   }
 
   @JobHandler('media', PROCESS_MEDIA_JOB)

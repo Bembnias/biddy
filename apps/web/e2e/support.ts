@@ -235,3 +235,18 @@ export async function setSsrAddresses(
   );
   expect(response.ok).toBe(true);
 }
+
+/**
+ * Aukcje sprzedającego w atrapie SSR (ListingDto) dla sesji testu: kreator (/wystaw/{id})
+ * i Moje aukcje renderują się na serwerze, więc po zmianie w przeglądarce muszą zobaczyć nowy stan.
+ */
+export async function setSsrAuctions(
+  session: string,
+  auctions: readonly Record<string, unknown>[],
+): Promise<void> {
+  const response = await fetch(
+    `http://127.0.0.1:${MOCK_API_PORT}/__e2e/auctions?${new URLSearchParams({ session }).toString()}`,
+    { method: 'PUT', body: JSON.stringify(auctions) },
+  );
+  expect(response.ok).toBe(true);
+}

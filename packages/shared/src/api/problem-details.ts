@@ -50,6 +50,14 @@ export const ERROR_CODES = {
   ADDRESS_LIMIT_REACHED: 'ADDRESS_LIMIT_REACHED',
   /** Plik zdjęcia nie dotarł do magazynu przed potwierdzeniem uploadu (F-12). */
   MEDIA_NOT_UPLOADED: 'MEDIA_NOT_UPLOADED',
+  /** Sprzedający ma blokadę wystawiania (F-61); `blockedUntil` w odpowiedzi (F-14). */
+  LISTING_BLOCKED: 'LISTING_BLOCKED',
+  /** Osiągnięto limit aktywnych aukcji poziomu sprzedawcy (§4.1, F-14). */
+  LISTING_LIMIT_REACHED: 'LISTING_LIMIT_REACHED',
+  /** Aukcja ma oferty: zmiana jest zablokowana (§6.6, F-14). */
+  AUCTION_HAS_BIDS: 'AUCTION_HAS_BIDS',
+  /** Aukcji z ofertami nie można anulować w ostatnich 12 h (§6.6, F-14). */
+  AUCTION_CANCEL_TOO_LATE: 'AUCTION_CANCEL_TOO_LATE',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

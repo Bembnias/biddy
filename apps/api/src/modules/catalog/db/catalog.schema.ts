@@ -1,16 +1,19 @@
-// Tabele modułu catalog: drzewo kategorii z atrybutami (F-11); przedmioty dojdą w F-14.
+// Tabele modułu catalog: drzewo kategorii z atrybutami (F-11) i przedmioty ze zdjęciami (F-14).
 // ID to UUIDv7 nadawane przez aplikację (ADR-10).
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts).
-import type { AttributeDefinition } from '@biddy/shared';
+import type { AttributeDefinition, ItemCondition, PackageSize } from '@biddy/shared';
+import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
   boolean,
+  check,
   customType,
   index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -58,3 +61,66 @@ export type Category = typeof categories.$inferSelect;
 
 /** Format slugów i etykiet ścieżki. */
 export const CATEGORY_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
+
+/**
+ * Przedmiot na aukcji (F-14). W szkicu pola są puste; kompletność sprawdza publikacja
+ * (`validateListing` z @biddy/shared). Aukcja (moduł auctions) wskazuje przedmiot przez `item_id`.
+ */
+export const items = pgTable(
+  'items',
+  {
+    id: idColumn(),
+    /** Sprzedający (konto z modułu identity; uuid bez FK między modułami). */
+    sellerId: uuid().notNull(),
+    /** Liść drzewa kategorii (null w szkicu). */
+    categoryId: uuid().references(() => categories.id),
+    title: text(),
+    description: text(),
+    condition: text().$type<ItemCondition>(),
+    brand: text(),
+    /** Wartości atrybutów kategorii (zapisane tak, jak je podano; F-11). */
+    attributes: jsonb().$type<Record<string, string | number | boolean>>().notNull().default({}),
+    packageSize: text().$type<PackageSize>(),
+    weightGrams: integer(),
+    lengthCm: integer(),
+    widthCm: integer(),
+    heightCm: integer(),
+    /** Akceptowani przewoźnicy (identyfikatory z modułu shipping). */
+    allowedCarriers: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index().on(table.sellerId),
+    check(
+      'items_condition_check',
+      sql`${table.condition} is null or ${table.condition} in ('NEW', 'LIKE_NEW', 'VERY_GOOD', 'GOOD', 'FAIR', 'FOR_PARTS')`,
+    ),
+    check(
+      'items_package_size_check',
+      sql`${table.packageSize} is null or ${table.packageSize} in ('S', 'M', 'L', 'XL')`,
+    ),
+  ],
+);
+
+export type Item = typeof items.$inferSelect;
+
+/** Zdjęcia przedmiotu w kolejności (pozycja 0 = zdjęcie główne). Plik i stan: moduł media. */
+export const itemMedia = pgTable(
+  'item_media',
+  {
+    itemId: uuid()
+      .notNull()
+      .references(() => items.id, { onDelete: 'cascade' }),
+    /** Zdjęcie z modułu media (uuid bez FK między modułami). */
+    mediaId: uuid().notNull(),
+    position: integer().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.itemId, table.position] }),
+    uniqueIndex().on(table.itemId, table.mediaId),
+  ],
+);

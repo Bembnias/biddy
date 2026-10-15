@@ -103,5 +103,5 @@ Brak w F-11 (zdarzenia kreatora w F-14).
 
 ## Otwarte pytania
 
-- Minimalna liczba zdjęć w kategoriach narażonych na podróbki: **domyślnie** ustali F-14 (propozycja: 4, w tym metka lub kod).
+- Minimalna liczba zdjęć w kategoriach narażonych na podróbki: **ustalone w F-14**: 4, w tym metka lub kod (podpowiedź w kreatorze), i obowiązkowa marka.
 - Lista kategorii z ograniczeniami: **domyślnie** tylko Militaria (bez broni i amunicji); pozostałe wg regulaminu (F-41).
