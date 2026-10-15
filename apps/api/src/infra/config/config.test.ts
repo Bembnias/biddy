@@ -37,6 +37,7 @@ const production = {
   S3_ACCESS_KEY_ID: 'r2-key',
   S3_SECRET_ACCESS_KEY: 'r2-secret',
   MEDIA_PUBLIC_URL: 'https://media.biddy.pl',
+  WEB_REVALIDATE_SECRET: 'revalidate-secret-0123456789-0123456789',
 } as const;
 
 function issuesFor(
@@ -109,6 +110,7 @@ describe('loadConfig: wartości domyślne', () => {
         mediaPublicUrl: 'http://localhost:9000/biddy-media',
       },
       auctions: { antiSnipingWindowMs: 120_000 },
+      web: { url: 'http://localhost:3000', revalidateSecret: undefined },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
     });
   });
@@ -327,7 +329,7 @@ describe('loadConfig: SMS-y (F-08)', () => {
 });
 
 describe('loadConfig: konta i e-maile (F-07)', () => {
-  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend i S3; worker Redisa cache, Resend i S3', () => {
+  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend i S3; worker Redisa cache, Resend, S3 i rewalidacji web', () => {
     const missing = {
       ...minimal,
       NODE_ENV: 'production',
@@ -352,11 +354,13 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
     );
     expect(issuesFor(missing, 'worker').map((issue) => issue.variable)).toEqual([
       'REDIS_CACHE_URL',
+      'WEB_URL',
       'RESEND_API_KEY',
       'S3_ENDPOINT',
       'S3_ACCESS_KEY_ID',
       'S3_SECRET_ACCESS_KEY',
       'MEDIA_PUBLIC_URL',
+      'WEB_REVALIDATE_SECRET',
     ]);
   });
 

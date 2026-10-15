@@ -11,7 +11,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { type Database, DRIZZLE } from '../../../infra/db/index.js';
 import { DomainError } from '../../../infra/http/index.js';
 import { categories } from '../db/catalog.schema.js';
-import { type CategoryNode, type CategorySchema, CategoryTree } from './category-tree.js';
+import {
+  type CategoryCrumb,
+  type CategoryNode,
+  type CategorySchema,
+  CategoryTree,
+} from './category-tree.js';
 
 @Injectable()
 export class CategoryService {
@@ -81,6 +86,11 @@ export class CategoryService {
    */
   async pathNames(categoryId: string): Promise<string[]> {
     return (await this.tree()).pathNames(categoryId);
+  }
+
+  /** Kategorie od głównej do wskazanej ({ id, slug, name }), także nieaktywne (strona aukcji). */
+  async pathNodes(categoryId: string): Promise<CategoryCrumb[]> {
+    return (await this.tree()).pathNodes(categoryId);
   }
 
   private async tree(): Promise<CategoryTree> {

@@ -191,6 +191,9 @@ services:
         sync: false
       - key: S3_SECRET_ACCESS_KEY
         sync: false
+      # Rewalidacja stron aukcji w web (F-18): ta sama wartość co WEB_REVALIDATE_SECRET na Vercel.
+      - key: WEB_REVALIDATE_SECRET
+        sync: false
 
   # Kolejki BullMQ: noeviction (inaczej worker nie wystartuje, F-04) i trwałość danych.
   - type: keyvalue

@@ -35,6 +35,7 @@ ENV_ARGS=(
   -e S3_ACCESS_KEY_ID=smoke-test
   -e S3_SECRET_ACCESS_KEY=smoke-test
   -e MEDIA_PUBLIC_URL=https://media.staging.biddy.pl
+  -e WEB_REVALIDATE_SECRET=smoke-test-revalidate-0123456789-0123456789
   -e RENDER_GIT_COMMIT="${GITHUB_SHA:-smoke}"
 )
 PUBLISH=()

@@ -58,7 +58,8 @@ function corsHeaders(request: Request): Record<string, string> {
     'access-control-allow-origin': request.headers()['origin'] ?? '*',
     'access-control-allow-credentials': 'true',
     'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE',
-    'access-control-allow-headers': 'content-type, x-turnstile-token, x-request-id',
+    'access-control-allow-headers':
+      'content-type, x-turnstile-token, x-request-id, idempotency-key',
     'access-control-expose-headers': 'x-request-id, set-auth-token',
   };
 }
@@ -249,4 +250,77 @@ export async function setSsrAuctions(
     { method: 'PUT', body: JSON.stringify(auctions) },
   );
   expect(response.ok).toBe(true);
+}
+
+/** Publiczna aukcja (PublicAuctionDto) w atrapie SSR: strona /a/{slug}-{publicId} (F-18). */
+export async function setSsrPublicAuction(auction: Record<string, unknown>): Promise<void> {
+  const response = await fetch(`http://127.0.0.1:${MOCK_API_PORT}/__e2e/public-auctions`, {
+    method: 'PUT',
+    body: JSON.stringify(auction),
+  });
+  expect(response.ok).toBe(true);
+}
+
+/** Atrapa serwera realtime: subskrybowane aukcje i wysyłka zdarzeń do przeglądarki. */
+export interface MockRealtime {
+  /** Czeka, aż przeglądarka zasubskrybuje aukcję (`auction:subscribe`). */
+  readonly subscribed: (auctionId: string) => Promise<void>;
+  /** Zdarzenie serwer → klient, np. `auction.updated`. */
+  readonly send: (event: string, payload: unknown) => void;
+}
+
+/**
+ * Serwer Socket.IO (F-17) w przeglądarce testu: protokół Engine.IO 4 / Socket.IO 5 przez
+ * `page.routeWebSocket`. Otwarcie (`0{…}`), połączenie przestrzeni nazw (`40`), potwierdzenia
+ * `auction:subscribe` i `time:ping` (`43{id}[…]`) i zdarzenia (`42[…]`).
+ */
+export async function mockRealtime(page: Page): Promise<MockRealtime> {
+  const subscriptions = new Set<string>();
+  const waiting = new Map<string, () => void>();
+  let socket: { send: (message: string) => void } | undefined;
+  await page.routeWebSocket(/\/v1\/realtime\//u, (ws) => {
+    socket = ws;
+    ws.send(
+      `0${JSON.stringify({ sid: 'e2e', upgrades: [], pingInterval: 25_000, pingTimeout: 20_000, maxPayload: 1_000_000 })}`,
+    );
+    ws.onMessage((message) => {
+      const text = typeof message === 'string' ? message : message.toString();
+      if (text.startsWith('40')) {
+        ws.send(`40${JSON.stringify({ sid: 'e2e-socket' })}`);
+        return;
+      }
+      const packet = /^42(\d*)(\[.*\])$/su.exec(text);
+      if (packet === null) {
+        return;
+      }
+      const [, ackId = '', body = '[]'] = packet;
+      const [name, argument] = JSON.parse(body) as [string, unknown];
+      const ack = (value: unknown) => {
+        if (ackId !== '') {
+          ws.send(`43${ackId}${JSON.stringify([value])}`);
+        }
+      };
+      if (name === 'auction:subscribe' && typeof argument === 'string') {
+        subscriptions.add(argument);
+        waiting.get(argument)?.();
+        ack({ ok: true });
+      } else if (name === 'time:ping') {
+        ack({ serverTime: new Date().toISOString() });
+      }
+    });
+  });
+  return {
+    subscribed: (auctionId) =>
+      subscriptions.has(auctionId)
+        ? Promise.resolve()
+        : new Promise((resolve) => {
+            waiting.set(auctionId, resolve);
+          }),
+    send: (event, payload) => {
+      if (socket === undefined) {
+        throw new Error('Przeglądarka nie połączyła się z atrapą realtime');
+      }
+      socket.send(`42${JSON.stringify([event, payload])}`);
+    },
+  };
 }

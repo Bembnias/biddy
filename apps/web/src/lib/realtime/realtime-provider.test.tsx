@@ -1,16 +1,11 @@
-import type {
-  AuctionHandlers,
-  AuctionUpdatedEvent,
-  RealtimeClient,
-  RealtimeStatus,
-  UserHandlers,
-} from '@biddy/realtime';
+import type { AuctionUpdatedEvent } from '@biddy/realtime';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ServerClockProvider, useServerClock } from '@/components/providers/server-clock-provider';
 import { AppWrapper } from '@/test/providers';
+import { fakeRealtimeClient as fakeClient } from '@/test/realtime';
 
 import {
   RealtimeProvider,
@@ -18,92 +13,6 @@ import {
   useRealtimeStatus,
   useUserRealtimeEvents,
 } from './realtime-provider';
-
-/** Klient w pamięci: zapisuje subskrypcje i pozwala „wysłać” zdarzenia z testu. */
-function fakeClient() {
-  const auctions = new Map<string, Set<AuctionHandlers>>();
-  const users = new Set<UserHandlers>();
-  const reconnects = new Set<() => void>();
-  const statuses = new Set<(status: RealtimeStatus) => void>();
-  const clocks = new Set<(offset: number) => void>();
-  const close = vi.fn();
-  const client: RealtimeClient = {
-    status: 'idle',
-    connect: vi.fn(),
-    close,
-    subscribeAuction(auctionId, handlers) {
-      const set = auctions.get(auctionId) ?? new Set();
-      set.add(handlers);
-      auctions.set(auctionId, set);
-      return () => {
-        set.delete(handlers);
-      };
-    },
-    onUserEvents(handlers) {
-      users.add(handlers);
-      return () => {
-        users.delete(handlers);
-      };
-    },
-    onReconnect(callback) {
-      reconnects.add(callback);
-      return () => {
-        reconnects.delete(callback);
-      };
-    },
-    onStatus(callback) {
-      statuses.add(callback);
-      return () => {
-        statuses.delete(callback);
-      };
-    },
-    clockOffset: () => undefined,
-    onClockOffset(callback) {
-      clocks.add(callback);
-      return () => {
-        clocks.delete(callback);
-      };
-    },
-    serverNow: () => Date.now(),
-  };
-  return {
-    client,
-    close,
-    subscribers: (auctionId: string) => auctions.get(auctionId)?.size ?? 0,
-    update(event: AuctionUpdatedEvent) {
-      for (const handlers of auctions.get(event.auctionId) ?? []) {
-        handlers.onUpdated?.(event);
-      }
-    },
-    outbid(auctionId: string) {
-      for (const handlers of users) {
-        handlers.onOutbid?.({
-          auctionId,
-          currency: 'PLN',
-          currentPrice: 2_000,
-          minimumNextBid: 2_100,
-          endsAt: new Date().toISOString(),
-          serverTime: new Date().toISOString(),
-        });
-      }
-    },
-    reconnect() {
-      reconnects.forEach((callback) => {
-        callback();
-      });
-    },
-    status(next: RealtimeStatus) {
-      statuses.forEach((callback) => {
-        callback(next);
-      });
-    },
-    clock(offset: number) {
-      clocks.forEach((callback) => {
-        callback(offset);
-      });
-    },
-  };
-}
 
 const AUCTION = '01960000-0000-7000-8000-0000000000a1';
 

@@ -3,8 +3,9 @@
 // płatności 24 h (§6.8). Przejścia stanów, checkout i terminy: F-25, F-26.
 import { type CurrencyCode, money } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { and, eq } from 'drizzle-orm';
 
-import { newPublicId, type Transaction } from '../../../infra/db/index.js';
+import { type Database, DRIZZLE, newPublicId, type Transaction } from '../../../infra/db/index.js';
 import { Outbox } from '../../../infra/outbox/index.js';
 import { FeeScheduleService } from '../../payments/index.js';
 import { type Order, orderItems, orders } from '../db/orders.schema.js';
@@ -29,9 +30,20 @@ export interface AuctionSale {
 @Injectable()
 export class OrderService {
   constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
     @Inject(FeeScheduleService) private readonly fees: FeeScheduleService,
     private readonly outbox: Outbox,
   ) {}
+
+  /** Aktywne zamówienie sprzedanej aukcji albo undefined (strona aukcji, F-18). */
+  async activeForAuction(auctionId: string): Promise<Order | undefined> {
+    const [row] = await this.db
+      .select({ order: orders })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .where(and(eq(orderItems.auctionId, auctionId), eq(orderItems.isActive, true)));
+    return row?.order;
+  }
 
   /**
    * Zamówienie AWAITING_PAYMENT dla sprzedanej aukcji, w transakcji wywołującego. Drugie aktywne

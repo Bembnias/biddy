@@ -153,7 +153,7 @@ Na produkcji API i worker to dwa procesy z tego samego buildu: `pnpm --filter @b
 
 API czyta zmienne z `.env` w katalogu głównym (tworzy go `pnpm bootstrap`). Baza potrzebuje migracji przed pierwszym startem: `pnpm bootstrap` robi to sam, później wystarczy `pnpm db:reset` albo `pnpm --filter @biddy/api db:migrate`. API importuje zbudowany pakiet `@biddy/shared` (`packages/shared/dist`), więc na świeżym klonie uruchom najpierw `pnpm build`.
 
-Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL`, `REDIS_CACHE_URL`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` i `MEDIA_PUBLIC_URL`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
+Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL`, `REDIS_CACHE_URL`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` i `MEDIA_PUBLIC_URL`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API; za to wymaga `WEB_URL` i `WEB_REVALIDATE_SECRET` (rewalidacja stron aukcji, F-18). Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
 
 | Adres lokalny                   | Co to jest                                                                                                            |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -409,6 +409,16 @@ Cena, liczba ofert i koniec aukcji aktualizują się na żywo. Spec: [F-17](docs
 - **Publikacja:** `AuctionLiveEvents` (moduł `auctions`) buduje wiadomości w transakcji oferty, Kup teraz, unieważnienia, zamknięcia i anulowania, a `RealtimePublisher` wysyła je przez Redis zaraz po zatwierdzeniu. Błąd Redisa nie psuje operacji; klient po reconnect dociąga stan przez REST.
 - **`@biddy/realtime`** (`packages/realtime`): typy zdarzeń i `createRealtimeClient` (bez Reacta, dla web i Expo): subskrypcje z licznikiem odwołań, ponowna subskrypcja i `onReconnect` po zerwaniu połączenia, synchronizacja zegara (`serverNow()`).
 - **Web:** `RealtimeProvider` w `AppProviders` łączy się leniwie (dopiero przy pierwszej subskrypcji, klient ładowany dynamicznym importem). Hooki `useAuctionChannel`, `useUserRealtimeEvents`, `useRealtimeStatus`; zegar z WebSocket zasila `ServerClockProvider`.
+
+### Strona aukcji (F-18)
+
+Strona `/a/{slug}-{publicId}` sprzedaje przedmiot i jest miejscem licytacji. Spec: [F-18](docs/features/F-18-strona-aukcji.md).
+
+- **API:** `GET /v1/auctions/{id}` (UUID albo `publicId`): publiczny widok aukcji z przedmiotem, kategorią, atrybutami, zdjęciami, przewoźnikami i sprzedawcą, bez maksimów i ceny minimalnej. Szkic, aukcja w moderacji i aukcja zablokowanego sprzedawcy: 404. `GET /v1/me/bids/{id}`: stan zalogowanego (prowadzi, maksimum, wynik `WON`/`LOST`/`RESERVE_NOT_MET`, zamówienie zwycięzcy).
+- **Adres:** `auctionSlug`, `auctionPath` i `parseAuctionPath` w `@biddy/shared`; stary slug (zmiana tytułu przed pierwszą ofertą) przekierowuje 308 na kanoniczny.
+- **ISR:** strona nie czyta ciasteczek, odświeża się co 60 s, a po `AuctionPublished`, `AuctionUpdated`, `BidPlaced`, `BidCancelled`, `AuctionEnded` i `AuctionCancelled` worker planuje job `auction.revalidate-page` (kolejka `web`, okno 5 s w ID joba) i woła `POST {WEB_URL}/api/revalidate` z `WEB_REVALIDATE_SECRET` i tagiem `auction:{publicId}`. Route Handler unieważnia tag z `expire: 0`, więc HTML bez JavaScriptu pokazuje cenę nie starszą niż ok. 10 s. Bez sekretu (lokalnie) rewalidacji nie ma.
+- **Panel licytacji** (w przeglądarce): cena, licznik z zegara serwera, końcówka (okno anti-snipingu), oferta z maksimum, ceną łączną z POK i potwierdzeniem (`Idempotency-Key`), Kup teraz, stany gościa, braku telefonu, sprzedającego, wygranej i przegranej. Zdarzenia na żywo (F-17) aktualizują stan według `version`; historia ofert pobiera się w przeglądarce.
+- **SEO:** schema.org `Product` z `Offer` (JSON-LD), adres kanoniczny, obrazek OG ze zdjęcia głównego, `noindex` dla anulowanych.
 
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 

@@ -1032,6 +1032,47 @@
         "tags": [
           "auctions"
         ]
+      },
+      "get": {
+        "description": "Identyfikator: UUID albo publicId. Aukcje aktywne, zakończone i anulowane; szkic i aukcja w moderacji: 404.",
+        "operationId": "getAuction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aukcja",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAuctionDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Aukcja (widok publiczny)",
+        "tags": [
+          "auctions"
+        ]
       }
     },
     "/v1/auctions/{id}/publish": {
@@ -1652,6 +1693,57 @@
         "summary": "Anulowanie aukcji przez moderację",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/v1/me/bids/{id}": {
+      "get": {
+        "description": "Czy prowadzisz, Twoje maksimum, wynik po zakończeniu i zamówienie zwycięzcy. Identyfikator: UUID albo publicId.",
+        "operationId": "getMyBidding",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stan licytacji",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBiddingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mój stan w aukcji",
+        "tags": [
+          "me"
         ]
       }
     },
@@ -3779,6 +3871,457 @@
         },
         "required": [
           "note"
+        ],
+        "additionalProperties": false
+      },
+      "PublicAuctionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "publicId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Slug z tytułu: adres strony /a/{slug}-{publicId}"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "ENDED_SOLD",
+              "ENDED_UNSOLD",
+              "CANCELLED"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "LIKE_NEW",
+              "VERY_GOOD",
+              "GOOD",
+              "FAIR",
+              "FOR_PARTS",
+              null
+            ],
+            "nullable": true
+          },
+          "brand": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "category": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "slug",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Kategorie od głównej do kategorii przedmiotu"
+          },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Atrybuty do wyświetlenia (etykieta i wartość z jednostką)"
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "urls": {
+                  "type": "object",
+                  "properties": {
+                    "thumb": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "medium": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "large": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "thumb",
+                    "medium",
+                    "large"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "urls"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "packageSize": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "XL",
+              null
+            ],
+            "nullable": true
+          },
+          "carriers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "LOCKER",
+                    "PICKUP_POINT",
+                    "COURIER"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "seller": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              },
+              "avatarUrl": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true
+              },
+              "memberSince": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "phoneVerified": {
+                "type": "boolean"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "PRIVATE"
+                ],
+                "description": "Osoba prywatna (w MVP tylko takie konta, §17)"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "avatarUrl",
+              "memberSince",
+              "phoneVerified",
+              "kind"
+            ],
+            "additionalProperties": false
+          },
+          "startPrice": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "currentPrice": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Aktualna cena w groszach albo null (brak ofert)",
+            "nullable": true
+          },
+          "bidCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leader": {
+            "type": "object",
+            "properties": {
+              "publicName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "publicName"
+            ],
+            "additionalProperties": false,
+            "description": "Zanonimizowany lider, np. k***a",
+            "nullable": true
+          },
+          "minimumNextBid": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Najniższa kolejna oferta (null po zakończeniu)",
+            "nullable": true
+          },
+          "reserveStatus": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "NOT_MET",
+              "MET"
+            ]
+          },
+          "buyNowPrice": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Cena Kup teraz, tylko gdy dostępne",
+            "nullable": true
+          },
+          "buyNowAvailable": {
+            "type": "boolean"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Rośnie z każdą zmianą aukcji (kolejność zdarzeń na żywo)"
+          },
+          "extensionWindowSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Okno anti-snipingu: oferta w tym czasie przed końcem przedłuża aukcję"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "slug",
+          "status",
+          "currency",
+          "title",
+          "description",
+          "condition",
+          "brand",
+          "category",
+          "attributes",
+          "photos",
+          "packageSize",
+          "carriers",
+          "seller",
+          "startPrice",
+          "currentPrice",
+          "bidCount",
+          "leader",
+          "minimumNextBid",
+          "reserveStatus",
+          "buyNowPrice",
+          "buyNowAvailable",
+          "startsAt",
+          "endsAt",
+          "version",
+          "extensionWindowSeconds",
+          "serverTime"
+        ],
+        "additionalProperties": false
+      },
+      "MyBiddingDto": {
+        "type": "object",
+        "properties": {
+          "auctionId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "isSeller": {
+            "type": "boolean",
+            "description": "Aukcja zalogowanego użytkownika"
+          },
+          "hasBid": {
+            "type": "boolean"
+          },
+          "leading": {
+            "type": "boolean"
+          },
+          "maxAmount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Twoje najwyższe maksimum (grosze) albo null",
+            "nullable": true
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "WON",
+              "LOST",
+              "RESERVE_NOT_MET"
+            ],
+            "description": "Wynik po zakończeniu; RESERVE_NOT_MET: prowadziłeś, ale bez ceny minimalnej"
+          },
+          "order": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "AWAITING_PAYMENT",
+                  "PAID",
+                  "SHIPPED",
+                  "DELIVERED",
+                  "COMPLETED",
+                  "DISPUTED",
+                  "NOT_PICKED_UP",
+                  "LOST",
+                  "REFUNDED",
+                  "PARTIALLY_REFUNDED",
+                  "CANCELLED_UNPAID",
+                  "CANCELLED_NOT_SHIPPED"
+                ]
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "PLN"
+                ]
+              },
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Do zapłaty bez dostawy (grosze)"
+              },
+              "paymentDueAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "id",
+              "publicId",
+              "status",
+              "currency",
+              "total",
+              "paymentDueAt"
+            ],
+            "additionalProperties": false,
+            "description": "Zamówienie zwycięzcy",
+            "nullable": true
+          }
+        },
+        "required": [
+          "auctionId",
+          "isSeller",
+          "hasBid",
+          "leading",
+          "maxAmount",
+          "outcome",
+          "order"
         ],
         "additionalProperties": false
       },

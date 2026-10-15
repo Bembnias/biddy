@@ -1064,14 +1064,14 @@ Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, a
 | Obszar | Wybór |
 |---|---|
 | Framework | **Next.js 16** (App Router, Server Components, Turbopack, ISR dla stron aukcji i kategorii) |
-| Świeżość stron aukcji | ISR z `revalidate` 60 s + **rewalidacja na żądanie** (`revalidateTag('auction:{id}')`) wywoływana przez worker po `BidPlaced`, `AuctionExtended` i `AuctionEnded`, maks. raz na 5 s na aukcję. HTML bez JS pokazuje cenę nie starszą niż ok. 10 s. |
+| Świeżość stron aukcji | ISR z `revalidate` 60 s + **rewalidacja na żądanie** wywoływana przez worker po zmianach aukcji (oferta, zakończenie, anulowanie, publikacja, edycja), maks. raz na 5 s na aukcję. HTML bez JS pokazuje cenę nie starszą niż ok. 10 s. Implementacja (F-18): job `auction.revalidate-page` w kolejce `web` z końcem 5-sekundowego okna w ID, `POST /api/revalidate` z sekretem `WEB_REVALIDATE_SECRET`, `revalidateTag('auction:{publicId}', { expire: 0 })`. |
 | PWA i web push | Manifest, service worker, **Web Push (VAPID)** przez bibliotekę `web-push` w module `notifications`. Na iOS web push działa tylko po dodaniu strony do ekranu głównego (iOS 16.4+), więc po pierwszej ofercie na iPhonie proponujemy instalację. |
 | UI | **Tailwind CSS 4** + **shadcn/ui** (Radix). Kolory, typografia i promienie wyłącznie z `packages/design-tokens` (motyw Tailwind bez domyślnej palety i fontów). |
 | Dane | TanStack Query (client), fetch w Server Components z przekazywaniem cookie sesji |
 | Formularze | react-hook-form + Zod |
 | Realtime | `socket.io-client` (wspólny wrapper z `packages/realtime`) |
 | i18n | `next-intl` (PL na start, EN później; bez prefiksu języka w adresie, dopóki jest jeden język) |
-| SEO | Metadata API, `sitemap.xml` (dynamiczny), schema.org `Product` + `Offer`, OG images (`next/og`) |
+| SEO | Metadata API, `sitemap.xml` (dynamiczny), schema.org `Product` + `Offer`, OG images (`next/og`; na stronie aukcji zdjęcie główne, F-18) |
 | Analityka | PostHog (EU), Sentry |
 
 ### 11.4 Mobile (`apps/mobile`)
@@ -1312,7 +1312,8 @@ PATCH  /auctions/:id               POST /auctions/:id/publish   POST /auctions/:
 GET    /me/auctions                GET /me/auctions/:id         GET /me/selling-limits
 GET    /shipping/carriers          (przewoźnicy i gabaryty, F-14)
 GET    /auctions                   (wyszukiwanie — proxy do Meilisearch z filtrami)
-GET    /auctions/:id               GET /auctions/:id/bids       (historia, zanonimizowana)
+GET    /auctions/:id               (widok publiczny; :id = UUID albo publicId, F-18)
+GET    /auctions/:id/bids          (historia, zanonimizowana)    GET /me/bids/:id (mój stan w aukcji, F-18)
 POST   /auctions/:id/bids          { maxAmount }            + nagłówek Idempotency-Key
 POST   /auctions/:id/buy-now       {}                       + nagłówek Idempotency-Key
 POST   /auctions/:id/relist        (kopia zakończonej aukcji jako szkic)
@@ -1858,6 +1859,10 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 69 | Socket.IO tylko z transportem WebSocket (long-polling wymagałby sticky sessions, których load balancer Render nie zapewnia); adapter Redis na instancji cache; publikacja przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji zamiast przez outbox (odpytywanie co 250 ms nie mieści się w 300 ms); dostarczenie najlepszym wysiłkiem, stan dociągany przez REST po reconnect | Przyjęta | §10.5 |
 | 70 | Połączenie WebSocket: ciasteczko sesji tylko z originów `CORS_ORIGINS` (ochrona przed cross-site WebSocket hijacking), klient bez Origin (mobile) uwierzytelnia się tokenem Bearer; room `user:{id}` dołącza wyłącznie serwer; połączenia anonimowe dozwolone dla rooms aukcji | Przyjęta | §10.5, §16 |
 | 71 | Kolejność zdarzeń aukcji: wiadomości budowane w transakcji pod blokadą aukcji (odczyty przez tę samą transakcję, bez drugiego połączenia z puli) i wysyłane synchronicznie po zatwierdzeniu; między instancjami klient porównuje `version` aukcji | Przyjęta | §14.2 |
+| 72 | Strona aukcji `/a/{slug}-{publicId}` jako ISR bez ciasteczek; dane użytkownika (maksimum, wygrana, zamówienie) z `GET /v1/me/bids/{id}` w przeglądarce; slug z tytułu (`@biddy/shared`), stary slug przekierowuje 308 | Przyjęta | §11.3 |
+| 73 | Rewalidacja stron aukcji: konsumenci eventów w workerze planują job w kolejce `web` z końcem 5-sekundowego okna w ID (najwyżej jedna rewalidacja na okno, ostatnia zmiana też trafia na stronę), job woła `POST /api/revalidate` w web z sekretem; `revalidateTag(…, { expire: 0 })`, żeby następne żądanie nie dostało starej wersji | Przyjęta | §11.3 |
+| 74 | Obrazek OG strony aukcji to zdjęcie główne (wariant 1600 px), bez generowania `next/og`: cena w obrazku byłaby nieaktualna w cache serwisów społecznościowych, a generowanie kosztuje | Przyjęta | §11.3 |
+| 75 | Strona aukcji przed cennikiem dostaw (F-24) pokazuje akceptowanych przewoźników, a cenę łączną z POK bez „dostawa od”; oceny sprzedawcy (F-30) jako „Brak ocen” | Tymczasowa | §3.1, §17 |
 
 ---
 

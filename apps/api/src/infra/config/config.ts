@@ -246,6 +246,10 @@ export const envSchema = z.object({
   // Anti-sniping (§6.5, F-15): oferta w ostatnich N sekundach, która zmienia cenę albo lidera,
   // przesuwa koniec aukcji na teraz + N sekund.
   AUCTION_ANTI_SNIPING_SECONDS: integer(0, 3600).optional(),
+  // Rewalidacja stron aukcji w web (ISR, F-18): sekret wspólny z web (Vercel).
+  WEB_REVALIDATE_SECRET: text()
+    .min(32, 'oczekiwano co najmniej 32 znaków (np. openssl rand -base64 32)')
+    .optional(),
 });
 
 /** Nazwy wszystkich zmiennych obsługiwanych przez schemat. */
@@ -386,6 +390,12 @@ export interface AppConfig {
     /** Okno anti-snipingu (§6.5): długość przedłużenia i próg „końcówki” aukcji. */
     readonly antiSnipingWindowMs: number;
   };
+  readonly web: {
+    /** Adres aplikacji web (bez końcowego ukośnika). */
+    readonly url: string;
+    /** Sekret `POST /api/revalidate` w web; undefined = bez rewalidacji (strony co 60 s). */
+    readonly revalidateSecret: string | undefined;
+  };
   readonly sentry: {
     readonly dsn: string | undefined;
     readonly environment: string;
@@ -511,6 +521,14 @@ function crossFieldIssues(
       ['TURNSTILE_SITE_KEY', 'klucz witryny Cloudflare Turnstile'],
       ['TURNSTILE_SECRET_KEY', 'klucz tajny Cloudflare Turnstile'],
       ['SMSAPI_TOKEN', 'token API SMSAPI (kody weryfikacji telefonu)'],
+    );
+  } else {
+    required.push(
+      ['WEB_URL', 'adres aplikacji web, np. https://biddy.pl (rewalidacja stron aukcji)'],
+      [
+        'WEB_REVALIDATE_SECRET',
+        'sekret rewalidacji stron aukcji, ten sam co w web (np. openssl rand -base64 32)',
+      ],
     );
   }
   for (const [variable, hint] of required) {
@@ -644,6 +662,10 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     auctions: {
       antiSnipingWindowMs:
         (vars.AUCTION_ANTI_SNIPING_SECONDS ?? DEFAULT_ANTI_SNIPING_SECONDS) * 1000,
+    },
+    web: {
+      url: (vars.WEB_URL ?? 'http://localhost:3000').replace(/\/+$/, ''),
+      revalidateSecret: vars.WEB_REVALIDATE_SECRET,
     },
     sms:
       vars.SMSAPI_TOKEN === undefined

@@ -13,6 +13,7 @@ import { OutboxModule } from './infra/outbox/index.js';
 import { QueuesModule } from './infra/queues/index.js';
 import { SmsModule } from './infra/sms/index.js';
 import { RealtimeModule } from './infra/realtime/index.js';
+import { WebModule } from './infra/web/index.js';
 import { StorageModule } from './infra/storage/index.js';
 import { TimeModule } from './infra/time/index.js';
 import { DOMAIN_MODULES } from './modules/index.js';
@@ -44,6 +45,7 @@ export class AppModule {
         SmsModule,
         StorageModule,
         RealtimeModule,
+        WebModule,
         ...DOMAIN_MODULES,
         HealthModule,
         TimeModule,

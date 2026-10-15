@@ -163,3 +163,23 @@ export function serverApiUrl(
   }
   return parsed.data ?? publicApiUrl;
 }
+
+/**
+ * Sekret `POST /api/revalidate` (F-18): ten sam co WEB_REVALIDATE_SECRET workera API. Zmienna
+ * serwerowa czytana przy żądaniu; brak = rewalidacja wyłączona (strony aukcji odświeżają się
+ * co 60 s).
+ */
+export function revalidateSecret(value = process.env.WEB_REVALIDATE_SECRET): string | undefined {
+  const parsed = emptyAsMissing(
+    z.string().min(32, 'oczekiwano co najmniej 32 znaków (np. openssl rand -base64 32)').optional(),
+  ).safeParse(value);
+  if (!parsed.success) {
+    throw new WebConfigError(
+      parsed.error.issues.map((issue) => ({
+        variable: 'WEB_REVALIDATE_SECRET',
+        message: issue.message,
+      })),
+    );
+  }
+  return parsed.data;
+}

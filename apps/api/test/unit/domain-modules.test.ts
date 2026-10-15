@@ -13,6 +13,7 @@ import { OutboxModule } from '../../src/infra/outbox/index.js';
 import { QueuesModule } from '../../src/infra/queues/index.js';
 import { SmsModule } from '../../src/infra/sms/index.js';
 import { RealtimeModule } from '../../src/infra/realtime/index.js';
+import { WebModule } from '../../src/infra/web/index.js';
 import { StorageModule } from '../../src/infra/storage/index.js';
 import { DOMAIN_MODULES } from '../../src/modules/index.js';
 
@@ -91,6 +92,7 @@ describe('DOMAIN_MODULES', () => {
         SmsModule,
         StorageModule,
         RealtimeModule,
+        WebModule,
         ...DOMAIN_MODULES,
       ],
     }).compile();

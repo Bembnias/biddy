@@ -550,6 +550,8 @@ flowchart TD
 
 ### F-18 · Strona aukcji · `M`
 
+> Pełny spec: [docs/features/F-18-strona-aukcji.md](features/F-18-strona-aukcji.md).
+
 **Cel:** czytelna strona przedmiotu, która sprzedaje i dobrze się indeksuje.
 
 **Zakres:**

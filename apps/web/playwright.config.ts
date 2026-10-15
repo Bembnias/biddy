@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { REVALIDATE_SECRET } from './e2e/mock-api';
+
 // E2E na zbudowanej aplikacji (`pnpm build`, potem `next start`), jak na produkcji: statyczne
 // strony, prawdziwe nagłówki i paczki JS. API wołane z przeglądarki podmieniają testy
 // (page.route, e2e/support.ts), a renderowanie na serwerze rozmawia z atrapą API
@@ -28,7 +30,7 @@ export default defineConfig({
     {
       command: `pnpm exec next start --hostname 127.0.0.1 --port ${PORT}`,
       url: BASE_URL,
-      env: { API_INTERNAL_URL: API_URL },
+      env: { API_INTERNAL_URL: API_URL, WEB_REVALIDATE_SECRET: REVALIDATE_SECRET },
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

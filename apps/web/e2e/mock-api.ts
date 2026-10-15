@@ -5,7 +5,8 @@
 // Sesja to wartość ciasteczka z SESSIONS, opcjonalnie z sufiksem testu (`…-test-1`): każdy test
 // ma wtedy własny stan adresów (testy działają równolegle). Stan ustawia test przez
 // PUT /__e2e/addresses?session=… (e2e/support.ts, setSsrAddresses), a aukcji (kreator, Moje aukcje,
-// F-14) przez PUT /__e2e/auctions?session=… (setSsrAuctions).
+// F-14) przez PUT /__e2e/auctions?session=… (setSsrAuctions). Publiczne aukcje (strona aukcji,
+// F-18) według publicId: PUT /__e2e/public-auctions (setSsrPublicAuction).
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
 
 /** Port atrapy (Playwright podaje go też Next.js jako API_INTERNAL_URL). */
@@ -24,6 +25,23 @@ export const SESSIONS = {
   emailVerified: 'e2e-session-email-verified',
   /** Potwierdzony e-mail i zweryfikowany telefon: może licytować i wystawiać. */
   phoneVerified: 'e2e-session-phone-verified',
+} as const;
+
+/** Sekret rewalidacji stron (POST /api/revalidate, F-18); Playwright podaje go Next.js. */
+export const REVALIDATE_SECRET = 'e2e-revalidate-secret-0123456789-abcdef';
+
+/** Cennik POK (F-13) dla ceny łącznej. */
+export const FEE_SCHEDULE = {
+  id: '019b76da-a800-7473-8d63-395c20bf8898',
+  currency: 'PLN',
+  fixedFee: 299,
+  tiers: [
+    { upTo: 100_000, bp: 700 },
+    { upTo: null, bp: 400 },
+  ],
+  vatRateBp: 2300,
+  validFrom: '2026-01-01T00:00:00.000Z',
+  validTo: null,
 } as const;
 
 /** Numer telefonu konta z sesją `phoneVerified`. */
@@ -77,6 +95,8 @@ const addressesBySession = new Map<string, unknown[]>();
 const meBySession = new Map<string, Record<string, unknown>>();
 /** Aukcje sprzedającego (ListingDto) według sesji testu. */
 const auctionsBySession = new Map<string, Record<string, unknown>[]>();
+/** Publiczne aukcje (PublicAuctionDto) według publicId. */
+const publicAuctions = new Map<string, Record<string, unknown>>();
 
 /** ListingDto → AuctionSummaryDto (lista Moje aukcje). */
 function summary(listing: Record<string, unknown>): Record<string, unknown> {
@@ -144,6 +164,26 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
       (await readJson(request)) as Record<string, unknown>[],
     );
     send(response, 200, { ok: true });
+    return;
+  }
+  if (request.method === 'PUT' && path === '/__e2e/public-auctions') {
+    const auction = (await readJson(request)) as Record<string, unknown>;
+    publicAuctions.set(String(auction['publicId']), auction);
+    send(response, 200, { ok: true });
+    return;
+  }
+  const publicAuction = /^\/v1\/auctions\/([^/]+)$/.exec(path);
+  if (request.method === 'GET' && publicAuction !== null) {
+    const found = publicAuctions.get(publicAuction[1] ?? '');
+    if (found === undefined) {
+      send(response, 404, problem(404, 'NOT_FOUND', 'Nie znaleziono aukcji.', path));
+      return;
+    }
+    send(response, 200, { ...found, serverTime: new Date().toISOString() });
+    return;
+  }
+  if (request.method === 'GET' && path === '/v1/fee-schedules/current') {
+    send(response, 200, FEE_SCHEDULE);
     return;
   }
   const session = cookieValue(request, SESSION_COOKIE);

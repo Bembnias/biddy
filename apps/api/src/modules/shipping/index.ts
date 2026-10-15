@@ -7,4 +7,5 @@
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
  */
 export { type Carrier, CarrierService } from './carriers/carrier.service.js';
+export { CARRIER_KINDS, type CarrierKind } from './db/shipping.schema.js';
 export { ShippingModule } from './shipping.module.js';

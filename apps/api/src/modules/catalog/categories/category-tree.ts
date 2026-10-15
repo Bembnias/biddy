@@ -8,6 +8,13 @@ import {
 
 import type { Category } from '../db/catalog.schema.js';
 
+/** Kategoria w ścieżce (okruszki strony aukcji, F-18). */
+export interface CategoryCrumb {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+}
+
 export interface CategoryNode {
   readonly id: string;
   readonly parentId: string | null;
@@ -93,6 +100,15 @@ export class CategoryTree {
       listingNotice:
         [...chain].reverse().find((row) => row.listingNotice !== null)?.listingNotice ?? null,
     };
+  }
+
+  /** Kategorie od korzenia do wskazanej (także nieaktywne), np. do okruszków; pusta dla nieznanej. */
+  pathNodes(categoryId: string): CategoryCrumb[] {
+    return (this.chain(categoryId) ?? []).map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+    }));
   }
 
   /** Nazwy kategorii od korzenia do wskazanej (także nieaktywnych); pusta lista dla nieznanej. */

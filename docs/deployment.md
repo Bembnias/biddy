@@ -67,6 +67,9 @@ Render GitHub App musi mieć dostęp do checków repozytorium, inaczej `checksPa
 | `SENTRY_AUTH_TOKEN`            | token Sentry (Sensitive)         | token Sentry (Sensitive)       |
 | `SENTRY_ORG`, `SENTRY_PROJECT` | organizacja, `biddy-web`         | jak w Production               |
 | `NEXT_PUBLIC_POSTHOG_KEY`      | klucz PostHog (opcjonalnie)      | —                              |
+| `WEB_REVALIDATE_SECRET`        | sekret rewalidacji (Sensitive)   | —                              |
+
+   `WEB_REVALIDATE_SECRET` (F-18): ta sama wartość co w workerze Render (`openssl rand -base64 32`). Worker woła z nim `POST /api/revalidate` po ofertach i zakończeniu aukcji; bez niego strony aukcji odświeżają się tylko co 60 s.
 
    Na preview `NEXT_PUBLIC_ENVIRONMENT=preview` i adres strony biorą się z `VERCEL_ENV` i `VERCEL_URL` (`platformDefaults` w `apps/web/src/env.ts`). `NEXT_PUBLIC_*` ustaw tylko dla właściwego środowiska: wartość dla „All Environments” wygrałaby z ustawieniem automatycznym.
 3. **Settings → Domains:** `staging.biddy.pl` jako domena produkcyjna projektu (gałąź `main`).
@@ -91,6 +94,7 @@ Pełny opis zmiennych jest w [`.env.example`](../.env.example). Na stagingu:
 
 - **Wspólne dla API i workera** (grupa `biddy-staging-shared` w `render.yaml`): `NODE_ENV=production`, `LOG_LEVEL`, `SENTRY_ENVIRONMENT=staging`, `SENTRY_TRACES_SAMPLE_RATE`, `QUEUE_PREFIX`, `WEB_URL`, `MAIL_FROM`, R2 bez sekretów (`S3_REGION=auto`, `S3_FORCE_PATH_STYLE`, `S3_BUCKET_MEDIA`, `S3_BUCKET_UPLOADS`, `MEDIA_PUBLIC_URL`).
 - **Sekrety w obu usługach** (`sync: false`): `SENTRY_DSN`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
+- **Tylko worker:** `WEB_REVALIDATE_SECRET` (`sync: false`, ta sama wartość co na Vercel): rewalidacja stron aukcji w web (F-18).
 - **Z zasobów Render:** `DATABASE_URL` (Postgres), `REDIS_QUEUE_URL` (Key Value `noeviction`), `REDIS_CACHE_URL` (Key Value `allkeys-lru`; w API i workerze pub/sub Socket.IO od F-17). Adresy wewnętrzne: bazy i Redisa nie widać z internetu (`ipAllowList: []`).
 - **Tylko API:** `API_PUBLIC_URL`, `CORS_ORIGINS`, `AUTH_COOKIE_DOMAIN`, `OPENAPI_ENABLED=true` (Swagger UI pod `/docs` na stagingu) i sekrety.
 - **Ustawiane przez Render:** `PORT`, `RENDER_GIT_COMMIT`.

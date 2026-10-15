@@ -15,6 +15,9 @@ import { AuctionClosingService } from './closing/auction-closing.service.js';
 import { AuctionLiveEvents } from './live/auction-live-events.js';
 import { ListingService } from './listings/listing.service.js';
 import { AuctionsController, MyAuctionsController } from './listings/listings.controller.js';
+import { AuctionPages } from './pages/auction-pages.js';
+import { AuctionViewService } from './public/auction-view.service.js';
+import { MyBidsController, PublicAuctionsController } from './public/public-auctions.controller.js';
 
 /**
  * Moduł domenowy `auctions` (PROJECT.md §10.3): wystawianie aukcji (F-14), silnik licytacji
@@ -28,8 +31,17 @@ import { AuctionsController, MyAuctionsController } from './listings/listings.co
     BidsController,
     AdminBidsController,
     AdminAuctionsController,
+    PublicAuctionsController,
+    MyBidsController,
   ],
-  providers: [ListingService, BiddingService, AuctionClosingService, AuctionLiveEvents],
+  providers: [
+    ListingService,
+    BiddingService,
+    AuctionClosingService,
+    AuctionLiveEvents,
+    AuctionViewService,
+    AuctionPages,
+  ],
   exports: [ListingService, BiddingService, AuctionClosingService],
 })
 export class AuctionsModule {}
