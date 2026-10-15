@@ -60,3 +60,75 @@ export const AuctionCancelled = defineDomainEvent({
     cancelledBy: z.enum(['SELLER']),
   }),
 });
+
+/** Przyjęta oferta (F-15): nowy stan aukcji. Maksima licytujących nie trafiają do eventu. */
+export const BidPlaced = defineDomainEvent({
+  type: 'BidPlaced',
+  version: 1,
+  aggregateType: 'auction',
+  payload: z.object({
+    bidId: z.uuid(),
+    bidderId: z.uuid(),
+    kind: z.enum(['MANUAL', 'BUY_NOW']),
+    currentPrice: money,
+    leaderId: z.uuid(),
+    bidCount: z.int().min(1),
+    endsAt: z.iso.datetime(),
+    reserveMet: z.boolean().nullable(),
+  }),
+});
+
+/** Poprzedni lider stracił prowadzenie (powiadomienie „przebito Cię”). */
+export const UserOutbid = defineDomainEvent({
+  type: 'UserOutbid',
+  version: 1,
+  aggregateType: 'auction',
+  payload: z.object({
+    userId: z.uuid(),
+    currentPrice: money,
+    endsAt: z.iso.datetime(),
+  }),
+});
+
+/** Anti-sniping (§6.5): oferta w końcówce przesunęła koniec aukcji (F-16 planuje nowy job). */
+export const AuctionExtended = defineDomainEvent({
+  type: 'AuctionExtended',
+  version: 1,
+  aggregateType: 'auction',
+  payload: z.object({
+    previousEndsAt: z.iso.datetime(),
+    endsAt: z.iso.datetime(),
+  }),
+});
+
+/** Aukcja zakończona: Kup teraz (F-15) albo czas (F-16). */
+export const AuctionEnded = defineDomainEvent({
+  type: 'AuctionEnded',
+  version: 1,
+  aggregateType: 'auction',
+  payload: z.object({
+    sellerId: z.uuid(),
+    outcome: z.enum(['SOLD', 'UNSOLD']),
+    winnerId: z.uuid().nullable(),
+    finalPrice: money.nullable(),
+    endedBy: z.enum(['BUY_NOW', 'TIME']),
+    endedAt: z.iso.datetime(),
+  }),
+});
+
+/** Unieważniona oferta (§15.6) i stan aukcji po przeliczeniu od zera. */
+export const BidCancelled = defineDomainEvent({
+  type: 'BidCancelled',
+  version: 1,
+  aggregateType: 'auction',
+  payload: z.object({
+    bidId: z.uuid(),
+    bidderId: z.uuid(),
+    reason: z.enum(['TYPO', 'FRAUD']),
+    cancelledBy: z.uuid(),
+    previousLeaderId: z.uuid().nullable(),
+    leaderId: z.uuid().nullable(),
+    currentPrice: money.nullable(),
+    bidCount: z.int().min(0),
+  }),
+});

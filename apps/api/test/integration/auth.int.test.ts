@@ -27,7 +27,7 @@ import { createMigratedDatabase, redisUrl, uniqueQueuePrefix } from './support/w
 class VerifiedOnlyController {
   @Post()
   @RequireVerifiedEmail()
-  placeBid(@CurrentUser() user: AuthenticatedUser): { userId: string } {
+  guardedBid(@CurrentUser() user: AuthenticatedUser): { userId: string } {
     return { userId: user.id };
   }
 }

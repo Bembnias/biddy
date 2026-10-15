@@ -2,7 +2,7 @@
 // kontaktowych: e-mail, telefon i adresy nigdy nie trafiają do profilu publicznego).
 import { DISPLAY_NAME_MESSAGES, displayNameIssue, normalizeDisplayName } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, inArray, ne } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { type Database, DRIZZLE } from '../../../infra/db/index.js';
@@ -68,6 +68,18 @@ export class ProfileService {
         .where(eq(users.id, userId));
       return current?.mediaId ?? null;
     });
+  }
+
+  /** Imiona wyświetlane kont (np. do zanonimizowanej historii ofert, F-15). */
+  async displayNames(userIds: readonly string[]): Promise<Map<string, string>> {
+    if (userIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .where(inArray(users.id, [...new Set(userIds)]));
+    return new Map(rows.map((row) => [row.id, row.name]));
   }
 
   /** Profil publiczny albo undefined (nieznane albo zablokowane konto). */

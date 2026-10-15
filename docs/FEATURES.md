@@ -483,6 +483,8 @@ flowchart TD
 
 ### F-15 · Silnik licytacji · `L`
 
+> Pełny spec: [docs/features/F-15-silnik-licytacji.md](features/F-15-silnik-licytacji.md).
+
 **Cel:** poprawne, spójne i odporne na wyścigi przyjmowanie ofert.
 
 **Zakres:**

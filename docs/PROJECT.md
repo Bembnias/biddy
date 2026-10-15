@@ -1206,7 +1206,7 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), bidding_blocked_until, listing_blocked_until, seller_kyc_notice_accepted_at, limits (jsonb, nadpisania §4.1), created_at |
+| `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), staff_role, bidding_blocked_until, listing_blocked_until, seller_kyc_notice_accepted_at, limits (jsonb, nadpisania §4.1), created_at |
 | `terms_acceptances` | id, user_id, document (`TERMS`/`PRIVACY`), version, accepted_at, ip |
 | `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, order_id, auction_id, issued_by (system/admin), statement_of_reasons, expires_at, appeal_status, revoked_at, created_at |
 | `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider). |
@@ -1225,8 +1225,8 @@ erDiagram
 | `items` | id, seller_id, category_id, title, description, condition (`NEW`/`LIKE_NEW`/`VERY_GOOD`/`GOOD`/`FAIR`/`FOR_PARTS`), brand, attributes (jsonb), package_size (`S`/`M`/`L`/`XL`), weight_grams, length_cm, width_cm, height_cm, allowed_carriers (text[]), created_at, updated_at (moduł `catalog`, F-14; pola puste w szkicu, lokalizacja z adresu nadania w F-18) |
 | `media` | id, owner_id, purpose (`ITEM_PHOTO`/`AVATAR`), status (`PENDING_UPLOAD`/`PROCESSING`/`READY`/`FLAGGED`/`REJECTED`), content_type, size_bytes, width, height, rejection_reason, moderation_labels, attached_at, processed_at (moduł `media`, F-12; nieprzypisane znikają po 24 h) |
 | `item_media` | item_id, media_id, position (F-14; plik, wymiary i moderacja w `media`; to samo zdjęcie może być w kopii przedmiotu po ponownym wystawieniu) |
-| `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status (`DRAFT`/`PENDING_REVIEW`/`ACTIVE`/`ENDED_SOLD`/`ENDED_UNSOLD`/`CANCELLED`), currency, start_price, reserve_price, buy_now_price, duration_days, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, review_reasons, review_terms, starts_at, ends_at, original_ends_at, published_at, cancelled_at, version, created_at, updated_at (F-14; extension_policy w F-15) |
-| `bids` | id, auction_id, bidder_id, amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, idempotency_key (unique per bidder), ip, device_id, created_at |
+| `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status (`DRAFT`/`PENDING_REVIEW`/`ACTIVE`/`ENDED_SOLD`/`ENDED_UNSOLD`/`CANCELLED`), currency, start_price, reserve_price, buy_now_price, duration_days, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, bid_sequence, review_reasons, review_terms, starts_at, ends_at, original_ends_at, published_at, cancelled_at, version, created_at, updated_at (F-14; extension_policy w F-15) |
+| `bids` | id, auction_id, bidder_id, sequence (kolejność w aukcji, replay §15.6), amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, cancelled_at, idempotency_key (unique per bidder), created_at (F-15; ip i device_id dojdą z antyfraudem F-36) |
 | `watchlist` | user_id, auction_id, created_at |
 | `saved_searches` (v1) | id, user_id, query (jsonb), notify, created_at |
 | `second_chance_offers` | id, auction_id, bidder_id, amount, status (`PENDING`/`ACCEPTED`/`DECLINED`/`EXPIRED`), expires_at, order_id, created_at |
@@ -1827,6 +1827,9 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 61 | Po pierwszej ofercie aukcja jest zablokowana w całości (nie tylko cena, opis i zdjęcia); aukcja w kategorii z ograniczeniami albo ze słowem niejednoznacznym czeka na moderatora (`PENDING_REVIEW`), a słowo zakazane odrzuca publikację | Przyjęta | §6.6, §17 |
 | 62 | Przed pierwszą publikacją sprzedawca potwierdza informację, że wypłata wymaga weryfikacji tożsamości; potwierdzenie z datą w `users` jako dowód poinformowania (lekcja UOKiK/Vinted) | Przyjęta | §17 |
 | 63 | Kategorie narażone na podróbki: min. 4 zdjęcia (w tym metka lub kod) i obowiązkowa marka; przewoźnicy i gabaryty jako tabela `shipping_carriers` (konfiguracja w bazie) | Tymczasowa | §8.2, §16.2 |
+| 64 | Silnik licytacji: `resolve` jako czysta funkcja w `@biddy/shared`; oferty numerowane w aukcji (`bids.sequence`) zamiast porządku po `created_at`; czas z `clock_timestamp()` po blokadzie wiersza; okno anti-snipingu w konfiguracji (`AUCTION_ANTI_SNIPING_SECONDS`) | Przyjęta | §6.4, §6.5, §15.1 |
+| 65 | Idempotency-Key ofert zapisany przy ofercie (unikalny per licytujący), sprawdzany przed i pod blokadą aukcji; ponowienie zwraca tę samą ofertę z aktualnym stanem aukcji, inny payload z tym samym kluczem: 422 | Przyjęta | §14.1 |
+| 66 | Unieważnianie ofert przez personel (`@RequireStaff`) w zwykłej sesji do czasu panelu admina z osobną sesją (F-34); stan ceny minimalnej w API jako `reserveStatus` (`NONE`/`NOT_MET`/`MET`) | Tymczasowa | §11.5, §15.6 |
 
 ---
 

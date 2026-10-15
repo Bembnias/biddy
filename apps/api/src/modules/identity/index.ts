@@ -11,11 +11,13 @@
  */
 export { IdentityModule } from './identity.module.js';
 export { AddressService, MAX_ADDRESSES } from './addresses/address.service.js';
+export { type BuyerStanding, BuyerStandingService } from './buyer/buyer-standing.service.js';
 export { ProfileService } from './profile/profile.service.js';
 export { type SellerStanding, SellerStandingService } from './seller/seller-standing.service.js';
 export {
   CurrentUser,
   RequireSession,
+  RequireStaff,
   RequireVerifiedEmail,
   RequireVerifiedPhone,
   SessionGuard,

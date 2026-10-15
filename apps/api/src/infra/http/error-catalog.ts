@@ -115,6 +115,41 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Za późno na anulowanie',
     detail: 'Aukcji z ofertami nie można anulować w ostatnich 12 godzinach.',
   },
+  BID_TOO_LOW: {
+    status: 409,
+    title: 'Za niska oferta',
+    detail: 'Oferta jest niższa niż minimalna kolejna oferta.',
+  },
+  BID_LIMIT_EXCEEDED: {
+    status: 403,
+    title: 'Limit konta',
+    detail: 'Oferta przekracza limit Twojego konta. Limit rośnie po opłaconych zamówieniach.',
+  },
+  BIDDING_BLOCKED: {
+    status: 403,
+    title: 'Blokada licytowania',
+    detail: 'Masz czasową blokadę licytowania. Szczegóły i odwołanie znajdziesz w koncie.',
+  },
+  AUCTION_ENDED: {
+    status: 409,
+    title: 'Aukcja zakończona',
+    detail: 'Aukcja już się zakończyła.',
+  },
+  OWN_AUCTION: {
+    status: 403,
+    title: 'Własna aukcja',
+    detail: 'Nie możesz licytować własnej aukcji.',
+  },
+  BUY_NOW_UNAVAILABLE: {
+    status: 409,
+    title: 'Kup teraz niedostępne',
+    detail: 'Kup teraz jest niedostępne: aukcja ma już oferty.',
+  },
+  IDEMPOTENCY_KEY_REUSED: {
+    status: 422,
+    title: 'Klucz już użyty',
+    detail: 'Ten klucz Idempotency-Key został użyty w innym żądaniu. Wygeneruj nowy klucz.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

@@ -8,12 +8,12 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { newId } from '../../src/infra/db/index.js';
+import { type TestUser, createUser as createTestUser } from './support/accounts.js';
 import { integrationConfig, problemOf, startTestApp, type TestApp } from './support/app.js';
 import type { ScratchDatabase } from './support/database.js';
 import { createMigratedDatabase, redisUrl, uniqueQueuePrefix } from './support/worker.js';
 
 const WEB = 'http://localhost:3000';
-const TURNSTILE_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
 const DAY = 24 * 60 * 60 * 1_000;
 
 let database: ScratchDatabase;
@@ -39,11 +39,6 @@ afterAll(async () => {
   await pool.end();
   await database.drop();
 });
-
-interface TestUser {
-  readonly id: string;
-  readonly cookie: string;
-}
 
 interface Listing {
   id: string;
@@ -81,39 +76,8 @@ function call(
   });
 }
 
-async function createUser(options: { phone?: boolean } = {}): Promise<TestUser> {
-  const email = `seller-${Math.random().toString(36).slice(2, 10)}@example.com`;
-  const response = await api.http.inject({
-    method: 'POST',
-    url: '/v1/auth/sign-up/email',
-    headers: { origin: WEB, 'x-forwarded-for': '192.0.2.1', 'x-turnstile-token': TURNSTILE_TOKEN },
-    payload: {
-      name: 'Sprzedawca Testowy',
-      email,
-      password: 'bardzo-tajne-haslo-1',
-      acceptTerms: true,
-      adultDeclaration: true,
-      callbackURL: `${WEB}/weryfikacja-email`,
-    },
-  });
-  expect(response.statusCode, response.body).toBe(200);
-  const setCookie = response.headers['set-cookie'];
-  const cookie = (Array.isArray(setCookie) ? setCookie : [setCookie ?? ''])
-    .map((value) => value.split(';')[0])
-    .join('; ');
-  const { rows } = await pool.query<{ id: string }>('select id from users where email = $1', [
-    email,
-  ]);
-  const id = rows[0]?.id ?? '';
-  await pool.query('update users set email_verified = true where id = $1', [id]);
-  if (options.phone !== false) {
-    const phone = `+48500${String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')}`;
-    await pool.query(
-      `update users set phone_number = $2, phone_number_verified_at = now() where id = $1`,
-      [id, phone],
-    );
-  }
-  return { id, cookie };
+function createUser(options: { phone?: boolean } = {}): Promise<TestUser> {
+  return createTestUser(api, pool, { ...options, name: 'Sprzedawca Testowy' });
 }
 
 /** Gotowe zdjęcie przedmiotu (jak po przetworzeniu w workerze). */

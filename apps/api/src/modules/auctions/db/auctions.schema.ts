@@ -1,4 +1,4 @@
-// Tabele modułu auctions: aukcje (F-14). Oferty dojdą w F-15, zamykanie w F-16.
+// Tabele modułu auctions: aukcje (F-14) i oferty (F-15); zamykanie w F-16.
 // ID to UUIDv7 nadawane przez aplikację (ADR-10). Kwoty w groszach (bigint, PROJECT.md §13.1).
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts).
@@ -62,6 +62,8 @@ export const auctions = pgTable(
     leaderId: uuid(),
     leaderMaxAmount: money(),
     bidCount: integer().notNull().default(0),
+    /** Ostatni numer oferty w aukcji (kolejność ofert niezależna od zegara, replay §15.6). */
+    bidSequence: integer().notNull().default(0),
     reviewReasons: text()
       .array()
       .$type<ReviewReason[]>()
@@ -106,3 +108,54 @@ export const auctions = pgTable(
 );
 
 export type Auction = typeof auctions.$inferSelect;
+
+/** Oferta ręczna, automatyczna odpowiedź lidera (licytacja automatyczna) albo Kup teraz. */
+export const BID_KINDS = ['MANUAL', 'AUTO', 'BUY_NOW'] as const;
+export type BidKind = (typeof BID_KINDS)[number];
+
+export const BID_STATUSES = ['VALID', 'CANCELLED'] as const;
+export type BidStatus = (typeof BID_STATUSES)[number];
+
+/** Literówka (support), oszustwo (np. shill bidding), pochodna przeliczenia (replay, §15.6). */
+export const BID_CANCEL_REASONS = ['TYPO', 'FRAUD', 'REPLAY'] as const;
+export type BidCancelReason = (typeof BID_CANCEL_REASONS)[number];
+
+/** Oferty (F-15, §15.1). Kwoty w groszach; `max_amount` jest tajne (licytacja automatyczna). */
+export const bids = pgTable(
+  'bids',
+  {
+    id: idColumn(),
+    auctionId: uuid()
+      .notNull()
+      .references(() => auctions.id),
+    /** Licytujący (konto z modułu identity; uuid bez FK między modułami). */
+    bidderId: uuid().notNull(),
+    /** Numer kolejny w aukcji: kolejność rozstrzygania niezależna od zegarów serwerów. */
+    sequence: integer().notNull(),
+    amount: money().notNull(),
+    maxAmount: money().notNull(),
+    kind: text().$type<BidKind>().notNull(),
+    status: text().$type<BidStatus>().notNull().default('VALID'),
+    cancelReason: text().$type<BidCancelReason>(),
+    /** Personel, który unieważnił ofertę (null dla REPLAY). */
+    cancelledBy: uuid(),
+    cancelledAt: timestamp({ withTimezone: true }),
+    /** Nagłówek Idempotency-Key żądania (tylko oferty ręczne i Kup teraz). */
+    idempotencyKey: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('bids_auction_id_sequence_key').on(table.auctionId, table.sequence),
+    uniqueIndex('bids_bidder_id_idempotency_key_key').on(table.bidderId, table.idempotencyKey),
+    index().on(table.bidderId, table.status),
+    check('bids_kind_check', sql`${table.kind} in ('MANUAL', 'AUTO', 'BUY_NOW')`),
+    check('bids_status_check', sql`${table.status} in ('VALID', 'CANCELLED')`),
+    check(
+      'bids_cancel_check',
+      sql`(${table.status} = 'CANCELLED') = (${table.cancelReason} is not null)`,
+    ),
+    check('bids_amount_check', sql`${table.amount} >= 0 and ${table.amount} <= ${table.maxAmount}`),
+  ],
+);
+
+export type Bid = typeof bids.$inferSelect;

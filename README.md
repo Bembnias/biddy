@@ -377,6 +377,19 @@ Kreator aukcji i model przedmiotu oraz aukcji. Spec: [F-14](docs/features/F-14-k
 - **Filtr słów** (`apps/api/src/modules/trust-safety/content-filter/listing-terms.ts`): lista startowa z §17. `BLOCK` odrzuca publikację z błędem pola, `REVIEW` kieruje aukcję do moderacji. Zmiana listy to zmiana tego pliku (do czasu konfiguracji moderacji w F-35).
 - **Web:** `/wystaw` (szkice, nowa aukcja, limity), `/wystaw/{id}?krok=…` (kreator w 6 krokach z autozapisem po 1 s), `/konto/aukcje` (Moje aukcje: edycja, anulowanie, ponowne wystawienie).
 
+### Silnik licytacji (F-15)
+
+Licytacja automatyczna, Kup teraz, anti-sniping i unieważnianie ofert. Spec: [F-15](docs/features/F-15-silnik-licytacji.md).
+
+- **`resolve(stan, oferta)`** w `@biddy/shared` (`bidding`): czysta funkcja z regułami §6.4 (maksimum, odpowiedź lidera, remis dla wcześniejszej oferty, cena minimalna, podniesienie maksimum bez podnoszenia ceny). `replay` przelicza aukcję od zera. Testy property-based porównują wynik z niezależnie liczonym wzorem.
+- **Oferta** (`POST /v1/auctions/{id}/bids` `{ maxAmount }`) to jedna transakcja z blokadą wiersza aukcji; czas z `clock_timestamp()`. Wymaga zweryfikowanego telefonu i nagłówka `Idempotency-Key` (ponowienie zwraca tę samą ofertę z nagłówkiem `idempotent-replayed: true`). Oferty mają numer kolejny w aukcji (`bids.sequence`), więc replay nie zależy od zegara. Klient API przekazuje klucz w `options.headers`.
+- **Anti-sniping:** oferta w ostatnich `AUCTION_ANTI_SNIPING_SECONDS` (domyślnie 120 s), która zmieniła cenę albo lidera, przesuwa koniec na teraz + to okno.
+- **Limity kupującego** (§4.1, nowe konto): maksimum oferty 500 zł, 10 aukcji z aktywną ofertą (`BID_LIMIT_EXCEEDED`); blokada licytowania `users.bidding_blocked_until` (`BIDDING_BLOCKED`, nadawana w F-61).
+- **Kup teraz** (`POST /v1/auctions/{id}/buy-now`): do pierwszej oferty, kończy aukcję jako `ENDED_SOLD` (zamówienie dołoży F-16).
+- **Historia** (`GET /v1/auctions/{id}/bids?before=`): po 50, licytujący zanonimizowani („k***a”), bez maksimów.
+- **Unieważnienie** (`POST /v1/admin/bids/{id}/cancel`, role `support`, `moderator`, `admin`): oferta i wszystkie automatyczne → `CANCELLED`, replay pozostałych, koniec aukcji bez zmian. Do czasu osobnej sesji panelu admina (F-34) rola pochodzi ze zwykłej sesji (`@RequireStaff`).
+- **Eventy:** `BidPlaced`, `UserOutbid`, `AuctionExtended`, `AuctionEnded` (Kup teraz), `BidCancelled`.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):

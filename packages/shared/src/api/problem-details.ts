@@ -58,6 +58,20 @@ export const ERROR_CODES = {
   AUCTION_HAS_BIDS: 'AUCTION_HAS_BIDS',
   /** Aukcji z ofertami nie można anulować w ostatnich 12 h (§6.6, F-14). */
   AUCTION_CANCEL_TOO_LATE: 'AUCTION_CANCEL_TOO_LATE',
+  /** Oferta poniżej minimalnej kolejnej oferty; `minimumBid` (grosze) w odpowiedzi (F-15). */
+  BID_TOO_LOW: 'BID_TOO_LOW',
+  /** Oferta przekracza limit konta kupującego (§4.1, F-15). */
+  BID_LIMIT_EXCEEDED: 'BID_LIMIT_EXCEEDED',
+  /** Kupujący ma blokadę licytowania (F-61); `blockedUntil` w odpowiedzi (F-15). */
+  BIDDING_BLOCKED: 'BIDDING_BLOCKED',
+  /** Aukcja się zakończyła albo została anulowana (F-15). */
+  AUCTION_ENDED: 'AUCTION_ENDED',
+  /** Sprzedający nie może licytować własnej aukcji (§6.6, F-15). */
+  OWN_AUCTION: 'OWN_AUCTION',
+  /** Kup teraz niedostępne: aukcja ma oferty albo nie ma ceny Kup teraz (F-15). */
+  BUY_NOW_UNAVAILABLE: 'BUY_NOW_UNAVAILABLE',
+  /** Ten sam Idempotency-Key użyty z innym żądaniem (F-15). */
+  IDEMPOTENCY_KEY_REUSED: 'IDEMPOTENCY_KEY_REUSED',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

@@ -106,6 +106,7 @@ describe('loadConfig: wartości domyślne', () => {
         uploadsBucket: 'biddy-uploads',
         mediaPublicUrl: 'http://localhost:9000/biddy-media',
       },
+      auctions: { antiSnipingWindowMs: 120_000 },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
     });
   });
@@ -692,8 +693,22 @@ describe('.env.example (sekcja API)', () => {
         'SMSAPI_TOKEN',
         'SMSAPI_SENDER',
         'MEDIA_PUBLIC_URL',
+        'AUCTION_ANTI_SNIPING_SECONDS',
       ]),
     );
     expect(loadConfig({ ...example, ...documented })).toEqual(loadConfig(example));
+  });
+});
+
+describe('loadConfig: aukcje (F-15)', () => {
+  it('okno anti-snipingu: domyślnie 120 s, zmienna w sekundach, 0 wyłącza', () => {
+    expect(loadConfig(minimal).auctions.antiSnipingWindowMs).toBe(120_000);
+    expect(
+      loadConfig({ ...minimal, AUCTION_ANTI_SNIPING_SECONDS: '30' }).auctions.antiSnipingWindowMs,
+    ).toBe(30_000);
+    expect(
+      loadConfig({ ...minimal, AUCTION_ANTI_SNIPING_SECONDS: '0' }).auctions.antiSnipingWindowMs,
+    ).toBe(0);
+    expect(() => loadConfig({ ...minimal, AUCTION_ANTI_SNIPING_SECONDS: '-1' })).toThrow();
   });
 });

@@ -241,6 +241,9 @@ export const envSchema = z.object({
   S3_BUCKET_UPLOADS: bucketName().optional(),
   /** Publiczny adres kubełka media (CDN), np. https://media.biddy.pl. */
   MEDIA_PUBLIC_URL: url(['https:', 'http:'], 'https://media.biddy.pl').optional(),
+  // Anti-sniping (§6.5, F-15): oferta w ostatnich N sekundach, która zmienia cenę albo lidera,
+  // przesuwa koniec aukcji na teraz + N sekund.
+  AUCTION_ANTI_SNIPING_SECONDS: integer(0, 3600).optional(),
 });
 
 /** Nazwy wszystkich zmiennych obsługiwanych przez schemat. */
@@ -261,6 +264,9 @@ export const DEFAULT_REDIS_QUEUE_URL = 'redis://localhost:6379';
 
 /** Domyślny prefiks kluczy BullMQ w Redisie. */
 export const DEFAULT_QUEUE_PREFIX = 'biddy';
+
+/** Domyślne okno anti-snipingu: 2 minuty (§6.5). */
+export const DEFAULT_ANTI_SNIPING_SECONDS = 120;
 
 /**
  * Klucze testowe Cloudflare Turnstile (zawsze przechodzą): domyślne lokalnie i w testach.
@@ -369,6 +375,10 @@ export interface AppConfig {
   };
   readonly sms: SmsTransportConfig;
   readonly storage: StorageConfig;
+  readonly auctions: {
+    /** Okno anti-snipingu (§6.5): długość przedłużenia i próg „końcówki” aukcji. */
+    readonly antiSnipingWindowMs: number;
+  };
   readonly sentry: {
     readonly dsn: string | undefined;
     readonly environment: string;
@@ -617,6 +627,10 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
           : { kind: 'resend', apiKey: vars.RESEND_API_KEY },
     },
     storage: storageConfig(vars),
+    auctions: {
+      antiSnipingWindowMs:
+        (vars.AUCTION_ANTI_SNIPING_SECONDS ?? DEFAULT_ANTI_SNIPING_SECONDS) * 1000,
+    },
     sms:
       vars.SMSAPI_TOKEN === undefined
         ? { kind: 'log' }

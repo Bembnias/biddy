@@ -51,6 +51,8 @@ export const users = pgTable(
     avatarUrl: text(),
     status: text().$type<UserStatus>().notNull().default('ACTIVE'),
     staffRole: text().$type<StaffRole>(),
+    /** Blokada licytowania do tej chwili (strike'i, F-61); null = brak (F-15). */
+    biddingBlockedUntil: timestamp({ withTimezone: true }),
     /** Blokada wystawiania nowych aukcji do tej chwili (strike'i, F-61); null = brak. */
     listingBlockedUntil: timestamp({ withTimezone: true }),
     /** Potwierdzenie informacji o weryfikacji tożsamości przed pierwszą publikacją (F-14). */

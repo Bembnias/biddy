@@ -6,18 +6,35 @@
  * OpenAPI spec version: 0.0.0
  */
 import {
-  useMutation
+  queryOptions as queryOptionsBuilder,
+  useMutation,
+  useQuery,
+  useSuspenseQuery
 } from '@tanstack/react-query';
 import type {
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
   MutationFunction,
   QueryClient,
+  QueryFunction,
+  QueryKey,
+  UndefinedInitialDataOptions,
   UseMutationOptions,
-  UseMutationResult
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult,
+  UseSuspenseQueryOptions,
+  UseSuspenseQueryResult
 } from '@tanstack/react-query';
 
 import type {
+  BidHistoryDto,
+  BidResultDto,
+  GetBidHistoryParams,
   ListingDto,
   ListingPatchDto,
+  PlaceBidDto,
   ProblemDetails,
   PublishListingDto
 } from '../model';
@@ -29,6 +46,21 @@ import type { ErrorType , BodyType } from '../../fetcher';
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
+  for (const key of Object.keys(query)) {
+    // The explicit queryKey always wins, matching the previous
+    // `{ ...query, queryKey }` spread where it was set last.
+    if (key === 'queryKey') continue;
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => (query as Record<string, unknown>)[key],
+    });
+  }
+  return result;
+};
 
 export const getCreateAuctionDraftUrl = () => {
 
@@ -499,4 +531,343 @@ export const useRelistAuction = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getRelistAuctionMutationOptions(options), queryClient);
+    }
+    export const getPlaceBidUrl = (id: string,) => {
+
+
+
+
+  return `/v1/auctions/${id}/bids`
+}
+
+/**
+ * Ponowienie z tym samym Idempotency-Key zwraca tę samą ofertę i aktualny stan aukcji (nagłówek idempotent-replayed: true).
+ * @summary Oferta (licytacja automatyczna do maksimum)
+ */
+export const placeBid = async (id: string,
+    placeBidDto: PlaceBidDto, options?: Parameters<typeof apiFetch>[1]): Promise<BidResultDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<BidResultDto>(getPlaceBidUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(placeBidDto)
+  }
+);}
+
+
+
+
+
+export const getPlaceBidMutationKey = () => ['placeBid'] as const;
+
+export const getPlaceBidMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof placeBid>>, TError,PlaceBidMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof placeBid>>, TError,PlaceBidMutationVariables, TContext> => {
+
+const mutationKey = getPlaceBidMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof placeBid>>, PlaceBidMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  placeBid(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PlaceBidMutationResult = NonNullable<Awaited<ReturnType<typeof placeBid>>>
+    export type PlaceBidMutationBody = BodyType<PlaceBidDto>
+    export type PlaceBidMutationError = ErrorType<ProblemDetails>
+    export type PlaceBidMutationVariables = {id: string;data: BodyType<PlaceBidDto>}
+
+    /**
+ * @summary Oferta (licytacja automatyczna do maksimum)
+ */
+export const usePlaceBid = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof placeBid>>, TError,PlaceBidMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof placeBid>>,
+        TError,
+        PlaceBidMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPlaceBidMutationOptions(options), queryClient);
+    }
+    export const getGetBidHistoryUrl = (id: string,
+    params?: GetBidHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/auctions/${id}/bids?${stringifiedParams}` : `/v1/auctions/${id}/bids`
+}
+
+/**
+ * Od najnowszej, po 50; licytujący zanonimizowani, bez maksimów.
+ * @summary Historia ofert
+ */
+export const getBidHistory = async (id: string,
+    params?: GetBidHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<BidHistoryDto> => {
+
+  return apiFetch<BidHistoryDto>(getGetBidHistoryUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBidHistoryQueryKey = (id: string,
+    params?: GetBidHistoryParams,) => {
+    return [
+    `/v1/auctions/${id}/bids`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBidHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(id: string,
+    params?: GetBidHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBidHistoryQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBidHistory>>> = ({ signal }) => getBidHistory(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetBidHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getBidHistory>>>
+export type GetBidHistoryQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetBidHistory<TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(
+ id: string,
+    params: undefined |  GetBidHistoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBidHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getBidHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBidHistory<TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(
+ id: string,
+    params?: GetBidHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBidHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getBidHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBidHistory<TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(
+ id: string,
+    params?: GetBidHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Historia ofert
+ */
+
+export function useGetBidHistory<TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(
+ id: string,
+    params?: GetBidHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetBidHistoryQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetBidHistorySuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(id: string,
+    params?: GetBidHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBidHistoryQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBidHistory>>> = ({ signal }) => getBidHistory(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetBidHistorySuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getBidHistory>>>
+export type GetBidHistorySuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetBidHistorySuspense<TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(
+ id: string,
+    params: undefined |  GetBidHistoryParams, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBidHistorySuspense<TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(
+ id: string,
+    params?: GetBidHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBidHistorySuspense<TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(
+ id: string,
+    params?: GetBidHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Historia ofert
+ */
+
+export function useGetBidHistorySuspense<TData = Awaited<ReturnType<typeof getBidHistory>>, TError = ErrorType<ProblemDetails>>(
+ id: string,
+    params?: GetBidHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getBidHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetBidHistorySuspenseQueryOptions(id,params,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getBuyNowUrl = (id: string,) => {
+
+
+
+
+  return `/v1/auctions/${id}/buy-now`
+}
+
+/**
+ * Dostępne do pierwszej oferty; kończy aukcję jako sprzedaną.
+ * @summary Kup teraz
+ */
+export const buyNow = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<BidResultDto> => {
+
+  return apiFetch<BidResultDto>(getBuyNowUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getBuyNowMutationKey = () => ['buyNow'] as const;
+
+export const getBuyNowMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof buyNow>>, TError,BuyNowMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof buyNow>>, TError,BuyNowMutationVariables, TContext> => {
+
+const mutationKey = getBuyNowMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof buyNow>>, BuyNowMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  buyNow(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BuyNowMutationResult = NonNullable<Awaited<ReturnType<typeof buyNow>>>
+
+    export type BuyNowMutationError = ErrorType<ProblemDetails>
+    export type BuyNowMutationVariables = {id: string}
+
+    /**
+ * @summary Kup teraz
+ */
+export const useBuyNow = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof buyNow>>, TError,BuyNowMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof buyNow>>,
+        TError,
+        BuyNowMutationVariables,
+        TContext
+      > => {
+      return useMutation(getBuyNowMutationOptions(options), queryClient);
     }

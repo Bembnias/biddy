@@ -9,10 +9,16 @@
 export { AuctionsModule } from './auctions.module.js';
 export {
   AuctionCancelled,
+  AuctionEnded,
+  AuctionExtended,
   AuctionPublished,
   AuctionSubmittedForReview,
   AuctionUpdated,
+  BidCancelled,
+  BidPlaced,
+  UserOutbid,
 } from './auctions.events.js';
+export { BiddingService } from './bidding/bidding.service.js';
 export {
   AUCTION_STATUSES,
   type AuctionStatus,

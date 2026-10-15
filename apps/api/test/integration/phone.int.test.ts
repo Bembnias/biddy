@@ -26,7 +26,10 @@ import { createMigratedDatabase, redisUrl, uniqueQueuePrefix } from './support/w
 class PhoneOnlyController {
   @Post()
   @RequireVerifiedPhone()
-  placeBid(@CurrentUser() user: AuthenticatedUser): { userId: string; phoneNumber: string | null } {
+  phoneGuardedBid(@CurrentUser() user: AuthenticatedUser): {
+    userId: string;
+    phoneNumber: string | null;
+  } {
     return { userId: user.id, phoneNumber: user.phoneNumber };
   }
 }

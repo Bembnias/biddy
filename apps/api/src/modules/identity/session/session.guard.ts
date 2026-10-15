@@ -29,6 +29,8 @@ import {
 /** Co trasa wymaga od konta poza sesją (metadane ustawiane przez dekoratory niżej). */
 type AccountRequirement = 'verified-email' | 'verified-phone';
 const ACCOUNT_REQUIREMENT = 'biddy:account-requirement';
+/** Role personelu dopuszczone do trasy (@RequireStaff). */
+const STAFF_ROLES_METADATA = 'biddy:staff-roles';
 
 /** Odczyt sesji z nagłówków żądania (ciasteczko albo Bearer); null bez sesji. */
 @Injectable()
@@ -107,6 +109,19 @@ export class SessionGuard implements CanActivate {
         throw new DomainError({ code: 'PHONE_NOT_VERIFIED' });
       }
     }
+    const staffRoles = this.reflector.getAllAndOverride<readonly StaffRole[] | undefined>(
+      STAFF_ROLES_METADATA,
+      [context.getHandler(), context.getClass()],
+    );
+    if (
+      staffRoles !== undefined &&
+      (user.staffRole === null || !staffRoles.includes(user.staffRole))
+    ) {
+      throw new DomainError({
+        code: 'FORBIDDEN',
+        detail: 'Ta operacja wymaga uprawnień personelu.',
+      });
+    }
     request[AUTH_CONTEXT] = session;
     // Sentry: tylko identyfikator, bez e-maila (RODO).
     setUser({ id: user.id });
@@ -160,3 +175,11 @@ function authContext(context: ExecutionContext): AuthenticatedRequestContext {
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext): AuthenticatedUser => authContext(context).user,
 );
+
+/**
+ * Trasa tylko dla personelu z jedną z ról (np. unieważnienie oferty, F-15). Inni: 403 FORBIDDEN.
+ * Do czasu osobnej sesji panelu admina (F-34, §11.5) rola pochodzi ze zwykłej sesji konta.
+ */
+export function RequireStaff(...roles: readonly StaffRole[]): MethodDecorator & ClassDecorator {
+  return applyDecorators(SetMetadata(STAFF_ROLES_METADATA, roles), RequireVerifiedEmail());
+}
