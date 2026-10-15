@@ -179,6 +179,8 @@ export const envSchema = z.object({
   DATABASE_POOL_MAX: integer(1, 100).optional(),
   // Redis kolejek BullMQ (maxmemory-policy noeviction, PROJECT.md §11.2). Cache ma osobną instancję.
   REDIS_QUEUE_URL: url(['redis:', 'rediss:'], 'redis://localhost:6379').optional(),
+  // Redis cache i pub/sub Socket.IO (allkeys-lru, PROJECT.md §11.2): druga instancja, bez jobów.
+  REDIS_CACHE_URL: url(['redis:', 'rediss:'], 'redis://localhost:6380').optional(),
   QUEUE_PREFIX: text()
     .regex(
       /^[a-z0-9][a-z0-9_-]{0,31}$/,
@@ -261,6 +263,7 @@ export type ProcessRole = 'api' | 'worker';
 
 /** Domyślny adres Redisa kolejek poza produkcją (infra/docker-compose.yml). */
 export const DEFAULT_REDIS_QUEUE_URL = 'redis://localhost:6379';
+export const DEFAULT_REDIS_CACHE_URL = 'redis://localhost:6380';
 
 /** Domyślny prefiks kluczy BullMQ w Redisie. */
 export const DEFAULT_QUEUE_PREFIX = 'biddy';
@@ -345,6 +348,10 @@ export interface AppConfig {
     readonly prefix: string;
     /** Co ile relay outboxa sprawdza nowe eventy, gdy ostatnia porcja była niepełna. */
     readonly outboxPollIntervalMs: number;
+  };
+  readonly cache: {
+    /** Redis cache i pub/sub (Socket.IO, F-17); instancja z allkeys-lru, nie kolejek. */
+    readonly redisUrl: string;
   };
   readonly log: {
     readonly level: LogLevel;
@@ -486,6 +493,10 @@ function crossFieldIssues(
     });
   }
   const required: [string, string][] = [
+    [
+      'REDIS_CACHE_URL',
+      'adres Redisa cache i pub/sub (instancja allkeys-lru, osobna od kolejek); zdarzenia na żywo',
+    ],
     ['RESEND_API_KEY', 'na produkcji e-maile (weryfikacja, reset hasła) wysyła Resend'],
     ['S3_ENDPOINT', 'adres S3 Cloudflare R2, np. https://<konto>.r2.cloudflarestorage.com'],
     ['S3_ACCESS_KEY_ID', 'klucz dostępu R2 (token API z uprawnieniem do kubełków)'],
@@ -580,6 +591,9 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
       redisUrl: vars.REDIS_QUEUE_URL ?? DEFAULT_REDIS_QUEUE_URL,
       prefix: vars.QUEUE_PREFIX ?? DEFAULT_QUEUE_PREFIX,
       outboxPollIntervalMs: vars.OUTBOX_POLL_INTERVAL_MS ?? 250,
+    },
+    cache: {
+      redisUrl: vars.REDIS_CACHE_URL ?? DEFAULT_REDIS_CACHE_URL,
     },
     log: {
       level: vars.LOG_LEVEL ?? (development ? 'debug' : 'info'),

@@ -5,7 +5,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { type Database, DRIZZLE } from '../../../infra/db/index.js';
+import { type Database, DRIZZLE, type Transaction } from '../../../infra/db/index.js';
 import { users } from '../db/identity.schema.js';
 
 /** Pole imienia wyświetlanego w DTO: reguły z @biddy/shared i komunikat po polsku. */
@@ -70,12 +70,15 @@ export class ProfileService {
     });
   }
 
-  /** Imiona wyświetlane kont (np. do zanonimizowanej historii ofert, F-15). */
-  async displayNames(userIds: readonly string[]): Promise<Map<string, string>> {
+  /**
+   * Imiona wyświetlane kont (np. do zanonimizowanej historii ofert, F-15). W transakcji przekaż
+   * `tx`: drugie połączenie z puli przy trzymanej blokadzie może zakleszczyć pulę.
+   */
+  async displayNames(userIds: readonly string[], tx?: Transaction): Promise<Map<string, string>> {
     if (userIds.length === 0) {
       return new Map();
     }
-    const rows = await this.db
+    const rows = await (tx ?? this.db)
       .select({ id: users.id, name: users.name })
       .from(users)
       .where(inArray(users.id, [...new Set(userIds)]));

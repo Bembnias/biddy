@@ -153,7 +153,7 @@ Na produkcji API i worker to dwa procesy z tego samego buildu: `pnpm --filter @b
 
 API czyta zmienne z `.env` w katalogu głównym (tworzy go `pnpm bootstrap`). Baza potrzebuje migracji przed pierwszym startem: `pnpm bootstrap` robi to sam, później wystarczy `pnpm db:reset` albo `pnpm --filter @biddy/api db:migrate`. API importuje zbudowany pakiet `@biddy/shared` (`packages/shared/dist`), więc na świeżym klonie uruchom najpierw `pnpm build`.
 
-Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` i `MEDIA_PUBLIC_URL`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
+Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL`, `REDIS_CACHE_URL`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` i `MEDIA_PUBLIC_URL`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API. Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
 
 | Adres lokalny                   | Co to jest                                                                                                            |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -400,6 +400,16 @@ Każda aukcja kończy się na czas i dokładnie raz. Spec: [F-16](docs/features/
 - **Zamówienie** (moduł `orders`, `OrderService.createForAuction`) powstaje w tej samej transakcji co zakończenie (także przy Kup teraz): `AWAITING_PAYMENT`, POK według cennika z chwili zakończenia, termin płatności 24 h, snapshot przedmiotu w `order_items.item_snapshot`. Unikalny indeks częściowy `order_items(auction_id) WHERE is_active` gwarantuje jedno aktywne zamówienie na aukcję. Event `OrderCreated`.
 - **Moderacja:** `POST /v1/admin/auctions/{id}/cancel` `{ note }` (role `moderator`, `admin`) anuluje aukcję aktywną albo w moderacji, także z ofertami; event `AuctionCancelled` z `cancelledBy: MODERATOR` i uzasadnieniem.
 
+### Realtime (F-17)
+
+Cena, liczba ofert i koniec aukcji aktualizują się na żywo. Spec: [F-17](docs/features/F-17-realtime.md).
+
+- **Serwer:** Socket.IO na serwerze HTTP API pod `/v1/realtime`, tylko transport WebSocket (bez sticky sessions), adapter Redis na instancji cache (`REDIS_CACHE_URL`), więc zdarzenie z dowolnej instancji API albo z workera trafia do wszystkich klientów. Połączenie z przeglądarki tylko z originów `CORS_ORIGINS`; sesja z ciasteczka albo z tokenu Bearer (`auth.token`, mobile). Bez sesji połączenie jest anonimowe.
+- **Rooms:** `user:{id}` dołącza serwer przy połączeniu (`user.outbid`, `user.won`); `auction:{id}` klient subskrybuje sam (`auction:subscribe` z UUID aukcji, najwyżej 50 na połączenie): `auction.updated` (z `version`), `auction.extended`, `auction.ended`. `time:ping` zwraca czas serwera.
+- **Publikacja:** `AuctionLiveEvents` (moduł `auctions`) buduje wiadomości w transakcji oferty, Kup teraz, unieważnienia, zamknięcia i anulowania, a `RealtimePublisher` wysyła je przez Redis zaraz po zatwierdzeniu. Błąd Redisa nie psuje operacji; klient po reconnect dociąga stan przez REST.
+- **`@biddy/realtime`** (`packages/realtime`): typy zdarzeń i `createRealtimeClient` (bez Reacta, dla web i Expo): subskrypcje z licznikiem odwołań, ponowna subskrypcja i `onReconnect` po zerwaniu połączenia, synchronizacja zegara (`serverNow()`).
+- **Web:** `RealtimeProvider` w `AppProviders` łączy się leniwie (dopiero przy pierwszej subskrypcji, klient ładowany dynamicznym importem). Hooki `useAuctionChannel`, `useUserRealtimeEvents`, `useRealtimeStatus`; zegar z WebSocket zasila `ServerClockProvider`.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
@@ -571,6 +581,7 @@ biddy/
 │  ├─ api-client/          # klient API z orval: funkcje, hooki TanStack Query, fetcher (ApiError)
 │  ├─ config/              # wspólna konfiguracja: tsconfig, ESLint, Prettier
 │  ├─ design-tokens/       # kolory, typografia, promienie → motyw Tailwind 4 (web) i wartości JS (mobile)
+│  ├─ realtime/            # typy zdarzeń WebSocket i klient Socket.IO z reconnectem i zegarem serwera
 │  └─ shared/              # logika współdzielona: Money, POK i kroki przebicia, dni robocze, kody błędów API
 ├─ infra/
 │  ├─ docker-compose.yml   # usługi lokalne: Postgres, 2× Redis, Meilisearch, RustFS, Mailpit

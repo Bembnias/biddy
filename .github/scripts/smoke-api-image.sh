@@ -21,6 +21,7 @@ ENV_ARGS=(
   -e NODE_ENV=production
   -e "DATABASE_URL=${DATABASE_URL}"
   -e "REDIS_QUEUE_URL=${REDIS_QUEUE_URL}"
+  -e "REDIS_CACHE_URL=${REDIS_CACHE_URL:-${REDIS_QUEUE_URL}}"
   -e PORT="${API_PORT}"
   -e CORS_ORIGINS=https://staging.biddy.pl
   -e WEB_URL=https://staging.biddy.pl

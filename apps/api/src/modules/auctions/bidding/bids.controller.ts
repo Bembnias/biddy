@@ -24,12 +24,8 @@ import {
 } from '../../identity/index.js';
 import { type Auction, AUCTION_STATUSES } from '../db/auctions.schema.js';
 import { ListingService } from '../listings/listing.service.js';
-import { type BidOutcome, BiddingService, nextMinimumBid, reserveMet } from './bidding.service.js';
-
-function reserveStatus(auction: Auction): 'NONE' | 'NOT_MET' | 'MET' {
-  const met = reserveMet(auction);
-  return met === null ? 'NONE' : met ? 'MET' : 'NOT_MET';
-}
+import { nextMinimumBid, reserveStatus } from './auction-state.js';
+import { type BidOutcome, BiddingService } from './bidding.service.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_-]{1,100}$/u;

@@ -4,11 +4,8 @@
 // (`now()` to początek transakcji, która mogła czekać na blokadę).
 import {
   anonymizeName,
-  type AuctionBiddingState,
   type CurrencyCode,
   formatMoney,
-  isReserveMet,
-  minimumNextBid,
   money,
   replay,
   resolve,
@@ -29,7 +26,10 @@ import {
   BidPlaced,
   UserOutbid,
 } from '../auctions.events.js';
+import { type RealtimeMessage } from '../../../infra/realtime/index.js';
 import { AuctionClosingService } from '../closing/auction-closing.service.js';
+import { biddingState, reserveMet } from './auction-state.js';
+import { AuctionLiveEvents } from '../live/auction-live-events.js';
 import { type Auction, auctions, type Bid, type BidKind, bids } from '../db/auctions.schema.js';
 
 /** Wynik złożenia oferty: zapisana oferta użytkownika i stan aukcji po niej. */
@@ -38,6 +38,11 @@ export interface BidOutcome {
   readonly auction: Auction;
   /** Ponowienie z tym samym Idempotency-Key: oferta z pierwszego żądania, bez nowego zapisu. */
   readonly replayed: boolean;
+}
+
+/** Wynik z transakcji razem ze zdarzeniami na żywo do wysłania po jej zatwierdzeniu. */
+interface LiveBidOutcome extends BidOutcome {
+  readonly live: readonly RealtimeMessage[];
 }
 
 export interface BidHistoryEntry {
@@ -65,34 +70,6 @@ function notFound(): DomainError {
   return new DomainError({ code: 'NOT_FOUND', detail: 'Nie znaleziono aukcji.' });
 }
 
-/** Stan licytacji z wiersza aukcji (opublikowanej, więc z ceną wywoławczą). */
-export function biddingState(auction: Auction): AuctionBiddingState {
-  return {
-    currency: auction.currency,
-    startPrice: auction.startPrice ?? 0,
-    reservePrice: auction.reservePrice,
-    currentPrice: auction.currentPrice,
-    leaderId: auction.leaderId,
-    leaderMaxAmount: auction.leaderMaxAmount,
-  };
-}
-
-/** Minimalna kolejna oferta aktywnej aukcji (null po zakończeniu). */
-export function nextMinimumBid(auction: Auction): number | null {
-  if (auction.status !== 'ACTIVE' || auction.startPrice === null) {
-    return null;
-  }
-  return minimumNextBid({
-    startPrice: money(auction.startPrice, auction.currency),
-    currentPrice:
-      auction.currentPrice === null ? null : money(auction.currentPrice, auction.currency),
-  }).amount;
-}
-
-export function reserveMet(auction: Auction): boolean | null {
-  return isReserveMet(biddingState(auction));
-}
-
 @Injectable()
 export class BiddingService {
   private readonly logger = new Logger(BiddingService.name);
@@ -103,6 +80,7 @@ export class BiddingService {
     @Inject(BuyerStandingService) private readonly buyers: BuyerStandingService,
     @Inject(ProfileService) private readonly profiles: ProfileService,
     @Inject(AuctionClosingService) private readonly closing: AuctionClosingService,
+    @Inject(AuctionLiveEvents) private readonly live: AuctionLiveEvents,
     private readonly outbox: Outbox,
   ) {}
 
@@ -113,7 +91,7 @@ export class BiddingService {
     maxAmount: number,
     idempotencyKey: string,
   ): Promise<BidOutcome> {
-    return this.db.transaction(async (tx) => {
+    const outcome = await this.db.transaction(async (tx): Promise<LiveBidOutcome> => {
       const request = { auctionId, maxAmount, kind: 'MANUAL' as const };
       const earlier = await this.findByKey(tx, bidderId, idempotencyKey, request);
       if (earlier !== undefined) {
@@ -204,13 +182,20 @@ export class BiddingService {
         );
       }
       await this.outbox.add(tx, ...events);
-      return { bid, auction: updated, replayed: false };
+      const live = await this.live.messages(tx, {
+        auction: updated,
+        outbidUserId: result.outbidUserId,
+        extended: extend,
+      });
+      return { bid, auction: updated, replayed: false, live };
     });
+    this.live.send(outcome.live);
+    return outcome;
   }
 
   /** Kup teraz: dostępne do pierwszej oferty; kończy aukcję jako sprzedaną (§6.2). */
   async buyNow(buyerId: string, auctionId: string, idempotencyKey: string): Promise<BidOutcome> {
-    return this.db.transaction(async (tx) => {
+    const outcome = await this.db.transaction(async (tx): Promise<LiveBidOutcome> => {
       const request = { auctionId, maxAmount: undefined, kind: 'BUY_NOW' as const };
       const earlier = await this.findByKey(tx, buyerId, idempotencyKey, request);
       if (earlier !== undefined) {
@@ -259,7 +244,7 @@ export class BiddingService {
         throw new Error(`Kup teraz w aukcji ${auction.id} nie zwróciło wierszy`);
       }
       // Zamówienie w tej samej transakcji co zakończenie aukcji (F-16).
-      await this.closing.settleSale(tx, updated, 'BUY_NOW', now);
+      const order = await this.closing.settleSale(tx, updated, 'BUY_NOW', now);
       const finalPrice = money(price, updated.currency);
       await this.outbox.add(
         tx,
@@ -288,8 +273,11 @@ export class BiddingService {
           },
         }),
       );
-      return { bid, auction: updated, replayed: false };
+      const live = await this.live.messages(tx, { auction: updated, ended: 'SOLD', order });
+      return { bid, auction: updated, replayed: false, live };
     });
+    this.live.send(outcome.live);
+    return outcome;
   }
 
   /** Publiczna historia ofert od najnowszej, z zanonimizowanymi licytującymi. */
@@ -337,7 +325,7 @@ export class BiddingService {
     reason: 'TYPO' | 'FRAUD',
     note: string,
   ): Promise<Auction> {
-    return this.db.transaction(async (tx) => {
+    const { auction: cancelled, live } = await this.db.transaction(async (tx) => {
       const [target] = await tx.select().from(bids).where(eq(bids.id, bidId));
       if (target === undefined) {
         throw new DomainError({ code: 'NOT_FOUND', detail: 'Nie znaleziono oferty.' });
@@ -463,8 +451,10 @@ export class BiddingService {
         { auctionId: updated.id, bidId: bid.id, staffId, reason, note },
         'Unieważniono ofertę i przeliczono aukcję',
       );
-      return updated;
+      return { auction: updated, live: await this.live.messages(tx, { auction: updated }) };
     });
+    this.live.send(live);
+    return cancelled;
   }
 
   // --- Wewnętrzne ---
@@ -580,7 +570,7 @@ export class BiddingService {
       readonly maxAmount: number | undefined;
       readonly kind: 'MANUAL' | 'BUY_NOW';
     },
-  ): Promise<BidOutcome | undefined> {
+  ): Promise<LiveBidOutcome | undefined> {
     const [bid] = await tx
       .select()
       .from(bids)
@@ -599,7 +589,7 @@ export class BiddingService {
     if (auction === undefined) {
       throw notFound();
     }
-    return { bid, auction, replayed: true };
+    return { bid, auction, replayed: true, live: [] };
   }
 }
 

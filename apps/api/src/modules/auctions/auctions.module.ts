@@ -12,6 +12,7 @@ import {
 } from './bidding/bids.controller.js';
 import { BiddingService } from './bidding/bidding.service.js';
 import { AuctionClosingService } from './closing/auction-closing.service.js';
+import { AuctionLiveEvents } from './live/auction-live-events.js';
 import { ListingService } from './listings/listing.service.js';
 import { AuctionsController, MyAuctionsController } from './listings/listings.controller.js';
 
@@ -28,7 +29,7 @@ import { AuctionsController, MyAuctionsController } from './listings/listings.co
     AdminBidsController,
     AdminAuctionsController,
   ],
-  providers: [ListingService, BiddingService, AuctionClosingService],
+  providers: [ListingService, BiddingService, AuctionClosingService, AuctionLiveEvents],
   exports: [ListingService, BiddingService, AuctionClosingService],
 })
 export class AuctionsModule {}

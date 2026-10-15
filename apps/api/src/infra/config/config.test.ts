@@ -25,6 +25,7 @@ const production = {
   ...minimal,
   NODE_ENV: 'production',
   REDIS_QUEUE_URL: 'redis://red-queue.internal:6379',
+  REDIS_CACHE_URL: 'redis://red-cache.internal:6379',
   RESEND_API_KEY: 're_test_key',
   BETTER_AUTH_SECRET: 'prod-secret-0123456789-0123456789-abcdef',
   API_PUBLIC_URL: 'https://api.biddy.pl',
@@ -93,6 +94,7 @@ describe('loadConfig: wartości domyślne', () => {
           password: undefined,
         },
       },
+      cache: { redisUrl: 'redis://localhost:6380' },
       log: { level: 'debug', pretty: true },
       openapi: { enabled: true },
       sms: { kind: 'log' },
@@ -325,7 +327,7 @@ describe('loadConfig: SMS-y (F-08)', () => {
 });
 
 describe('loadConfig: konta i e-maile (F-07)', () => {
-  it('na produkcji API wymaga sekretu, adresów, Turnstile, Resend i S3; worker Resend i S3', () => {
+  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend i S3; worker Redisa cache, Resend i S3', () => {
     const missing = {
       ...minimal,
       NODE_ENV: 'production',
@@ -337,6 +339,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
         'API_PUBLIC_URL',
         'BETTER_AUTH_SECRET',
         'MEDIA_PUBLIC_URL',
+        'REDIS_CACHE_URL',
         'RESEND_API_KEY',
         'S3_ACCESS_KEY_ID',
         'S3_ENDPOINT',
@@ -348,6 +351,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
       ].sort(),
     );
     expect(issuesFor(missing, 'worker').map((issue) => issue.variable)).toEqual([
+      'REDIS_CACHE_URL',
       'RESEND_API_KEY',
       'S3_ENDPOINT',
       'S3_ACCESS_KEY_ID',

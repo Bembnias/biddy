@@ -12,6 +12,8 @@ export const TURNSTILE_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
 export interface TestUser {
   readonly id: string;
   readonly cookie: string;
+  /** Token Bearer sesji (nagłówek set-auth-token; klient mobilny). */
+  readonly token: string;
 }
 
 let counter = 0;
@@ -58,5 +60,6 @@ export async function createUser(
       [id, phone],
     );
   }
-  return { id, cookie };
+  const token = response.headers['set-auth-token'];
+  return { id, cookie, token: typeof token === 'string' ? token : '' };
 }

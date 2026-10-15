@@ -1,0 +1,48 @@
+{
+  "name": "@biddy/realtime",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Realtime Biddy (F-17): typy zdarzeń WebSocket i klient Socket.IO z reconnectem i synchronizacją zegara dla web i mobile",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "socket.io-client": "catalog:"
+  },
+  "devDependencies": {
+    "@biddy/config": "workspace:*",
+    "eslint": "catalog:",
+    "socket.io": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

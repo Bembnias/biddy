@@ -1020,6 +1020,8 @@ Jeden codebase `apps/api` ma dwa entrypointy:
 
 Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez REST (nie polegamy na tym, że WS dostarczy wszystko).
 
+Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, adapter Redis na instancji cache. Do `user:{id}` dołącza wyłącznie serwer przy połączeniu (sesja z ciasteczka albo token Bearer); `auction:{id}` klient subskrybuje sam (`auction:subscribe`, najwyżej 50 aukcji). Zdarzenia publikuje API albo worker przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji. `order.updated`, `message.new` i `notification.new` dojdą z zamówieniami, czatem i powiadomieniami.
+
 ---
 
 ## 11. Stack technologiczny i usługi
@@ -1357,19 +1359,39 @@ Zasady:
 ### 14.2 Zdarzenia WebSocket
 
 ```ts
-// packages/realtime — przykładowe typy
-type AuctionUpdated = {
-  type: 'auction.updated';
+// packages/realtime/src/events.ts (skrót; kwoty w groszach, czasy w ISO)
+interface AuctionUpdatedEvent {
   auctionId: string;
-  currentPrice: number;      // grosze
+  version: number;           // rośnie z każdą zmianą aukcji: klient ignoruje starsze stany
+  status: AuctionStatus;
+  currency: string;
+  currentPrice: number | null;
   bidCount: number;
   leader: { publicName: string } | null; // zanonimizowany, np. "k***a"
-  endsAt: string;            // ISO, autorytatywne
-  reserveMet: boolean | null;
+  endsAt: string | null;     // autorytatywne
+  reserveStatus: 'NONE' | 'NOT_MET' | 'MET';
+  minimumNextBid: number;
+  buyNowAvailable: boolean;
   serverTime: string;
-};
-type UserOutbid = { type: 'user.outbid'; auctionId: string; currentPrice: number; serverTime: string };
-type UserWon = { type: 'user.won'; auctionId: string; orderId: string; paymentDueAt: string; serverTime: string };
+}
+interface AuctionExtendedEvent { auctionId: string; endsAt: string; serverTime: string }
+interface AuctionEndedEvent {
+  auctionId: string;
+  outcome: 'SOLD' | 'UNSOLD' | 'CANCELLED';
+  currency: string;
+  finalPrice: number | null;
+  serverTime: string;
+}
+interface UserOutbidEvent {
+  auctionId: string; currency: string; currentPrice: number; minimumNextBid: number;
+  endsAt: string; serverTime: string;
+}
+interface UserWonEvent {
+  auctionId: string; orderId: string; orderPublicId: string; currency: string; total: number;
+  paymentDueAt: string; serverTime: string;
+}
+// klient → serwer: 'auction:subscribe' (ack { ok } albo { ok: false, error }),
+// 'auction:unsubscribe', 'time:ping' (ack { serverTime })
 ```
 
 ### 14.3 Eventy domenowe (outbox)
@@ -1447,7 +1469,7 @@ Każda zmiana statusu planuje odpowiedni job (`order.payment-deadline`, `order.s
 
 ### 15.4 Synchronizacja czasu
 
-- Klient wysyła `ping` z `t0`, serwer odpowiada `serverTime`, klient mierzy `t1`. Wtedy `offset = serverTime − (t0 + t1)/2`. Używamy mediany z 3–5 próbek, odświeżanej co minutę.
+- Klient wysyła `ping` z `t0`, serwer odpowiada `serverTime`, klient mierzy `t1`. Wtedy `offset = serverTime − (t0 + t1)/2`. Używamy mediany z 3–5 próbek, odświeżanej co minutę. W `@biddy/realtime` (F-17): 5 próbek `time:ping` po każdym połączeniu i co minutę, mediana szybszej połowy próbek, odrzucenie próbek z czasem odpowiedzi powyżej 1 s.
 - Liczniki w UI: `endsAt − (Date.now() + offset)`.
 - Ostateczną decyzję o tym, czy oferta zdążyła, podejmuje **wyłącznie serwer** (`now()` w bazie).
 
@@ -1833,6 +1855,9 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 66 | Unieważnianie ofert przez personel (`@RequireStaff`) w zwykłej sesji do czasu panelu admina z osobną sesją (F-34); stan ceny minimalnej w API jako `reserveStatus` (`NONE`/`NOT_MET`/`MET`) | Tymczasowa | §11.5, §15.6 |
 | 67 | Job zamknięcia planowany przez konsumentów eventów `AuctionPublished` i `AuctionExtended` (outbox: job nie zginie z odrzuconą transakcją); sweeper w osobnej kolejce `auctions`, żeby nie czekał za jobami porządkowymi | Przyjęta | §15.2 |
 | 68 | Zamówienie tworzone przez moduł `orders` w transakcji zakończenia aukcji (`auctions` przekazuje `tx`), ze snapshotem przedmiotu (wersjonowany JSON); POK według cennika z chwili zakończenia aukcji, nie z chwili checkoutu | Przyjęta | §6.7, §13.1 |
+| 69 | Socket.IO tylko z transportem WebSocket (long-polling wymagałby sticky sessions, których load balancer Render nie zapewnia); adapter Redis na instancji cache; publikacja przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji zamiast przez outbox (odpytywanie co 250 ms nie mieści się w 300 ms); dostarczenie najlepszym wysiłkiem, stan dociągany przez REST po reconnect | Przyjęta | §10.5 |
+| 70 | Połączenie WebSocket: ciasteczko sesji tylko z originów `CORS_ORIGINS` (ochrona przed cross-site WebSocket hijacking), klient bez Origin (mobile) uwierzytelnia się tokenem Bearer; room `user:{id}` dołącza wyłącznie serwer; połączenia anonimowe dozwolone dla rooms aukcji | Przyjęta | §10.5, §16 |
+| 71 | Kolejność zdarzeń aukcji: wiadomości budowane w transakcji pod blokadą aukcji (odczyty przez tę samą transakcję, bez drugiego połączenia z puli) i wysyłane synchronicznie po zatwierdzeniu; między instancjami klient porównuje `version` aukcji | Przyjęta | §14.2 |
 
 ---
 

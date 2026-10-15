@@ -529,6 +529,8 @@ flowchart TD
 
 ### F-17 · Realtime · `M`
 
+> Pełny spec: [docs/features/F-17-realtime.md](features/F-17-realtime.md).
+
 **Cel:** ceny, liczniki i powiadomienia aktualizują się na żywo.
 
 **Zakres:**

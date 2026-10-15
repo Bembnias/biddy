@@ -32,6 +32,7 @@ import {
   type ReviewReason,
   auctions,
 } from '../db/auctions.schema.js';
+import { AuctionLiveEvents } from '../live/auction-live-events.js';
 
 /** Limit szkiców na konto (ochrona przed zaśmiecaniem bazy). */
 export const MAX_DRAFTS = 50;
@@ -115,6 +116,7 @@ export class ListingService {
     @Inject(CarrierService) private readonly carriers: CarrierService,
     @Inject(SellerStandingService) private readonly standing: SellerStandingService,
     @Inject(ContentFilterService) private readonly filter: ContentFilterService,
+    @Inject(AuctionLiveEvents) private readonly live: AuctionLiveEvents,
     private readonly outbox: Outbox,
   ) {}
 
@@ -413,7 +415,7 @@ export class ListingService {
 
   /** Anulowanie aktywnej aukcji albo czekającej na moderatora (§6.6). */
   async cancel(sellerId: string, auctionId: string): Promise<ListingView> {
-    return this.db.transaction(async (tx) => {
+    const { view, live } = await this.db.transaction(async (tx) => {
       const auction = await this.lock(tx, sellerId, auctionId);
       if (auction.status !== 'ACTIVE' && auction.status !== 'PENDING_REVIEW') {
         throw conflict(
@@ -454,8 +456,13 @@ export class ListingService {
           },
         }),
       );
-      return this.toView(cancelled, tx);
+      return {
+        view: await this.toView(cancelled, tx),
+        live: await this.live.messages(tx, { auction: cancelled, ended: 'CANCELLED' }),
+      };
     });
+    this.live.send(live);
+    return view;
   }
 
   /**
@@ -463,7 +470,7 @@ export class ListingService {
    * ostatnich 12 h. Uzasadnienie trafia do eventu (statement of reasons, F-35).
    */
   async cancelByModerator(staffId: string, auctionId: string, note: string): Promise<Auction> {
-    return this.db.transaction(async (tx) => {
+    const { cancelled, live } = await this.db.transaction(async (tx) => {
       const [auction] = await tx
         .select()
         .from(auctions)
@@ -505,8 +512,13 @@ export class ListingService {
         { auctionId: cancelled.id, staffId, bidCount: auction.bidCount, note },
         'Moderator anulował aukcję',
       );
-      return cancelled;
+      return {
+        cancelled,
+        live: await this.live.messages(tx, { auction: cancelled, ended: 'CANCELLED' }),
+      };
     });
+    this.live.send(live);
+    return cancelled;
   }
 
   /** Kopia zakończonej albo anulowanej aukcji jako nowy szkic (te same zdjęcia). */

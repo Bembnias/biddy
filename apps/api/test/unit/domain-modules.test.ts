@@ -12,6 +12,7 @@ import { MailModule } from '../../src/infra/mail/index.js';
 import { OutboxModule } from '../../src/infra/outbox/index.js';
 import { QueuesModule } from '../../src/infra/queues/index.js';
 import { SmsModule } from '../../src/infra/sms/index.js';
+import { RealtimeModule } from '../../src/infra/realtime/index.js';
 import { StorageModule } from '../../src/infra/storage/index.js';
 import { DOMAIN_MODULES } from '../../src/modules/index.js';
 
@@ -89,6 +90,7 @@ describe('DOMAIN_MODULES', () => {
         OutboxModule,
         SmsModule,
         StorageModule,
+        RealtimeModule,
         ...DOMAIN_MODULES,
       ],
     }).compile();

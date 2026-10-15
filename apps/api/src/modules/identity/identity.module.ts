@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { APP_CONFIG, type AppConfig } from '../../infra/config/index.js';
 import { type Database, DRIZZLE } from '../../infra/db/index.js';
 import { MailQueue } from '../../infra/mail/index.js';
+import { REALTIME_AUTHENTICATOR } from '../../infra/realtime/index.js';
 import { type Auth, createAuth } from './auth/auth.js';
 import { registerAuthRoutes } from './auth/auth-routes.js';
 import { LoginThrottle } from './auth/login-throttle.js';
@@ -18,6 +19,7 @@ import { ProfileService } from './profile/profile.service.js';
 import { BuyerStandingService } from './buyer/buyer-standing.service.js';
 import { SellerStandingService } from './seller/seller-standing.service.js';
 import { UsersController } from './profile/users.controller.js';
+import { SessionRealtimeAuthenticator } from './session/realtime-authenticator.js';
 import { SessionGuard, SessionReader } from './session/session.guard.js';
 import { AUTH } from './session/session.js';
 import { TermsService } from './terms/terms.service.js';
@@ -67,9 +69,11 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     },
     SessionReader,
     SessionGuard,
+    { provide: REALTIME_AUTHENTICATOR, useClass: SessionRealtimeAuthenticator },
   ],
   exports: [
     AUTH,
+    REALTIME_AUTHENTICATOR,
     SessionReader,
     SessionGuard,
     TermsService,

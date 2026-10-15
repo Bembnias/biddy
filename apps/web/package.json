@@ -19,6 +19,7 @@
   "dependencies": {
     "@biddy/api-client": "workspace:*",
     "@biddy/design-tokens": "workspace:*",
+    "@biddy/realtime": "workspace:*",
     "@biddy/shared": "workspace:*",
     "@hookform/resolvers": "catalog:",
     "@marsidev/react-turnstile": "catalog:",

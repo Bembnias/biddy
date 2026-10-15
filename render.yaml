@@ -60,6 +60,7 @@ services:
       paths:
         - apps/api/**
         - packages/shared/**
+        - packages/realtime/**
         - packages/config/**
         - package.json
         - pnpm-lock.yaml
@@ -145,6 +146,7 @@ services:
       paths:
         - apps/api/**
         - packages/shared/**
+        - packages/realtime/**
         - packages/config/**
         - package.json
         - pnpm-lock.yaml
@@ -166,6 +168,12 @@ services:
       - key: REDIS_QUEUE_URL
         fromService:
           name: biddy-staging-queues
+          type: keyvalue
+          property: connectionString
+      # Zdarzenia na żywo z workera (zamknięcie aukcji, F-17) przez pub/sub Socket.IO.
+      - key: REDIS_CACHE_URL
+        fromService:
+          name: biddy-staging-cache
           type: keyvalue
           property: connectionString
       - key: BETTER_AUTH_SECRET
@@ -194,7 +202,7 @@ services:
     # Tylko sieć prywatna Render (bez dostępu z internetu).
     ipAllowList: []
 
-  # Cache i pub/sub (od F-15): dane można odtworzyć, więc bez trwałości.
+  # Cache i pub/sub Socket.IO (F-17): dane można odtworzyć, więc bez trwałości.
   - type: keyvalue
     name: biddy-staging-cache
     region: frankfurt

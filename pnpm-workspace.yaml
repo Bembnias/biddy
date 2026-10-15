@@ -64,6 +64,10 @@ catalog:
   sharp: 0.35.5
   '@sentry/nestjs': 11.6.0
   '@sentry/nextjs': 11.6.0
+  socket.io: 4.8.4
+  socket.io-client: 4.8.4
+  '@socket.io/redis-adapter': 8.3.0
+  '@socket.io/redis-emitter': 5.1.0
   '@swc-node/register': 1.12.1
   '@swc/cli': 0.8.1
   '@swc/core': 1.16.13

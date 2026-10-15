@@ -17,7 +17,9 @@ import {
 import { CategoryService, ItemService } from '../../catalog/index.js';
 import { MediaService } from '../../media/index.js';
 import { type Order, type OrderItemSnapshot, OrderService } from '../../orders/index.js';
+import { type RealtimeMessage } from '../../../infra/realtime/index.js';
 import { AuctionEnded, AuctionExtended, AuctionPublished } from '../auctions.events.js';
+import { AuctionLiveEvents } from '../live/auction-live-events.js';
 import { type Auction, auctions } from '../db/auctions.schema.js';
 
 export const CLOSE_JOB = 'auction.close';
@@ -37,6 +39,7 @@ export class AuctionClosingService {
     @Inject(CategoryService) private readonly categories: CategoryService,
     @Inject(MediaService) private readonly media: MediaService,
     @Inject(OrderService) private readonly orders: OrderService,
+    @Inject(AuctionLiveEvents) private readonly live: AuctionLiveEvents,
     private readonly jobs: JobQueues,
     private readonly outbox: Outbox,
   ) {}
@@ -102,6 +105,7 @@ export class AuctionClosingService {
    */
   async close(auctionId: string): Promise<CloseResult> {
     let reschedule: Date | undefined;
+    let live: readonly RealtimeMessage[] = [];
     const result = await this.db.transaction(async (tx): Promise<CloseResult> => {
       const [auction] = await tx
         .select()
@@ -132,9 +136,7 @@ export class AuctionClosingService {
       if (ended === undefined) {
         return 'NOT_ACTIVE';
       }
-      if (sold) {
-        await this.settleSale(tx, ended, 'TIME', auction.endsAt);
-      }
+      const order = sold ? await this.settleSale(tx, ended, 'TIME', auction.endsAt) : undefined;
       await this.outbox.add(
         tx,
         AuctionEnded.create({
@@ -160,8 +162,14 @@ export class AuctionClosingService {
         },
         'Aukcja zakończona',
       );
+      live = await this.live.messages(tx, {
+        auction: ended,
+        ended: sold ? 'SOLD' : 'UNSOLD',
+        ...(order === undefined ? {} : { order }),
+      });
       return sold ? 'SOLD' : 'UNSOLD';
     });
+    this.live.send(live);
     if (reschedule !== undefined) {
       await this.schedule(auctionId, reschedule);
     }
