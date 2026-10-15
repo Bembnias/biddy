@@ -2,7 +2,7 @@
 // współbieżnością i polityką ponowień. Moduły odwołują się do kolejki po nazwie (QueueName),
 // a worker uruchamia przetwarzanie tylko tych kolejek, dla których jakiś moduł ma handler.
 //
-// Nowa kolejka (np. `auctions` dla zamykania aukcji w F-16): wpis w QUEUE_DEFINITIONS. Osobna
+// Nowa kolejka: wpis w QUEUE_DEFINITIONS. Osobna
 // kolejka ma sens, gdy joby potrzebują własnej współbieżności albo nie mogą czekać za innymi
 // (zamknięcie aukcji nie może stać w kolejce za tysiącem maili).
 import type { DefaultJobOptions } from 'bullmq';
@@ -43,6 +43,11 @@ export const QUEUE_DEFINITIONS = {
     description:
       'Przetwarzanie zdjęć: weryfikacja, usunięcie EXIF, warianty WebP i moderacja (F-12)',
     concurrency: 2,
+  },
+  auctions: {
+    description:
+      'Zamykanie aukcji: joby z terminem (ID z ends_at) i sweeper co 10 s jako siatka bezpieczeństwa (F-16)',
+    concurrency: 10,
   },
   emails: {
     description:

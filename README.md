@@ -390,6 +390,16 @@ Licytacja automatyczna, Kup teraz, anti-sniping i unieważnianie ofert. Spec: [F
 - **Unieważnienie** (`POST /v1/admin/bids/{id}/cancel`, role `support`, `moderator`, `admin`): oferta i wszystkie automatyczne → `CANCELLED`, replay pozostałych, koniec aukcji bez zmian. Do czasu osobnej sesji panelu admina (F-34) rola pochodzi ze zwykłej sesji (`@RequireStaff`).
 - **Eventy:** `BidPlaced`, `UserOutbid`, `AuctionExtended`, `AuctionEnded` (Kup teraz), `BidCancelled`.
 
+### Zamykanie aukcji i zamówienia (F-16)
+
+Każda aukcja kończy się na czas i dokładnie raz. Spec: [F-16](docs/features/F-16-zamykanie-aukcji.md).
+
+- **Planowanie:** konsumenci eventów `auctions.schedule-close` (`AuctionPublished`) i `auctions.reschedule-close` (`AuctionExtended`) dodają opóźniony job `auction.close` w kolejce `auctions` z ID zawierającym termin (`close-{auctionId}-{endsAtMs}`).
+- **Zamknięcie** w transakcji z blokadą wiersza aukcji: aukcja nie `ACTIVE` → nic; przed `ends_at` (przedłużona) → job na nowy termin; po `ends_at` → `ENDED_SOLD` (lider i osiągnięta cena minimalna) albo `ENDED_UNSOLD`, event `AuctionEnded`.
+- **Sweeper** `auctions.close-sweeper` co 10 s zamyka aukcje spóźnione o ponad 5 s (zaginiony job). W logu: „Sweeper zamknął aukcję”.
+- **Zamówienie** (moduł `orders`, `OrderService.createForAuction`) powstaje w tej samej transakcji co zakończenie (także przy Kup teraz): `AWAITING_PAYMENT`, POK według cennika z chwili zakończenia, termin płatności 24 h, snapshot przedmiotu w `order_items.item_snapshot`. Unikalny indeks częściowy `order_items(auction_id) WHERE is_active` gwarantuje jedno aktywne zamówienie na aukcję. Event `OrderCreated`.
+- **Moderacja:** `POST /v1/admin/auctions/{id}/cancel` `{ note }` (role `moderator`, `admin`) anuluje aukcję aktywną albo w moderacji, także z ofertami; event `AuctionCancelled` z `cancelledBy: MODERATOR` i uzasadnieniem.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):

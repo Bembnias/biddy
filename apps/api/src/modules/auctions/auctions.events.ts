@@ -48,7 +48,10 @@ export const AuctionUpdated = defineDomainEvent({
   payload: z.object({ sellerId: z.uuid(), version: z.int().min(0) }),
 });
 
-/** Aukcja anulowana; `bidCount > 0` oznacza strike sprzedającego (F-61) i powiadomienia. */
+/**
+ * Aukcja anulowana przez sprzedającego (`bidCount > 0`: strike, F-61) albo moderatora (z
+ * uzasadnieniem; strike tylko z decyzji moderatora). Licytujący dostają powiadomienie.
+ */
 export const AuctionCancelled = defineDomainEvent({
   type: 'AuctionCancelled',
   version: 1,
@@ -57,7 +60,9 @@ export const AuctionCancelled = defineDomainEvent({
     sellerId: z.uuid(),
     bidCount: z.int().min(0),
     previousStatus: z.enum(['ACTIVE', 'PENDING_REVIEW']),
-    cancelledBy: z.enum(['SELLER']),
+    cancelledBy: z.enum(['SELLER', 'MODERATOR']),
+    /** Uzasadnienie moderatora (DSA: statement of reasons, F-35). */
+    reason: z.string().min(1).max(500).optional(),
   }),
 });
 

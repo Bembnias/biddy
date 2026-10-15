@@ -75,6 +75,14 @@ export class CategoryService {
     return schema === undefined ? [] : describeAttributes(schema.attributes, stored);
   }
 
+  /**
+   * Nazwy kategorii od głównej do wskazanej, np. ['Moda', 'Sneakersy'] (snapshot zamówienia,
+   * F-16). Działa także dla kategorii nieaktywnej.
+   */
+  async pathNames(categoryId: string): Promise<string[]> {
+    return (await this.tree()).pathNames(categoryId);
+  }
+
   private async tree(): Promise<CategoryTree> {
     return new CategoryTree(await this.db.select().from(categories));
   }

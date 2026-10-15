@@ -1594,6 +1594,67 @@
         ]
       }
     },
+    "/v1/admin/auctions/{id}/cancel": {
+      "post": {
+        "description": "Aukcja aktywna albo w moderacji, także z ofertami i w ostatnich 12 h.",
+        "operationId": "cancelAuctionAsModerator",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeratorCancelAuctionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aukcja anulowana",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAuctionStateDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Anulowanie aukcji przez moderację",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/fee-schedules/current": {
       "get": {
         "description": "Opłata stała, progi krańcowe i stawka VAT. Kwoty w groszach, stawki w punktach bazowych (700 = 7%).",
@@ -3703,6 +3764,21 @@
           "buyNowAvailable",
           "leaderId",
           "leaderMaxAmount"
+        ],
+        "additionalProperties": false
+      },
+      "ModeratorCancelAuctionDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500,
+            "description": "Uzasadnienie dla sprzedającego (statement of reasons, DSA)"
+          }
+        },
+        "required": [
+          "note"
         ],
         "additionalProperties": false
       },

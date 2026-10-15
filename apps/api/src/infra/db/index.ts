@@ -12,7 +12,7 @@
 export { DATABASE_HEALTH_TIMEOUT_MS, DatabaseHealth } from './database-health.js';
 export { DRIZZLE, PG_POOL, type Database, type Transaction } from './database.js';
 export { DbModule } from './db.module.js';
-export { idColumn, newId } from './ids.js';
+export { idColumn, newId, newPublicId } from './ids.js';
 export {
   MIGRATIONS_FOLDER,
   MigrationsError,

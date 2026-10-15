@@ -72,6 +72,7 @@ export * from './mediaDtoStatus';
 export * from './mediaDtoUrls';
 export * from './meDto';
 export * from './meDtoStaffRole';
+export * from './moderatorCancelAuctionDto';
 export * from './phoneVerificationDto';
 export * from './placeBidDto';
 export * from './problemDetails';

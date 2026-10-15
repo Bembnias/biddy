@@ -29,6 +29,7 @@ import {
   BidPlaced,
   UserOutbid,
 } from '../auctions.events.js';
+import { AuctionClosingService } from '../closing/auction-closing.service.js';
 import { type Auction, auctions, type Bid, type BidKind, bids } from '../db/auctions.schema.js';
 
 /** Wynik złożenia oferty: zapisana oferta użytkownika i stan aukcji po niej. */
@@ -101,6 +102,7 @@ export class BiddingService {
     @Inject(APP_CONFIG) private readonly config: AppConfig,
     @Inject(BuyerStandingService) private readonly buyers: BuyerStandingService,
     @Inject(ProfileService) private readonly profiles: ProfileService,
+    @Inject(AuctionClosingService) private readonly closing: AuctionClosingService,
     private readonly outbox: Outbox,
   ) {}
 
@@ -256,6 +258,8 @@ export class BiddingService {
       if (updated === undefined || bid === undefined) {
         throw new Error(`Kup teraz w aukcji ${auction.id} nie zwróciło wierszy`);
       }
+      // Zamówienie w tej samej transakcji co zakończenie aukcji (F-16).
+      await this.closing.settleSale(tx, updated, 'BUY_NOW', now);
       const finalPrice = money(price, updated.currency);
       await this.outbox.add(
         tx,
@@ -272,7 +276,6 @@ export class BiddingService {
             reserveMet: reserveMet(updated),
           },
         }),
-        // Zamówienie w tej samej transakcji doda F-16 (zamykanie aukcji).
         AuctionEnded.create({
           aggregateId: updated.id,
           payload: {

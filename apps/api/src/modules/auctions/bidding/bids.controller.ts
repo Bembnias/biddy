@@ -23,6 +23,7 @@ import {
   RequireVerifiedPhone,
 } from '../../identity/index.js';
 import { type Auction, AUCTION_STATUSES } from '../db/auctions.schema.js';
+import { ListingService } from '../listings/listing.service.js';
 import { type BidOutcome, BiddingService, nextMinimumBid, reserveMet } from './bidding.service.js';
 
 function reserveStatus(auction: Auction): 'NONE' | 'NOT_MET' | 'MET' {
@@ -298,6 +299,52 @@ export class AdminBidsController {
       user.id,
       idOf(params, 'Nie znaleziono oferty.'),
       body.reason,
+      body.note,
+    );
+    return {
+      ...auctionBiddingDto(auction),
+      leaderId: auction.leaderId,
+      leaderMaxAmount: auction.leaderMaxAmount,
+    };
+  }
+}
+
+export class ModeratorCancelAuctionDto extends createZodDto(
+  z
+    .object({
+      note: z
+        .string()
+        .trim()
+        .min(5)
+        .max(500)
+        .describe('Uzasadnienie dla sprzedającego (statement of reasons, DSA)'),
+    })
+    .strict(),
+) {}
+
+/** Anulowanie aukcji przez moderację (F-16); do czasu panelu admina (F-34) rola ze zwykłej sesji. */
+@ApiTags('admin')
+@Controller('admin/auctions')
+@RequireStaff('moderator', 'admin')
+export class AdminAuctionsController {
+  constructor(private readonly listings: ListingService) {}
+
+  @Post(':id/cancel')
+  @HttpCode(200)
+  @Header('cache-control', 'no-store')
+  @ApiOperation({
+    summary: 'Anulowanie aukcji przez moderację',
+    description: 'Aukcja aktywna albo w moderacji, także z ofertami i w ostatnich 12 h.',
+  })
+  @ZodResponse({ status: 200, description: 'Aukcja anulowana', type: AdminAuctionStateDto })
+  async cancelAuctionAsModerator(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param() params: AuctionIdParams,
+    @Body() body: ModeratorCancelAuctionDto,
+  ): Promise<AdminAuctionStateDto> {
+    const auction = await this.listings.cancelByModerator(
+      user.id,
+      idOf(params, 'Nie znaleziono aukcji.'),
       body.note,
     );
     return {

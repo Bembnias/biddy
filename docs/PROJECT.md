@@ -1235,7 +1235,7 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, cancelled_at, chargeback_status, second_chance_offer_id, created_at |
+| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, cancelled_at, chargeback_status, second_chance_offer_id, created_at (F-16 tworzy kolumny do payment_due_at; pozostałe dodadzą F-25 i F-26) |
 | `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb), is_active (false po anulowaniu zamówienia) |
 | `fee_schedules` | id, currency, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), vat_rate_bp, valid_from, valid_to, note (moduł `payments`, F-13; okresy bez nakładania, wiersz niezmienny poza zamknięciem; category_id dojdzie z cennikami per kategoria) |
 | `payments` | id, order_id, provider, provider_payment_id, method, amount, status, failure_reason, idempotency_key, raw (jsonb), created_at |
@@ -1342,6 +1342,7 @@ POST   /webhooks/shipping/:provider
 
 # Admin (/admin/*, osobna sesja i RBAC) — m.in.:
 POST   /admin/bids/:id/cancel      (unieważnienie oferty + replay, §15.6)
+POST   /admin/auctions/:id/cancel  (anulowanie aukcji przez moderację, F-16)
 POST   /admin/disputes/:id/decision
 POST   /admin/strikes              POST /admin/strikes/:id/revoke
 POST   /admin/compensations        (rekompensata dla sprzedającego, §7.9)
@@ -1830,6 +1831,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 64 | Silnik licytacji: `resolve` jako czysta funkcja w `@biddy/shared`; oferty numerowane w aukcji (`bids.sequence`) zamiast porządku po `created_at`; czas z `clock_timestamp()` po blokadzie wiersza; okno anti-snipingu w konfiguracji (`AUCTION_ANTI_SNIPING_SECONDS`) | Przyjęta | §6.4, §6.5, §15.1 |
 | 65 | Idempotency-Key ofert zapisany przy ofercie (unikalny per licytujący), sprawdzany przed i pod blokadą aukcji; ponowienie zwraca tę samą ofertę z aktualnym stanem aukcji, inny payload z tym samym kluczem: 422 | Przyjęta | §14.1 |
 | 66 | Unieważnianie ofert przez personel (`@RequireStaff`) w zwykłej sesji do czasu panelu admina z osobną sesją (F-34); stan ceny minimalnej w API jako `reserveStatus` (`NONE`/`NOT_MET`/`MET`) | Tymczasowa | §11.5, §15.6 |
+| 67 | Job zamknięcia planowany przez konsumentów eventów `AuctionPublished` i `AuctionExtended` (outbox: job nie zginie z odrzuconą transakcją); sweeper w osobnej kolejce `auctions`, żeby nie czekał za jobami porządkowymi | Przyjęta | §15.2 |
+| 68 | Zamówienie tworzone przez moduł `orders` w transakcji zakończenia aukcji (`auctions` przekazuje `tx`), ze snapshotem przedmiotu (wersjonowany JSON); POK według cennika z chwili zakończenia aukcji, nie z chwili checkoutu | Przyjęta | §6.7, §13.1 |
 
 ---
 

@@ -19,6 +19,7 @@ export {
   UserOutbid,
 } from './auctions.events.js';
 export { BiddingService } from './bidding/bidding.service.js';
+export { AuctionClosingService, type CloseResult } from './closing/auction-closing.service.js';
 export {
   AUCTION_STATUSES,
   type AuctionStatus,

@@ -95,6 +95,11 @@ export class CategoryTree {
     };
   }
 
+  /** Nazwy kategorii od korzenia do wskazanej (także nieaktywnych); pusta lista dla nieznanej. */
+  pathNames(categoryId: string): string[] {
+    return (this.chain(categoryId) ?? []).map((row) => row.name);
+  }
+
   /** Kategorie od korzenia do wskazanej (włącznie) albo undefined dla nieznanej. */
   private chain(categoryId: string): Category[] | undefined {
     const chain: Category[] = [];

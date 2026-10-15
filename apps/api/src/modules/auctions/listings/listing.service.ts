@@ -3,10 +3,10 @@
 // publiczne API innych modułów w tej samej transakcji, więc nie przeplecie się z pierwszą
 // ofertą (F-15 blokuje ten sam wiersz). Reguły kompletności i cen: `validateListing` z @biddy/shared.
 import { type ListingInput, type ListingIssue, validateListing } from '@biddy/shared';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 
-import { type Database, DRIZZLE, type Transaction } from '../../../infra/db/index.js';
+import { type Database, DRIZZLE, newPublicId, type Transaction } from '../../../infra/db/index.js';
 import { DomainError } from '../../../infra/http/index.js';
 import { Outbox } from '../../../infra/outbox/index.js';
 import {
@@ -32,7 +32,6 @@ import {
   type ReviewReason,
   auctions,
 } from '../db/auctions.schema.js';
-import { newPublicId } from './public-id.js';
 
 /** Limit szkiców na konto (ochrona przed zaśmiecaniem bazy). */
 export const MAX_DRAFTS = 50;
@@ -106,6 +105,8 @@ interface ListingCheck {
 
 @Injectable()
 export class ListingService {
+  private readonly logger = new Logger(ListingService.name);
+
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(ItemService) private readonly items: ItemService,
@@ -454,6 +455,57 @@ export class ListingService {
         }),
       );
       return this.toView(cancelled, tx);
+    });
+  }
+
+  /**
+   * Anulowanie przez moderację (F-16): aukcja aktywna albo w moderacji, także z ofertami i w
+   * ostatnich 12 h. Uzasadnienie trafia do eventu (statement of reasons, F-35).
+   */
+  async cancelByModerator(staffId: string, auctionId: string, note: string): Promise<Auction> {
+    return this.db.transaction(async (tx) => {
+      const [auction] = await tx
+        .select()
+        .from(auctions)
+        .where(eq(auctions.id, auctionId))
+        .for('update');
+      if (auction === undefined) {
+        throw notFound();
+      }
+      if (auction.status !== 'ACTIVE' && auction.status !== 'PENDING_REVIEW') {
+        throw conflict('Anulować można aukcję aktywną albo czekającą na moderatora.');
+      }
+      const [cancelled] = await tx
+        .update(auctions)
+        .set({
+          status: 'CANCELLED',
+          cancelledAt: sql`now()`,
+          version: sql`${auctions.version} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(auctions.id, auction.id))
+        .returning();
+      if (cancelled === undefined) {
+        throw notFound();
+      }
+      await this.outbox.add(
+        tx,
+        AuctionCancelled.create({
+          aggregateId: cancelled.id,
+          payload: {
+            sellerId: cancelled.sellerId,
+            bidCount: auction.bidCount,
+            previousStatus: auction.status,
+            cancelledBy: 'MODERATOR',
+            reason: note,
+          },
+        }),
+      );
+      this.logger.warn(
+        { auctionId: cancelled.id, staffId, bidCount: auction.bidCount, note },
+        'Moderator anulował aukcję',
+      );
+      return cancelled;
     });
   }
 

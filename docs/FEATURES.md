@@ -509,6 +509,8 @@ flowchart TD
 
 ### F-16 · Zamykanie aukcji · `M`
 
+> Pełny spec: [docs/features/F-16-zamykanie-aukcji.md](features/F-16-zamykanie-aukcji.md).
+
 **Cel:** każda aukcja kończy się na czas i dokładnie raz.
 
 **Zakres:**
