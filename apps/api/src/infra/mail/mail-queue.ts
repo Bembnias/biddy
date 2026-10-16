@@ -11,6 +11,7 @@ const mailMessageSchema = z.object({
   subject: z.string().min(1),
   text: z.string(),
   html: z.string(),
+  headers: z.record(z.string(), z.string()).optional(),
 });
 
 /**
@@ -24,8 +25,17 @@ export class MailQueue {
     @Inject(MAIL_SENDER) private readonly sender: MailSender,
   ) {}
 
-  async enqueue(message: MailMessage): Promise<void> {
-    await this.queues.add('emails', SEND_EMAIL_JOB, mailMessageSchema.parse(message));
+  /**
+   * Zleca wysyłkę. `jobId` (np. z ID powiadomienia) sprawia, że ponowne zlecenie tego samego
+   * e-maila nie wyśle go drugi raz.
+   */
+  async enqueue(message: MailMessage, options: { readonly jobId?: string } = {}): Promise<void> {
+    await this.queues.add(
+      'emails',
+      SEND_EMAIL_JOB,
+      mailMessageSchema.parse(message),
+      options.jobId === undefined ? {} : { jobId: options.jobId },
+    );
   }
 
   @JobHandler('emails', SEND_EMAIL_JOB)

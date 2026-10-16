@@ -146,7 +146,7 @@ export function createAuth(deps: AuthDependencies) {
       resetPasswordTokenExpiresIn: 60 * 60,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
-        await mail.enqueue(resetPasswordEmail(user, url));
+        await mail.enqueue(await resetPasswordEmail(user, url));
       },
     },
     emailVerification: {
@@ -154,7 +154,7 @@ export function createAuth(deps: AuthDependencies) {
       autoSignInAfterVerification: true,
       expiresIn: DAY_SECONDS,
       sendVerificationEmail: async ({ user, url }) => {
-        await mail.enqueue(verificationEmail(user, url));
+        await mail.enqueue(await verificationEmail(user, url));
       },
     },
     socialProviders: {

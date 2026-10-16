@@ -1020,7 +1020,7 @@ Jeden codebase `apps/api` ma dwa entrypointy:
 
 Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez REST (nie polegamy na tym, że WS dostarczy wszystko).
 
-Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, adapter Redis na instancji cache. Do `user:{id}` dołącza wyłącznie serwer przy połączeniu (sesja z ciasteczka albo token Bearer); `auction:{id}` klient subskrybuje sam (`auction:subscribe`, najwyżej 50 aukcji). Zdarzenia publikuje API albo worker przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji. `order.updated`, `message.new` i `notification.new` dojdą z zamówieniami, czatem i powiadomieniami.
+Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, adapter Redis na instancji cache. Do `user:{id}` dołącza wyłącznie serwer przy połączeniu (sesja z ciasteczka albo token Bearer); `auction:{id}` klient subskrybuje sam (`auction:subscribe`, najwyżej 50 aukcji). Zdarzenia publikuje API albo worker przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji. `notification.new` (F-20) niesie powiadomienie i liczbę nieprzeczytanych; `order.updated` i `message.new` dojdą z zamówieniami i czatem.
 
 ---
 
@@ -1217,7 +1217,7 @@ erDiagram
 | `devices` | id, user_id, platform (`WEB`/`IOS`/`ANDROID`), push_token (Expo), web_push_subscription (jsonb: endpoint, klucze), fingerprint, last_seen_at |
 | `user_follows` | follower_id, seller_id, created_at (obserwowani sprzedawcy) |
 | `user_blocks` | blocker_id, blocked_id, created_at |
-| `notification_preferences` | user_id, type, channel, enabled |
+| `notification_preferences` | user_id, type, channel, enabled, updated_at; brak wiersza = wartość domyślna (F-20) |
 
 **Katalog i aukcje**
 
@@ -1257,7 +1257,7 @@ erDiagram
 |---|---|
 | `conversations` / `messages` | czat per aukcja lub zamówienie, flagi wykrytych danych kontaktowych |
 | `reviews` | id, order_id, author_id, target_id, role (`BUYER`/`SELLER`), rating, comment, visible_at. Unikalne (order_id, author_id). |
-| `notifications` | id, user_id, type, payload, read_at, created_at |
+| `notifications` | id, user_id, type, auction_id, payload (migawka), dedupe_key (unikalny z user_id), read_at, emailed_at, created_at (F-20) |
 | `reports` | id, reporter_id, target_type, target_id, reason, status, decision, statement_of_reasons, created_at (DSA *notice & action*) |
 | `outbox` | id, type, payload, created_at, processed_at, attempts |
 | `processed_webhooks` | provider, event_id (PK), processed_at (idempotencja webhooków) |
@@ -1296,7 +1296,8 @@ PUT    /me/followed-sellers/:userId    DELETE /me/followed-sellers/:userId
 PUT    /me/blocks/:userId          DELETE /me/blocks/:userId
 
 # Powiadomienia
-GET    /me/notifications           POST /me/notifications/read   { ids | all }
+GET    /me/notifications           POST /me/notifications/read   { ids | all }    GET /me/notifications/summary
+GET    /notifications/unsubscribe  POST /notifications/unsubscribe { token }   (wypisanie z e-maili bez logowania, F-20)
 GET    /me/notification-preferences    PUT /me/notification-preferences
 POST   /me/devices                 (rejestracja web push / Expo push)   DELETE /me/devices/:id
 
@@ -1870,6 +1871,11 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 77 | Klient Meilisearch przez HTTP bez SDK; indeks tworzony aktualizacją ustawień, a krótkie okno bez ustawień po utworzeniu (Meilisearch odrzuca wtedy filtr) API traktuje jak brak wyników | Przyjęta | §11.2 |
 | 78 | Filtry atrybutów w wyszukiwarce tylko ze schematu wybranej kategorii (z dziedziczeniem); liczby przy opcjach uwzględniają wszystkie wybrane filtry (bez faset rozłącznych w MVP); najwyżej 1000 wyników na zapytanie | Tymczasowa | §15.5 |
 | 79 | Web: filtry w zwykłym formularzu GET z polskimi parametrami (działa bez JavaScriptu); `/szukaj` bez indeksowania, strony kategorii indeksowane; sitemap renderowana przy żądaniu z danych w cache (10 min) | Przyjęta | §11.3 |
+| 80 | Powiadomienie zapisywane w transakcji zdarzenia z kluczem deduplikacji `(user_id, dedupe_key)`; dostarczenie (Socket.IO, e-mail) przez event `NotificationCreated` po zatwierdzeniu, nie job dodany w transakcji (job mógłby ruszyć przed commitem) | Przyjęta | §14.3 |
+| 81 | Powiadomienia in-app zawsze włączone; w MVP konfigurowalny kanał EMAIL; e-maile o wygranej i sprzedaży transakcyjne (bez wypisania); e-mail o nowej aukcji obserwowanego sprzedawcy domyślnie wyłączony | Tymczasowa | §5 |
+| 82 | E-mail o przebiciu najwyżej raz na 15 min na (użytkownik, aukcja): `emailed_at` i blokada doradcza w transakcji dostarczenia | Przyjęta | §5 |
+| 83 | Wypisanie jednym kliknięciem: `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058) na Route Handler w web, który woła API (API przyjmuje tylko JSON); token HMAC bez wygasania z kluczem wyprowadzonym z `BETTER_AUTH_SECRET` | Przyjęta | §16.1, §17 |
+| 84 | Szablony e-maili w React Email (`packages/emails`, render HTML i tekstu w API/workerze); treść powiadomień budowana w API, wspólna dla in-app i e-maili | Przyjęta | §11.2 |
 
 ---
 

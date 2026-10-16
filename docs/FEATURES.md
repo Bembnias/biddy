@@ -594,6 +594,8 @@ flowchart TD
 
 ### F-20 · Obserwowane i powiadomienia · `M`
 
+> Pełny spec: [docs/features/F-20-obserwowane-powiadomienia.md](features/F-20-obserwowane-powiadomienia.md).
+
 **Cel:** użytkownik nie przegapia ważnych momentów aukcji.
 
 **Zakres:**

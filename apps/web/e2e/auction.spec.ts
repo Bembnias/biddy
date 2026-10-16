@@ -93,6 +93,7 @@ function myBidding(auction: Auction) {
   return {
     auctionId: auction.id,
     isSeller: false,
+    watching: false,
     hasBid: false,
     leading: false,
     maxAmount: null,

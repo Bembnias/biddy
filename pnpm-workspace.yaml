@@ -68,6 +68,7 @@ catalog:
   socket.io-client: 4.8.4
   '@socket.io/redis-adapter': 8.3.0
   '@socket.io/redis-emitter': 5.1.0
+  '@react-email/components': 1.0.12
   '@swc-node/register': 1.12.1
   '@swc/cli': 0.8.1
   '@swc/core': 1.16.13

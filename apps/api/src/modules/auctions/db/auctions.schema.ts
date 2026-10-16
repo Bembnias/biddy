@@ -11,6 +11,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -159,3 +160,20 @@ export const bids = pgTable(
 );
 
 export type Bid = typeof bids.$inferSelect;
+
+/** Obserwowane aukcje (F-20): powiadomienie przed końcem, lista w Moje Biddy (F-21). */
+export const watchlist = pgTable(
+  'watchlist',
+  {
+    /** Konto z modułu identity (uuid bez FK między modułami). */
+    userId: uuid().notNull(),
+    auctionId: uuid()
+      .notNull()
+      .references(() => auctions.id, { onDelete: 'cascade' }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.auctionId] }),
+    index().on(table.auctionId),
+  ],
+);

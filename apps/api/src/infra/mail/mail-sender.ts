@@ -11,6 +11,8 @@ export interface MailMessage {
   readonly subject: string;
   readonly text: string;
   readonly html: string;
+  /** Dodatkowe nagłówki, np. List-Unsubscribe (RFC 8058) w e-mailach z powiadomieniami. */
+  readonly headers?: Readonly<Record<string, string>> | undefined;
 }
 
 export interface MailSender {
@@ -38,7 +40,11 @@ export class SmtpMailSender implements MailSender {
   }
 
   async send(message: MailMessage): Promise<void> {
-    await this.transporter.sendMail({ from: this.from, ...message });
+    await this.transporter.sendMail({
+      from: this.from,
+      ...message,
+      ...(message.headers === undefined ? {} : { headers: { ...message.headers } }),
+    });
   }
 }
 

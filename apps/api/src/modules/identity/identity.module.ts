@@ -23,6 +23,8 @@ import { SessionRealtimeAuthenticator } from './session/realtime-authenticator.j
 import { SessionGuard, SessionReader } from './session/session.guard.js';
 import { AUTH } from './session/session.js';
 import { TermsService } from './terms/terms.service.js';
+import { FollowService } from './follows/follow.service.js';
+import { FollowsController } from './follows/follows.controller.js';
 
 export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
 
@@ -41,6 +43,7 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     PhoneVerificationController,
     AddressesController,
     UsersController,
+    FollowsController,
   ],
   providers: [
     {
@@ -55,6 +58,7 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     AddressService,
     SellerStandingService,
     BuyerStandingService,
+    FollowService,
     {
       provide: AUTH,
       inject: [APP_CONFIG, DRIZZLE, MailQueue, TURNSTILE_VERIFIER, LoginThrottle, TermsService],
@@ -81,6 +85,7 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     ProfileService,
     SellerStandingService,
     BuyerStandingService,
+    FollowService,
   ],
 })
 export class IdentityModule implements OnModuleInit {

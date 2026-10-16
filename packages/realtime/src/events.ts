@@ -73,12 +73,26 @@ export interface UserWonEvent {
 }
 
 /** Zdarzenia serwer → klient (typy dla Socket.IO). */
+/** Nowe powiadomienie w centrum powiadomień (F-20), z liczbą nieprzeczytanych do dzwonka. */
+export interface NotificationNewEvent {
+  readonly id: string;
+  /** Typ z NOTIFICATION_TYPES w @biddy/shared, np. `OUTBID`. */
+  readonly type: string;
+  readonly title: string;
+  readonly body: string;
+  /** Ścieżka w web, np. `/a/wazon-k3x9qa7m`. */
+  readonly url: string;
+  readonly createdAt: string;
+  readonly unreadCount: number;
+}
+
 export interface ServerToClientEvents {
   'auction.updated': (event: AuctionUpdatedEvent) => void;
   'auction.extended': (event: AuctionExtendedEvent) => void;
   'auction.ended': (event: AuctionEndedEvent) => void;
   'user.outbid': (event: UserOutbidEvent) => void;
   'user.won': (event: UserWonEvent) => void;
+  'notification.new': (event: NotificationNewEvent) => void;
 }
 
 export type SubscribeResult =

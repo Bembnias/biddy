@@ -10,6 +10,7 @@ import type {
   UserHandlers,
   UserOutbidEvent,
   UserWonEvent,
+  NotificationNewEvent,
 } from '@biddy/realtime';
 import { vi } from 'vitest';
 
@@ -97,6 +98,13 @@ export function fakeRealtimeClient() {
         handlers.onWon?.(event);
       }
     },
+    notification(event: NotificationNewEvent) {
+      for (const handlers of users) {
+        handlers.onNotification?.(event);
+      }
+    },
+    /** Liczba subskrypcji zdarzeń użytkownika. */
+    userSubscribers: () => users.size,
     reconnect() {
       reconnects.forEach((callback) => {
         callback();

@@ -234,6 +234,7 @@
       "profileSection": "Profil i adresy",
       "editProfile": "Edytuj profil",
       "addresses": "Adresy",
+      "notifications": "Powiadomienia",
       "sellingSection": "Sprzedaż",
       "myAuctions": "Moje aukcje",
       "sell": "Wystaw przedmiot",
@@ -266,7 +267,15 @@
       "ratings": "Oceny",
       "noRatings": "Oceny pojawią się po pierwszych transakcjach."
     },
-    "avatarLabel": "Zdjęcie profilowe: {name}"
+    "avatarLabel": "Zdjęcie profilowe: {name}",
+    "follow": {
+      "follow": "Obserwuj sprzedawcę",
+      "following": "Obserwujesz",
+      "unfollowLabel": "Przestań obserwować sprzedawcę {name}",
+      "guest": "Zaloguj się, aby obserwować",
+      "hint": "Powiadomimy Cię o nowych aukcjach tego sprzedawcy.",
+      "error": "Nie udało się zmienić obserwowania."
+    }
   },
   "addresses": {
     "metaTitle": "Adresy",
@@ -676,6 +685,14 @@
       "loading": "Wczytywanie historii ofert…",
       "error": "Nie udało się wczytać historii ofert.",
       "retry": "Spróbuj ponownie"
+    },
+    "watch": {
+      "watch": "Obserwuj",
+      "watching": "Obserwujesz",
+      "watchLabel": "Obserwuj aukcję",
+      "unwatchLabel": "Przestań obserwować aukcję",
+      "guest": "Zaloguj się, aby obserwować",
+      "error": "Nie udało się zmienić obserwowania."
     }
   },
   "search": {
@@ -737,6 +754,49 @@
       "relevance": "Przy wyszukiwaniu po słowach najwyżej są aukcje, które najlepiej pasują do zapytania: liczba pasujących słów, literówki (tolerujemy drobne), bliskość słów i miejsce dopasowania (tytuł i marka ważą więcej niż opis).",
       "sort": "Możesz też wybrać sortowanie: aukcje kończące się najwcześniej (domyślne bez zapytania), najnowsze, cena albo liczba ofert.",
       "noPaid": "Nie sprzedajemy pozycji w wynikach: kolejność nie zależy od opłat sprzedawców. Pokazujemy tylko aktywne aukcje."
+    }
+  },
+  "notifications": {
+    "bell": "{count, plural, =0 {Powiadomienia} one {Powiadomienia, # nieprzeczytane} few {Powiadomienia, # nieprzeczytane} many {Powiadomienia, # nieprzeczytanych} other {Powiadomienia, # nieprzeczytanego}}",
+    "metaTitle": "Powiadomienia",
+    "title": "Powiadomienia",
+    "markAll": "Oznacz wszystkie jako przeczytane",
+    "empty": "Nie masz jeszcze powiadomień. Obserwuj aukcje i licytuj, a damy znać o ważnych momentach.",
+    "unread": "Nieprzeczytane",
+    "more": "Pokaż starsze",
+    "loading": "Wczytywanie powiadomień…",
+    "error": "Nie udało się wczytać powiadomień.",
+    "retry": "Spróbuj ponownie",
+    "settingsLink": "Ustawienia powiadomień",
+    "settings": {
+      "metaTitle": "Ustawienia powiadomień",
+      "title": "Ustawienia powiadomień",
+      "lead": "Powiadomienia w aplikacji dostajesz zawsze. Tu wybierasz, o czym napiszemy też e-mailem.",
+      "email": "E-mail",
+      "always": "Zawsze wysyłamy (termin płatności i wysyłka)",
+      "saved": "Zapisano",
+      "error": "Nie udało się zapisać. Spróbuj ponownie.",
+      "types": {
+        "OUTBID": "Ktoś przebił Twoją ofertę (najwyżej raz na 15 minut na aukcję)",
+        "ENDING_SOON": "Obserwowana albo licytowana aukcja kończy się za godzinę",
+        "WON": "Wygrana aukcja",
+        "SOLD": "Sprzedany przedmiot",
+        "UNSOLD": "Aukcja zakończona bez sprzedaży",
+        "AUCTION_CANCELLED": "Anulowana aukcja, którą obserwujesz albo licytujesz",
+        "FOLLOWED_SELLER_NEW_AUCTION": "Nowa aukcja obserwowanego sprzedawcy"
+      }
+    },
+    "unsubscribe": {
+      "metaTitle": "Wypisanie z e-maili",
+      "title": "Wypisanie z e-maili",
+      "lead": "{scope, select, ALL {Nie będziemy wysyłać e-maili z powiadomieniami (poza wygranymi i sprzedażą).} other {Nie będziemy wysyłać e-maili tego typu: {type}.}}",
+      "inApp": "Powiadomienia w aplikacji zostaną.",
+      "action": "Wypisz mnie",
+      "sending": "Wypisywanie…",
+      "done": "Gotowe: wypisaliśmy Cię z tych e-maili.",
+      "invalid": "Link wypisania jest nieprawidłowy. Zmień ustawienia po zalogowaniu.",
+      "error": "Nie udało się wypisać. Spróbuj ponownie.",
+      "settings": "Ustawienia powiadomień"
     }
   }
 }

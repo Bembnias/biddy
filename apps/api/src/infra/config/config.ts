@@ -545,6 +545,7 @@ function crossFieldIssues(
   } else {
     required.push(
       ['WEB_URL', 'adres aplikacji web, np. https://biddy.pl (rewalidacja stron aukcji)'],
+      ['BETTER_AUTH_SECRET', 'ten sam sekret co w API: podpis linków wypisania z e-maili (F-20)'],
       [
         'WEB_REVALIDATE_SECRET',
         'sekret rewalidacji stron aukcji, ten sam co w web (np. openssl rand -base64 32)',

@@ -49,6 +49,11 @@ export const QUEUE_DEFINITIONS = {
       'Zamykanie aukcji: joby z terminem (ID z ends_at) i sweeper co 10 s jako siatka bezpieczeństwa (F-16)',
     concurrency: 10,
   },
+  notifications: {
+    description:
+      'Powiadomienia z terminem, np. „aukcja kończy się za godzinę” (F-20); dostarczenie idzie przez domain-events',
+    concurrency: 10,
+  },
   search: {
     description:
       'Indeks wyszukiwarki (Meilisearch): aktualizacja aukcji najwyżej raz na 5 s i nocny pełny reindeks (F-19)',

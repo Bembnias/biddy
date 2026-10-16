@@ -153,7 +153,7 @@ Na produkcji API i worker to dwa procesy z tego samego buildu: `pnpm --filter @b
 
 API czyta zmienne z `.env` w katalogu głównym (tworzy go `pnpm bootstrap`). Baza potrzebuje migracji przed pierwszym startem: `pnpm bootstrap` robi to sam, później wystarczy `pnpm db:reset` albo `pnpm --filter @biddy/api db:migrate`. API importuje zbudowany pakiet `@biddy/shared` (`packages/shared/dist`), więc na świeżym klonie uruchom najpierw `pnpm build`.
 
-Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL`, `REDIS_CACHE_URL`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `MEDIA_PUBLIC_URL`, `MEILI_URL` i `MEILI_API_KEY`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API; za to wymaga `WEB_URL` i `WEB_REVALIDATE_SECRET` (rewalidacja stron aukcji, F-18). Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
+Konfigurację sprawdza schemat Zod przy starcie (`apps/api/src/infra/config/config.ts`). Brakująca lub błędna zmienna kończy start kodem 1, a na stderr trafia lista wszystkich złych zmiennych. Dzieje się to, zanim API połączy się z czymkolwiek. Wymagana jest tylko `DATABASE_URL`. Na produkcji także `REDIS_QUEUE_URL`, `REDIS_CACHE_URL`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `MEDIA_PUBLIC_URL`, `MEILI_URL` i `MEILI_API_KEY`, a dla API dodatkowo `CORS_ORIGINS`, `BETTER_AUTH_SECRET`, `API_PUBLIC_URL`, `WEB_URL`, klucze Turnstile i `SMSAPI_TOKEN`. Worker sprawdza te same zmienne, ale nie wymaga tych, których używa tylko API; za to wymaga `WEB_URL`, `WEB_REVALIDATE_SECRET` (rewalidacja stron aukcji, F-18) i `BETTER_AUTH_SECRET` (podpis linków wypisania z e-maili, F-20). Pozostałe zmienne i ich wartości domyślne opisuje sekcja „API” w [`.env.example`](.env.example).
 
 | Adres lokalny                   | Co to jest                                                                                                            |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -429,6 +429,16 @@ Kupujący szuka aukcji z literówkami, filtrami i fasetami. Spec: [F-19](docs/fe
 - **Web:** strona główna z sekcjami „Kończą się wkrótce” i „Nowe aukcje” oraz kategoriami (ISR 60 s), `/szukaj` (`noindex`) i `/kategoria/{ścieżka}` z filtrami w zwykłym formularzu GET (działa bez JavaScriptu; parametry `q`, `kategoria`, `stan`, `cena_od`, `cena_do`, `a.{klucz}`, `a.{klucz}.od`/`.do`, `sort`, `strona`), paginacją i opisem kolejności wyników (Omnibus). `/sitemap.xml` z kategoriami i aktywnymi aukcjami; profil publiczny pokazuje aktywne aukcje sprzedawcy.
 - **Lokalnie:** Meilisearch z `pnpm infra:up` (klucz główny z `.env`). Testy integracyjne uruchamiają własny kontener Meilisearch.
 
+### Obserwowane i powiadomienia (F-20)
+
+Użytkownik nie przegapia ważnych momentów aukcji. Spec: [F-20](docs/features/F-20-obserwowane-powiadomienia.md).
+
+- **Obserwowanie:** `PUT`/`DELETE /v1/me/watchlist/{auctionId}` (tabela `watchlist`, moduł `auctions`; stan w `GET /v1/me/bids/{id}` jako `watching`) i `PUT`/`DELETE`/`GET /v1/me/followed-sellers/{userId}` (tabela `user_follows`, moduł `identity`).
+- **Powiadomienia** (moduł `notifications`): `OUTBID`, `ENDING_SOON` (job 1 h przed końcem dla obserwujących i licytujących), `WON` i `SOLD` (z `OrderCreated`), `UNSOLD`, `AUCTION_CANCELLED`, `FOLLOWED_SELLER_NEW_AUCTION`. Konsument eventu zapisuje powiadomienie w transakcji z kluczem deduplikacji (unikalny `(user_id, dedupe_key)`); event `NotificationCreated` dostarcza je po zatwierdzeniu: `notification.new` przez Socket.IO (licznik w dzwonku) i e-mail według preferencji. E-mail o przebiciu najwyżej raz na 15 min na aukcję (`emailed_at`, blokada doradcza).
+- **Centrum i preferencje:** `GET /v1/me/notifications`, `GET /v1/me/notifications/summary`, `POST /v1/me/notifications/read`, `GET`/`PUT /v1/me/notification-preferences` (konfigurowalny kanał `EMAIL`; wygrana i sprzedaż zawsze). Web: dzwonek w nagłówku, `/powiadomienia`, `/konto/powiadomienia`, przyciski „Obserwuj” na stronie aukcji i profilu.
+- **Wypisanie:** e-maile z powiadomieniami mają `List-Unsubscribe` i `List-Unsubscribe-Post: One-Click` (RFC 8058) z adresem `{WEB_URL}/api/wypisz?token=…` (Route Handler w web woła API, które przyjmuje tylko JSON) i link do `/wypisz?token=…`. Token: HMAC z kluczem wyprowadzonym z `BETTER_AUTH_SECRET`, więc worker na produkcji wymaga tego sekretu.
+- **E-maile:** szablony React Email w `packages/emails` (`notificationEmail`, e-maile kont z F-07); HTML i tekst, kolory z design tokens. Lokalnie podgląd w Mailpit (`http://localhost:8025`).
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
@@ -600,6 +610,7 @@ biddy/
 │  ├─ api-client/          # klient API z orval: funkcje, hooki TanStack Query, fetcher (ApiError)
 │  ├─ config/              # wspólna konfiguracja: tsconfig, ESLint, Prettier
 │  ├─ design-tokens/       # kolory, typografia, promienie → motyw Tailwind 4 (web) i wartości JS (mobile)
+│  ├─ emails/              # szablony e-maili w React Email (powiadomienia, konta): HTML i tekst
 │  ├─ realtime/            # typy zdarzeń WebSocket i klient Socket.IO z reconnectem i zegarem serwera
 │  └─ shared/              # logika współdzielona: Money, POK i kroki przebicia, dni robocze, kody błędów API
 ├─ infra/

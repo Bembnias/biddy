@@ -75,6 +75,7 @@ export class MyBiddingDto extends createZodDto(
   z.object({
     auctionId: z.uuid(),
     isSeller: z.boolean().describe('Aukcja zalogowanego użytkownika'),
+    watching: z.boolean().describe('Obserwujesz aukcję (F-20)'),
     hasBid: z.boolean(),
     leading: z.boolean(),
     maxAmount: z.int().nullable().describe('Twoje najwyższe maksimum (grosze) albo null'),
@@ -152,6 +153,7 @@ function toMyBiddingDto(bidding: MyBidding): MyBiddingDto {
   return {
     auctionId: bidding.auction.id,
     isSeller: bidding.isSeller,
+    watching: bidding.watching,
     hasBid: bidding.hasBid,
     leading: bidding.leading,
     maxAmount: bidding.maxAmount,

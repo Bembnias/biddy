@@ -19,7 +19,13 @@ import { ProfileService, type PublicProfile } from '../../identity/index.js';
 import { type MediaDescription, MediaService } from '../../media/index.js';
 import { type Order, OrderService } from '../../orders/index.js';
 import { type Carrier, CarrierService } from '../../shipping/index.js';
-import { type Auction, type AuctionStatus, auctions, bids } from '../db/auctions.schema.js';
+import {
+  type Auction,
+  type AuctionStatus,
+  auctions,
+  bids,
+  watchlist,
+} from '../db/auctions.schema.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
@@ -55,6 +61,8 @@ export type BiddingOutcome = 'NONE' | 'WON' | 'LOST' | 'RESERVE_NOT_MET';
 export interface MyBidding {
   readonly auction: Auction;
   readonly isSeller: boolean;
+  /** Obserwuje aukcję (F-20). */
+  readonly watching: boolean;
   readonly hasBid: boolean;
   readonly leading: boolean;
   /** Najwyższe maksimum użytkownika (ważne oferty) albo null. */
@@ -130,6 +138,10 @@ export class AuctionViewService {
       .where(
         and(eq(bids.auctionId, auction.id), eq(bids.bidderId, userId), eq(bids.status, 'VALID')),
       );
+    const [watched] = await this.db
+      .select({ auctionId: watchlist.auctionId })
+      .from(watchlist)
+      .where(and(eq(watchlist.userId, userId), eq(watchlist.auctionId, auction.id)));
     const hasBid = (mine?.bids ?? 0) > 0;
     const leading = auction.leaderId === userId;
     const outcome = outcomeOf(auction, hasBid, leading);
@@ -137,6 +149,7 @@ export class AuctionViewService {
     return {
       auction,
       isSeller: auction.sellerId === userId,
+      watching: watched !== undefined,
       hasBid,
       leading,
       maxAmount: mine?.maxAmount ?? null,

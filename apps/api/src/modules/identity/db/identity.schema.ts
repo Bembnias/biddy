@@ -12,6 +12,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -253,3 +254,22 @@ export const addresses = pgTable(
 );
 
 export type Address = typeof addresses.$inferSelect;
+
+/** Obserwowani sprzedawcy (F-20): powiadomienie o nowej aukcji. Obserwujący nie są publiczni. */
+export const userFollows = pgTable(
+  'user_follows',
+  {
+    followerId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    sellerId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.followerId, table.sellerId] }),
+    index().on(table.sellerId),
+    check('user_follows_not_self_check', sql`${table.followerId} <> ${table.sellerId}`),
+  ],
+);

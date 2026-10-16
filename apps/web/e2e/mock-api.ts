@@ -160,6 +160,9 @@ const FASHION_RESULT = searchResult([searchCard(3, 'Nike Air Max 90')], {
   ],
 });
 
+/** Poprawny token wypisania z e-maili (F-20) w atrapie. */
+export const UNSUBSCRIBE_TOKEN = 'e2e-unsubscribe-token.valid-signature';
+
 /** Numer telefonu konta z sesją `phoneVerified`. */
 export const MEMBER_PHONE = '+48500600700';
 
@@ -217,6 +220,8 @@ const publicAuctions = new Map<string, Record<string, unknown>>();
 const searchByQuery = new Map<string, Record<string, unknown>>();
 /** Parametry zapytań wyszukiwania z renderowania na serwerze (asercje e2e). */
 const searchRequests: string[] = [];
+/** Tokeny, którymi wypisano się z e-maili (POST /api/wypisz w web → API, F-20). */
+const unsubscribed: string[] = [];
 
 function searchResponse(params: URLSearchParams): { status: number; body: unknown } {
   const q = params.get('q') ?? '';
@@ -335,6 +340,24 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     searchRequests.push(url.searchParams.toString());
     const { status, body } = searchResponse(url.searchParams);
     send(response, status, body);
+    return;
+  }
+  if (request.method === 'POST' && path === '/v1/notifications/unsubscribe') {
+    const { token } = (await readJson(request)) as { token?: string };
+    if (token !== UNSUBSCRIBE_TOKEN) {
+      send(
+        response,
+        400,
+        problem(400, 'VALIDATION_FAILED', 'Link wypisania jest nieprawidłowy.', path),
+      );
+      return;
+    }
+    unsubscribed.push(token);
+    send(response, 200, { scope: 'OUTBID', types: ['OUTBID'] });
+    return;
+  }
+  if (request.method === 'GET' && path === '/__e2e/unsubscribed') {
+    send(response, 200, unsubscribed);
     return;
   }
   if (request.method === 'GET' && path === '/v1/categories') {

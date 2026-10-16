@@ -62,6 +62,12 @@ COPY --from=production-deps --chown=node:node /repo/apps/api/node_modules ./apps
 COPY --from=production-deps --chown=node:node /repo/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=builder --chown=node:node /repo/packages/shared/package.json ./packages/shared/
 COPY --from=builder --chown=node:node /repo/packages/shared/dist ./packages/shared/dist
+# Szablony e-maili (F-20) z Reactem i React Email oraz kolory z design tokens.
+COPY --from=production-deps --chown=node:node /repo/packages/emails/node_modules ./packages/emails/node_modules
+COPY --from=builder --chown=node:node /repo/packages/emails/package.json ./packages/emails/
+COPY --from=builder --chown=node:node /repo/packages/emails/dist ./packages/emails/dist
+COPY --from=builder --chown=node:node /repo/packages/design-tokens/package.json ./packages/design-tokens/
+COPY --from=builder --chown=node:node /repo/packages/design-tokens/dist ./packages/design-tokens/dist
 COPY --from=builder --chown=node:node /repo/apps/api/package.json ./apps/api/
 COPY --from=builder --chown=node:node /repo/apps/api/dist ./apps/api/dist
 # Migracje SQL (src/infra/db/migrations.ts szuka ich w apps/api/drizzle względem dist/).

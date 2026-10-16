@@ -13,6 +13,8 @@ export interface MyBiddingDto {
   auctionId: string;
   /** Aukcja zalogowanego użytkownika */
   isSeller: boolean;
+  /** Obserwujesz aukcję (F-20) */
+  watching: boolean;
   hasBid: boolean;
   leading: boolean;
   /**

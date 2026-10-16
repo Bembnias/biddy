@@ -336,7 +336,7 @@ describe('loadConfig: SMS-y (F-08)', () => {
 });
 
 describe('loadConfig: konta i e-maile (F-07)', () => {
-  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend, S3 i Meilisearch; worker Redisa cache, Resend, S3, Meilisearch i rewalidacji web', () => {
+  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend, S3 i Meilisearch; worker Redisa cache, Resend, S3, Meilisearch, rewalidacji web i sekretu linków', () => {
     const missing = {
       ...minimal,
       NODE_ENV: 'production',
@@ -364,6 +364,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
     expect(issuesFor(missing, 'worker').map((issue) => issue.variable)).toEqual([
       'REDIS_CACHE_URL',
       'WEB_URL',
+      'BETTER_AUTH_SECRET',
       'RESEND_API_KEY',
       'S3_ENDPOINT',
       'S3_ACCESS_KEY_ID',

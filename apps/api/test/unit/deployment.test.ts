@@ -38,6 +38,26 @@ describe('apps/api/Dockerfile', () => {
     expect(dockerfile).toMatch(/^USER node$/m);
   });
 
+  it('obraz zawiera każdy pakiet workspace, którego API używa w runtime (także pośrednio)', () => {
+    const runtime = new Set<string>();
+    const visit = (manifestPath: string) => {
+      const manifest = JSON.parse(read(manifestPath)) as { dependencies?: Record<string, string> };
+      for (const [name, version] of Object.entries(manifest.dependencies ?? {})) {
+        const directory = name.replace('@biddy/', '');
+        if (version.startsWith('workspace:') && !runtime.has(directory)) {
+          runtime.add(directory);
+          visit(`packages/${directory}/package.json`);
+        }
+      }
+    };
+    visit('apps/api/package.json');
+    expect([...runtime]).toEqual(expect.arrayContaining(['shared', 'emails', 'design-tokens']));
+    for (const name of runtime) {
+      expect(dockerfile, name).toContain(`/repo/packages/${name}/dist ./packages/${name}/dist`);
+      expect(blueprint, name).toContain(`- packages/${name}/**`);
+    }
+  });
+
   it('pakiety workspace w obrazie mają swoje zależności produkcyjne (node_modules)', () => {
     const packages = [
       ...dockerfile.matchAll(/^COPY --from=builder .*\/repo\/packages\/([\w-]+)\/dist /gm),

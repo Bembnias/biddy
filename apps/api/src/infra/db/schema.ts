@@ -17,3 +17,4 @@ export * from '../../modules/payments/db/payments.schema.js';
 export * from '../../modules/shipping/db/shipping.schema.js';
 export * from '../../modules/auctions/db/auctions.schema.js';
 export * from '../../modules/orders/db/orders.schema.js';
+export * from '../../modules/notifications/db/notifications.schema.js';

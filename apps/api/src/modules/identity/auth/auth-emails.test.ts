@@ -6,8 +6,11 @@ const URL_WITH_TOKEN =
   'https://api.biddy.pl/v1/auth/verify-email?token=abc&callbackURL=https://biddy.pl/x';
 
 describe('e-maile kont', () => {
-  it('weryfikacja: adresat, temat, link w tekście i HTML', () => {
-    const message = verificationEmail({ email: 'jan@example.com', name: 'Jan' }, URL_WITH_TOKEN);
+  it('weryfikacja: adresat, temat, link w tekście i HTML', async () => {
+    const message = await verificationEmail(
+      { email: 'jan@example.com', name: 'Jan' },
+      URL_WITH_TOKEN,
+    );
     expect(message).toMatchObject({
       to: 'jan@example.com',
       subject: 'Potwierdź adres e-mail w Biddy',
@@ -18,8 +21,8 @@ describe('e-maile kont', () => {
     );
   });
 
-  it('imię z formularza jest escapowane w HTML (bez wstrzyknięcia znaczników)', () => {
-    const message = resetPasswordEmail(
+  it('imię z formularza jest escapowane w HTML (bez wstrzyknięcia znaczników)', async () => {
+    const message = await resetPasswordEmail(
       { email: 'a@b.pl', name: '<script>alert(1)</script>' },
       URL_WITH_TOKEN,
     );

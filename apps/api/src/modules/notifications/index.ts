@@ -7,3 +7,6 @@
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
  */
 export { NotificationsModule } from './notifications.module.js';
+export { NotificationCreated } from './notifications.events.js';
+export { type NotifyInput, NotificationService } from './notifications/notification.service.js';
+export { PreferenceService } from './notifications/preference.service.js';

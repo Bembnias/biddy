@@ -49,6 +49,7 @@ function myBidding(overrides: Partial<MyBiddingDto> = {}): MyBiddingDto {
   return {
     auctionId: AUCTION_ID,
     isSeller: false,
+    watching: false,
     hasBid: false,
     leading: false,
     maxAmount: null,

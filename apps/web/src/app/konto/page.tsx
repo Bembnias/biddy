@@ -82,6 +82,9 @@ export default async function AccountPage() {
           <Button asChild variant="outline">
             <Link href={routes.addresses}>{t('addresses')}</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link href={routes.notificationSettings}>{t('notifications')}</Link>
+          </Button>
           <Button asChild variant="link" className="px-0">
             <Link href={publicProfileUrl(me.id)}>{t('viewPublicProfile')}</Link>
           </Button>

@@ -14,6 +14,7 @@ import {
   type ServerToClientEvents,
   type UserOutbidEvent,
   type UserWonEvent,
+  type NotificationNewEvent,
 } from './events.js';
 
 export type RealtimeSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -29,6 +30,8 @@ export interface AuctionHandlers {
 export interface UserHandlers {
   readonly onOutbid?: (event: UserOutbidEvent) => void;
   readonly onWon?: (event: UserWonEvent) => void;
+  /** Nowe powiadomienie (F-20). */
+  readonly onNotification?: (event: NotificationNewEvent) => void;
 }
 
 export interface RealtimeClientOptions {
@@ -215,6 +218,9 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     });
     created.on('user.won', (event) => {
       users.forEach((handlers) => handlers.onWon?.(event));
+    });
+    created.on('notification.new', (event) => {
+      users.forEach((handlers) => handlers.onNotification?.(event));
     });
     return created;
   };

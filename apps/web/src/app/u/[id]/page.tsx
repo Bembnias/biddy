@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 
+import { FollowSellerButton } from '@/components/profile/follow-seller-button';
 import { UserAvatar } from '@/components/profile/user-avatar';
 import { AuctionGrid } from '@/components/search/auction-card';
 import { monthAndYear } from '@/lib/dates';
@@ -72,6 +73,9 @@ export default async function PublicProfilePage({ params }: PageProps) {
               {t('public.phoneVerified')}
             </p>
           ) : null}
+        </div>
+        <div className="w-full sm:ml-auto sm:w-auto">
+          <FollowSellerButton sellerId={profile.id} sellerName={profile.name} />
         </div>
       </header>
       <section aria-labelledby="active-auctions" className="mt-10">

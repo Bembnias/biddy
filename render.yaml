@@ -64,6 +64,8 @@ services:
         - apps/api/**
         - packages/shared/**
         - packages/realtime/**
+        - packages/emails/**
+        - packages/design-tokens/**
         - packages/config/**
         - package.json
         - pnpm-lock.yaml
@@ -154,6 +156,8 @@ services:
         - apps/api/**
         - packages/shared/**
         - packages/realtime/**
+        - packages/emails/**
+        - packages/design-tokens/**
         - packages/config/**
         - package.json
         - pnpm-lock.yaml

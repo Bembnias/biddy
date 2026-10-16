@@ -1,0 +1,10 @@
+{
+  "extends": "@biddy/config/tsconfig/library.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["src", "tsdown.config.ts", "vitest.config.ts", "eslint.config.js"]
+}

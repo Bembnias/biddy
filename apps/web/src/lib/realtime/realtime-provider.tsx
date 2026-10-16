@@ -155,7 +155,10 @@ export function useAuctionChannel(
   }, [auctionId, client]);
 }
 
-/** Zdarzenia zalogowanego użytkownika (przebicie, wygrana); serwer sam dołącza room użytkownika. */
+/**
+ * Zdarzenia zalogowanego użytkownika (przebicie, wygrana, nowe powiadomienie); serwer sam
+ * dołącza room użytkownika.
+ */
 export function useUserRealtimeEvents(handlers: UserHandlers, enabled = true): void {
   const { client } = useRealtime();
   const onOutbid = useEffectEvent((event: Parameters<NonNullable<UserHandlers['onOutbid']>>[0]) =>
@@ -163,6 +166,10 @@ export function useUserRealtimeEvents(handlers: UserHandlers, enabled = true): v
   );
   const onWon = useEffectEvent((event: Parameters<NonNullable<UserHandlers['onWon']>>[0]) =>
     handlers.onWon?.(event),
+  );
+  const onNotification = useEffectEvent(
+    (event: Parameters<NonNullable<UserHandlers['onNotification']>>[0]) =>
+      handlers.onNotification?.(event),
   );
 
   useEffect(() => {
@@ -179,6 +186,9 @@ export function useUserRealtimeEvents(handlers: UserHandlers, enabled = true): v
           },
           onWon: (event) => {
             onWon(event);
+          },
+          onNotification: (event) => {
+            onNotification(event);
           },
         });
       }

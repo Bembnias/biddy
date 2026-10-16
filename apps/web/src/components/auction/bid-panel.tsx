@@ -41,6 +41,7 @@ import {
 import { routes, withNext } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
+import { WatchButton } from './watch-button';
 import {
   useAuction,
   useBidder,
@@ -108,27 +109,30 @@ export function BidPanel({
       <h2 id="bid-panel-title" className="sr-only">
         {t('title')}
       </h2>
-      <div>
-        <p className="text-sm text-muted-foreground">{priceLabel}</p>
-        <p className="text-3xl font-bold tabular-nums" data-testid="auction-price">
-          {short(auction.currentPrice ?? auction.startPrice)}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('bids', { count: auction.bidCount })}
-          {auction.leader === null ? null : (
-            <> · {t('leader', { name: auction.leader.publicName })}</>
-          )}
-        </p>
-        {auction.reserveStatus === 'NONE' ? null : (
-          <p
-            className={cn(
-              'mt-1 text-sm',
-              auction.reserveStatus === 'MET' ? 'text-success' : 'text-muted-foreground',
-            )}
-          >
-            {t('reserve', { status: auction.reserveStatus })}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted-foreground">{priceLabel}</p>
+          <p className="text-3xl font-bold tabular-nums" data-testid="auction-price">
+            {short(auction.currentPrice ?? auction.startPrice)}
           </p>
-        )}
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t('bids', { count: auction.bidCount })}
+            {auction.leader === null ? null : (
+              <> · {t('leader', { name: auction.leader.publicName })}</>
+            )}
+          </p>
+          {auction.reserveStatus === 'NONE' ? null : (
+            <p
+              className={cn(
+                'mt-1 text-sm',
+                auction.reserveStatus === 'MET' ? 'text-success' : 'text-muted-foreground',
+              )}
+            >
+              {t('reserve', { status: auction.reserveStatus })}
+            </p>
+          )}
+        </div>
+        <WatchButton auction={auction} user={user} bidding={bidding} />
       </div>
 
       <Timing auction={auction} phase={phase} now={now} />

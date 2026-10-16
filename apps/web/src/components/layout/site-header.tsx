@@ -2,6 +2,7 @@ import { CirclePlus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Button } from '@/components/ui/button';
 import { routes } from '@/lib/routes';
 
@@ -29,6 +30,9 @@ export function SiteHeader() {
                   <span className="max-sm:sr-only">{t('sell')}</span>
                 </Link>
               </Button>
+            </li>
+            <li>
+              <NotificationBell />
             </li>
             <li>
               <UserMenu />
