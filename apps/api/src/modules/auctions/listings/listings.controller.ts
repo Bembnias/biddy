@@ -22,6 +22,7 @@ import {
   RequireSession,
   RequireVerifiedPhone,
 } from '../../identity/index.js';
+import { ORDER_STATUSES } from '../../orders/index.js';
 import { AUCTION_STATUSES, REVIEW_REASONS } from '../db/auctions.schema.js';
 import {
   isEditable,
@@ -144,6 +145,15 @@ export class AuctionSummaryDto extends createZodDto(
     bidCount: z.int().min(0),
     endsAt: z.iso.datetime().nullable(),
     updatedAt: z.iso.datetime(),
+    order: z
+      .object({
+        id: z.uuid(),
+        publicId: z.string(),
+        status: z.enum(ORDER_STATUSES),
+        paymentDueAt: z.iso.datetime(),
+      })
+      .nullable()
+      .describe('Zamówienie sprzedanej aukcji (F-21)'),
   }),
 ) {}
 
@@ -230,7 +240,7 @@ function toDto({ auction, item, photos }: ListingView): ListingDto {
   };
 }
 
-function toSummaryDto({ auction, title, coverUrl }: ListingSummary): AuctionSummaryDto {
+function toSummaryDto({ auction, title, coverUrl, order }: ListingSummary): AuctionSummaryDto {
   return {
     id: auction.id,
     publicId: auction.publicId,
@@ -244,6 +254,15 @@ function toSummaryDto({ auction, title, coverUrl }: ListingSummary): AuctionSumm
     bidCount: auction.bidCount,
     endsAt: iso(auction.endsAt),
     updatedAt: auction.updatedAt.toISOString(),
+    order:
+      order === undefined
+        ? null
+        : {
+            id: order.id,
+            publicId: order.publicId,
+            status: order.status,
+            paymentDueAt: order.paymentDueAt.toISOString(),
+          },
   };
 }
 

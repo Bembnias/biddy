@@ -16,7 +16,9 @@ import { AuctionLiveEvents } from './live/auction-live-events.js';
 import { ListingService } from './listings/listing.service.js';
 import { AuctionsController, MyAuctionsController } from './listings/listings.controller.js';
 import { AuctionPages } from './pages/auction-pages.js';
+import { AuctionCards } from './public/auction-cards.js';
 import { AuctionDirectory } from './public/auction-directory.js';
+import { MyListsService } from './public/my-lists.service.js';
 import { AuctionSearchSource } from './public/auction-search-source.js';
 import { AuctionViewService } from './public/auction-view.service.js';
 import { MyBidsController, PublicAuctionsController } from './public/public-auctions.controller.js';
@@ -49,6 +51,8 @@ import { WatchlistService } from './watchlist/watchlist.service.js';
     AuctionSearchSource,
     AuctionDirectory,
     WatchlistService,
+    AuctionCards,
+    MyListsService,
   ],
   exports: [
     ListingService,

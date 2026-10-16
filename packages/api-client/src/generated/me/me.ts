@@ -37,11 +37,14 @@ import type {
   CreateAddressDto,
   FollowStateDto,
   GetMyAuctionsParams,
+  GetMyBidsParams,
   GetMyNotificationsParams,
   ListingDto,
   MarkReadDto,
   MeDto,
   MyBiddingDto,
+  MyBidsDto,
+  MyWatchlistDto,
   NotificationListDto,
   NotificationPreferencesDto,
   NotificationSummaryDto,
@@ -2087,6 +2090,169 @@ export function useGetSellingLimitsSuspense<TData = Awaited<ReturnType<typeof ge
 
 
 
+export const getGetMyBidsUrl = (params: GetMyBidsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/me/bids?${stringifiedParams}` : `/v1/me/bids`
+}
+
+/**
+ * Aukcje z moimi ważnymi ofertami: trwające, wygrane albo przegrane; po 24.
+ * @summary Moje licytacje (Moje Biddy)
+ */
+export const getMyBids = async (params: GetMyBidsParams, options?: Parameters<typeof apiFetch>[1]): Promise<MyBidsDto> => {
+
+  return apiFetch<MyBidsDto>(getGetMyBidsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyBidsQueryKey = (params?: GetMyBidsParams,) => {
+    return [
+    `/v1/me/bids`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMyBidsQueryOptions = <TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(params: GetMyBidsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBidsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBids>>> = ({ signal }) => getMyBids(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyBidsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBids>>>
+export type GetMyBidsQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBids<TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(
+ params: GetMyBidsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBids>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBids>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBids<TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(
+ params: GetMyBidsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBids>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBids>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBids<TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(
+ params: GetMyBidsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Moje licytacje (Moje Biddy)
+ */
+
+export function useGetMyBids<TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(
+ params: GetMyBidsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBidsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyBidsSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(params: GetMyBidsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBidsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBids>>> = ({ signal }) => getMyBids(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyBidsSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBids>>>
+export type GetMyBidsSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBidsSuspense<TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(
+ params: GetMyBidsParams, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBidsSuspense<TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(
+ params: GetMyBidsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBidsSuspense<TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(
+ params: GetMyBidsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Moje licytacje (Moje Biddy)
+ */
+
+export function useGetMyBidsSuspense<TData = Awaited<ReturnType<typeof getMyBids>>, TError = ErrorType<ProblemDetails>>(
+ params: GetMyBidsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBids>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBidsSuspenseQueryOptions(params,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 export const getGetMyBiddingUrl = (id: string,) => {
 
 
@@ -2232,6 +2398,162 @@ export function useGetMyBiddingSuspense<TData = Awaited<ReturnType<typeof getMyB
  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetMyBiddingSuspenseQueryOptions(id,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyWatchlistUrl = () => {
+
+
+
+
+  return `/v1/me/watchlist`
+}
+
+/**
+ * Najwyżej 100.
+ * @summary Obserwowane aukcje (Moje Biddy)
+ */
+export const getMyWatchlist = async ( options?: Parameters<typeof apiFetch>[1]): Promise<MyWatchlistDto> => {
+
+  return apiFetch<MyWatchlistDto>(getGetMyWatchlistUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyWatchlistQueryKey = () => {
+    return [
+    `/v1/me/watchlist`
+    ] as const;
+    }
+
+
+export const getGetMyWatchlistQueryOptions = <TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyWatchlistQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyWatchlist>>> = ({ signal }) => getMyWatchlist({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyWatchlistQueryResult = NonNullable<Awaited<ReturnType<typeof getMyWatchlist>>>
+export type GetMyWatchlistQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyWatchlist<TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyWatchlist>>,
+          TError,
+          Awaited<ReturnType<typeof getMyWatchlist>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyWatchlist<TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyWatchlist>>,
+          TError,
+          Awaited<ReturnType<typeof getMyWatchlist>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyWatchlist<TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Obserwowane aukcje (Moje Biddy)
+ */
+
+export function useGetMyWatchlist<TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyWatchlistQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyWatchlistSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyWatchlistQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyWatchlist>>> = ({ signal }) => getMyWatchlist({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyWatchlistSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyWatchlist>>>
+export type GetMyWatchlistSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyWatchlistSuspense<TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyWatchlistSuspense<TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyWatchlistSuspense<TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Obserwowane aukcje (Moje Biddy)
+ */
+
+export function useGetMyWatchlistSuspense<TData = Awaited<ReturnType<typeof getMyWatchlist>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyWatchlist>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyWatchlistSuspenseQueryOptions(options)
 
   const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

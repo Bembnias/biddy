@@ -35,8 +35,8 @@ export interface NotificationContent {
   readonly actionLabel: string;
 }
 
-/** Moje aukcje (powiadomienie o braku sprzedaży). */
-const MY_AUCTIONS_PATH = '/konto/aukcje';
+/** Moje aukcje w Moje Biddy (powiadomienie o braku sprzedaży, F-21). */
+const MY_AUCTIONS_PATH = '/moje-biddy/aukcje';
 
 const dateTime = new Intl.DateTimeFormat('pl-PL', {
   timeZone: 'Europe/Warsaw',

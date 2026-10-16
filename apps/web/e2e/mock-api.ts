@@ -265,6 +265,7 @@ function summary(listing: Record<string, unknown>): Record<string, unknown> {
     bidCount: listing['bidCount'],
     endsAt: listing['endsAt'],
     updatedAt: listing['updatedAt'],
+    order: listing['order'] ?? null,
   };
 }
 

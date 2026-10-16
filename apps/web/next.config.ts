@@ -38,6 +38,12 @@ const nextConfig: NextConfig = {
   headers() {
     return Promise.resolve([{ source: '/:path*', headers: SECURITY_HEADERS }]);
   },
+  // Dawny adres Moich aukcji (F-14): od F-21 w Moje Biddy. Parametry adresu Next przenosi sam.
+  redirects() {
+    return Promise.resolve([
+      { source: '/konto/aukcje', destination: '/moje-biddy/aukcje', permanent: true },
+    ]);
+  },
 };
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');

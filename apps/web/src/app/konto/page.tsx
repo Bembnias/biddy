@@ -63,6 +63,9 @@ export default async function AccountPage() {
           {t('sellingSection')}
         </h2>
         <div className="mt-4 flex flex-wrap gap-3">
+          <Button asChild>
+            <Link href={routes.myBiddy}>{t('myBiddy')}</Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href={routes.myAuctions}>{t('myAuctions')}</Link>
           </Button>

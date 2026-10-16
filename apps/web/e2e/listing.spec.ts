@@ -303,7 +303,7 @@ test('kreator: nowy szkic, 6 kroków z autozapisem, informacja o KYC, publikacja
   );
   await main.getByRole('button', { name: 'Opublikuj aukcję' }).click();
 
-  await expect(page).toHaveURL(`/konto/aukcje?opublikowano=${ID}`);
+  await expect(page).toHaveURL(`/moje-biddy/aukcje?opublikowano=${ID}`);
   await expect(main.getByRole('status')).toContainText(
     'Aukcja „Wazon ceramiczny, lata 70.” jest aktywna do',
   );

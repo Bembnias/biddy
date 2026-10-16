@@ -614,6 +614,8 @@ flowchart TD
 
 ### F-21 · Moje Biddy · `S`
 
+> Pełny spec: [docs/features/F-21-moje-biddy.md](features/F-21-moje-biddy.md).
+
 **Cel:** jedno miejsce, w którym użytkownik widzi swoje licytacje i sprzedaże.
 
 **Zakres:**

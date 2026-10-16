@@ -241,7 +241,8 @@
       "viewPublicProfile": "Zobacz swój profil publiczny",
       "signOut": "Wyloguj się",
       "signOutEverywhere": "Wyloguj ze wszystkich urządzeń",
-      "signOutEverywhereHint": "Np. po zgubieniu telefonu. Wylogujemy też aplikację mobilną."
+      "signOutEverywhereHint": "Np. po zgubieniu telefonu. Wylogujemy też aplikację mobilną.",
+      "myBiddy": "Moje Biddy"
     },
     "genericError": "Coś poszło nie tak. Spróbuj ponownie za chwilę."
   },
@@ -797,6 +798,71 @@
       "invalid": "Link wypisania jest nieprawidłowy. Zmień ustawienia po zalogowaniu.",
       "error": "Nie udało się wypisać. Spróbuj ponownie.",
       "settings": "Ustawienia powiadomień"
+    }
+  },
+  "myBiddy": {
+    "metaTitle": "Moje Biddy",
+    "title": "Moje Biddy",
+    "headerLink": "Moje Biddy",
+    "tabs": {
+      "label": "Sekcje Moje Biddy",
+      "bidding": "Licytuję",
+      "wins": "Wygrane",
+      "watchlist": "Obserwowane",
+      "auctions": "Moje aukcje",
+      "sales": "Sprzedane"
+    },
+    "filters": {
+      "label": "Pokaż",
+      "all": "Wszystkie",
+      "leading": "Prowadzę",
+      "outbid": "Przebito Cię"
+    },
+    "lostTitle": "Nie udało się wygrać",
+    "loading": "Wczytywanie…",
+    "error": "Nie udało się wczytać listy.",
+    "retry": "Spróbuj ponownie",
+    "more": "Pokaż więcej",
+    "row": {
+      "price": "Aktualna cena {price}",
+      "startPrice": "Cena wywoławcza {price}",
+      "finalPrice": "Cena końcowa {price}",
+      "bids": "{count, plural, =0 {Brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+      "endsAt": "Koniec: {date}",
+      "noPhoto": "Brak zdjęcia"
+    },
+    "status": {
+      "leading": "Prowadzisz · Twoje maksimum {max}",
+      "outbid": "Przebito Cię · Twoje maksimum {max}",
+      "won": "Do zapłaty {total} (bez dostawy) do {date} · zamówienie {number}",
+      "wonPaid": "Opłacone · zamówienie {number}",
+      "lost": "Nie udało się wygrać",
+      "reserveNotMet": "Cena minimalna nieosiągnięta",
+      "cancelled": "Aukcja anulowana",
+      "watchActive": "Aktywna",
+      "ended": "Zakończona",
+      "awaitingPayment": "Czeka na płatność kupującego do {date} · zamówienie {number}",
+      "paid": "Opłacone · zamówienie {number}",
+      "orderStatus": "Zamówienie {number}: {status}"
+    },
+    "actions": {
+      "view": "Zobacz aukcję",
+      "rebid": "Zalicytuj ponownie",
+      "pay": "Zapłać",
+      "payHint": "Płatność online uruchomimy wkrótce.",
+      "similar": "Szukaj podobnych",
+      "bid": "Licytuj",
+      "unwatch": "Przestań obserwować",
+      "ship": "Nadaj paczkę",
+      "shipHint": "Nadawanie paczek przez Biddy uruchomimy wkrótce."
+    },
+    "empty": {
+      "bidding": "Nie licytujesz teraz żadnej aukcji.",
+      "wins": "Nie masz jeszcze wygranych aukcji.",
+      "watchlist": "Nie obserwujesz żadnej aukcji. Kliknij „Obserwuj” na stronie aukcji.",
+      "sales": "Nie masz jeszcze sprzedanych przedmiotów.",
+      "browse": "Przeglądaj aukcje",
+      "sell": "Wystaw przedmiot"
     }
   }
 }

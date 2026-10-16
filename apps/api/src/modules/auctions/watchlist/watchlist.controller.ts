@@ -1,19 +1,36 @@
-import { Controller, Delete, HttpCode, Param, Put } from '@nestjs/common';
+import { Controller, Delete, Get, Header, HttpCode, Param, Put } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { createZodDto } from 'nestjs-zod';
+import { ZodResponse, createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 import { type AuthenticatedUser, CurrentUser, RequireSession } from '../../identity/index.js';
+import { auctionCardDto, auctionCardSchema } from '../public/card-dto.js';
+import { MyListsService } from '../public/my-lists.service.js';
 import { WatchlistService } from './watchlist.service.js';
 
 class AuctionParams extends createZodDto(z.object({ auctionId: z.uuid() })) {}
+
+export class MyWatchlistDto extends createZodDto(
+  z.object({ items: z.array(auctionCardSchema).describe('Aktywne najpierw, potem zakończone') }),
+) {}
 
 /** Obserwowane aukcje (F-20); stan obserwowania w GET /v1/me/bids/{id} (`watching`). */
 @ApiTags('me')
 @Controller('me/watchlist')
 @RequireSession()
 export class WatchlistController {
-  constructor(private readonly watchlist: WatchlistService) {}
+  constructor(
+    private readonly watchlist: WatchlistService,
+    private readonly lists: MyListsService,
+  ) {}
+
+  @Get()
+  @Header('cache-control', 'no-store')
+  @ApiOperation({ summary: 'Obserwowane aukcje (Moje Biddy)', description: 'Najwyżej 100.' })
+  @ZodResponse({ status: 200, description: 'Obserwowane', type: MyWatchlistDto })
+  async getMyWatchlist(@CurrentUser() user: AuthenticatedUser): Promise<MyWatchlistDto> {
+    return { items: (await this.lists.watchlist(user.id)).map(auctionCardDto) };
+  }
 
   @Put(':auctionId')
   @HttpCode(204)

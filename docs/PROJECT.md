@@ -1311,6 +1311,7 @@ PUT    /me/avatar                  DELETE /me/avatar
 POST   /auctions                   (szkic z przedmiotem)        DELETE /auctions/:id (szkic)
 PATCH  /auctions/:id               POST /auctions/:id/publish   POST /auctions/:id/cancel
 GET    /me/auctions                GET /me/auctions/:id         GET /me/selling-limits
+GET    /me/bids?status=            (Moje Biddy: trwające, wygrane, przegrane; F-21)   GET /me/watchlist
 GET    /shipping/carriers          (przewoźnicy i gabaryty, F-14)
 GET    /auctions                   (wyszukiwanie w Meilisearch: filtry, fasety, sortowanie; F-19)
 GET    /sitemap/auctions           (aktywne aukcje do sitemap, F-19)
@@ -1876,6 +1877,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 82 | E-mail o przebiciu najwyżej raz na 15 min na (użytkownik, aukcja): `emailed_at` i blokada doradcza w transakcji dostarczenia | Przyjęta | §5 |
 | 83 | Wypisanie jednym kliknięciem: `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058) na Route Handler w web, który woła API (API przyjmuje tylko JSON); token HMAC bez wygasania z kluczem wyprowadzonym z `BETTER_AUTH_SECRET` | Przyjęta | §16.1, §17 |
 | 84 | Szablony e-maili w React Email (`packages/emails`, render HTML i tekstu w API/workerze); treść powiadomień budowana w API, wspólna dla in-app i e-maili | Przyjęta | §11.2 |
+| 85 | Moje Biddy pod `/moje-biddy` z zakładkami (licytuję, wygrane, obserwowane, moje aukcje, sprzedane); dawne `/konto/aukcje` przekierowuje regułą `next.config.ts` (przekierowanie w stronie pod granicą Suspense nie ustawia kodu 308) | Przyjęta | §11.3 |
+| 86 | Każda pozycja Moje Biddy ma następną akcję; akcje zależne od płatności i dostaw (Zapłać, Nadaj paczkę) widoczne, ale nieaktywne z wyjaśnieniem do F-25/F-26 | Tymczasowa | §5 |
 
 ---
 

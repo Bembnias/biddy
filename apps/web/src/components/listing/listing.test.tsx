@@ -305,7 +305,7 @@ describe('ListingWizard', () => {
     await user.click(kyc);
     await user.click(screen.getByRole('button', { name: 'Opublikuj aukcję' }));
     await waitFor(() => {
-      expect(router.push).toHaveBeenCalledWith(`/konto/aukcje?opublikowano=${ID}`);
+      expect(router.push).toHaveBeenCalledWith(`/moje-biddy/aukcje?opublikowano=${ID}`);
     });
     expect(apiCalls(fetchMock, `/v1/auctions/${ID}/publish`).map((call) => call.body)).toEqual([
       { kycNoticeAccepted: true },
@@ -382,6 +382,7 @@ const SUMMARY: AuctionSummaryDto = {
   bidCount: 3,
   endsAt: '2026-10-22T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',
+  order: null,
 };
 
 describe('MyAuctions', () => {

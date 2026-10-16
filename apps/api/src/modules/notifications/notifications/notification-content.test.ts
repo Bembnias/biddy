@@ -47,7 +47,7 @@ describe('notificationContent', () => {
     );
     const unsold = notificationContent('UNSOLD', { auction: AUCTION, reason: 'RESERVE_NOT_MET' });
     expect(unsold.lines[0]).toContain('nie osiągnęła ceny minimalnej');
-    expect(unsold.path).toBe('/konto/aukcje');
+    expect(unsold.path).toBe('/moje-biddy/aukcje');
     expect(
       notificationContent('AUCTION_CANCELLED', { auction: AUCTION, cancelledBy: 'MODERATOR' })
         .lines[0],

@@ -1991,6 +1991,72 @@
         ]
       }
     },
+    "/v1/me/bids": {
+      "get": {
+        "description": "Aukcje z moimi ważnymi ofertami: trwające, wygrane albo przegrane; po 24.",
+        "operationId": "getMyBids",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "description": "ACTIVE: trwające, WON: wygrane, LOST: przegrane",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "WON",
+                "LOST"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Licytacje",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBidsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Moje licytacje (Moje Biddy)",
+        "tags": [
+          "me"
+        ]
+      }
+    },
     "/v1/me/bids/{id}": {
       "get": {
         "description": "Czy prowadzisz, Twoje maksimum, wynik po zakończeniu i zamówienie zwycięzcy. Identyfikator: UUID albo publicId.",
@@ -2037,6 +2103,47 @@
           }
         ],
         "summary": "Mój stan w aukcji",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/watchlist": {
+      "get": {
+        "description": "Najwyżej 100.",
+        "operationId": "getMyWatchlist",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Obserwowane",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyWatchlistDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obserwowane aukcje (Moje Biddy)",
         "tags": [
           "me"
         ]
@@ -4195,6 +4302,50 @@
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "order": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "AWAITING_PAYMENT",
+                  "PAID",
+                  "SHIPPED",
+                  "DELIVERED",
+                  "COMPLETED",
+                  "DISPUTED",
+                  "NOT_PICKED_UP",
+                  "LOST",
+                  "REFUNDED",
+                  "PARTIALLY_REFUNDED",
+                  "CANCELLED_UNPAID",
+                  "CANCELLED_NOT_SHIPPED"
+                ]
+              },
+              "paymentDueAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "id",
+              "publicId",
+              "status",
+              "paymentDueAt"
+            ],
+            "additionalProperties": false,
+            "description": "Zamówienie sprzedanej aukcji (F-21)",
+            "nullable": true
           }
         },
         "required": [
@@ -4209,7 +4360,8 @@
           "currentPrice",
           "bidCount",
           "endsAt",
-          "updatedAt"
+          "updatedAt",
+          "order"
         ],
         "additionalProperties": false
       },
@@ -4966,6 +5118,213 @@
         ],
         "additionalProperties": false
       },
+      "MyBidsDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "auction": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "publicId": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "slug": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING_REVIEW",
+                        "ACTIVE",
+                        "ENDED_SOLD",
+                        "ENDED_UNSOLD",
+                        "CANCELLED"
+                      ]
+                    },
+                    "currency": {
+                      "type": "string",
+                      "enum": [
+                        "PLN"
+                      ]
+                    },
+                    "price": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Aktualna albo wywoławcza cena (grosze)"
+                    },
+                    "currentPrice": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "nullable": true
+                    },
+                    "bidCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "endsAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "coverUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Zdjęcie główne, 800 px",
+                      "nullable": true
+                    },
+                    "coverThumbUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Zdjęcie główne, 320 px",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "publicId",
+                    "slug",
+                    "title",
+                    "status",
+                    "currency",
+                    "price",
+                    "currentPrice",
+                    "bidCount",
+                    "endsAt",
+                    "coverUrl",
+                    "coverThumbUrl"
+                  ],
+                  "additionalProperties": false
+                },
+                "maxAmount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Twoje najwyższe maksimum (grosze)"
+                },
+                "leading": {
+                  "type": "boolean"
+                },
+                "outcome": {
+                  "type": "string",
+                  "enum": [
+                    "NONE",
+                    "WON",
+                    "LOST",
+                    "RESERVE_NOT_MET"
+                  ]
+                },
+                "order": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "AWAITING_PAYMENT",
+                        "PAID",
+                        "SHIPPED",
+                        "DELIVERED",
+                        "COMPLETED",
+                        "DISPUTED",
+                        "NOT_PICKED_UP",
+                        "LOST",
+                        "REFUNDED",
+                        "PARTIALLY_REFUNDED",
+                        "CANCELLED_UNPAID",
+                        "CANCELLED_NOT_SHIPPED"
+                      ]
+                    },
+                    "currency": {
+                      "type": "string",
+                      "enum": [
+                        "PLN"
+                      ]
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Do zapłaty bez dostawy (grosze)"
+                    },
+                    "paymentDueAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "publicId",
+                    "status",
+                    "currency",
+                    "total",
+                    "paymentDueAt"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Zamówienie (wygrane)",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "auction",
+                "maxAmount",
+                "leading",
+                "outcome",
+                "order"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "totalPages": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "totalPages"
+        ],
+        "additionalProperties": false
+      },
       "MyBiddingDto": {
         "type": "object",
         "properties": {
@@ -5073,6 +5432,107 @@
           "maxAmount",
           "outcome",
           "order"
+        ],
+        "additionalProperties": false
+      },
+      "MyWatchlistDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "publicId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "slug": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "DRAFT",
+                    "PENDING_REVIEW",
+                    "ACTIVE",
+                    "ENDED_SOLD",
+                    "ENDED_UNSOLD",
+                    "CANCELLED"
+                  ]
+                },
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "PLN"
+                  ]
+                },
+                "price": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Aktualna albo wywoławcza cena (grosze)"
+                },
+                "currentPrice": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "bidCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "endsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "coverUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Zdjęcie główne, 800 px",
+                  "nullable": true
+                },
+                "coverThumbUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Zdjęcie główne, 320 px",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "publicId",
+                "slug",
+                "title",
+                "status",
+                "currency",
+                "price",
+                "currentPrice",
+                "bidCount",
+                "endsAt",
+                "coverUrl",
+                "coverThumbUrl"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Aktywne najpierw, potem zakończone"
+          }
+        },
+        "required": [
+          "items"
         ],
         "additionalProperties": false
       },

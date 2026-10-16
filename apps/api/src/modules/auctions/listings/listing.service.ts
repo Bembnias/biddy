@@ -18,6 +18,7 @@ import {
 } from '../../catalog/index.js';
 import { type SellerStanding, SellerStandingService } from '../../identity/index.js';
 import { type MediaDescription, MediaService } from '../../media/index.js';
+import { type Order, OrderService } from '../../orders/index.js';
 import { CarrierService } from '../../shipping/index.js';
 import { ContentFilterService } from '../../trust-safety/index.js';
 import {
@@ -54,6 +55,8 @@ export interface ListingSummary {
   readonly title: string | null;
   /** Miniatura zdjęcia głównego albo null. */
   readonly coverUrl: string | null;
+  /** Zamówienie sprzedanej aukcji (Moje Biddy, F-21). */
+  readonly order: Order | undefined;
 }
 
 /** Zmiana szkicu albo aukcji: pola przedmiotu i parametry aukcji (null czyści pole). */
@@ -117,6 +120,7 @@ export class ListingService {
     @Inject(SellerStandingService) private readonly standing: SellerStandingService,
     @Inject(ContentFilterService) private readonly filter: ContentFilterService,
     @Inject(AuctionLiveEvents) private readonly live: AuctionLiveEvents,
+    @Inject(OrderService) private readonly orders: OrderService,
     private readonly outbox: Outbox,
   ) {}
 
@@ -168,6 +172,9 @@ export class ListingService {
         photo.urls?.['thumb'],
       ]),
     );
+    const orders = await this.orders.activeForAuctions(
+      rows.filter((row) => row.status === 'ENDED_SOLD').map((row) => row.id),
+    );
     return rows.map((auction) => {
       const item = itemsById.get(auction.itemId);
       const cover = item?.mediaIds[0];
@@ -175,6 +182,7 @@ export class ListingService {
         auction,
         title: item?.title ?? null,
         coverUrl: (cover === undefined ? undefined : coverUrls.get(cover)) ?? null,
+        order: orders.get(auction.id),
       };
     });
   }

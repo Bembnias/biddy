@@ -1,6 +1,6 @@
 'use client';
 
-// Moje aukcje (F-14, /konto/aukcje): filtr statusu, edycja szkicu albo aukcji bez ofert,
+// Moje aukcje (F-14, /moje-biddy/aukcje od F-21): filtr statusu, edycja szkicu albo aukcji bez ofert,
 // anulowanie z ostrzeżeniem o strike'u, ponowne wystawienie i usuwanie szkiców.
 import {
   type AuctionSummaryDto,

@@ -1,5 +1,5 @@
 import { auctionSlug, ITEM_CONDITIONS, PACKAGE_SIZES } from '@biddy/shared';
-import { Controller, Get, Header, Param } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse, createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
@@ -13,6 +13,8 @@ import {
   type MyBidding,
   type PublicAuctionView,
 } from './auction-view.service.js';
+import { auctionCardDto, auctionCardSchema } from './card-dto.js';
+import { MY_BIDS_FILTERS, MY_BIDS_PAGE, MyListsService } from './my-lists.service.js';
 
 const iso = (date: Date | null) => date?.toISOString() ?? null;
 
@@ -97,6 +99,39 @@ export class MyBiddingDto extends createZodDto(
 ) {}
 
 class AuctionIdParams extends createZodDto(z.object({ id: z.string().max(64) })) {}
+
+const orderSummary = z.object({
+  id: z.uuid(),
+  publicId: z.string(),
+  status: z.enum(ORDER_STATUSES),
+  currency: z.enum(['PLN']),
+  total: z.int().describe('Do zapłaty bez dostawy (grosze)'),
+  paymentDueAt: z.iso.datetime(),
+});
+
+export class MyBidsDto extends createZodDto(
+  z.object({
+    items: z.array(
+      z.object({
+        auction: auctionCardSchema,
+        maxAmount: z.int().describe('Twoje najwyższe maksimum (grosze)'),
+        leading: z.boolean(),
+        outcome: z.enum(['NONE', 'WON', 'LOST', 'RESERVE_NOT_MET']),
+        order: orderSummary.nullable().describe('Zamówienie (wygrane)'),
+      }),
+    ),
+    total: z.int().min(0),
+    page: z.int().min(1),
+    totalPages: z.int().min(0),
+  }),
+) {}
+
+class MyBidsQuery extends createZodDto(
+  z.object({
+    status: z.enum(MY_BIDS_FILTERS).describe('ACTIVE: trwające, WON: wygrane, LOST: przegrane'),
+    page: z.coerce.number().int().min(1).max(1000).optional(),
+  }),
+) {}
 
 function toPublicDto(view: PublicAuctionView): PublicAuctionDto {
   const { auction, item, seller } = view;
@@ -196,7 +231,47 @@ export class PublicAuctionsController {
 @Controller('me')
 @RequireSession()
 export class MyBidsController {
-  constructor(private readonly views: AuctionViewService) {}
+  constructor(
+    private readonly views: AuctionViewService,
+    private readonly lists: MyListsService,
+  ) {}
+
+  @Get('bids')
+  @Header('cache-control', 'no-store')
+  @ApiOperation({
+    summary: 'Moje licytacje (Moje Biddy)',
+    description: 'Aukcje z moimi ważnymi ofertami: trwające, wygrane albo przegrane; po 24.',
+  })
+  @ZodResponse({ status: 200, description: 'Licytacje', type: MyBidsDto })
+  async getMyBids(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: MyBidsQuery,
+  ): Promise<MyBidsDto> {
+    const page = query.page ?? 1;
+    const { items, total } = await this.lists.bids(user.id, query.status, page);
+    return {
+      items: items.map((entry) => ({
+        auction: auctionCardDto(entry.card),
+        maxAmount: entry.maxAmount,
+        leading: entry.leading,
+        outcome: entry.outcome,
+        order:
+          entry.order === undefined
+            ? null
+            : {
+                id: entry.order.id,
+                publicId: entry.order.publicId,
+                status: entry.order.status,
+                currency: entry.order.currency,
+                total: entry.order.total,
+                paymentDueAt: entry.order.paymentDueAt.toISOString(),
+              },
+      })),
+      total,
+      page,
+      totalPages: Math.ceil(total / MY_BIDS_PAGE),
+    };
+  }
 
   @Get('bids/:id')
   @Header('cache-control', 'no-store')

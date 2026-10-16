@@ -439,6 +439,14 @@ Użytkownik nie przegapia ważnych momentów aukcji. Spec: [F-20](docs/features/
 - **Wypisanie:** e-maile z powiadomieniami mają `List-Unsubscribe` i `List-Unsubscribe-Post: One-Click` (RFC 8058) z adresem `{WEB_URL}/api/wypisz?token=…` (Route Handler w web woła API, które przyjmuje tylko JSON) i link do `/wypisz?token=…`. Token: HMAC z kluczem wyprowadzonym z `BETTER_AUTH_SECRET`, więc worker na produkcji wymaga tego sekretu.
 - **E-maile:** szablony React Email w `packages/emails` (`notificationEmail`, e-maile kont z F-07); HTML i tekst, kolory z design tokens. Lokalnie podgląd w Mailpit (`http://localhost:8025`).
 
+### Moje Biddy (F-21)
+
+Jedno miejsce na licytacje i sprzedaże. Spec: [F-21](docs/features/F-21-moje-biddy.md).
+
+- **API:** `GET /v1/me/bids?status=ACTIVE|WON|LOST` (aukcje z moimi ważnymi ofertami: moje maksimum, czy prowadzę, wynik, zamówienie zwycięzcy; po 24), `GET /v1/me/watchlist` (obserwowane, aktywne najpierw) i `order` przy sprzedanych w `GET /v1/me/auctions`.
+- **Web:** `/moje-biddy` z zakładkami Licytuję (filtr prowadzę/przebito, przegrane), Wygrane, Obserwowane, Moje aukcje (`/moje-biddy/aukcje`, dawne `/konto/aukcje` przekierowuje) i Sprzedane. Każda pozycja ma następną akcję (`apps/web/src/lib/my-biddy/next-action.ts`); „Zapłać” i „Nadaj paczkę” są widoczne, ale nieaktywne do F-25 i F-26.
+- **Na żywo:** `user.outbid`, `user.won` i `notification.new` odświeżają listy; aktywne aukcje na liście (do 40) subskrybują kanał aukcji i aktualizują cenę bez odświeżania.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
