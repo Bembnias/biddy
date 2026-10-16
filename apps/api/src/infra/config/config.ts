@@ -246,6 +246,14 @@ export const envSchema = z.object({
   // Anti-sniping (§6.5, F-15): oferta w ostatnich N sekundach, która zmienia cenę albo lidera,
   // przesuwa koniec aukcji na teraz + N sekund.
   AUCTION_ANTI_SNIPING_SECONDS: integer(0, 3600).optional(),
+  // Wyszukiwarka Meilisearch (F-19). Lokalnie klucz główny z infra/docker-compose.yml.
+  MEILI_URL: url(['https:', 'http:'], 'https://ms-xxxx.meilisearch.io').optional(),
+  MEILI_API_KEY: text().min(16, 'oczekiwano co najmniej 16 znaków').optional(),
+  /** Klucz główny lokalnego Meilisearch (docker-compose); zapasowy MEILI_API_KEY poza produkcją. */
+  MEILI_MASTER_KEY: text().min(16, 'oczekiwano co najmniej 16 znaków').optional(),
+  SEARCH_INDEX_PREFIX: text()
+    .regex(/^[a-z0-9][a-z0-9-]{0,39}$/, 'oczekiwano małych liter, cyfr i myślników, np. biddy')
+    .optional(),
   // Rewalidacja stron aukcji w web (ISR, F-18): sekret wspólny z web (Vercel).
   WEB_REVALIDATE_SECRET: text()
     .min(32, 'oczekiwano co najmniej 32 znaków (np. openssl rand -base64 32)')
@@ -274,6 +282,9 @@ export const DEFAULT_QUEUE_PREFIX = 'biddy';
 
 /** Domyślne okno anti-snipingu: 2 minuty (§6.5). */
 export const DEFAULT_ANTI_SNIPING_SECONDS = 120;
+
+/** Klucz główny lokalnego Meilisearch z infra/docker-compose.yml. */
+export const DEFAULT_MEILI_MASTER_KEY = 'biddy-local-meili-master-key';
 
 /**
  * Klucze testowe Cloudflare Turnstile (zawsze przechodzą): domyślne lokalnie i w testach.
@@ -389,6 +400,13 @@ export interface AppConfig {
   readonly auctions: {
     /** Okno anti-snipingu (§6.5): długość przedłużenia i próg „końcówki” aukcji. */
     readonly antiSnipingWindowMs: number;
+  };
+  readonly search: {
+    /** Adres Meilisearch (bez końcowego ukośnika). */
+    readonly url: string;
+    readonly apiKey: string;
+    /** Prefiks nazw indeksów, np. `biddy` → indeks `biddy-auctions`. */
+    readonly indexPrefix: string;
   };
   readonly web: {
     /** Adres aplikacji web (bez końcowego ukośnika). */
@@ -512,6 +530,8 @@ function crossFieldIssues(
     ['S3_ACCESS_KEY_ID', 'klucz dostępu R2 (token API z uprawnieniem do kubełków)'],
     ['S3_SECRET_ACCESS_KEY', 'sekret klucza R2'],
     ['MEDIA_PUBLIC_URL', 'publiczny adres kubełka media (CDN), np. https://media.biddy.pl'],
+    ['MEILI_URL', 'adres Meilisearch (wyszukiwarka), np. https://ms-xxxx.meilisearch.io'],
+    ['MEILI_API_KEY', 'klucz API Meilisearch z uprawnieniami do indeksu aukcji'],
   ];
   if (role === 'api') {
     required.push(
@@ -662,6 +682,11 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     auctions: {
       antiSnipingWindowMs:
         (vars.AUCTION_ANTI_SNIPING_SECONDS ?? DEFAULT_ANTI_SNIPING_SECONDS) * 1000,
+    },
+    search: {
+      url: (vars.MEILI_URL ?? 'http://localhost:7700').replace(/\/+$/, ''),
+      apiKey: vars.MEILI_API_KEY ?? vars.MEILI_MASTER_KEY ?? DEFAULT_MEILI_MASTER_KEY,
+      indexPrefix: vars.SEARCH_INDEX_PREFIX ?? 'biddy',
     },
     web: {
       url: (vars.WEB_URL ?? 'http://localhost:3000').replace(/\/+$/, ''),

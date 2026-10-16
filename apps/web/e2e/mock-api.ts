@@ -6,7 +6,9 @@
 // ma wtedy własny stan adresów (testy działają równolegle). Stan ustawia test przez
 // PUT /__e2e/addresses?session=… (e2e/support.ts, setSsrAddresses), a aukcji (kreator, Moje aukcje,
 // F-14) przez PUT /__e2e/auctions?session=… (setSsrAuctions). Publiczne aukcje (strona aukcji,
-// F-18) według publicId: PUT /__e2e/public-auctions (setSsrPublicAuction).
+// F-18) według publicId: PUT /__e2e/public-auctions (setSsrPublicAuction). Wyszukiwarka (F-19):
+// wyniki dla zapytania `q` ustawia PUT /__e2e/search (setSsrSearch), a strona główna, kategoria
+// „Moda” i sitemap mają stałe dane (strony z cache ISR muszą wyglądać tak samo w każdym przebiegu).
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
 
 /** Port atrapy (Playwright podaje go też Next.js jako API_INTERNAL_URL). */
@@ -43,6 +45,120 @@ export const FEE_SCHEDULE = {
   validFrom: '2026-01-01T00:00:00.000Z',
   validTo: null,
 } as const;
+
+/** Kategorie (F-11): Moda › Sneakersy, Elektronika › Retro gaming. */
+export const CATEGORIES = [
+  {
+    id: '01960000-0000-7000-8000-00000000ca01',
+    parentId: null,
+    slug: 'moda',
+    name: 'Moda',
+    path: ['moda'],
+    depth: 0,
+    isLeaf: false,
+    isRestricted: false,
+    isBrandSensitive: false,
+  },
+  {
+    id: '01960000-0000-7000-8000-00000000ca02',
+    parentId: '01960000-0000-7000-8000-00000000ca01',
+    slug: 'sneakersy',
+    name: 'Sneakersy',
+    path: ['moda', 'sneakersy'],
+    depth: 1,
+    isLeaf: true,
+    isRestricted: false,
+    isBrandSensitive: true,
+  },
+  {
+    id: '01960000-0000-7000-8000-00000000ca03',
+    parentId: null,
+    slug: 'elektronika',
+    name: 'Elektronika',
+    path: ['elektronika'],
+    depth: 0,
+    isLeaf: false,
+    isRestricted: false,
+    isBrandSensitive: false,
+  },
+  {
+    id: '01960000-0000-7000-8000-00000000ca04',
+    parentId: '01960000-0000-7000-8000-00000000ca03',
+    slug: 'retro-gaming',
+    name: 'Retro gaming',
+    path: ['elektronika', 'retro-gaming'],
+    depth: 1,
+    isLeaf: true,
+    isRestricted: false,
+    isBrandSensitive: false,
+  },
+] as const;
+
+/** Karta aukcji w wynikach wyszukiwania (AuctionSearchDto.items). */
+export function searchCard(index: number, title: string): Record<string, unknown> {
+  return {
+    id: `01960000-0000-7000-8000-0000000c${String(1000 + index).padStart(4, '0')}`,
+    publicId: `k3x9qa${'abcdefghjkmnpqrstuvwxyz23456789'[index % 31] ?? 'a'}m`,
+    slug: title.toLowerCase().replaceAll(/[^a-z0-9]+/gu, '-'),
+    title,
+    condition: 'GOOD',
+    currency: 'PLN',
+    price: 2_000 + index * 1_000,
+    currentPrice: index % 2 === 0 ? null : 2_000 + index * 1_000,
+    bidCount: index % 2 === 0 ? 0 : index,
+    buyNowPrice: null,
+    endsAt: '2026-12-01T18:00:00.000Z',
+    coverUrl: null,
+    coverThumbUrl: null,
+  };
+}
+
+/** Wynik wyszukiwania (AuctionSearchDto) z kartami i fasetami. */
+export function searchResult(
+  items: readonly Record<string, unknown>[],
+  facets: Record<string, unknown> = {},
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    items,
+    total: items.length,
+    totalPages: items.length === 0 ? 0 : 1,
+    page: 1,
+    pageSize: 24,
+    sort: 'ending',
+    facets: { categories: [], conditions: [], price: null, attributes: [], ...facets },
+    ...overrides,
+  };
+}
+
+/** Stała lista na stronie głównej (kończące się i nowe). */
+const HOME_RESULT = searchResult([
+  searchCard(1, 'Zegarek Casio vintage'),
+  searchCard(2, 'Aparat Zenit E'),
+]);
+
+/** Kategoria „Moda”: podkategoria i atrybut kategorii z liczbami aukcji. */
+const FASHION_RESULT = searchResult([searchCard(3, 'Nike Air Max 90')], {
+  categories: [{ ...CATEGORIES[1], count: 1 }].map(({ id, slug, name, path, count }) => ({
+    id,
+    slug,
+    name,
+    path,
+    count,
+  })),
+  conditions: [{ value: 'GOOD', count: 1 }],
+  price: { min: 5_000, max: 5_000 },
+  attributes: [
+    {
+      key: 'kolor',
+      label: 'Kolor',
+      type: 'select',
+      unit: null,
+      options: [{ value: 'bialy', label: 'Biały', count: 1 }],
+      range: null,
+    },
+  ],
+});
 
 /** Numer telefonu konta z sesją `phoneVerified`. */
 export const MEMBER_PHONE = '+48500600700';
@@ -97,6 +213,36 @@ const meBySession = new Map<string, Record<string, unknown>>();
 const auctionsBySession = new Map<string, Record<string, unknown>[]>();
 /** Publiczne aukcje (PublicAuctionDto) według publicId. */
 const publicAuctions = new Map<string, Record<string, unknown>>();
+/** Wyniki wyszukiwania według zapytania `q` (testy używają unikalnych zapytań). */
+const searchByQuery = new Map<string, Record<string, unknown>>();
+/** Parametry zapytań wyszukiwania z renderowania na serwerze (asercje e2e). */
+const searchRequests: string[] = [];
+
+function searchResponse(params: URLSearchParams): { status: number; body: unknown } {
+  const q = params.get('q') ?? '';
+  if (q === 'awaria') {
+    return {
+      status: 503,
+      body: problem(
+        503,
+        'SERVICE_UNAVAILABLE',
+        'Wyszukiwarka jest chwilowo niedostępna.',
+        '/v1/auctions',
+      ),
+    };
+  }
+  const forQuery = searchByQuery.get(q);
+  if (q !== '' && forQuery !== undefined) {
+    return { status: 200, body: forQuery };
+  }
+  if (q === '' && params.get('category') === CATEGORIES[0].id) {
+    return { status: 200, body: FASHION_RESULT };
+  }
+  if (q === '' && !params.has('category') && !params.has('seller')) {
+    return { status: 200, body: HOME_RESULT };
+  }
+  return { status: 200, body: searchResult([]) };
+}
 
 /** ListingDto → AuctionSummaryDto (lista Moje aukcje). */
 function summary(listing: Record<string, unknown>): Record<string, unknown> {
@@ -170,6 +316,42 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     const auction = (await readJson(request)) as Record<string, unknown>;
     publicAuctions.set(String(auction['publicId']), auction);
     send(response, 200, { ok: true });
+    return;
+  }
+  if (request.method === 'PUT' && path === '/__e2e/search') {
+    const { q, result } = (await readJson(request)) as {
+      q: string;
+      result: Record<string, unknown>;
+    };
+    searchByQuery.set(q, result);
+    send(response, 200, { ok: true });
+    return;
+  }
+  if (request.method === 'GET' && path === '/__e2e/search-requests') {
+    send(response, 200, searchRequests);
+    return;
+  }
+  if (request.method === 'GET' && path === '/v1/auctions') {
+    searchRequests.push(url.searchParams.toString());
+    const { status, body } = searchResponse(url.searchParams);
+    send(response, status, body);
+    return;
+  }
+  if (request.method === 'GET' && path === '/v1/categories') {
+    send(response, 200, CATEGORIES);
+    return;
+  }
+  if (request.method === 'GET' && path === '/v1/sitemap/auctions') {
+    // Stała lista: sitemap jest w cache (10 min) także między przebiegami testów.
+    send(response, 200, {
+      items: [
+        {
+          publicId: 'k3x9qa7m',
+          slug: 'zegarek-casio-vintage',
+          updatedAt: '2026-10-01T10:00:00.000Z',
+        },
+      ],
+    });
     return;
   }
   const publicAuction = /^\/v1\/auctions\/([^/]+)$/.exec(path);

@@ -14,10 +14,25 @@ import { type AppConfig, loadConfig } from '../../../src/infra/config/index.js';
 import { runMigrations } from '../../../src/infra/db/index.js';
 import type { QueueTuning } from '../../../src/infra/queues/index.js';
 import { createScratchDatabase, type ScratchDatabase } from './database.js';
+import { DEFAULT_TEST_SEARCH_PREFIX, TEST_MEILI_KEY } from './meili.js';
 
 /** Adres Redisa kolejek z globalSetup (noeviction). */
 export function redisUrl(): string {
   return inject('redisUrl');
+}
+
+/** Meilisearch z globalSetup: adres, klucz i domyślny prefiks indeksów (nadpisz w `env`). */
+export function meiliEnv(): Record<string, string> {
+  return {
+    MEILI_URL: inject('meiliUrl'),
+    MEILI_API_KEY: TEST_MEILI_KEY,
+    SEARCH_INDEX_PREFIX: DEFAULT_TEST_SEARCH_PREFIX,
+  };
+}
+
+/** Własny prefiks indeksów wyszukiwarki dla pliku testów. */
+export function uniqueSearchPrefix(): string {
+  return `it-${randomUUID().slice(0, 8)}`;
 }
 
 /** Unikalny prefiks kluczy BullMQ dla jednego workera albo testu. */
@@ -47,6 +62,7 @@ export function workerConfig(databaseUrl: string, env: Record<string, string> = 
       QUEUE_PREFIX: uniqueQueuePrefix(),
       OUTBOX_POLL_INTERVAL_MS: '50',
       LOG_LEVEL: 'debug',
+      ...meiliEnv(),
       ...env,
     },
     'worker',

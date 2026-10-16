@@ -1311,7 +1311,8 @@ POST   /auctions                   (szkic z przedmiotem)        DELETE /auctions
 PATCH  /auctions/:id               POST /auctions/:id/publish   POST /auctions/:id/cancel
 GET    /me/auctions                GET /me/auctions/:id         GET /me/selling-limits
 GET    /shipping/carriers          (przewoźnicy i gabaryty, F-14)
-GET    /auctions                   (wyszukiwanie — proxy do Meilisearch z filtrami)
+GET    /auctions                   (wyszukiwanie w Meilisearch: filtry, fasety, sortowanie; F-19)
+GET    /sitemap/auctions           (aktywne aukcje do sitemap, F-19)
 GET    /auctions/:id               (widok publiczny; :id = UUID albo publicId, F-18)
 GET    /auctions/:id/bids          (historia, zanonimizowana)    GET /me/bids/:id (mój stan w aukcji, F-18)
 POST   /auctions/:id/bids          { maxAmount }            + nagłówek Idempotency-Key
@@ -1479,6 +1480,8 @@ Każda zmiana statusu planuje odpowiedni job (`order.payment-deadline`, `order.s
 Eventy z outboxa trafiają do joba indeksującego, a ten robi częściowe aktualizacje dokumentu w Meilisearch. Zmiany cen gorących aukcji **debounce'ujemy** (np. co 5 s), bo strona aukcji i tak ma realtime z WS. Nocny pełny reindeks wyrównuje ewentualne rozjazdy.
 
 Dokument indeksu zawiera: `title`, `description`, `brand`, `categoryPath`, `attributes.*`, `condition`, `currentPrice`, `bidCount`, `endsAt`, `status`, `sellerRating`, `city`, `carriers`, `createdAt`.
+
+Implementacja (F-19): indeks `{SEARCH_INDEX_PREFIX}-auctions` tylko z aktywnymi aukcjami; job `search.index-auction` (kolejka `search`) na koniec 5-sekundowego okna; dodatkowo `categoryIds`, `attributeText`, `price` (aktualna albo wywoławcza), `endsAtTs`, `publishedAtTs`, `sellerId`, zdjęcie główne. `sellerRating` i `city` dojdą z ocenami i adresem sprzedawcy.
 
 ### 15.6 Unieważnienie oferty (replay)
 
@@ -1863,6 +1866,10 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 73 | Rewalidacja stron aukcji: konsumenci eventów w workerze planują job w kolejce `web` z końcem 5-sekundowego okna w ID (najwyżej jedna rewalidacja na okno, ostatnia zmiana też trafia na stronę), job woła `POST /api/revalidate` w web z sekretem; `revalidateTag(…, { expire: 0 })`, żeby następne żądanie nie dostało starej wersji | Przyjęta | §11.3 |
 | 74 | Obrazek OG strony aukcji to zdjęcie główne (wariant 1600 px), bez generowania `next/og`: cena w obrazku byłaby nieaktualna w cache serwisów społecznościowych, a generowanie kosztuje | Przyjęta | §11.3 |
 | 75 | Strona aukcji przed cennikiem dostaw (F-24) pokazuje akceptowanych przewoźników, a cenę łączną z POK bez „dostawa od”; oceny sprzedawcy (F-30) jako „Brak ocen” | Tymczasowa | §3.1, §17 |
+| 76 | Indeks wyszukiwarki tylko z aktywnymi aukcjami (zakończona albo anulowana jest usuwana), aktualizowany jobem na koniec 5-sekundowego okna (debounce zmian cen) z pełnym dokumentem; wyszukiwanie dodatkowo filtruje `endsAt > teraz`; nocny pełny reindeks | Przyjęta | §15.5 |
+| 77 | Klient Meilisearch przez HTTP bez SDK; indeks tworzony aktualizacją ustawień, a krótkie okno bez ustawień po utworzeniu (Meilisearch odrzuca wtedy filtr) API traktuje jak brak wyników | Przyjęta | §11.2 |
+| 78 | Filtry atrybutów w wyszukiwarce tylko ze schematu wybranej kategorii (z dziedziczeniem); liczby przy opcjach uwzględniają wszystkie wybrane filtry (bez faset rozłącznych w MVP); najwyżej 1000 wyników na zapytanie | Tymczasowa | §15.5 |
+| 79 | Web: filtry w zwykłym formularzu GET z polskimi parametrami (działa bez JavaScriptu); `/szukaj` bez indeksowania, strony kategorii indeksowane; sitemap renderowana przy żądaniu z danych w cache (10 min) | Przyjęta | §11.3 |
 
 ---
 

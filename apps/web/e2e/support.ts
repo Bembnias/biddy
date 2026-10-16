@@ -324,3 +324,18 @@ export async function mockRealtime(page: Page): Promise<MockRealtime> {
     },
   };
 }
+
+/** Wynik wyszukiwania dla zapytania `q` w atrapie SSR (F-19); `q` powinno być unikalne. */
+export async function setSsrSearch(q: string, result: Record<string, unknown>): Promise<void> {
+  const response = await fetch(`http://127.0.0.1:${MOCK_API_PORT}/__e2e/search`, {
+    method: 'PUT',
+    body: JSON.stringify({ q, result }),
+  });
+  expect(response.ok).toBe(true);
+}
+
+/** Parametry zapytań wyszukiwania, które dostała atrapa SSR (np. z formularza filtrów). */
+export async function ssrSearchRequests(): Promise<URLSearchParams[]> {
+  const response = await fetch(`http://127.0.0.1:${MOCK_API_PORT}/__e2e/search-requests`);
+  return ((await response.json()) as string[]).map((query) => new URLSearchParams(query));
+}

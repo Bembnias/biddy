@@ -18,6 +18,12 @@ import {
   CategoryTree,
 } from './category-tree.js';
 
+/** Odczyt kategorii dla wielu przedmiotów naraz (patrz {@link CategoryService.lookup}). */
+export interface CategoryLookup {
+  pathNodes(categoryId: string): CategoryCrumb[];
+  describeAttributes(categoryId: string, stored: unknown): DescribedAttribute[];
+}
+
 @Injectable()
 export class CategoryService {
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
@@ -91,6 +97,23 @@ export class CategoryService {
   /** Kategorie od głównej do wskazanej ({ id, slug, name }), także nieaktywne (strona aukcji). */
   async pathNodes(categoryId: string): Promise<CategoryCrumb[]> {
     return (await this.tree()).pathNodes(categoryId);
+  }
+
+  /**
+   * Ścieżki i atrybuty wielu przedmiotów z jednego odczytu drzewa (indeks wyszukiwarki, F-19).
+   * Jak `pathNodes` i `describeAttributes`: działa także dla kategorii nieaktywnych.
+   */
+  async lookup(): Promise<CategoryLookup> {
+    const rows = await this.db.select().from(categories);
+    const tree = new CategoryTree(rows);
+    const everyActive = new CategoryTree(rows.map((row) => ({ ...row, isActive: true })));
+    return {
+      pathNodes: (categoryId) => tree.pathNodes(categoryId),
+      describeAttributes: (categoryId, stored) => {
+        const schema = everyActive.schema(categoryId);
+        return schema === undefined ? [] : describeAttributes(schema.attributes, stored);
+      },
+    };
   }
 
   private async tree(): Promise<CategoryTree> {

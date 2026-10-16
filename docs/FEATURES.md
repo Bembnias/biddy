@@ -573,6 +573,8 @@ flowchart TD
 
 ### F-19 · Wyszukiwarka i przeglądanie · `L`
 
+> Pełny spec: [docs/features/F-19-wyszukiwarka.md](features/F-19-wyszukiwarka.md).
+
 **Cel:** kupujący szybko znajduje interesujące aukcje.
 
 **Zakres:**

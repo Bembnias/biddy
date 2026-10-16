@@ -7,6 +7,7 @@ import {
 } from '@biddy/api-client';
 import { auctionCacheTag, auctionPath, formatMoney, money, parseAuctionPath } from '@biddy/shared';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { cache } from 'react';
@@ -19,6 +20,7 @@ import { BidPanel } from '@/components/auction/bid-panel';
 import { SellerCard } from '@/components/auction/seller-card';
 import { config } from '@/config';
 import { jsonLdText, productJsonLd } from '@/lib/auction/structured-data';
+import { categoryUrl } from '@/lib/routes';
 // Klient API po stronie serwera; strona nie czyta ciasteczek, więc może być w cache (ISR).
 import '@/lib/api/server';
 
@@ -133,7 +135,14 @@ export default async function AuctionPage({ params }: PageProps) {
             {auction.category.map((crumb, index) => (
               <li key={crumb.id} className="flex gap-x-2">
                 {index === 0 ? null : <span aria-hidden>›</span>}
-                {crumb.name}
+                <Link
+                  href={categoryUrl(
+                    auction.category.slice(0, index + 1).map((entry) => entry.slug),
+                  )}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {crumb.name}
+                </Link>
               </li>
             ))}
           </ol>

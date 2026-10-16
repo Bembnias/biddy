@@ -93,13 +93,22 @@ Na początek oba rekordy **bez proxy Cloudflare** (szara chmurka). Proxy Cloudfl
 Pełny opis zmiennych jest w [`.env.example`](../.env.example). Na stagingu:
 
 - **Wspólne dla API i workera** (grupa `biddy-staging-shared` w `render.yaml`): `NODE_ENV=production`, `LOG_LEVEL`, `SENTRY_ENVIRONMENT=staging`, `SENTRY_TRACES_SAMPLE_RATE`, `QUEUE_PREFIX`, `WEB_URL`, `MAIL_FROM`, R2 bez sekretów (`S3_REGION=auto`, `S3_FORCE_PATH_STYLE`, `S3_BUCKET_MEDIA`, `S3_BUCKET_UPLOADS`, `MEDIA_PUBLIC_URL`).
-- **Sekrety w obu usługach** (`sync: false`): `SENTRY_DSN`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
+- **Sekrety w obu usługach** (`sync: false`): `SENTRY_DSN`, `RESEND_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `MEILI_URL`, `MEILI_API_KEY` (Meilisearch Cloud, F-19). We wspólnej grupie `SEARCH_INDEX_PREFIX=biddy-staging`.
 - **Tylko worker:** `WEB_REVALIDATE_SECRET` (`sync: false`, ta sama wartość co na Vercel): rewalidacja stron aukcji w web (F-18).
 - **Z zasobów Render:** `DATABASE_URL` (Postgres), `REDIS_QUEUE_URL` (Key Value `noeviction`), `REDIS_CACHE_URL` (Key Value `allkeys-lru`; w API i workerze pub/sub Socket.IO od F-17). Adresy wewnętrzne: bazy i Redisa nie widać z internetu (`ipAllowList: []`).
 - **Tylko API:** `API_PUBLIC_URL`, `CORS_ORIGINS`, `AUTH_COOKIE_DOMAIN`, `OPENAPI_ENABLED=true` (Swagger UI pod `/docs` na stagingu) i sekrety.
 - **Ustawiane przez Render:** `PORT`, `RENDER_GIT_COMMIT`.
 
 Nowa zmienna API: dopisz ją do `.env.example`, a jeśli staging jej wymaga, do `render.yaml` (sekret jako `sync: false` i ręcznie w panelu usługi, bo `sync: false` działa tylko przy tworzeniu Blueprintu).
+
+## Meilisearch Cloud (wyszukiwarka)
+
+Indeks aukcji (F-19) tworzy i konfiguruje worker przy pierwszym zapisie, więc w panelu wystarczy projekt i klucz:
+
+1. [cloud.meilisearch.com](https://cloud.meilisearch.com) → **New project**, region **EU** (Frankfurt), plan Build na staging.
+2. Adres projektu (`https://ms-…meilisearch.io`) to `MEILI_URL` w API i workerze.
+3. **API keys → Create key** z akcjami `search`, `documents.*`, `indexes.*`, `settings.*`, `tasks.get` dla indeksów `biddy-staging-*`. Klucz to `MEILI_API_KEY` w API i workerze. Klucza głównego (Master key) nie używamy w aplikacji.
+4. Po wdrożeniu worker indeksuje nowe zmiany od razu, a pozostałe aktywne aukcje nocnym reindeksem (3:00). Pełny reindeks od razu: Bull Board lokalnie albo ręczne dodanie joba `search.reindex` do kolejki `search`.
 
 ## Cloudflare R2 (pliki)
 

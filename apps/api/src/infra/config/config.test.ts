@@ -38,6 +38,8 @@ const production = {
   S3_SECRET_ACCESS_KEY: 'r2-secret',
   MEDIA_PUBLIC_URL: 'https://media.biddy.pl',
   WEB_REVALIDATE_SECRET: 'revalidate-secret-0123456789-0123456789',
+  MEILI_URL: 'https://ms-test.meilisearch.io',
+  MEILI_API_KEY: 'meili-production-key-0123456789',
 } as const;
 
 function issuesFor(
@@ -110,6 +112,11 @@ describe('loadConfig: wartości domyślne', () => {
         mediaPublicUrl: 'http://localhost:9000/biddy-media',
       },
       auctions: { antiSnipingWindowMs: 120_000 },
+      search: {
+        url: 'http://localhost:7700',
+        apiKey: 'biddy-local-meili-master-key',
+        indexPrefix: 'biddy',
+      },
       web: { url: 'http://localhost:3000', revalidateSecret: undefined },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
     });
@@ -329,7 +336,7 @@ describe('loadConfig: SMS-y (F-08)', () => {
 });
 
 describe('loadConfig: konta i e-maile (F-07)', () => {
-  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend i S3; worker Redisa cache, Resend, S3 i rewalidacji web', () => {
+  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend, S3 i Meilisearch; worker Redisa cache, Resend, S3, Meilisearch i rewalidacji web', () => {
     const missing = {
       ...minimal,
       NODE_ENV: 'production',
@@ -341,6 +348,8 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
         'API_PUBLIC_URL',
         'BETTER_AUTH_SECRET',
         'MEDIA_PUBLIC_URL',
+        'MEILI_API_KEY',
+        'MEILI_URL',
         'REDIS_CACHE_URL',
         'RESEND_API_KEY',
         'S3_ACCESS_KEY_ID',
@@ -360,6 +369,8 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
       'S3_ACCESS_KEY_ID',
       'S3_SECRET_ACCESS_KEY',
       'MEDIA_PUBLIC_URL',
+      'MEILI_URL',
+      'MEILI_API_KEY',
       'WEB_REVALIDATE_SECRET',
     ]);
   });
@@ -568,7 +579,7 @@ describe('loadConfig: błędy', () => {
   });
 
   it('ignoruje zmienne spoza schematu (np. zmienne infrastruktury)', () => {
-    expect(() => loadConfig({ ...minimal, MEILI_URL: 'cokolwiek', FOO: 'bar' })).not.toThrow();
+    expect(() => loadConfig({ ...minimal, MEILI_PORT: 'cokolwiek', FOO: 'bar' })).not.toThrow();
   });
 
   it('ConfigError ma listę zmiennych w komunikacie, a formatConfigError dodaje wskazówkę', () => {

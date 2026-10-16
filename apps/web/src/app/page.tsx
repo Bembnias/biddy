@@ -1,9 +1,17 @@
+import type { AuctionSearchDto } from '@biddy/api-client';
 import { BadgePercent, Gavel, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 
+import { AuctionGrid } from '@/components/search/auction-card';
 import { Button } from '@/components/ui/button';
-import { routes, searchUrl } from '@/lib/routes';
+import { categoryUrl, routes, searchUrl } from '@/lib/routes';
+import { loadCategories, searchCached } from '@/lib/search/load';
+
+/** Strona główna z aukcjami (F-19): ISR, odświeżana co minutę. */
+export const revalidate = 60;
+
+const HOME_LISTING = 8;
 
 const VALUES = [
   { key: 'fairPrice', Icon: Gavel },
@@ -13,8 +21,15 @@ const VALUES = [
 
 const NICHES = ['collectibles', 'sneakers', 'retro'] as const;
 
-export default function HomePage() {
-  const t = useTranslations('home');
+export default async function HomePage() {
+  const t = await getTranslations('home');
+  // Bez wyszukiwarki (błąd API) strona działa, tylko bez sekcji z aukcjami.
+  const [ending, newest, categories] = await Promise.all([
+    searchCached({ sort: 'ending', pageSize: HOME_LISTING }, 60),
+    searchCached({ sort: 'newest', pageSize: HOME_LISTING }, 60),
+    loadCategories(),
+  ]);
+  const roots = categories.filter((category) => category.parentId === null);
   return (
     <>
       <section aria-labelledby="hero-title" className="bg-accent">
@@ -41,6 +56,45 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <Listing
+        id="ending-title"
+        title={t('ending')}
+        result={ending}
+        href={`${routes.search}?sort=koniec`}
+        more={t('seeAll')}
+        priority
+      />
+      <Listing
+        id="newest-title"
+        title={t('newest')}
+        result={newest}
+        href={`${routes.search}?sort=nowe`}
+        more={t('seeAll')}
+      />
+
+      {roots.length === 0 ? null : (
+        <section
+          aria-labelledby="categories-title"
+          className="mx-auto max-w-6xl px-4 py-10 md:px-6"
+        >
+          <h2 id="categories-title" className="text-2xl font-bold">
+            {t('categories')}
+          </h2>
+          <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {roots.map((category) => (
+              <li key={category.id}>
+                <Link
+                  href={categoryUrl(category.path)}
+                  className="block rounded-lg border border-border bg-card p-4 font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                  {category.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="values-title" className="mx-auto max-w-6xl px-4 py-16 md:px-6">
         <h2 id="values-title" className="text-2xl font-bold">
@@ -80,5 +134,41 @@ export default function HomePage() {
         </div>
       </section>
     </>
+  );
+}
+
+function Listing({
+  id,
+  title,
+  result,
+  href,
+  more,
+  priority = false,
+}: {
+  readonly id: string;
+  readonly title: string;
+  readonly result: AuctionSearchDto | null;
+  readonly href: string;
+  readonly more: string;
+  readonly priority?: boolean;
+}) {
+  if (result === null || result.items.length === 0) {
+    return null;
+  }
+  return (
+    <section aria-labelledby={id} className="mx-auto max-w-6xl px-4 py-10 md:px-6">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 id={id} className="text-2xl font-bold">
+          {title}
+        </h2>
+        <Link href={href} className="font-medium text-primary underline-offset-4 hover:underline">
+          {more}
+          <span className="sr-only">: {title}</span>
+        </Link>
+      </div>
+      <div className="mt-6">
+        <AuctionGrid auctions={result.items} priorityCount={priority ? 4 : 0} />
+      </div>
+    </section>
   );
 }

@@ -27,3 +27,4 @@ export {
   type ReviewReason,
 } from './db/auctions.schema.js';
 export { ListingService } from './listings/listing.service.js';
+export { type AuctionSearchEntry, AuctionSearchSource } from './public/auction-search-source.js';

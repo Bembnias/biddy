@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { routes } from '@/lib/routes';
 
 /**
- * Wyszukiwarka w nagłówku: zwykły formularz GET na /szukaj (działa bez JavaScriptu). Wyniki
- * i podpowiedzi powstaną w F-19.
+ * Wyszukiwarka w nagłówku: zwykły formularz GET na /szukaj (działa bez JavaScriptu); wyniki
+ * i filtry: F-19. Podpowiedzi przy wpisywaniu dojdą w v1.
  */
 export function SearchForm({ className }: { readonly className?: string }) {
   const t = useTranslations('layout.search');

@@ -1,5 +1,7 @@
 // Adresy stron w jednym miejscu (polskie ścieżki). Część stron powstanie w kolejnych feature'ach:
-// wyszukiwarka (F-19), strony prawne i pomoc (F-41).
+// strony prawne i pomoc (F-41).
+import { auctionPath } from '@biddy/shared';
+
 export const routes = {
   home: '/',
   search: '/szukaj',
@@ -25,6 +27,16 @@ export const routes = {
   terms: '/regulamin',
   privacy: '/polityka-prywatnosci',
 } as const;
+
+/** Strona aukcji (F-18): `/a/{slug}-{publicId}`. */
+export function auctionUrl(auction: { readonly slug: string; readonly publicId: string }): string {
+  return auctionPath(auction.slug, auction.publicId);
+}
+
+/** Strona kategorii (F-19) ze ścieżki slugów, np. `/kategoria/moda/sneakersy`. */
+export function categoryUrl(path: readonly string[]): string {
+  return `/kategoria/${path.join('/')}`;
+}
 
 /** Profil publiczny użytkownika (F-10). */
 export function publicProfileUrl(userId: string): string {

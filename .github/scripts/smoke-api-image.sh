@@ -36,6 +36,8 @@ ENV_ARGS=(
   -e S3_SECRET_ACCESS_KEY=smoke-test
   -e MEDIA_PUBLIC_URL=https://media.staging.biddy.pl
   -e WEB_REVALIDATE_SECRET=smoke-test-revalidate-0123456789-0123456789
+  -e MEILI_URL=https://smoke-test.meilisearch.invalid
+  -e MEILI_API_KEY=smoke-test-meili-key
   -e RENDER_GIT_COMMIT="${GITHUB_SHA:-smoke}"
 )
 PUBLISH=()

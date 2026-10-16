@@ -78,7 +78,11 @@
         "query": "retro gaming"
       },
       "cta": "Zobacz aukcje"
-    }
+    },
+    "ending": "Kończą się wkrótce",
+    "newest": "Nowe aukcje",
+    "categories": "Kategorie",
+    "seeAll": "Zobacz wszystkie"
   },
   "notFound": {
     "metaTitle": "Nie znaleziono strony",
@@ -672,6 +676,67 @@
       "loading": "Wczytywanie historii ofert…",
       "error": "Nie udało się wczytać historii ofert.",
       "retry": "Spróbuj ponownie"
+    }
+  },
+  "search": {
+    "metaTitle": "Szukaj aukcji",
+    "metaTitleQuery": "„{q}”: wyniki wyszukiwania",
+    "metaCategoryDescription": "Aukcje w kategorii {name} na Biddy: licytuj od 1 zł, płać bezpiecznie z Pakietem Ochrony Kupujących.",
+    "title": "Wszystkie aukcje",
+    "titleQuery": "Wyniki dla „{q}”",
+    "count": "{count, plural, =0 {Brak aukcji} one {# aukcja} few {# aukcje} many {# aukcji} other {# aukcji}}",
+    "countMore": "Ponad {count} aukcji",
+    "inCategory": "w kategorii {name}",
+    "breadcrumbs": "Ścieżka kategorii",
+    "allCategories": "Wszystkie kategorie",
+    "unavailable": "Wyszukiwarka jest chwilowo niedostępna. Spróbuj ponownie za chwilę.",
+    "droppedAttributes": "Pominęliśmy filtry, które nie pasują do tej kategorii.",
+    "empty": "Nic nie znaleźliśmy. Sprawdź pisownię albo usuń część filtrów.",
+    "emptyNoFilters": "W tej kategorii nie ma teraz aktywnych aukcji.",
+    "results": "Wyniki",
+    "filters": {
+      "title": "Filtry",
+      "titleCount": "Filtry ({count})",
+      "categories": "Kategorie",
+      "parent": "Wróć do: {name}",
+      "condition": "Stan",
+      "price": "Cena (zł)",
+      "from": "od",
+      "to": "do",
+      "fromLabel": "{name} od",
+      "toLabel": "{name} do",
+      "sort": "Sortuj",
+      "apply": "Pokaż wyniki",
+      "clear": "Wyczyść filtry",
+      "count": "({count})"
+    },
+    "sorts": {
+      "trafnosc": "Trafność",
+      "koniec": "Kończące się",
+      "nowe": "Najnowsze",
+      "cena_rosnaco": "Cena: od najniższej",
+      "cena_malejaco": "Cena: od najwyższej",
+      "oferty": "Liczba ofert"
+    },
+    "card": {
+      "currentPrice": "Aktualna cena",
+      "startPrice": "Cena wywoławcza",
+      "bids": "{count, plural, =0 {Brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+      "endsAt": "Koniec: {date}",
+      "buyNow": "Kup teraz {price}",
+      "noPhoto": "Brak zdjęcia"
+    },
+    "pagination": {
+      "label": "Strony wyników",
+      "previous": "Poprzednia",
+      "next": "Następna",
+      "page": "Strona {page}"
+    },
+    "ranking": {
+      "title": "Jak ustalamy kolejność wyników?",
+      "relevance": "Przy wyszukiwaniu po słowach najwyżej są aukcje, które najlepiej pasują do zapytania: liczba pasujących słów, literówki (tolerujemy drobne), bliskość słów i miejsce dopasowania (tytuł i marka ważą więcej niż opis).",
+      "sort": "Możesz też wybrać sortowanie: aukcje kończące się najwcześniej (domyślne bez zapytania), najnowsze, cena albo liczba ofert.",
+      "noPaid": "Nie sprzedajemy pozycji w wynikach: kolejność nie zależy od opłat sprzedawców. Pokazujemy tylko aktywne aukcje."
     }
   }
 }

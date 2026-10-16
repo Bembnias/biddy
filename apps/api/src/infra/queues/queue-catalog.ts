@@ -49,6 +49,11 @@ export const QUEUE_DEFINITIONS = {
       'Zamykanie aukcji: joby z terminem (ID z ends_at) i sweeper co 10 s jako siatka bezpieczeństwa (F-16)',
     concurrency: 10,
   },
+  search: {
+    description:
+      'Indeks wyszukiwarki (Meilisearch): aktualizacja aukcji najwyżej raz na 5 s i nocny pełny reindeks (F-19)',
+    concurrency: 5,
+  },
   web: {
     description:
       'Rewalidacja stron ISR w web po zmianach aukcji: najwyżej raz na 5 s na stronę (ID z końcem okna, F-18)',

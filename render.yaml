@@ -27,6 +27,9 @@ envVarGroups:
         value: https://staging.biddy.pl
       - key: MAIL_FROM
         value: Biddy Staging <no-reply@staging.biddy.pl>
+      # Meilisearch Cloud (F-19): indeks `biddy-staging-auctions`; adres i klucz w usługach.
+      - key: SEARCH_INDEX_PREFIX
+        value: biddy-staging
       # Cloudflare R2 (F-12): kubełki i konfiguracja w docs/deployment.md. Endpoint i klucze są
       # w usługach (sync: false).
       - key: S3_REGION
@@ -101,6 +104,10 @@ services:
         value: 'true'
       - key: BETTER_AUTH_SECRET
         generateValue: true
+      - key: MEILI_URL
+        sync: false
+      - key: MEILI_API_KEY
+        sync: false
       - key: SENTRY_DSN
         sync: false
       - key: RESEND_API_KEY
@@ -181,6 +188,10 @@ services:
           name: biddy-staging-api
           type: web
           envVarKey: BETTER_AUTH_SECRET
+      - key: MEILI_URL
+        sync: false
+      - key: MEILI_API_KEY
+        sync: false
       - key: SENTRY_DSN
         sync: false
       - key: RESEND_API_KEY

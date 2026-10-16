@@ -930,6 +930,165 @@
         "tags": [
           "auctions"
         ]
+      },
+      "get": {
+        "description": "Aktywne aukcje z filtrami, fasetami i sortowaniem. Filtry atrybutów tylko z atrybutów wybranej kategorii.",
+        "operationId": "searchAuctions",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Szukany tekst (tolerancja literówek)",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Kategoria (z podkategoriami)",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "condition",
+            "required": false,
+            "in": "query",
+            "description": "Stan przedmiotu (parametr można powtórzyć)",
+            "schema": {
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "NEW",
+                  "LIKE_NEW",
+                  "VERY_GOOD",
+                  "GOOD",
+                  "FAIR",
+                  "FOR_PARTS"
+                ]
+              }
+            }
+          },
+          {
+            "name": "priceMin",
+            "required": false,
+            "in": "query",
+            "description": "Grosze",
+            "schema": {
+              "minimum": 0,
+              "maximum": 100000000000,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "priceMax",
+            "required": false,
+            "in": "query",
+            "description": "Grosze",
+            "schema": {
+              "minimum": 0,
+              "maximum": 100000000000,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "attr",
+            "required": false,
+            "in": "query",
+            "description": "Filtr atrybutu kategorii: klucz:wartość (opcja, true/false) albo klucz:od..do (liczba); parametr można powtórzyć",
+            "schema": {
+              "maxItems": 30,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 100
+              }
+            }
+          },
+          {
+            "name": "seller",
+            "required": false,
+            "in": "query",
+            "description": "Aukcje jednego sprzedawcy",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "description": "Domyślnie relevance z zapytaniem, ending bez zapytania",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "relevance",
+                "ending",
+                "newest",
+                "price_asc",
+                "price_desc",
+                "bids"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 48,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wyniki",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuctionSearchDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Wyszukiwanie aukcji",
+        "tags": [
+          "search"
+        ]
       }
     },
     "/v1/auctions/{id}": {
@@ -1826,6 +1985,39 @@
         "summary": "Przewoźnicy i obsługiwane gabaryty",
         "tags": [
           "shipping"
+        ]
+      }
+    },
+    "/v1/sitemap/auctions": {
+      "get": {
+        "description": "Najnowsze najpierw, najwyżej 50 000.",
+        "operationId": "getSitemapAuctions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Aukcje",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SitemapAuctionsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Aktywne aukcje do sitemap",
+        "tags": [
+          "search"
         ]
       }
     },
@@ -4445,6 +4637,368 @@
           "name",
           "kind",
           "packageSizes"
+        ],
+        "additionalProperties": false
+      },
+      "AuctionSearchDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "publicId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "slug": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "title": {
+                  "type": "string"
+                },
+                "condition": {
+                  "type": "string",
+                  "enum": [
+                    "NEW",
+                    "LIKE_NEW",
+                    "VERY_GOOD",
+                    "GOOD",
+                    "FAIR",
+                    "FOR_PARTS",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "PLN"
+                  ]
+                },
+                "price": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Aktualna albo wywoławcza cena (grosze)"
+                },
+                "currentPrice": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Aktualna cena albo null (brak ofert)",
+                  "nullable": true
+                },
+                "bidCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "buyNowPrice": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Cena Kup teraz, gdy dostępne",
+                  "nullable": true
+                },
+                "endsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "coverUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Zdjęcie główne, 800 px",
+                  "nullable": true
+                },
+                "coverThumbUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Zdjęcie główne, 320 px",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "publicId",
+                "slug",
+                "title",
+                "condition",
+                "currency",
+                "price",
+                "currentPrice",
+                "bidCount",
+                "buyNowPrice",
+                "endsAt",
+                "coverUrl",
+                "coverThumbUrl"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Liczba wyników (najwyżej 1000)"
+          },
+          "totalPages": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "relevance",
+              "ending",
+              "newest",
+              "price_asc",
+              "price_desc",
+              "bids"
+            ]
+          },
+          "facets": {
+            "type": "object",
+            "properties": {
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Slugi od kategorii głównej"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "slug",
+                    "name",
+                    "path",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Podkategorie wybranej kategorii (albo kategorie główne) z liczbą aukcji"
+              },
+              "conditions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "enum": [
+                        "NEW",
+                        "LIKE_NEW",
+                        "VERY_GOOD",
+                        "GOOD",
+                        "FAIR",
+                        "FOR_PARTS"
+                      ]
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "price": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false,
+                "description": "Zakres cen w wynikach (grosze)",
+                "nullable": true
+              },
+              "attributes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "select",
+                        "boolean",
+                        "number"
+                      ]
+                    },
+                    "unit": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Jednostka liczby, np. EU",
+                      "nullable": true
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "label",
+                          "count"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "range": {
+                      "type": "object",
+                      "properties": {
+                        "min": {
+                          "type": "number"
+                        },
+                        "max": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "min",
+                        "max"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Zakres wartości liczbowych w wynikach",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "label",
+                    "type",
+                    "unit",
+                    "options",
+                    "range"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Atrybuty wybranej kategorii (bez kategorii: puste)"
+              }
+            },
+            "required": [
+              "categories",
+              "conditions",
+              "price",
+              "attributes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "totalPages",
+          "page",
+          "pageSize",
+          "sort",
+          "facets"
+        ],
+        "additionalProperties": false
+      },
+      "SitemapAuctionsDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "publicId": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "publicId",
+                "slug",
+                "updatedAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
         ],
         "additionalProperties": false
       },
