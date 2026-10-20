@@ -1,11 +1,13 @@
 import { getMyAddresses } from '@biddy/api-client';
 import type { Metadata } from 'next';
+import { MapPin, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 import { AccountPage } from '@/components/account/account-page';
 import { AddressList } from '@/components/addresses/address-list';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { loadMeOrRedirect } from '@/lib/api/me';
 import { withSessionCookies } from '@/lib/api/server';
 import { routes } from '@/lib/routes';
@@ -32,17 +34,18 @@ export default async function AddressesPage() {
     >
       <div className="mb-6 flex flex-wrap items-center gap-4">
         {full ? (
-          <p className="text-sm text-muted-foreground">{t('limit', { max: MAX_ADDRESSES })}</p>
+          <p className="text-body-sm text-muted-foreground">{t('limit', { max: MAX_ADDRESSES })}</p>
         ) : (
-          <Button asChild className="h-10">
-            <Link href={routes.newAddress}>{t('add')}</Link>
+          <Button asChild variant="accent">
+            <Link href={routes.newAddress}>
+              <Plus aria-hidden />
+              {t('add')}
+            </Link>
           </Button>
         )}
       </div>
       {addresses.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
-          {t('empty')}
-        </p>
+        <EmptyState icon={MapPin} title={t('empty')} />
       ) : (
         <AddressList addresses={addresses} />
       )}

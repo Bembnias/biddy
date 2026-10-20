@@ -104,7 +104,7 @@ export function AvatarSettings({
 
   return (
     <section aria-labelledby={`${inputId}-title`} className="space-y-4">
-      <h2 id={`${inputId}-title`} className="text-lg font-semibold">
+      <h2 id={`${inputId}-title`} className="text-title">
         {t('avatar.title')}
       </h2>
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
@@ -152,10 +152,10 @@ export function AvatarSettings({
               </Button>
             )}
           </div>
-          <p id={`${inputId}-hint`} className="text-sm text-muted-foreground">
+          <p id={`${inputId}-hint`} className="text-body-sm text-muted-foreground">
             {t('avatar.hint')}
           </p>
-          <p role="status" className="text-sm text-success">
+          <p role="status" className="text-body-sm font-semibold text-success">
             {status}
           </p>
         </div>

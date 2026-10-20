@@ -12,6 +12,7 @@ import {
 } from '@biddy/api-client';
 import { formatMoney, money } from '@biddy/shared';
 import { useQueryClient } from '@tanstack/react-query';
+import { CircleCheck, Clock, Gavel, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
@@ -30,7 +31,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { ListingCard, filterPillClasses } from '@/components/my-biddy/listing-card';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { listingWizardUrl } from '@/lib/routes';
 
 const FILTERS = ['all', 'DRAFT', 'ACTIVE', 'PENDING_REVIEW', 'ENDED', 'CANCELLED'] as const;
@@ -47,6 +50,19 @@ function matches(filter: Filter, auction: AuctionSummaryDto): boolean {
 }
 
 const zl = (amount: number) => formatMoney(money(amount));
+
+/** Plakietka statusu aukcji (F-62): ton mówi, czy coś trzeba zrobić. */
+const STATUS_BADGES: Record<
+  AuctionSummaryDto['status'],
+  Pick<React.ComponentProps<typeof Badge>, 'tone' | 'variant'>
+> = {
+  DRAFT: { tone: 'neutral', variant: 'soft' },
+  PENDING_REVIEW: { tone: 'warning', variant: 'soft' },
+  ACTIVE: { tone: 'brand', variant: 'soft' },
+  ENDED_SOLD: { tone: 'success', variant: 'soft' },
+  ENDED_UNSOLD: { tone: 'danger', variant: 'outline' },
+  CANCELLED: { tone: 'neutral', variant: 'outline' },
+};
 
 export function MyAuctions({
   initial,
@@ -86,7 +102,11 @@ export function MyAuctions({
   return (
     <div className="space-y-6">
       {published === undefined ? null : (
-        <p role="status" className="rounded-lg border border-border bg-muted p-4 text-sm">
+        <p
+          role="status"
+          className="flex items-start gap-3 rounded-lg bg-success-soft px-4 py-3 text-body-sm text-foreground"
+        >
+          <CircleCheck aria-hidden className="mt-0.5 size-4.5 shrink-0 text-success" />
           {published.status === 'ACTIVE' && published.endsAt !== null
             ? t('published', { title: published.title ?? '', date: dateTime(published.endsAt) })
             : t('submitted', { title: published.title ?? '' })}
@@ -98,7 +118,8 @@ export function MyAuctions({
             key={option}
             type="button"
             size="sm"
-            variant={filter === option ? 'default' : 'outline'}
+            variant="outline"
+            className={filterPillClasses(filter === option)}
             aria-pressed={filter === option}
             onClick={() => {
               setFilter(option);
@@ -109,16 +130,17 @@ export function MyAuctions({
         ))}
       </div>
       {error === undefined ? null : (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+        >
           {error}
         </p>
       )}
       {visible.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground">
-          {t('empty')}
-        </p>
+        <EmptyState icon={Gavel} title={t('empty')} />
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="space-y-4">
           {visible.map((auction) => {
             const title = auction.title ?? t('untitled');
             const active = auction.status === 'ACTIVE' || auction.status === 'PENDING_REVIEW';
@@ -126,123 +148,132 @@ export function MyAuctions({
               auction.status === 'ENDED_SOLD' ||
               auction.status === 'ENDED_UNSOLD' ||
               auction.status === 'CANCELLED';
+            const price = auction.currentPrice ?? auction.startPrice;
             return (
-              <li key={auction.id} className="flex flex-wrap items-start gap-4 p-4">
-                {auction.coverUrl === null ? (
-                  <div aria-hidden className="size-16 rounded-md bg-muted" />
-                ) : (
-                  // Miniatura WebP z CDN.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={auction.coverUrl} alt="" className="size-16 rounded-md object-cover" />
-                )}
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="font-medium">{title}</p>
-                  <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <Badge variant="outline">{t(`statuses.${auction.status}`)}</Badge>
-                    {auction.currentPrice === null ? (
-                      auction.startPrice === null ? null : (
-                        <span>{t('startPrice', { price: zl(auction.startPrice) })}</span>
-                      )
-                    ) : (
-                      <span>{t('currentPrice', { price: zl(auction.currentPrice) })}</span>
-                    )}
-                    {auction.status === 'DRAFT' ? null : (
-                      <span>{t('bids', { count: auction.bidCount })}</span>
-                    )}
-                    {auction.status === 'ACTIVE' && auction.endsAt !== null ? (
-                      <span>{t('endsAt', { date: dateTime(auction.endsAt) })}</span>
-                    ) : null}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {auction.editable ? (
-                    <Button asChild size="sm" variant="outline">
-                      <Link
-                        href={listingWizardUrl(auction.id)}
-                        aria-label={t('editNamed', { title })}
-                      >
-                        {t('edit')}
-                      </Link>
-                    </Button>
-                  ) : null}
-                  {active ? (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button type="button" size="sm" variant="outline">
-                          {t('cancel')}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t('cancelTitle')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('cancelText', { title })}
-                          </AlertDialogDescription>
-                          {auction.bidCount > 0 ? (
-                            <p className="text-sm font-medium text-destructive">
-                              {t('cancelWithBids')}
-                            </p>
-                          ) : null}
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{t('keep')}</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() =>
-                              void run(async () => {
-                                await cancelAuction(auction.id);
-                                track('auction_cancelled', { withBids: auction.bidCount > 0 });
-                              })
-                            }
+              <ListingCard
+                key={auction.id}
+                status={
+                  <Badge {...STATUS_BADGES[auction.status]}>
+                    {t(`statuses.${auction.status}`)}
+                  </Badge>
+                }
+                aside={
+                  auction.status === 'ACTIVE' && auction.endsAt !== null ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock aria-hidden className="size-4" />
+                      {t('endsAt', { date: dateTime(auction.endsAt) })}
+                    </span>
+                  ) : undefined
+                }
+                imageUrl={auction.coverUrl}
+                noPhotoLabel={t('noPhoto')}
+                title={title}
+                meta={
+                  auction.status === 'DRAFT' ? undefined : (
+                    <span>{t('bids', { count: auction.bidCount })}</span>
+                  )
+                }
+                priceLabel={auction.currentPrice === null ? t('startPrice') : t('currentPrice')}
+                price={price === null ? undefined : zl(price)}
+                actions={
+                  auction.editable || active || ended || auction.status === 'DRAFT' ? (
+                    <>
+                      {auction.editable ? (
+                        <Button
+                          asChild
+                          size="sm"
+                          variant={auction.status === 'DRAFT' ? 'default' : 'outline'}
+                        >
+                          <Link
+                            href={listingWizardUrl(auction.id)}
+                            aria-label={t('editNamed', { title })}
                           >
-                            {t('cancelConfirm')}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  ) : null}
-                  {ended ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        void run(async () => {
-                          const draft = await relistAuction(auction.id);
-                          track('auction_relisted');
-                          router.push(listingWizardUrl(draft.id));
-                        })
-                      }
-                    >
-                      {t('relist')}
-                    </Button>
-                  ) : null}
-                  {auction.status === 'DRAFT' ? (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button type="button" size="sm" variant="outline">
-                          {t('delete')}
+                            {t('edit')}
+                          </Link>
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('deleteText', { title })}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{t('keep')}</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => void run(() => deleteAuctionDraft(auction.id))}
-                          >
-                            {t('deleteConfirm')}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  ) : null}
-                </div>
-              </li>
+                      ) : null}
+                      {active ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button type="button" size="sm" variant="destructive-outline">
+                              {t('cancel')}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{t('cancelTitle')}</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {t('cancelText', { title })}
+                              </AlertDialogDescription>
+                              {auction.bidCount > 0 ? (
+                                <p className="text-body-sm font-semibold text-destructive">
+                                  {t('cancelWithBids')}
+                                </p>
+                              ) : null}
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{t('keep')}</AlertDialogCancel>
+                              <AlertDialogAction
+                                className={buttonVariants({ variant: 'destructive' })}
+                                onClick={() =>
+                                  void run(async () => {
+                                    await cancelAuction(auction.id);
+                                    track('auction_cancelled', { withBids: auction.bidCount > 0 });
+                                  })
+                                }
+                              >
+                                {t('cancelConfirm')}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : null}
+                      {ended ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() =>
+                            void run(async () => {
+                              const draft = await relistAuction(auction.id);
+                              track('auction_relisted');
+                              router.push(listingWizardUrl(draft.id));
+                            })
+                          }
+                        >
+                          <RotateCcw aria-hidden />
+                          {t('relist')}
+                        </Button>
+                      ) : null}
+                      {auction.status === 'DRAFT' ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button type="button" size="sm" variant="destructive-outline">
+                              {t('delete')}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{t('deleteTitle')}</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {t('deleteText', { title })}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{t('keep')}</AlertDialogCancel>
+                              <AlertDialogAction
+                                className={buttonVariants({ variant: 'destructive' })}
+                                onClick={() => void run(() => deleteAuctionDraft(auction.id))}
+                              >
+                                {t('deleteConfirm')}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : null}
+                    </>
+                  ) : undefined
+                }
+              />
             );
           })}
         </ul>

@@ -1,10 +1,8 @@
 import { getMyAuctions } from '@biddy/api-client';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 import { MyAuctions } from '@/components/listing/my-auctions';
-import { Button } from '@/components/ui/button';
 import { loadMeOrRedirect } from '@/lib/api/me';
 import { withSessionCookies } from '@/lib/api/server';
 import { routes } from '@/lib/routes';
@@ -32,12 +30,7 @@ export default async function MyAuctionsPage({
   const published = typeof query.opublikowano === 'string' ? query.opublikowano : undefined;
   return (
     <div>
-      <p className="mb-4 text-muted-foreground">{t('text')}</p>
-      <div className="mb-6">
-        <Button asChild className="h-10">
-          <Link href={routes.sell}>{t('new')}</Link>
-        </Button>
-      </div>
+      <p className="mb-5 text-body text-foreground-secondary">{t('text')}</p>
       <MyAuctions initial={auctions} publishedId={published} />
     </div>
   );

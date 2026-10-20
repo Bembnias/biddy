@@ -2,10 +2,12 @@
 
 import { getGetMyWatchlistQueryKey, unwatchAuction, useGetMyWatchlist } from '@biddy/api-client';
 import { useQueryClient } from '@tanstack/react-query';
+import { Heart } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { type WatchedAuction, watchRow } from '@/lib/my-biddy/next-action';
 import { routes } from '@/lib/routes';
@@ -39,13 +41,16 @@ export function Watchlist() {
     return (
       <div aria-busy="true" className="space-y-2">
         <span className="sr-only">{t('loading')}</span>
-        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-44 w-full rounded-lg" />
       </div>
     );
   }
   if (list.isError) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+      <div
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+      >
         {t('error')}
         <Button type="button" variant="outline" size="sm" onClick={() => void list.refetch()}>
           {t('retry')}
@@ -55,12 +60,15 @@ export function Watchlist() {
   }
   if (list.data.items.length === 0) {
     return (
-      <div className="space-y-3 rounded-lg border border-dashed border-border p-8 text-center">
-        <p>{t('empty.watchlist')}</p>
-        <Link href={routes.search} className="text-primary underline underline-offset-4">
-          {t('empty.browse')}
-        </Link>
-      </div>
+      <EmptyState
+        icon={Heart}
+        title={t('empty.watchlist')}
+        action={
+          <Button asChild>
+            <Link href={routes.search}>{t('empty.browse')}</Link>
+          </Button>
+        }
+      />
     );
   }
   const unwatch = async (id: string) => {
@@ -68,7 +76,7 @@ export function Watchlist() {
     await queryClient.invalidateQueries({ queryKey: getGetMyWatchlistQueryKey() });
   };
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border">
+    <ul className="space-y-4">
       {list.data.items.map((auction, index) => (
         <WatchRow
           key={auction.id}

@@ -19,7 +19,7 @@ export function ResendVerificationButton({ email }: { readonly email: string }) 
   const [error, setError] = useState<string>();
   if (state === 'sent') {
     return (
-      <p role="status" className="text-sm text-success">
+      <p role="status" className="text-body-sm font-semibold text-success">
         {t('resendDone')}
       </p>
     );
@@ -84,7 +84,7 @@ export function SignOutButtons() {
         </Button>
         <Button
           type="button"
-          variant="destructive"
+          variant="destructive-outline"
           disabled={pending}
           onClick={() =>
             run(async () => {
@@ -96,7 +96,7 @@ export function SignOutButtons() {
           {t('signOutEverywhere')}
         </Button>
       </div>
-      <p className="text-sm text-muted-foreground">{t('signOutEverywhereHint')}</p>
+      <p className="text-body-sm text-muted-foreground">{t('signOutEverywhereHint')}</p>
     </div>
   );
 }

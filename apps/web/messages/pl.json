@@ -550,7 +550,6 @@
       "title": "Moje aukcje",
       "text": "Szkice, aktywne aukcje i historia sprzedaży.",
       "back": "Wróć do konta",
-      "new": "Wystaw przedmiot",
       "filter": "Pokaż",
       "filters": {
         "all": "Wszystkie",
@@ -570,8 +569,9 @@
       },
       "empty": "Nic tu jeszcze nie ma.",
       "untitled": "Szkic bez tytułu",
-      "startPrice": "Cena wywoławcza {price}",
-      "currentPrice": "Aktualna cena {price}",
+      "noPhoto": "Brak zdjęcia",
+      "startPrice": "Cena wywoławcza",
+      "currentPrice": "Aktualna cena",
       "bids": "{count, plural, =0 {brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
       "endsAt": "Koniec {date}",
       "edit": "Edytuj",
@@ -829,9 +829,9 @@
     "retry": "Spróbuj ponownie",
     "more": "Pokaż więcej",
     "row": {
-      "price": "Aktualna cena {price}",
-      "startPrice": "Cena wywoławcza {price}",
-      "finalPrice": "Cena końcowa {price}",
+      "price": "Aktualna cena",
+      "startPrice": "Cena wywoławcza",
+      "finalPrice": "Cena końcowa",
       "bids": "{count, plural, =0 {Brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
       "endsAt": "Koniec: {date}",
       "noPhoto": "Brak zdjęcia"

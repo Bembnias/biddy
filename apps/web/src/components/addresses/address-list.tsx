@@ -26,9 +26,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Chip } from '@/components/ui/chip';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { formatPhoneNumber } from '@/lib/phone';
 import { editAddressUrl } from '@/lib/routes';
+import { cn } from '@/lib/utils';
 
 /** Jedna linia adresu do komunikatów, np. „ul. Długa 5, 00-950 Warszawa”. */
 function addressLine(address: AddressDto): string {
@@ -65,7 +66,13 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
       <ul className="space-y-4">
         {addresses.map((address) => (
-          <li key={address.id} className="rounded-lg border border-border bg-card p-5">
+          <li
+            key={address.id}
+            className={cn(
+              'rounded-xl border border-border bg-card p-5',
+              address.isDefault && 'border-brand ring-1 ring-brand',
+            )}
+          >
             <div className="flex flex-wrap gap-2">
               {address.isDefault ? (
                 <Chip tone="brand-outline" shape="pill">
@@ -74,22 +81,22 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
               ) : null}
               {address.isSenderDefault ? <Chip shape="pill">{t('defaultSender')}</Chip> : null}
             </div>
-            <address className="mt-3 not-italic">
-              <p className="font-medium">{address.recipientName}</p>
+            <address className="mt-3 text-body text-foreground-secondary not-italic">
+              <p className="text-title">{address.recipientName}</p>
               <p>{address.street}</p>
               <p>
                 {address.postalCode} {address.city}
               </p>
               <p className="text-muted-foreground">{formatPhoneNumber(address.phone)}</p>
             </address>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
               <Button asChild variant="outline" size="sm">
                 <Link href={editAddressUrl(address.id)}>{t('edit')}</Link>
               </Button>
               {address.isDefault ? null : (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="soft"
                   size="sm"
                   disabled={pending}
                   onClick={() =>
@@ -104,7 +111,7 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
               {address.isSenderDefault ? null : (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="soft"
                   size="sm"
                   disabled={pending}
                   onClick={() =>
@@ -118,7 +125,7 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
               )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button type="button" variant="outline" size="sm" disabled={pending}>
+                  <Button type="button" variant="destructive-outline" size="sm" disabled={pending}>
                     {t('delete')}
                   </Button>
                 </AlertDialogTrigger>
@@ -132,7 +139,7 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
                   <AlertDialogFooter>
                     <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                     <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className={buttonVariants({ variant: 'destructive' })}
                       onClick={() =>
                         void run(async () => {
                           await remove.mutateAsync({ id: address.id });

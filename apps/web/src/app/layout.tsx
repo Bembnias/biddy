@@ -58,7 +58,12 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
           <AppProviders>
             <SkipLink />
             <SiteHeader />
-            <main id="main" tabIndex={-1} className="flex-1 outline-none">
+            {/* Strony konta mają tło `canvas`; na krótkich stronach wypełnia ono też resztę ekranu. */}
+            <main
+              id="main"
+              tabIndex={-1}
+              className="flex-1 outline-none has-[>.bg-canvas]:bg-canvas"
+            >
               {children}
             </main>
             <SiteFooter />

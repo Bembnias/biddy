@@ -90,7 +90,10 @@ export function AddressForm({
   };
 
   return (
-    <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
+    <AuthForm
+      onSubmit={(event) => void form.handleSubmit(submit)(event)}
+      className="space-y-5 rounded-xl border border-border bg-card p-6"
+    >
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
       <TextField
         label={t('recipientName')}
@@ -130,7 +133,7 @@ export function AddressForm({
         error={errors.phone?.message}
         {...form.register('phone')}
       />
-      <p className="text-sm text-muted-foreground">{t('country')}</p>
+      <p className="text-body-sm text-muted-foreground">{t('country')}</p>
       {address === undefined ? (
         <div className="space-y-3">
           {(['isDefault', 'isSenderDefault'] as const).map((flag) => (
@@ -148,10 +151,10 @@ export function AddressForm({
         </div>
       ) : null}
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" className="h-10" disabled={pending}>
+        <Button type="submit" disabled={pending}>
           {pending ? t('pending') : t('submit')}
         </Button>
-        <Button asChild variant="outline" className="h-10">
+        <Button asChild variant="outline">
           <Link href={routes.addresses}>{t('cancel')}</Link>
         </Button>
       </div>

@@ -76,10 +76,10 @@ export function ProfileForm({ name }: { readonly name: string }) {
         })}
       />
       <div className="flex flex-wrap items-center gap-4">
-        <Button type="submit" className="h-10" disabled={update.isPending}>
+        <Button type="submit" disabled={update.isPending}>
           {update.isPending ? t('pending') : t('submit')}
         </Button>
-        <p role="status" className="text-sm text-success">
+        <p role="status" className="text-body-sm font-semibold text-success">
           {saved ? t('saved') : null}
         </p>
       </div>

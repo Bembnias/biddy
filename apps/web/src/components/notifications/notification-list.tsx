@@ -8,12 +8,14 @@ import {
   markNotificationsRead,
 } from '@biddy/api-client';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { track } from '@/analytics/posthog';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -62,7 +64,10 @@ export function NotificationList() {
   }
   if (list.isError) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+      <div
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+      >
         {t('error')}
         <Button type="button" variant="outline" size="sm" onClick={() => void list.refetch()}>
           {t('retry')}
@@ -71,7 +76,7 @@ export function NotificationList() {
     );
   }
   if (items.length === 0) {
-    return <p className="text-muted-foreground">{t('empty')}</p>;
+    return <EmptyState icon={Bell} title={t('empty')} />;
   }
   return (
     <div className="space-y-4">
@@ -86,14 +91,14 @@ export function NotificationList() {
           {t('markAll')}
         </Button>
       )}
-      <ul className="divide-y divide-border rounded-lg border border-border">
+      <ul className="divide-y divide-border rounded-xl border border-border bg-card">
         {items.map((item) => (
           <li key={item.id}>
             <Link
               href={item.url}
               className={cn(
-                'flex gap-3 p-4 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                !item.read && 'bg-accent/50',
+                'flex gap-3 px-5 py-4 outline-none first:rounded-t-xl last:rounded-b-xl hover:bg-canvas focus-visible:shadow-focus-ring',
+                !item.read && 'bg-accent hover:bg-violet-100',
               )}
               onClick={() => {
                 track('notification_opened', { type: item.type });
@@ -108,18 +113,18 @@ export function NotificationList() {
                 aria-hidden
                 className={cn(
                   'mt-2 size-2 shrink-0 rounded-full',
-                  item.read ? 'bg-transparent' : 'bg-primary',
+                  item.read ? 'bg-transparent' : 'bg-brand',
                 )}
               />
               <span className="min-w-0 flex-1">
-                <span className="block font-medium">
+                <span className="block text-title">
                   {item.read ? null : <span className="sr-only">{t('unread')}: </span>}
                   {item.title}
                 </span>
-                <span className="mt-0.5 block text-sm text-muted-foreground">{item.body}</span>
+                <span className="mt-0.5 block text-body-sm text-muted-foreground">{item.body}</span>
                 <time
                   dateTime={item.createdAt}
-                  className="mt-1 block text-xs text-muted-foreground"
+                  className="mt-1 block text-caption text-muted-foreground"
                 >
                   {format.relativeTime(new Date(item.createdAt))}
                 </time>

@@ -23,14 +23,14 @@ export default async function ProfileSettingsPage() {
       text={t('text')}
       back={{ href: routes.account, label: t('back') }}
     >
-      <div className="space-y-8 rounded-lg border border-border bg-card p-6">
+      <div className="space-y-8 rounded-xl border border-border bg-card p-6">
         <AvatarSettings userId={me.id} name={me.name} avatarUrl={me.avatarUrl} />
         <ProfileForm name={me.name} />
       </div>
-      <p className="mt-6 text-sm">
+      <p className="mt-6 text-body-sm">
         <Link
           href={publicProfileUrl(me.id)}
-          className="text-primary underline-offset-4 hover:underline"
+          className="font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
         >
           {t('viewPublic')}
         </Link>

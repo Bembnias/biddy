@@ -83,7 +83,12 @@ Według design systemu (README, „Wzorce UX”) i makiet z `design/`. Zasady, k
   - karta aukcji z datą końca na zdjęciu;
   - wyszukiwarka i strona kategorii (panel filtrów, pusty stan, paginacja);
   - strona główna (hero z kartą kończącej się aukcji, sekcje list, kategorie, „Dlaczego Biddy”).
-- [ ] Krok 3: konto i Moje Biddy.
+- [x] **Krok 3, konto i Moje Biddy:**
+  - Moje Biddy: tło `canvas`, „Wystaw przedmiot” jako CTA, zakładki i filtry jako pigułki;
+  - karta pozycji (`ListingCard`): stan z kafelkiem ikony, przedmiot z ceną, następny krok w stopce; puste stany przez `EmptyState`;
+  - Moje aukcje: plakietki statusu w tonach, usuwanie i anulowanie jako `destructive-outline`;
+  - Moje konto: dane ze stanem weryfikacji (ikona i tekst), skróty jako kafelki;
+  - profil, adresy (domyślny w obramowaniu marki), powiadomienia, ich ustawienia i profil publiczny na `canvas` z białymi kartami.
 - [ ] Krok 4: logowanie i wystawianie.
 
 ## Model danych
@@ -114,7 +119,7 @@ Bez zmian.
 - [x] Given dowolna strona, Then tekst jest w Plus Jakarta Sans, a nagłówek pokazuje logo Biddy.
 - [ ] Given widok z główną akcją, Then jest na nim najwyżej jeden przycisk `cta`.
 - [x] Given strona aukcji, Then panel pokazuje stan użytkownika z ikoną i tekstem, a licznik zmienia ton przy 24 h i 1 h do końca.
-- [ ] Given Moje Biddy, Then każda pozycja ma stan, cenę i następny krok w układzie karty z design systemu.
+- [x] Given Moje Biddy, Then każda pozycja ma stan, cenę i następny krok w układzie karty z design systemu.
 - [ ] Given strony z F-06–F-21, Then e2e (ścieżki, role, etykiety) i axe (WCAG 2.1 AA) przechodzą bez zmian w zachowaniu.
 - [ ] Given szerokość 360–1440 px, Then żadna strona nie przewija się w poziomie.
 

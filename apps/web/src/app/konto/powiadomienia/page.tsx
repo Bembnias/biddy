@@ -15,10 +15,14 @@ export default async function NotificationSettingsPage() {
   await loadMeOrRedirect(routes.notificationSettings);
   const t = await getTranslations('notifications.settings');
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6 md:py-12">
-      <h1 className="text-2xl font-bold md:text-3xl">{t('title')}</h1>
-      <p className="mt-2 mb-6 text-muted-foreground">{t('lead')}</p>
-      <NotificationSettings />
+    <div className="bg-canvas">
+      <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6 md:py-12">
+        <h1 className="text-h2 md:text-h1">{t('title')}</h1>
+        <p className="mt-2 mb-6 text-body text-foreground-secondary">{t('lead')}</p>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <NotificationSettings />
+        </div>
+      </div>
     </div>
   );
 }

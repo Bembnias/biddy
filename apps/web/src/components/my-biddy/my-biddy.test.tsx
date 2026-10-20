@@ -76,8 +76,9 @@ describe('MyBids', () => {
       );
     });
     await waitFor(() => {
-      const price = screen.getByText(/Aktualna cena 42/u);
-      expect(text(price.closest('p') ?? price)).toContain('Aktualna cena 42 zł · 3 oferty');
+      const row = screen.getByRole('link', { name: 'Aukcja 1' }).closest('li');
+      expect(text(row ?? document.body)).toContain('Aktualna cena 42 zł');
+      expect(text(row ?? document.body)).toContain('3 oferty');
     });
   });
 

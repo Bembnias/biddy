@@ -16,17 +16,19 @@ export default async function NotificationsPage() {
   await loadMeOrRedirect(routes.notifications);
   const t = await getTranslations('notifications');
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6 md:py-12">
-      <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-2xl font-bold md:text-3xl">{t('title')}</h1>
-        <Link
-          href={routes.notificationSettings}
-          className="text-sm text-primary underline-offset-4 hover:underline"
-        >
-          {t('settingsLink')}
-        </Link>
+    <div className="bg-canvas">
+      <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6 md:py-12">
+        <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
+          <h1 className="text-h2 md:text-h1">{t('title')}</h1>
+          <Link
+            href={routes.notificationSettings}
+            className="text-label text-link underline-offset-3 hover:text-link-hover hover:underline"
+          >
+            {t('settingsLink')}
+          </Link>
+        </div>
+        <NotificationList />
       </div>
-      <NotificationList />
     </div>
   );
 }

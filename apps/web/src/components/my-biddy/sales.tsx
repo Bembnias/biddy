@@ -2,10 +2,12 @@
 
 import { useGetMyAuctions } from '@biddy/api-client';
 import { auctionSlug } from '@biddy/shared';
+import { PackageCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { saleRow } from '@/lib/my-biddy/next-action';
 import { routes } from '@/lib/routes';
@@ -24,13 +26,16 @@ export function Sales() {
     return (
       <div aria-busy="true" className="space-y-2">
         <span className="sr-only">{t('loading')}</span>
-        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-44 w-full rounded-lg" />
       </div>
     );
   }
   if (list.isError) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+      <div
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+      >
         {t('error')}
         <Button type="button" variant="outline" size="sm" onClick={() => void list.refetch()}>
           {t('retry')}
@@ -40,18 +45,21 @@ export function Sales() {
   }
   if (list.data.length === 0) {
     return (
-      <div className="space-y-3 rounded-lg border border-dashed border-border p-8 text-center">
-        <p>{t('empty.sales')}</p>
-        <Link href={routes.sell} className="text-primary underline underline-offset-4">
-          {t('empty.sell')}
-        </Link>
-      </div>
+      <EmptyState
+        icon={PackageCheck}
+        title={t('empty.sales')}
+        action={
+          <Button asChild>
+            <Link href={routes.sell}>{t('empty.sell')}</Link>
+          </Button>
+        }
+      />
     );
   }
   const date = (iso: string) =>
     format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border">
+    <ul className="space-y-4">
       {list.data.map((auction) => {
         const { status, action } = saleRow(auction, date);
         return (

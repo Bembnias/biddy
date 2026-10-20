@@ -30,7 +30,10 @@ export function NotificationSettings() {
   }
   if (preferences.isError) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+      <div
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+      >
         {common('error')}
         <Button
           type="button"
@@ -81,7 +84,7 @@ export function NotificationSettings() {
 
   return (
     <fieldset className="space-y-4">
-      <legend className="mb-2 font-semibold">{t('email')}</legend>
+      <legend className="mb-4 text-title">{t('email')}</legend>
       {NOTIFICATION_TYPES.map((type) => {
         const entry = email.get(type);
         const id = `email-${type}`;
@@ -93,15 +96,17 @@ export function NotificationSettings() {
               checked={entry?.enabled ?? true}
               disabled={entry?.configurable !== true}
               aria-describedby={entry?.configurable === true ? undefined : `${id}-hint`}
-              className="mt-1 size-4 accent-primary"
+              className="mt-1 size-4.5 accent-brand-strong"
               onChange={(event) => {
                 void change(type, event.target.checked);
               }}
             />
             <div>
-              <label htmlFor={id}>{t(`types.${type}`)}</label>
+              <label htmlFor={id} className="text-body text-foreground">
+                {t(`types.${type}`)}
+              </label>
               {entry?.configurable === true ? null : (
-                <p id={`${id}-hint`} className="text-sm text-muted-foreground">
+                <p id={`${id}-hint`} className="text-body-sm text-muted-foreground">
                   {t('always')}
                 </p>
               )}
@@ -109,7 +114,9 @@ export function NotificationSettings() {
                 <p
                   role={status.kind === 'error' ? 'alert' : 'status'}
                   className={
-                    status.kind === 'error' ? 'text-sm text-destructive' : 'text-sm text-success'
+                    status.kind === 'error'
+                      ? 'text-body-sm text-destructive'
+                      : 'text-body-sm font-semibold text-success'
                   }
                 >
                   {status.kind === 'error' ? t('error') : t('saved')}

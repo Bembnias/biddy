@@ -87,9 +87,9 @@ export function FollowSellerButton({
         <UserPlus aria-hidden />
         {following ? t('following') : t('follow')}
       </Button>
-      {following ? null : <p className="text-sm text-muted-foreground">{t('hint')}</p>}
+      {following ? null : <p className="text-body-sm text-muted-foreground">{t('hint')}</p>}
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body-sm text-destructive">
           {t('error')}
         </p>
       ) : null}

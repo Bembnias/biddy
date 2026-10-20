@@ -30,7 +30,7 @@ export function UnsubscribeForm({ token }: { readonly token: string }) {
         <p>{invalid ? t('invalid') : t('error')}</p>
         <Link
           href={routes.notificationSettings}
-          className="text-primary underline underline-offset-4"
+          className="font-semibold text-link underline underline-offset-3 hover:text-link-hover"
         >
           {t('settings')}
         </Link>
@@ -56,7 +56,7 @@ export function UnsubscribeForm({ token }: { readonly token: string }) {
         <p className="text-muted-foreground">{t('inApp')}</p>
         <Link
           href={routes.notificationSettings}
-          className="text-primary underline underline-offset-4"
+          className="font-semibold text-link underline underline-offset-3 hover:text-link-hover"
         >
           {t('settings')}
         </Link>
@@ -77,7 +77,7 @@ export function UnsubscribeForm({ token }: { readonly token: string }) {
         {state === 'sending' ? t('sending') : t('action')}
       </Button>
       {state === 'error' ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body-sm text-destructive">
           {t('error')}
         </p>
       ) : null}
