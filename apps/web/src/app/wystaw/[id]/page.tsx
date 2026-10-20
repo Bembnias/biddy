@@ -1,5 +1,6 @@
 import { getMyAuction, isApiError, type ListingDto } from '@biddy/api-client';
 import type { Metadata } from 'next';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -33,17 +34,20 @@ export default async function ListingWizardPage({
   }
   const t = await getTranslations('listing.wizard');
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6">
-      <Link
-        href={routes.myAuctions}
-        className="text-sm text-primary underline-offset-4 hover:underline"
-      >
-        {t('toMyAuctions')}
-      </Link>
-      <h1 className="mt-4 mb-8 text-3xl font-bold">
-        {listing.status === 'DRAFT' ? t('title') : t('editTitle')}
-      </h1>
-      <ListingWizard initial={listing} phoneVerified={me.phoneVerified} />
+    <div className="bg-canvas">
+      <div className="mx-auto w-full max-w-form px-4 py-8 md:px-6 md:py-12">
+        <Link
+          href={routes.myAuctions}
+          className="inline-flex items-center gap-1.5 rounded-xs text-label text-link underline-offset-3 outline-none hover:text-link-hover hover:underline focus-visible:shadow-focus-ring"
+        >
+          <ArrowLeft aria-hidden className="size-4" />
+          {t('toMyAuctions')}
+        </Link>
+        <h1 className="mt-4 mb-8 text-h2 md:text-h1">
+          {listing.status === 'DRAFT' ? t('title') : t('editTitle')}
+        </h1>
+        <ListingWizard initial={listing} phoneVerified={me.phoneVerified} />
+      </div>
     </div>
   );
 }

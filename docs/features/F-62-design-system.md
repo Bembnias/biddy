@@ -1,6 +1,6 @@
 # F-62 · Design system i odświeżenie UI web
 
-**Status:** W trakcie
+**Status:** Review
 **Rozmiar:** L · **Właściciel:** Mateusz Bienias · **Zależności:** F-06, F-07, F-10, F-14, F-18, F-19, F-20, F-21
 
 ## Kontekst i cel
@@ -89,7 +89,12 @@ Według design systemu (README, „Wzorce UX”) i makiet z `design/`. Zasady, k
   - Moje aukcje: plakietki statusu w tonach, usuwanie i anulowanie jako `destructive-outline`;
   - Moje konto: dane ze stanem weryfikacji (ikona i tekst), skróty jako kafelki;
   - profil, adresy (domyślny w obramowaniu marki), powiadomienia, ich ustawienia i profil publiczny na `canvas` z białymi kartami.
-- [ ] Krok 4: logowanie i wystawianie.
+- [x] **Krok 4, logowanie i wystawianie:**
+  - logowanie, rejestracja, reset hasła, weryfikacje i akceptacja regulaminu: panel marki na desktopie (białe logo na gradiencie, hasło, korzyści), formularz z gradientowym CTA, pola 48 px z błędem i ikoną;
+  - kreator aukcji: pasek kroków z numerami, każdy krok w karcie, gabaryt i przewoźnicy jako karty wyboru, czas trwania jako pigułki, publikacja jako CTA;
+  - zdjęcia: kafelki z cieniem, pasek postępu w kolorze marki;
+  - wypisanie z e-maili na `canvas` z kartą.
+- Kafelki ikon (`IconTile`) mają treść w kroku 700, bo litera w kafelku to tekst (≥ 4,5:1, test w tokenach).
 
 ## Model danych
 
@@ -117,11 +122,11 @@ Bez zmian.
 - [x] Given tokeny, Then każda para tekst/tło z design systemu ma ≥ 4,5:1, a `input`, `ring` i `brand` ≥ 3:1 na tłach, na których leżą (test).
 - [x] Given aplikacja web, Then klasy kolorów, typografii, promieni, cieni i kontenerów pochodzą wyłącznie z tokenów, bez starych nazw (`highlight`, `navy`, `orange`, `gray`).
 - [x] Given dowolna strona, Then tekst jest w Plus Jakarta Sans, a nagłówek pokazuje logo Biddy.
-- [ ] Given widok z główną akcją, Then jest na nim najwyżej jeden przycisk `cta`.
+- [x] Given widok z główną akcją, Then jest na nim najwyżej jeden przycisk `cta`.
 - [x] Given strona aukcji, Then panel pokazuje stan użytkownika z ikoną i tekstem, a licznik zmienia ton przy 24 h i 1 h do końca.
 - [x] Given Moje Biddy, Then każda pozycja ma stan, cenę i następny krok w układzie karty z design systemu.
-- [ ] Given strony z F-06–F-21, Then e2e (ścieżki, role, etykiety) i axe (WCAG 2.1 AA) przechodzą bez zmian w zachowaniu.
-- [ ] Given szerokość 360–1440 px, Then żadna strona nie przewija się w poziomie.
+- [x] Given strony z F-06–F-21, Then e2e (ścieżki, role, etykiety) i axe (WCAG 2.1 AA) przechodzą bez zmian w zachowaniu.
+- [x] Given szerokość 360–1440 px, Then żadna strona nie przewija się w poziomie.
 
 ## Plan testów
 

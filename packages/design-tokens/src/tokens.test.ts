@@ -33,6 +33,19 @@ describe('kontrast WCAG 2.1 AA', () => {
   });
 });
 
+describe('kafelki ikon (IconTile, F-62): litera na tle tonu ≥ 4.5:1', () => {
+  it.each([
+    ['ink', palette.ink[700], palette.ink[100]],
+    ['violet', palette.violet[700], palette.violet[100]],
+    ['green', palette.green[700], palette.green[50]],
+    ['amber', palette.amber[700], palette.amber[100]],
+    ['red', palette.red[700], palette.red[100]],
+    ['sky', palette.sky[700], palette.sky[100]],
+  ])('%s', (_name, text, background) => {
+    expect(contrastRatio(text, background)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
 describe('paleta', () => {
   it.each(allColors)('%s jest w gamucie sRGB', (_name, color) => {
     expect(isInSrgbGamut(color)).toBe(true);

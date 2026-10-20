@@ -48,12 +48,12 @@ function SelectField({
         ))}
       </NativeSelect>
       {definition.hint === undefined ? null : (
-        <p id={`${id}-hint`} className="text-sm text-muted-foreground">
+        <p id={`${id}-hint`} className="text-body-sm text-muted-foreground">
           {definition.hint}
         </p>
       )}
       {error === undefined ? null : (
-        <p id={`${id}-error`} className="text-sm text-destructive">
+        <p id={`${id}-error`} className="text-body-sm text-destructive">
           {error}
         </p>
       )}
@@ -80,7 +80,7 @@ export function AttributeFields({
   }
   return (
     <fieldset className="space-y-4">
-      <legend className="text-lg font-semibold">{t('title')}</legend>
+      <legend className="mb-1 text-title">{t('title')}</legend>
       {definitions.map((definition) => {
         const path = `${name}.${definition.key}`;
         const error = (get(formState.errors, path) as { message?: string } | undefined)?.message;

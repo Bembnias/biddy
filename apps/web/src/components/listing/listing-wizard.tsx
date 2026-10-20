@@ -283,25 +283,37 @@ export function ListingWizard({
                       }
                     }}
                     className={cn(
-                      'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm',
+                      'inline-flex h-9 items-center gap-2 rounded-full border pr-3.5 pl-1.5 text-label outline-none transition-colors duration-150 focus-visible:shadow-focus-ring motion-reduce:transition-none',
                       candidate.id === step
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border text-muted-foreground hover:text-foreground',
+                        ? 'border-brand-strong bg-brand-strong text-primary-foreground shadow-sm'
+                        : 'border-border-strong bg-card text-foreground-secondary hover:border-input hover:text-foreground',
                     )}
                   >
-                    <span aria-hidden>{position + 1}</span>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'grid size-6 place-items-center rounded-full text-caption font-bold tabular-nums',
+                        candidate.id === step
+                          ? 'bg-primary-foreground text-brand-strong'
+                          : position < index
+                            ? 'bg-success-soft text-success'
+                            : 'bg-muted text-foreground-secondary',
+                      )}
+                    >
+                      {position + 1}
+                    </span>
                     {t(`steps.${candidate.id}`)}
                   </Link>
                 </li>
               ))}
             </ol>
           </nav>
-          <p role="status" className="text-sm text-muted-foreground">
+          <p role="status" className="text-body-sm text-muted-foreground">
             {saveText}
           </p>
         </div>
 
-        <h2 ref={heading} tabIndex={-1} className="text-2xl font-semibold outline-none">
+        <h2 ref={heading} tabIndex={-1} className="text-h2 outline-none">
           {t('stepOf', {
             current: index + 1,
             total: LISTING_STEPS.length,
@@ -309,31 +321,52 @@ export function ListingWizard({
           })}
         </h2>
         {stepAlert ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p
+            role="alert"
+            className="rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+          >
             {t('stepErrors')}
           </p>
         ) : null}
 
-        <section hidden={step !== 'zdjecia'}>
+        <section
+          hidden={step !== 'zdjecia'}
+          className="rounded-xl border border-border bg-card p-5 sm:p-6"
+        >
           <PhotosStep listing={listing} minPhotos={minPhotos} />
         </section>
-        <section hidden={step !== 'kategoria'}>
+        <section
+          hidden={step !== 'kategoria'}
+          className="rounded-xl border border-border bg-card p-5 sm:p-6"
+        >
           <CategoryStep schema={category} />
         </section>
-        <section hidden={step !== 'opis'}>
+        <section
+          hidden={step !== 'opis'}
+          className="rounded-xl border border-border bg-card p-5 sm:p-6"
+        >
           <DetailsStep />
         </section>
-        <section hidden={step !== 'dostawa'}>
+        <section
+          hidden={step !== 'dostawa'}
+          className="rounded-xl border border-border bg-card p-5 sm:p-6"
+        >
           <ShippingStep
             carriers={carriers.data}
             carriersError={carriers.isError}
             onRetry={() => void carriers.refetch()}
           />
         </section>
-        <section hidden={step !== 'cena'}>
+        <section
+          hidden={step !== 'cena'}
+          className="rounded-xl border border-border bg-card p-5 sm:p-6"
+        >
           <PricingStep maxAuctionValue={limits.data?.maxAuctionValue} durationLocked={!draft} />
         </section>
-        <section hidden={step !== 'podglad'}>
+        <section
+          hidden={step !== 'podglad'}
+          className="rounded-xl border border-border bg-card p-5 sm:p-6"
+        >
           <ReviewStep
             listing={listing}
             issues={serverIssues ?? liveIssues}
@@ -359,12 +392,12 @@ export function ListingWizard({
           />
         </section>
 
-        <div className="flex justify-between gap-3 border-t border-border pt-6">
+        <div className="flex justify-between gap-3 pt-2">
           {index > 0 ? (
             <Button
               type="button"
               variant="outline"
-              className="h-10"
+              size="lg"
               onClick={() => {
                 const previous = LISTING_STEPS[index - 1];
                 if (previous !== undefined) {
@@ -378,7 +411,7 @@ export function ListingWizard({
             <span />
           )}
           {index < LISTING_STEPS.length - 1 ? (
-            <Button type="button" className="h-10" onClick={next}>
+            <Button type="button" size="lg" onClick={next}>
               {t('next')}
             </Button>
           ) : null}

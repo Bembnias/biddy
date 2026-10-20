@@ -19,7 +19,7 @@ export default async function SignInPage({
   const t = await getTranslations('auth.signIn');
   const next = safeNextPath(await searchParam(searchParams, 'next'));
   return (
-    <AuthCard title={t('title')}>
+    <AuthCard title={t('title')} lead={t('lead')}>
       <SignInForm next={next} />
     </AuthCard>
   );

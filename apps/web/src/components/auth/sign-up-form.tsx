@@ -67,12 +67,12 @@ export function SignUpForm({ next }: { readonly next: string }) {
   if (registeredEmail !== undefined) {
     return (
       <div role="status" className="space-y-4">
-        <MailCheck aria-hidden className="size-10 text-primary" />
-        <h2 className="text-xl font-semibold">{t('signUp.checkInboxTitle')}</h2>
-        <p className="text-muted-foreground">
+        <MailCheck aria-hidden className="size-10 text-brand-strong" />
+        <h2 className="text-h3">{t('signUp.checkInboxTitle')}</h2>
+        <p className="text-body text-foreground-secondary">
           {t('signUp.checkInboxText', { email: registeredEmail })}
         </p>
-        <Button asChild className="h-10">
+        <Button asChild size="lg">
           <Link href={next}>{t('signUp.goToAccount')}</Link>
         </Button>
       </div>
@@ -116,17 +116,19 @@ export function SignUpForm({ next }: { readonly next: string }) {
         <TurnstileField ref={turnstile} siteKey={options?.turnstileSiteKey} onToken={setToken} />
         <Button
           type="submit"
-          className="h-10 w-full"
+          variant="cta"
+          size="lg"
+          className="w-full"
           disabled={isSubmitting || token === undefined}
         >
           {isSubmitting ? t('signUp.pending') : t('signUp.submit')}
         </Button>
       </AuthForm>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-center text-body text-foreground-secondary">
         {t('signUp.hasAccount')}{' '}
         <Link
           href={withNext(routes.signIn, next)}
-          className="font-medium text-primary underline-offset-4 hover:underline"
+          className="font-bold text-link underline-offset-3 hover:text-link-hover hover:underline"
         >
           {t('signUp.signIn')}
         </Link>

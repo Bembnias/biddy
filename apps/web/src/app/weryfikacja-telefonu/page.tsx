@@ -32,8 +32,8 @@ export default async function VerifyPhonePage({
     return (
       <AuthCard title={t('emailFirstTitle')}>
         <div className="space-y-4">
-          <p className="text-muted-foreground">{t('emailFirstText')}</p>
-          <Button asChild className="h-10">
+          <p className="text-body text-foreground-secondary">{t('emailFirstText')}</p>
+          <Button asChild size="lg">
             <Link href={routes.account}>{t('goToAccount')}</Link>
           </Button>
         </div>
@@ -44,7 +44,7 @@ export default async function VerifyPhonePage({
   return (
     <AuthCard title={me.phoneNumber === null ? t('title') : t('changeTitle')}>
       <div className="space-y-6">
-        <p className="text-muted-foreground">
+        <p className="text-body text-foreground-secondary">
           {me.phoneNumber === null
             ? t('intro')
             : t('current', { phone: formatPhoneNumber(me.phoneNumber) })}

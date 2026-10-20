@@ -25,8 +25,8 @@ export default async function ResetPasswordPage({
   if (token === undefined || error !== undefined) {
     return (
       <AuthCard title={t('invalidLinkTitle')}>
-        <p className="text-muted-foreground">{t('invalidLinkText')}</p>
-        <Button asChild className="mt-6 h-10">
+        <p className="text-body text-foreground-secondary">{t('invalidLinkText')}</p>
+        <Button asChild size="lg" className="mt-6">
           <Link href={routes.forgotPassword}>{t('requestNew')}</Link>
         </Button>
       </AuthCard>

@@ -30,8 +30,10 @@ export default async function VerifyEmailPage({
           aria-hidden
           className={failed ? 'size-10 text-destructive' : 'size-10 text-success'}
         />
-        <p className="text-muted-foreground">{failed ? t('errorText') : t('successText')}</p>
-        <Button asChild className="h-10">
+        <p className="text-body text-foreground-secondary">
+          {failed ? t('errorText') : t('successText')}
+        </p>
+        <Button asChild size="lg">
           <Link href={routes.account}>{t('goToAccount')}</Link>
         </Button>
       </div>

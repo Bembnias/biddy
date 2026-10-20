@@ -21,7 +21,11 @@ export function ConsentCheckboxes<T extends FieldValues>({
 }) {
   const t = useTranslations('auth.fields');
   const link = (href: string) => (chunks: React.ReactNode) => (
-    <Link href={href} target="_blank" className="text-primary underline underline-offset-4">
+    <Link
+      href={href}
+      target="_blank"
+      className="font-semibold text-link underline underline-offset-3 hover:text-link-hover"
+    >
       {chunks}
     </Link>
   );
@@ -54,12 +58,12 @@ export function ConsentCheckboxes<T extends FieldValues>({
                   aria-describedby={item.error === undefined ? undefined : `${item.name}-error`}
                   className="mt-0.5"
                 />
-                <Label htmlFor={item.name} className="leading-snug font-normal">
+                <Label htmlFor={item.name} className="block text-body leading-snug font-normal">
                   {item.label}
                 </Label>
               </div>
               {item.error === undefined ? null : (
-                <p id={`${item.name}-error`} className="mt-1 text-sm text-destructive">
+                <p id={`${item.name}-error`} className="mt-1 text-body-sm text-destructive">
                   {item.error}
                 </p>
               )}

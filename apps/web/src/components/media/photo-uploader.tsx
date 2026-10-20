@@ -158,7 +158,7 @@ export function PhotoUploader({
   return (
     <section aria-labelledby={`${inputId}-title`} className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id={`${inputId}-title`} className="text-lg font-semibold">
+        <h2 id={`${inputId}-title`} className="text-title">
           {t('uploader.count', { count: entries.length, max })}
         </h2>
         <input
@@ -177,7 +177,7 @@ export function PhotoUploader({
         />
         <Button
           type="button"
-          variant="outline"
+          variant="accent"
           disabled={full}
           onClick={() => input.current?.click()}
           aria-controls={inputId}
@@ -186,7 +186,7 @@ export function PhotoUploader({
           {t('uploader.add')}
         </Button>
       </div>
-      <p id={hintId} className="text-sm text-muted-foreground">
+      <p id={hintId} className="text-body-sm text-muted-foreground">
         {full ? t('uploader.limit', { max }) : t('uploader.hint')}
       </p>
       {entries.length === 0 ? null : (
@@ -194,8 +194,11 @@ export function PhotoUploader({
           {entries.map((entry, index) => {
             const position = index + 1;
             return (
-              <li key={entry.key} className="space-y-2 rounded-lg border border-border bg-card p-2">
-                <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-md bg-muted text-center text-sm">
+              <li
+                key={entry.key}
+                className="space-y-2 rounded-lg border border-border bg-card p-2 shadow-sm"
+              >
+                <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-md bg-muted text-center text-body-sm">
                   {entry.state === 'ready' && entry.media?.urls?.thumb !== undefined ? (
                     // Gotowa miniatura WebP z CDN.
                     // eslint-disable-next-line @next/next/no-img-element
@@ -212,10 +215,10 @@ export function PhotoUploader({
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-valuenow={Math.round(entry.progress * 100)}
-                        className="h-2 w-full overflow-hidden rounded-full bg-border"
+                        className="h-2 w-full overflow-hidden rounded-full bg-ink-200"
                       >
                         <div
-                          className="h-full bg-primary"
+                          className="h-full bg-brand-strong"
                           style={{ width: `${String(Math.round(entry.progress * 100))}%` }}
                         />
                       </div>

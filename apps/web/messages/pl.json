@@ -139,6 +139,7 @@
     "signIn": {
       "metaTitle": "Logowanie",
       "title": "Zaloguj się",
+      "lead": "Licytuj, obserwuj aukcje i śledź swoje zakupy.",
       "submit": "Zaloguj się",
       "pending": "Logowanie…",
       "forgotPassword": "Nie pamiętasz hasła?",
@@ -149,6 +150,7 @@
     "signUp": {
       "metaTitle": "Załóż konto",
       "title": "Załóż konto",
+      "lead": "Konto zakładasz w minutę. Licytować możesz po potwierdzeniu e-maila i telefonu.",
       "submit": "Załóż konto",
       "pending": "Zakładanie konta…",
       "hasAccount": "Masz już konto?",
@@ -245,6 +247,13 @@
       "signOutEverywhere": "Wyloguj ze wszystkich urządzeń",
       "signOutEverywhereHint": "Np. po zgubieniu telefonu. Wylogujemy też aplikację mobilną.",
       "myBiddy": "Moje Biddy"
+    },
+    "panel": {
+      "tagline": "Second-hand na żywo: oglądaj, licytuj, kupuj i sprzedawaj.",
+      "protection": "Płacisz przez Biddy, a sprzedający dostaje pieniądze dopiero po odbiorze paczki.",
+      "proxy": "Podajesz maksimum, a Biddy licytuje za Ciebie tylko o tyle, ile trzeba.",
+      "zeroFee": "Sprzedający nie płaci prowizji od wylicytowanej kwoty.",
+      "footnote": "Konto w Biddy to jedno miejsce na licytacje, obserwowane aukcje i zamówienia."
     },
     "genericError": "Coś poszło nie tak. Spróbuj ponownie za chwilę."
   },

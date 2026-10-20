@@ -50,7 +50,10 @@ export function CategoryPicker({
   }
   if (isError) {
     return (
-      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+      <div
+        role="alert"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+      >
         {t('loadError')}
         <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
           {t('retry')}
@@ -110,11 +113,11 @@ export function CategoryPicker({
         );
       })}
       {error === undefined ? null : (
-        <p id={errorId} className="text-sm text-destructive">
+        <p id={errorId} className="text-body-sm text-destructive">
           {error}
         </p>
       )}
-      <p role="status" className="text-sm text-muted-foreground">
+      <p role="status" className="text-body-sm text-muted-foreground">
         {leaf === undefined
           ? selected.length > 0
             ? t('chooseLeaf')

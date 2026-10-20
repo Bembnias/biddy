@@ -27,7 +27,8 @@ export function SocialButtons({ next }: { readonly next: string }) {
           key={provider}
           type="button"
           variant="outline"
-          className="h-10 w-full"
+          size="lg"
+          className="w-full"
           onClick={() => {
             signInWithProvider(provider, next).catch((caught: unknown) => {
               setError(errorMessage(caught));
@@ -37,7 +38,7 @@ export function SocialButtons({ next }: { readonly next: string }) {
           {t(provider)}
         </Button>
       ))}
-      <p className="flex items-center gap-3 text-sm text-muted-foreground" aria-hidden>
+      <p className="flex items-center gap-4 pt-2 text-caption text-muted-foreground" aria-hidden>
         <span className="h-px flex-1 bg-border" />
         {t('or')}
         <span className="h-px flex-1 bg-border" />

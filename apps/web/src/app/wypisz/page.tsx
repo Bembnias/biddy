@@ -18,9 +18,19 @@ export default async function UnsubscribePage({
   const token = (await searchParam(searchParams, 'token')) ?? '';
   const t = await getTranslations('notifications.unsubscribe');
   return (
-    <div className="mx-auto w-full max-w-xl px-4 py-12 md:px-6">
-      <h1 className="mb-6 text-2xl font-bold">{t('title')}</h1>
-      {token === '' ? <p role="alert">{t('invalid')}</p> : <UnsubscribeForm token={token} />}
+    <div className="bg-canvas">
+      <div className="mx-auto w-full max-w-xl px-4 py-12 md:px-6">
+        <h1 className="mb-6 text-h2">{t('title')}</h1>
+        <div className="rounded-xl border border-border bg-card p-6">
+          {token === '' ? (
+            <p role="alert" className="text-body">
+              {t('invalid')}
+            </p>
+          ) : (
+            <UnsubscribeForm token={token} />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

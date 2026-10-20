@@ -4,20 +4,20 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 /**
- * Kwadratowy kafelek z ikoną albo literą w tonie statusu (F-62): tło 50–100 skali, ikona 600
- * (≥ 3:1). Dekoracyjny: obok zawsze jest tekst, który mówi to samo.
+ * Kwadratowy kafelek z ikoną albo literą w tonie statusu (F-62): tło 50–100 skali, treść 700, bo
+ * litera to tekst (≥ 4,5:1). Dekoracyjny: obok zawsze jest tekst, który mówi to samo.
  */
 const iconTileVariants = cva(
   'inline-grid shrink-0 place-items-center font-extrabold [&>svg]:shrink-0',
   {
     variants: {
       tone: {
-        neutral: 'bg-muted text-ink-600',
-        brand: 'bg-violet-100 text-violet-600',
-        success: 'bg-success-soft text-green-600',
-        warning: 'bg-warning-soft text-amber-600',
-        danger: 'bg-red-100 text-red-600',
-        info: 'bg-info-soft text-sky-600',
+        neutral: 'bg-muted text-ink-700',
+        brand: 'bg-violet-100 text-violet-700',
+        success: 'bg-success-soft text-green-700',
+        warning: 'bg-warning-soft text-amber-700',
+        danger: 'bg-red-100 text-red-700',
+        info: 'bg-info-soft text-sky-700',
       },
       size: {
         sm: 'size-8 rounded-md text-label [&>svg]:size-4',

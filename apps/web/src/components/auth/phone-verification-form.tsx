@@ -163,7 +163,7 @@ export function PhoneVerificationForm({ next }: { readonly next: string }) {
           error={numberForm.formState.errors.phoneNumber?.message}
           {...numberForm.register('phoneNumber')}
         />
-        <Button type="submit" className="h-10 w-full" disabled={start.isPending}>
+        <Button type="submit" variant="cta" size="lg" className="w-full" disabled={start.isPending}>
           {start.isPending ? t('sending') : t('send')}
         </Button>
       </AuthForm>
@@ -173,7 +173,7 @@ export function PhoneVerificationForm({ next }: { readonly next: string }) {
   const phone = formatPhoneNumber(started.phoneNumber);
   return (
     <div className="space-y-4">
-      <p role="status" className="text-muted-foreground">
+      <p role="status" className="text-body text-foreground-secondary">
         {resent ? t('resent', { phone }) : t('codeSent', { phone })}
       </p>
       <AuthForm
@@ -187,11 +187,17 @@ export function PhoneVerificationForm({ next }: { readonly next: string }) {
           inputMode="numeric"
           autoComplete="one-time-code"
           maxLength={PHONE_CODE_LENGTH}
-          className="h-10 font-mono tracking-widest"
+          className="text-center text-h3 tracking-widest tabular-nums"
           error={codeForm.formState.errors.code?.message}
           {...codeForm.register('code')}
         />
-        <Button type="submit" className="h-10 w-full" disabled={confirm.isPending}>
+        <Button
+          type="submit"
+          variant="cta"
+          size="lg"
+          className="w-full"
+          disabled={confirm.isPending}
+        >
           {confirm.isPending ? t('confirming') : t('confirm')}
         </Button>
       </AuthForm>

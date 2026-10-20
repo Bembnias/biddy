@@ -42,9 +42,9 @@ export function ResetPasswordForm({ token }: { readonly token: string }) {
   if (done) {
     return (
       <div role="status" className="space-y-4">
-        <h2 className="text-xl font-semibold">{t('resetPassword.successTitle')}</h2>
-        <p className="text-muted-foreground">{t('resetPassword.successText')}</p>
-        <Button asChild className="h-10">
+        <h2 className="text-h3">{t('resetPassword.successTitle')}</h2>
+        <p className="text-body text-foreground-secondary">{t('resetPassword.successText')}</p>
+        <Button asChild size="lg">
           <Link href={routes.signIn}>{t('resetPassword.signIn')}</Link>
         </Button>
       </div>
@@ -53,7 +53,7 @@ export function ResetPasswordForm({ token }: { readonly token: string }) {
 
   return (
     <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
-      <p className="text-muted-foreground">{t('resetPassword.text')}</p>
+      <p className="text-body text-foreground-secondary">{t('resetPassword.text')}</p>
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
       <TextField
         label={t('fields.newPassword')}
@@ -70,7 +70,7 @@ export function ResetPasswordForm({ token }: { readonly token: string }) {
         error={errors.confirmPassword?.message}
         {...form.register('confirmPassword')}
       />
-      <Button type="submit" className="h-10 w-full" disabled={isSubmitting}>
+      <Button type="submit" variant="cta" size="lg" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? t('resetPassword.pending') : t('resetPassword.submit')}
       </Button>
     </AuthForm>

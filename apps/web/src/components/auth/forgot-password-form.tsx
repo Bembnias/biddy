@@ -53,9 +53,14 @@ export function ForgotPasswordForm() {
   if (sentTo !== undefined) {
     return (
       <div role="status" className="space-y-4">
-        <h2 className="text-xl font-semibold">{t('forgotPassword.sentTitle')}</h2>
-        <p className="text-muted-foreground">{t('forgotPassword.sentText', { email: sentTo })}</p>
-        <Link href={routes.signIn} className="text-primary underline-offset-4 hover:underline">
+        <h2 className="text-h3">{t('forgotPassword.sentTitle')}</h2>
+        <p className="text-body text-foreground-secondary">
+          {t('forgotPassword.sentText', { email: sentTo })}
+        </p>
+        <Link
+          href={routes.signIn}
+          className="font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
+        >
           {t('forgotPassword.backToSignIn')}
         </Link>
       </div>
@@ -64,7 +69,7 @@ export function ForgotPasswordForm() {
 
   return (
     <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
-      <p className="text-muted-foreground">{t('forgotPassword.text')}</p>
+      <p className="text-body text-foreground-secondary">{t('forgotPassword.text')}</p>
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
       <TextField
         label={t('fields.email')}
@@ -74,7 +79,13 @@ export function ForgotPasswordForm() {
         {...form.register('email')}
       />
       <TurnstileField ref={turnstile} siteKey={options?.turnstileSiteKey} onToken={setToken} />
-      <Button type="submit" className="h-10 w-full" disabled={isSubmitting || token === undefined}>
+      <Button
+        type="submit"
+        variant="cta"
+        size="lg"
+        className="w-full"
+        disabled={isSubmitting || token === undefined}
+      >
         {isSubmitting ? t('forgotPassword.pending') : t('forgotPassword.submit')}
       </Button>
     </AuthForm>

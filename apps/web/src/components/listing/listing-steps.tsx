@@ -22,10 +22,12 @@ import { PhotoUploader } from '@/components/media/photo-uploader';
 import { TotalPrice } from '@/components/pricing/total-price';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { IconTile } from '@/components/ui/icon-tile';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Textarea } from '@/components/ui/textarea';
 import { type ListingFormValues, parsePrice } from '@/lib/listing/form';
+import { cn } from '@/lib/utils';
 
 function useFieldError(name: string): string | undefined {
   const { formState } = useFormContext<ListingFormValues>();
@@ -40,7 +42,7 @@ function FieldError({
   readonly message: string | undefined;
 }) {
   return message === undefined ? null : (
-    <p id={id} className="text-sm text-destructive">
+    <p id={id} className="text-body-sm text-destructive">
       {message}
     </p>
   );
@@ -67,9 +69,11 @@ export function PhotosStep({
   );
   return (
     <div className="space-y-4">
-      <p className="text-muted-foreground">{t('text')}</p>
+      <p className="text-body text-foreground-secondary">{t('text')}</p>
       {minPhotos > 1 ? (
-        <p className="text-sm font-medium">{t('brandSensitive', { min: minPhotos })}</p>
+        <p className="rounded-lg bg-warning-soft px-4 py-3 text-body-sm font-semibold">
+          {t('brandSensitive', { min: minPhotos })}
+        </p>
       ) : null}
       <PhotoUploader
         initial={initial}
@@ -104,7 +108,7 @@ export function CategoryStep({ schema }: { readonly schema: CategorySchemaDto | 
         }}
       />
       {schema?.listingNotice === null || schema === undefined ? null : (
-        <p className="rounded-md border border-border bg-muted p-3 text-sm">
+        <p className="rounded-lg bg-info-soft px-4 py-3 text-body-sm">
           {t('notice', { notice: schema.listingNotice })}
         </p>
       )}
@@ -136,7 +140,9 @@ function Counter({
   return (
     <p
       id={id}
-      className={count > max ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}
+      className={
+        count > max ? 'text-body-sm text-destructive' : 'text-caption text-muted-foreground'
+      }
     >
       {t('counter', { count, max })}
     </p>
@@ -174,7 +180,7 @@ export function DetailsStep() {
           aria-describedby={`${ids.description}-hint ${ids.description}-counter${descriptionError === undefined ? '' : ` ${ids.description}-error`}`}
           {...register('description')}
         />
-        <p id={`${ids.description}-hint`} className="text-sm text-muted-foreground">
+        <p id={`${ids.description}-hint`} className="text-body-sm text-muted-foreground">
           {t('descriptionHint', {
             min: LISTING_RULES.descriptionMin,
             max: LISTING_RULES.descriptionMax,
@@ -238,13 +244,16 @@ export function ShippingStep({
         className="space-y-3"
         aria-describedby={sizeError === undefined ? undefined : `${baseId}-size-error`}
       >
-        <legend className="mb-2 font-medium">{t('size')}</legend>
+        <legend className="mb-3 text-label">{t('size')}</legend>
         {PACKAGE_SIZES.map((option) => (
-          <label key={option} className="flex items-center gap-3">
+          <label
+            key={option}
+            className="flex cursor-pointer items-center gap-4 rounded-lg border border-border-strong bg-card px-4 py-3.5 transition-colors duration-150 hover:border-input has-[:checked]:border-brand has-[:checked]:ring-1 has-[:checked]:ring-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-55 motion-reduce:transition-none"
+          >
             <input
               type="radio"
               value={option}
-              className="size-4 accent-primary"
+              className="size-5 shrink-0 accent-brand"
               {...register('packageSize', {
                 onChange: (event: { target: { value: string } }) => {
                   // Przewoźnicy bez obsługi nowego gabarytu znikają z wyboru.
@@ -260,7 +269,10 @@ export function ShippingStep({
                 },
               })}
             />
-            <span>{t(`sizes.${option}`)}</span>
+            <IconTile tone="brand" size="sm">
+              {option}
+            </IconTile>
+            <span className="text-body">{t(`sizes.${option}`)}</span>
           </label>
         ))}
         <FieldError id={`${baseId}-size-error`} message={sizeError} />
@@ -268,7 +280,7 @@ export function ShippingStep({
 
       {size === 'XL' ? (
         <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="mb-2 font-medium sm:col-span-2">{t('dimensions')}</legend>
+          <legend className="mb-2 text-label sm:col-span-2">{t('dimensions')}</legend>
           <TextField
             label={t('length')}
             inputMode="numeric"
@@ -300,12 +312,15 @@ export function ShippingStep({
         className="space-y-3"
         aria-describedby={`${baseId}-carriers-hint${carriersFieldError === undefined ? '' : ` ${baseId}-carriers-error`}`}
       >
-        <legend className="mb-1 font-medium">{t('carriers')}</legend>
-        <p id={`${baseId}-carriers-hint`} className="text-sm text-muted-foreground">
+        <legend className="mb-1 text-label">{t('carriers')}</legend>
+        <p id={`${baseId}-carriers-hint`} className="text-body-sm text-muted-foreground">
           {t('carriersHint')}
         </p>
         {carriersError ? (
-          <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+          >
             {t('loadError')}
             <Button type="button" variant="outline" size="sm" onClick={onRetry}>
               {t('retry')}
@@ -316,12 +331,19 @@ export function ShippingStep({
           control={control}
           name="allowedCarriers"
           render={({ field }) => (
-            <ul className="space-y-2">
+            <ul className="grid gap-3 sm:grid-cols-2">
               {(carriers ?? []).map((carrier) => {
                 const id = `${baseId}-${carrier.id}`;
                 const enabled = supports(carrier, size);
                 return (
-                  <li key={carrier.id} className="flex items-center gap-3">
+                  <li
+                    key={carrier.id}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg border border-border-strong bg-card px-4 py-3.5',
+                      field.value.includes(carrier.id) && 'border-brand ring-1 ring-brand',
+                      !enabled && 'bg-muted',
+                    )}
+                  >
                     <Checkbox
                       id={id}
                       checked={field.value.includes(carrier.id)}
@@ -335,7 +357,13 @@ export function ShippingStep({
                         );
                       }}
                     />
-                    <Label htmlFor={id} className={enabled ? undefined : 'text-muted-foreground'}>
+                    <Label
+                      htmlFor={id}
+                      className={cn(
+                        'flex-1 cursor-pointer text-body font-normal',
+                        !enabled && 'cursor-not-allowed text-muted-foreground',
+                      )}
+                    >
                       {enabled
                         ? `${carrier.name} (${t(`kinds.${carrier.kind}`)})`
                         : t('unsupported', { name: carrier.name, size })}
@@ -390,14 +418,17 @@ export function PricingStep({
             : `${durationId}-error`
         }
       >
-        <legend className="mb-2 font-medium">{t('duration')}</legend>
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
+        <legend className="mb-3 text-label">{t('duration')}</legend>
+        <div className="flex flex-wrap gap-2">
           {AUCTION_DURATIONS_DAYS.map((days) => (
-            <label key={days} className="flex items-center gap-2">
+            <label
+              key={days}
+              className="relative inline-flex h-10 cursor-pointer items-center rounded-full border border-border-strong bg-card px-4.5 text-label transition-colors duration-150 hover:border-input has-[:checked]:border-brand-strong has-[:checked]:bg-brand-strong has-[:checked]:text-primary-foreground has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-55 has-[:focus-visible]:shadow-focus-ring motion-reduce:transition-none"
+            >
               <input
                 type="radio"
                 value={String(days)}
-                className="size-4 accent-primary"
+                className="absolute inset-0 size-full cursor-pointer appearance-none rounded-full opacity-0 disabled:cursor-not-allowed"
                 {...register('durationDays')}
               />
               {t('days', { count: days })}
@@ -405,7 +436,7 @@ export function PricingStep({
           ))}
         </div>
         {durationLocked ? (
-          <p id={`${durationId}-locked`} className="text-sm text-muted-foreground">
+          <p id={`${durationId}-locked`} className="text-body-sm text-muted-foreground">
             {t('durationLocked')}
           </p>
         ) : null}
@@ -428,13 +459,13 @@ export function PricingStep({
         {...register('buyNowPrice')}
       />
       {maxAuctionValue === null || maxAuctionValue === undefined ? null : (
-        <p className="rounded-md border border-border bg-muted p-3 text-sm">
+        <p className="rounded-lg bg-info-soft px-4 py-3 text-body-sm">
           {t('limit', { value: zl(maxAuctionValue) })}
         </p>
       )}
       {typeof startPrice === 'number' && startPrice >= LISTING_RULES.minStartPrice ? (
         <div className="space-y-1">
-          <p className="text-sm font-medium">{t('buyerPays')}</p>
+          <p className="text-label">{t('buyerPays')}</p>
           <TotalPrice amount={money(startPrice)} />
         </div>
       ) : null}

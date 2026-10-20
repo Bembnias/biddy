@@ -9,6 +9,7 @@ import type {
   SellingLimitsDto,
 } from '@biddy/api-client';
 import { formatMoney, type ListingIssue, money } from '@biddy/shared';
+import { CircleCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useId } from 'react';
@@ -86,32 +87,32 @@ export function ReviewStep({
 
   return (
     <div className="space-y-6">
-      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-        <dt className="text-muted-foreground">{steps('zdjecia')}</dt>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-body">
+        <dt className="text-foreground-secondary">{steps('zdjecia')}</dt>
         <dd>{t('photos', { count: values.mediaIds?.length ?? 0 })}</dd>
-        <dt className="text-muted-foreground">{t('category')}</dt>
+        <dt className="text-foreground-secondary">{t('category')}</dt>
         <dd>{schema?.name ?? t('none')}</dd>
-        <dt className="text-muted-foreground">{t('condition')}</dt>
+        <dt className="text-foreground-secondary">{t('condition')}</dt>
         <dd>
           {values.condition === undefined || values.condition === ''
             ? t('none')
             : details(`conditions.${values.condition as 'NEW'}`)}
         </dd>
-        <dt className="text-muted-foreground">{t('package')}</dt>
+        <dt className="text-foreground-secondary">{t('package')}</dt>
         <dd>
           {values.packageSize === undefined || values.packageSize === ''
             ? t('none')
             : values.packageSize}
         </dd>
-        <dt className="text-muted-foreground">{t('carriers')}</dt>
+        <dt className="text-foreground-secondary">{t('carriers')}</dt>
         <dd>{carrierNames === '' ? t('none') : carrierNames}</dd>
-        <dt className="text-muted-foreground">{t('startPrice')}</dt>
+        <dt className="text-foreground-secondary">{t('startPrice')}</dt>
         <dd>{price(values.startPrice)}</dd>
-        <dt className="text-muted-foreground">{t('reservePrice')}</dt>
+        <dt className="text-foreground-secondary">{t('reservePrice')}</dt>
         <dd>{price(values.reservePrice)}</dd>
-        <dt className="text-muted-foreground">{t('buyNowPrice')}</dt>
+        <dt className="text-foreground-secondary">{t('buyNowPrice')}</dt>
         <dd>{price(values.buyNowPrice)}</dd>
-        <dt className="text-muted-foreground">{t('duration')}</dt>
+        <dt className="text-foreground-secondary">{t('duration')}</dt>
         <dd>
           {values.durationDays === undefined || values.durationDays === ''
             ? t('none')
@@ -119,21 +120,21 @@ export function ReviewStep({
         </dd>
       </dl>
       {values.title === undefined || values.title.trim() === '' ? null : (
-        <p className="text-lg font-semibold">{values.title}</p>
+        <p className="text-h3">{values.title}</p>
       )}
 
       {grouped.length > 0 ? (
-        <div className="space-y-3 rounded-md border border-destructive/40 p-4">
-          <h3 className="font-medium">{t('missing')}</h3>
+        <div className="space-y-3 rounded-lg bg-destructive-soft p-4">
+          <h3 className="text-label">{t('missing')}</h3>
           {grouped.map((group) => (
             <div key={group.step} className="space-y-1">
               <Link
                 href={stepHref(group.step)}
-                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                className="text-label text-link underline-offset-3 hover:text-link-hover hover:underline"
               >
                 {t('goTo', { step: steps(group.step) })}
               </Link>
-              <ul className="list-disc space-y-1 ps-5 text-sm">
+              <ul className="list-disc space-y-1 ps-5 text-body-sm">
                 {group.issues.map((issue) => (
                   <li key={`${issue.path}-${issue.message}`}>{issue.message}</li>
                 ))}
@@ -142,15 +143,20 @@ export function ReviewStep({
           ))}
         </div>
       ) : (
-        <p className="text-sm">{t('ready')}</p>
+        <p className="flex items-center gap-2 rounded-lg bg-success-soft px-4 py-3 text-body-sm font-semibold text-success">
+          <CircleCheck aria-hidden className="size-4.5 shrink-0" />
+          {t('ready')}
+        </p>
       )}
 
-      {schema?.isRestricted === true ? <p className="text-sm">{t('restricted')}</p> : null}
+      {schema?.isRestricted === true ? (
+        <p className="rounded-lg bg-warning-soft px-4 py-3 text-body-sm">{t('restricted')}</p>
+      ) : null}
 
       {needsKycNotice ? (
-        <div className="space-y-3 rounded-md border border-border bg-muted p-4">
-          <h3 className="font-medium">{t('kycTitle')}</h3>
-          <p className="text-sm">{t('kycText', { value: zl(limits.kycRequiredAbove) })}</p>
+        <div className="space-y-3 rounded-lg border border-border bg-canvas p-4">
+          <h3 className="text-label">{t('kycTitle')}</h3>
+          <p className="text-body-sm">{t('kycText', { value: zl(limits.kycRequiredAbove) })}</p>
           <div className="flex items-start gap-3">
             <Checkbox
               id={kycId}
@@ -161,12 +167,12 @@ export function ReviewStep({
                 onKycAcceptedChange(checked === true);
               }}
             />
-            <Label htmlFor={kycId} className="leading-snug">
+            <Label htmlFor={kycId} className="block text-body leading-snug font-normal">
               {t('kycAccept')}
             </Label>
           </div>
           {kycError === undefined ? null : (
-            <p id={`${kycId}-error`} className="text-sm text-destructive">
+            <p id={`${kycId}-error`} className="text-body-sm text-destructive">
               {kycError}
             </p>
           )}
@@ -174,31 +180,41 @@ export function ReviewStep({
       ) : null}
 
       {alert === undefined ? null : (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+        >
           {alert}
         </p>
       )}
 
       {draft && !phoneVerified ? (
-        <div className="space-y-3 rounded-md border border-border p-4">
-          <h3 className="font-medium">{t('phoneTitle')}</h3>
-          <p className="text-sm">{t('phoneText')}</p>
+        <div className="space-y-3 rounded-lg bg-warning-soft p-4">
+          <h3 className="text-label">{t('phoneTitle')}</h3>
+          <p className="text-body-sm">{t('phoneText')}</p>
           <Button asChild>
             <Link href={withNext(routes.verifyPhone, returnTo)}>{t('phoneAction')}</Link>
           </Button>
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body-sm text-muted-foreground">
             {t('terms')}{' '}
             <Link
               href={routes.prohibitedItems}
-              className="text-primary underline underline-offset-4"
+              className="font-semibold text-link underline underline-offset-3 hover:text-link-hover"
             >
               {t('prohibitedItems')}
             </Link>
           </p>
-          <Button type="button" className="h-10" disabled={busy} onClick={onSubmit}>
+          <Button
+            type="button"
+            variant="cta"
+            size="lg"
+            className="w-full sm:w-auto"
+            disabled={busy}
+            onClick={onSubmit}
+          >
             {draft
               ? busy
                 ? t('publishing')

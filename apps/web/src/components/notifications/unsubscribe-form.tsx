@@ -52,8 +52,8 @@ export function UnsubscribeForm({ token }: { readonly token: string }) {
   if (state === 'done') {
     return (
       <div role="status" className="space-y-3">
-        <p className="font-medium">{t('done')}</p>
-        <p className="text-muted-foreground">{t('inApp')}</p>
+        <p className="text-title">{t('done')}</p>
+        <p className="text-body text-foreground-secondary">{t('inApp')}</p>
         <Link
           href={routes.notificationSettings}
           className="font-semibold text-link underline underline-offset-3 hover:text-link-hover"
@@ -72,7 +72,7 @@ export function UnsubscribeForm({ token }: { readonly token: string }) {
           type: scope === 'ALL' ? '' : types(scope),
         })}
       </p>
-      <p className="text-muted-foreground">{t('inApp')}</p>
+      <p className="text-body text-foreground-secondary">{t('inApp')}</p>
       <Button type="button" disabled={state === 'sending'} onClick={() => void submit()}>
         {state === 'sending' ? t('sending') : t('action')}
       </Button>

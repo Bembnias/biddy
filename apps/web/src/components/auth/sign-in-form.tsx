@@ -94,26 +94,28 @@ export function SignInForm({ next }: { readonly next: string }) {
         ) : null}
         <Button
           type="submit"
-          className="h-10 w-full"
+          variant="cta"
+          size="lg"
+          className="w-full"
           disabled={isSubmitting || (captchaRequired && token === undefined)}
         >
           {isSubmitting ? t('signIn.pending') : t('signIn.submit')}
         </Button>
       </AuthForm>
-      <div className="space-y-2 text-sm">
+      <div className="space-y-2 text-center text-body">
         <p>
           <Link
             href={routes.forgotPassword}
-            className="text-primary underline-offset-4 hover:underline"
+            className="font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
           >
             {t('signIn.forgotPassword')}
           </Link>
         </p>
-        <p className="text-muted-foreground">
+        <p className="text-body text-foreground-secondary">
           {t('signIn.noAccount')}{' '}
           <Link
             href={withNext(routes.signUp, next)}
-            className="font-medium text-primary underline-offset-4 hover:underline"
+            className="font-bold text-link underline-offset-3 hover:text-link-hover hover:underline"
           >
             {t('signIn.signUp')}
           </Link>

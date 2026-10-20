@@ -40,7 +40,7 @@ export function AcceptTermsForm({ next }: { readonly next: string }) {
 
   return (
     <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
-      <p className="text-muted-foreground">{t('text')}</p>
+      <p className="text-body text-foreground-secondary">{t('text')}</p>
       {accept.error === null ? null : <FormAlert>{errorMessage(accept.error)}</FormAlert>}
       <ConsentCheckboxes
         control={form.control}
@@ -49,7 +49,7 @@ export function AcceptTermsForm({ next }: { readonly next: string }) {
           adultDeclaration: errors.adultDeclaration?.message,
         }}
       />
-      <Button type="submit" className="h-10 w-full" disabled={accept.isPending}>
+      <Button type="submit" variant="cta" size="lg" className="w-full" disabled={accept.isPending}>
         {accept.isPending ? t('pending') : t('submit')}
       </Button>
     </AuthForm>
