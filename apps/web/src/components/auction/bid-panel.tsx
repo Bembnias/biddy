@@ -13,6 +13,7 @@ import {
   placeBid,
 } from '@biddy/api-client';
 import { auctionPath, formatMoney, money } from '@biddy/shared';
+import { CircleCheck, Clock, Gavel, Timer, TriangleAlert, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { type FormEvent, useId, useRef, useState } from 'react';
@@ -29,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -49,6 +50,10 @@ import {
   useRefreshAuction,
   useServerNow,
 } from './use-auction';
+
+/** Licznik zmienia ton poniżej doby (fiolet) i godziny (czerwień), jak w design systemie (F-62). */
+const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
 
 /** Kody błędów, po których stan aukcji na stronie jest nieaktualny. */
 const STALE_STATE_CODES = new Set(['BID_TOO_LOW', 'AUCTION_ENDED', 'BUY_NOW_UNAVAILABLE']);
@@ -104,35 +109,41 @@ export function BidPanel({
   return (
     <section
       aria-labelledby="bid-panel-title"
-      className="space-y-4 rounded-lg border border-border p-4"
+      className="space-y-5 rounded-xl border border-border bg-card p-5 shadow-md sm:p-6"
     >
       <h2 id="bid-panel-title" className="sr-only">
         {t('title')}
       </h2>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted-foreground">{priceLabel}</p>
-          <p className="text-3xl font-bold tabular-nums" data-testid="auction-price">
-            {short(auction.currentPrice ?? auction.startPrice)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('bids', { count: auction.bidCount })}
-            {auction.leader === null ? null : (
-              <> · {t('leader', { name: auction.leader.publicName })}</>
-            )}
-          </p>
-          {auction.reserveStatus === 'NONE' ? null : (
-            <p
-              className={cn(
-                'mt-1 text-sm',
-                auction.reserveStatus === 'MET' ? 'text-success' : 'text-muted-foreground',
-              )}
-            >
-              {t('reserve', { status: auction.reserveStatus })}
+      <div className="space-y-1">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-overline text-muted-foreground uppercase">{priceLabel}</p>
+            <p className="mt-1 text-price-xl tabular-nums" data-testid="auction-price">
+              {short(auction.currentPrice ?? auction.startPrice)}
             </p>
-          )}
+          </div>
+          <a
+            href="#bid-history-title"
+            className="mt-5 shrink-0 rounded-xs text-label text-link underline-offset-3 outline-none hover:text-link-hover hover:underline focus-visible:shadow-focus-ring"
+          >
+            {t('bids', { count: auction.bidCount })}
+          </a>
         </div>
-        <WatchButton auction={auction} user={user} bidding={bidding} />
+        {auction.leader === null ? null : (
+          <p className="text-body-sm text-muted-foreground">
+            {t('leader', { name: auction.leader.publicName })}
+          </p>
+        )}
+        {auction.reserveStatus === 'NONE' ? null : (
+          <p
+            className={cn(
+              'text-body-sm',
+              auction.reserveStatus === 'MET' ? 'text-success' : 'text-muted-foreground',
+            )}
+          >
+            {t('reserve', { status: auction.reserveStatus })}
+          </p>
+        )}
       </div>
 
       <Timing auction={auction} phase={phase} now={now} />
@@ -149,7 +160,9 @@ export function BidPanel({
         />
       )}
 
-      <p role="status" aria-live="polite" className="text-sm font-medium empty:hidden">
+      <WatchButton auction={auction} user={user} bidding={bidding} />
+
+      <p role="status" aria-live="polite" className="text-body-sm font-semibold empty:hidden">
         {notice}
       </p>
     </section>
@@ -171,23 +184,25 @@ function Timing({
   const date = (iso: string) =>
     format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
 
+  const banner = (text: string) => (
+    <p className="flex items-center gap-2 rounded-md bg-muted px-4 py-3 text-label text-foreground-secondary">
+      <Clock aria-hidden className="size-4.5 shrink-0" />
+      <span>{text}</span>
+    </p>
+  );
   switch (phase) {
     case 'sold':
-      return (
-        <p className="font-semibold">
-          {t('sold', { price: short(auction.currentPrice ?? auction.startPrice) })}
-        </p>
-      );
+      return banner(t('sold', { price: short(auction.currentPrice ?? auction.startPrice) }));
     case 'unsold':
-      return <p className="font-semibold">{t('unsold')}</p>;
+      return banner(t('unsold'));
     case 'cancelled':
-      return <p className="font-semibold">{t('cancelled')}</p>;
+      return banner(t('cancelled'));
     case 'closing':
-      return <p className="font-semibold">{t('closing')}</p>;
+      return banner(t('closing'));
     case 'scheduled':
-      return auction.startsAt === null ? null : (
-        <p>{t('scheduled', { date: date(auction.startsAt) })}</p>
-      );
+      return auction.startsAt === null
+        ? null
+        : banner(t('scheduled', { date: date(auction.startsAt) }));
     case 'active':
     case 'ending':
       break;
@@ -195,19 +210,30 @@ function Timing({
   if (auction.endsAt === null) {
     return null;
   }
-  const remaining = now === null ? null : remainingParts(Date.parse(auction.endsAt) - now);
+  const left = now === null ? null : Date.parse(auction.endsAt) - now;
+  const remaining = left === null ? null : remainingParts(left);
+  const tone =
+    phase === 'ending' || (left !== null && left < HOUR_MS)
+      ? 'urgent'
+      : left !== null && left < DAY_MS
+        ? 'soon'
+        : 'calm';
+  const Icon = tone === 'urgent' ? Timer : Clock;
   return (
-    <div className={cn('space-y-1', phase === 'ending' && 'rounded-md bg-urgent-soft p-3')}>
+    <div
+      data-tone={tone}
+      className={cn(
+        'space-y-1 rounded-md px-4 py-3',
+        tone === 'urgent' && 'bg-urgent-soft text-urgent',
+        tone === 'soon' && 'bg-accent text-accent-foreground',
+        tone === 'calm' && 'bg-muted text-foreground-secondary',
+      )}
+    >
       {remaining === null ? null : (
-        <p>
-          <span className="text-sm text-muted-foreground">{t('remaining')}: </span>
-          <span
-            role="timer"
-            className={cn(
-              'text-xl font-semibold tabular-nums',
-              phase === 'ending' && 'text-destructive',
-            )}
-          >
+        <p className="flex flex-wrap items-center gap-x-2 text-label">
+          <Icon aria-hidden className="size-4.5 shrink-0" />
+          <span>{t('remaining')}:</span>
+          <span role="timer" className="text-timer tabular-nums">
             {t('countdown', {
               ...remaining,
               ...(remaining.kind === 'minutes'
@@ -220,9 +246,9 @@ function Timing({
           </span>
         </p>
       )}
-      <p className="text-sm text-muted-foreground">{t('endsAt', { date: date(auction.endsAt) })}</p>
+      <p className="text-body-sm">{t('endsAt', { date: date(auction.endsAt) })}</p>
       {phase === 'ending' ? (
-        <p className="text-sm font-medium">
+        <p className="text-body-sm font-semibold">
           {t('ending', { minutes: Math.max(1, Math.round(auction.extensionWindowSeconds / 60)) })}
         </p>
       ) : null}
@@ -246,10 +272,13 @@ function BidderStatus({
   switch (bidding.outcome) {
     case 'WON':
       return (
-        <div className="rounded-md bg-success/10 p-3" data-testid="bidder-status">
-          <p className="font-semibold">{t('won')}</p>
+        <div className="rounded-md bg-accent px-4 py-3" data-testid="bidder-status">
+          <p className="flex items-center gap-2 text-label text-accent-foreground">
+            <Trophy aria-hidden className="size-4.5 shrink-0" />
+            {t('won')}
+          </p>
           {bidding.order === null ? null : (
-            <p className="mt-1 text-sm">
+            <p className="mt-1 text-body-sm text-foreground">
               {t('wonOrder', {
                 number: bidding.order.publicId,
                 total: formatMoney(money(bidding.order.total)),
@@ -264,13 +293,19 @@ function BidderStatus({
       );
     case 'LOST':
       return (
-        <p className="text-sm" data-testid="bidder-status">
+        <p
+          className="rounded-md bg-muted px-4 py-3 text-body-sm text-foreground-secondary"
+          data-testid="bidder-status"
+        >
           {t('lost')}
         </p>
       );
     case 'RESERVE_NOT_MET':
       return (
-        <p className="text-sm" data-testid="bidder-status">
+        <p
+          className="rounded-md bg-muted px-4 py-3 text-body-sm text-foreground-secondary"
+          data-testid="bidder-status"
+        >
           {t('reserveNotMet')}
         </p>
       );
@@ -282,16 +317,18 @@ function BidderStatus({
   }
   return bidding.leading ? (
     <p
-      className="rounded-md bg-success-soft p-3 text-sm font-medium text-success"
+      className="flex items-center gap-2 rounded-md bg-success-soft px-4 py-3 text-label text-success"
       data-testid="bidder-status"
     >
+      <CircleCheck aria-hidden className="size-4.5 shrink-0" />
       {t('leading', { max: short(bidding.maxAmount) })}
     </p>
   ) : (
     <p
-      className="rounded-md bg-urgent-soft p-3 text-sm font-medium text-urgent"
+      className="flex items-center gap-2 rounded-md bg-urgent-soft px-4 py-3 text-label text-urgent"
       data-testid="bidder-status"
     >
+      <TriangleAlert aria-hidden className="size-4.5 shrink-0" />
       {t('outbid', { minimum: short(auction.minimumNextBid ?? auction.startPrice) })}
     </p>
   );
@@ -323,11 +360,11 @@ function Actions({
   }
   if (bidding?.isSeller === true || user.id === auction.seller.id) {
     return (
-      <p className="text-sm">
+      <p className="rounded-md bg-muted px-4 py-3 text-body-sm text-foreground-secondary">
         {t('own')}{' '}
         <Link
           href={routes.myAuctions}
-          className="text-primary underline underline-offset-4 hover:no-underline"
+          className="font-semibold text-link underline underline-offset-3 hover:text-link-hover"
         >
           {t('ownLink')}
         </Link>
@@ -373,10 +410,10 @@ function Gate({
 }) {
   return (
     <div className="space-y-2">
-      <Button asChild className="h-10 w-full">
+      <Button asChild variant="cta" size="lg" className="w-full">
         <Link href={href}>{action}</Link>
       </Button>
-      {text === undefined ? null : <p className="text-sm text-muted-foreground">{text}</p>}
+      {text === undefined ? null : <p className="text-body-sm text-muted-foreground">{text}</p>}
     </div>
   );
 }
@@ -475,38 +512,36 @@ function BidForm({
   };
 
   return (
-    <form noValidate onSubmit={submit} className="space-y-3">
-      <div className="space-y-1.5">
+    <form noValidate onSubmit={submit} className="space-y-4">
+      <div className="space-y-2">
         <Label htmlFor={inputId}>{t('maxLabel')}</Label>
-        <div className="flex gap-2">
-          <Input
-            id={inputId}
-            inputMode="decimal"
-            autoComplete="off"
-            value={text}
-            placeholder={short(minimum)}
-            aria-describedby={error === undefined ? hintId : `${errorId} ${hintId}`}
-            aria-invalid={error === undefined ? undefined : true}
-            className="h-10"
-            onChange={(event) => {
-              setText(event.target.value);
-              setError(undefined);
-            }}
-          />
-          <Button type="submit" className="h-10 shrink-0" disabled={sending}>
-            {sending ? t('bidding') : t('bid')}
-          </Button>
-        </div>
+        <Input
+          id={inputId}
+          inputMode="decimal"
+          autoComplete="off"
+          value={text}
+          placeholder={short(minimum)}
+          aria-describedby={error === undefined ? hintId : `${errorId} ${hintId}`}
+          aria-invalid={error === undefined ? undefined : true}
+          onChange={(event) => {
+            setText(event.target.value);
+            setError(undefined);
+          }}
+        />
         {error === undefined ? null : (
-          <p id={errorId} className="text-sm text-destructive">
+          <p id={errorId} className="text-body-sm text-destructive">
             {error}
           </p>
         )}
-        <p id={hintId} className="text-sm text-muted-foreground">
+        <p id={hintId} className="text-body-sm text-muted-foreground">
           {t('maxHint', { minimum: short(minimum) })}
         </p>
       </div>
       <TotalPrice amount={money(preview)} kind="maxBid" initialFeeSchedule={feeSchedule} />
+      <Button type="submit" variant="cta" size="lg" className="w-full" disabled={sending}>
+        <Gavel aria-hidden />
+        {sending ? t('bidding') : t('bid')}
+      </Button>
 
       <AlertDialog
         open={confirming !== null}
@@ -529,10 +564,11 @@ function BidForm({
             initialFeeSchedule={feeSchedule}
             withDetails={false}
           />
-          <p className="text-sm text-muted-foreground">{t('confirmShipping')}</p>
+          <p className="text-body-sm text-muted-foreground">{t('confirmShipping')}</p>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={sending}>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
+              className={buttonVariants({ variant: 'cta' })}
               disabled={sending}
               onClick={(event) => {
                 // Okno zamykamy po odpowiedzi API, nie od razu.
@@ -598,7 +634,8 @@ function BuyNow({
       <Button
         type="button"
         variant="outline"
-        className="h-10 w-full"
+        size="lg"
+        className="w-full"
         onClick={() => {
           setError(undefined);
           setOpen(true);
@@ -613,7 +650,7 @@ function BuyNow({
         withDetails={false}
       />
       {error === undefined ? null : (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-body-sm text-destructive">
           {error}
         </p>
       )}
@@ -638,10 +675,11 @@ function BuyNow({
             initialFeeSchedule={feeSchedule}
             withDetails={false}
           />
-          <p className="text-sm text-muted-foreground">{t('confirmShipping')}</p>
+          <p className="text-body-sm text-muted-foreground">{t('confirmShipping')}</p>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={sending}>{t('cancel')}</AlertDialogCancel>
             <AlertDialogAction
+              className={buttonVariants({ variant: 'cta' })}
               disabled={sending}
               onClick={(event) => {
                 event.preventDefault();

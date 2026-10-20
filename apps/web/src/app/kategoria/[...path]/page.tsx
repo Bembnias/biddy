@@ -1,5 +1,6 @@
 import type { CategoryDto } from '@biddy/api-client';
 import type { Metadata } from 'next';
+import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -63,22 +64,27 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       categoryInQuery={false}
       droppedAttributes={droppedAttributes}
       breadcrumbs={
-        <nav aria-label={t('breadcrumbs')} className="mb-3 text-sm text-muted-foreground">
-          <ol className="flex flex-wrap gap-x-2">
+        <nav aria-label={t('breadcrumbs')} className="mb-5 text-body-sm text-muted-foreground">
+          <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             <li>
-              <Link href={routes.search} className="underline-offset-4 hover:underline">
+              <Link
+                href={routes.search}
+                className="rounded-xs text-foreground-secondary underline-offset-3 outline-none hover:text-foreground hover:underline focus-visible:shadow-focus-ring"
+              >
                 {t('allCategories')}
               </Link>
             </li>
             {trail.map((crumb) => (
-              <li key={crumb.id} className="flex gap-x-2">
-                <span aria-hidden>›</span>
+              <li key={crumb.id} className="flex items-center gap-x-1.5">
+                <ChevronRight aria-hidden className="size-3.5" />
                 {crumb.id === category.id ? (
-                  <span aria-current="page">{crumb.name}</span>
+                  <span aria-current="page" className="font-semibold text-foreground">
+                    {crumb.name}
+                  </span>
                 ) : (
                   <Link
                     href={categoryUrl(crumb.path)}
-                    className="underline-offset-4 hover:underline"
+                    className="rounded-xs text-foreground-secondary underline-offset-3 outline-none hover:text-foreground hover:underline focus-visible:shadow-focus-ring"
                   >
                     {crumb.name}
                   </Link>

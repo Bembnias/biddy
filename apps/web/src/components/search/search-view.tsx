@@ -1,11 +1,13 @@
 import type { AuctionSearchDto, CategoryDto } from '@biddy/api-client';
 import { formatMoney, money } from '@biddy/shared';
+import { SearchX } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
 import { TrackOnMount } from '@/analytics/track-on-mount';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { categoryUrl } from '@/lib/routes';
@@ -55,11 +57,11 @@ export async function SearchView(props: SearchViewProps) {
   const sort: WebSort = state.sort ?? (result === null ? 'koniec' : webSort(result.sort));
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-10">
+    <div className="mx-auto w-full max-w-page px-4 py-6 md:px-10 md:py-8">
       {props.breadcrumbs}
-      <h1 className="text-2xl font-bold break-words md:text-3xl">{props.heading}</h1>
+      <h1 className="text-h2 break-words md:text-h1">{props.heading}</h1>
       {result === null ? null : (
-        <p className="mt-1 text-muted-foreground" aria-live="polite">
+        <p className="mt-1 text-body text-muted-foreground" aria-live="polite">
           {result.total >= MAX_RESULTS
             ? t('countMore', { count: MAX_RESULTS })
             : t('count', { count: result.total })}
@@ -78,7 +80,7 @@ export async function SearchView(props: SearchViewProps) {
         />
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-8">
         <div>
           <FilterPanel
             summary={
@@ -94,34 +96,37 @@ export async function SearchView(props: SearchViewProps) {
             {t('results')}
           </h2>
           {props.droppedAttributes ? (
-            <p role="status" className="rounded-md bg-muted p-3 text-sm">
+            <p role="status" className="rounded-lg bg-info-soft px-4 py-3 text-body-sm">
               {t('droppedAttributes')}
             </p>
           ) : null}
           {result === null ? (
-            <p role="alert" className="rounded-md border border-destructive/40 p-4 text-sm">
+            <p role="alert" className="rounded-lg bg-destructive-soft px-4 py-3 text-body-sm">
               {t('unavailable')}
             </p>
           ) : result.items.length === 0 ? (
-            <div className="space-y-3 rounded-lg border border-dashed border-border p-8 text-center">
-              <p>{filters === 0 && state.q === '' ? t('emptyNoFilters') : t('empty')}</p>
-              {filters === 0 ? null : (
-                <Link
-                  href={searchHref(basePath, withoutFilters(state))}
-                  className="text-primary underline underline-offset-4 hover:no-underline"
-                >
-                  {t('filters.clear')}
-                </Link>
-              )}
-            </div>
+            <EmptyState
+              icon={SearchX}
+              headingLevel="h3"
+              title={filters === 0 && state.q === '' ? t('emptyNoFilters') : t('empty')}
+              action={
+                filters === 0 ? undefined : (
+                  <Button asChild variant="outline">
+                    <Link href={searchHref(basePath, withoutFilters(state))}>
+                      {t('filters.clear')}
+                    </Link>
+                  </Button>
+                )
+              }
+            />
           ) : (
             <>
               <AuctionGrid auctions={result.items} priorityCount={4} />
               <Pagination basePath={basePath} state={state} result={result} />
             </>
           )}
-          <details className="text-sm text-muted-foreground">
-            <summary className="cursor-pointer text-foreground underline-offset-4 hover:underline">
+          <details className="text-body-sm text-muted-foreground">
+            <summary className="cursor-pointer text-link underline-offset-3 hover:text-link-hover hover:underline">
               {t('ranking.title')}
             </summary>
             <div className="mt-2 space-y-2">
@@ -162,8 +167,8 @@ async function Filters({
         <input type="hidden" name="kategoria" value={state.category} />
       ) : null}
 
-      <div className="space-y-1.5">
-        <label htmlFor="search-sort" className="text-sm font-medium">
+      <div className="space-y-2">
+        <label htmlFor="search-sort" className="text-label">
           {t('filters.sort')}
         </label>
         <NativeSelect id="search-sort" name="sort" defaultValue={sort}>
@@ -178,16 +183,16 @@ async function Filters({
       </div>
 
       {(facets?.categories.length ?? 0) > 0 || category !== undefined ? (
-        <nav aria-labelledby="filter-categories" className="space-y-1.5">
-          <h3 id="filter-categories" className="text-sm font-medium">
+        <nav aria-labelledby="filter-categories" className="space-y-2">
+          <h3 id="filter-categories" className="text-label">
             {t('filters.categories')}
           </h3>
-          <ul className="space-y-1 text-sm">
+          <ul className="space-y-1.5 text-body-sm">
             {category === undefined ? null : (
               <li>
                 <Link
                   href={categoryHref(parent?.path)}
-                  className="text-primary underline-offset-4 hover:underline"
+                  className="font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
                 >
                   {parent === undefined
                     ? t('allCategories')
@@ -199,7 +204,7 @@ async function Filters({
               <li key={entry.id}>
                 <Link
                   href={categoryHref(entry.path)}
-                  className="text-primary underline-offset-4 hover:underline"
+                  className="font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
                 >
                   {entry.name}
                 </Link>{' '}
@@ -281,11 +286,13 @@ async function Filters({
         ),
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit">{t('filters.apply')}</Button>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button type="submit" className="flex-1">
+          {t('filters.apply')}
+        </Button>
         <Link
           href={searchHref(basePath, withoutFilters({ ...state, sort: undefined }))}
-          className="text-sm text-primary underline-offset-4 hover:underline"
+          className="text-label text-link underline-offset-3 hover:text-link-hover hover:underline"
         >
           {t('filters.clear')}
         </Link>
@@ -329,19 +336,19 @@ function CheckboxGroup({
     return null;
   }
   return (
-    <fieldset className="space-y-1.5">
-      <legend className="text-sm font-medium">{legend}</legend>
+    <fieldset className="space-y-2">
+      <legend className="mb-2 text-label">{legend}</legend>
       {options.map((option) => {
         const id = `${name}-${option.value}`;
         return (
-          <div key={option.value} className="flex items-center gap-2 text-sm">
+          <div key={option.value} className="flex items-center gap-2.5 text-body">
             <input
               id={id}
               type="checkbox"
               name={name}
               value={option.value}
               defaultChecked={selected.includes(option.value)}
-              className="size-4 accent-primary"
+              className="size-4.5 shrink-0 accent-brand-strong"
             />
             <label htmlFor={id}>
               {option.label}{' '}
@@ -370,8 +377,8 @@ function RangeFields({
   readonly labels: readonly [string, string];
 }) {
   return (
-    <fieldset className="space-y-1.5">
-      <legend className="text-sm font-medium">{legend}</legend>
+    <fieldset className="space-y-2">
+      <legend className="mb-2 text-label">{legend}</legend>
       <div className="flex items-center gap-2">
         {([0, 1] as const).map((index) => (
           <Input
@@ -382,7 +389,7 @@ function RangeFields({
             aria-label={labels[index]}
             inputMode="decimal"
             autoComplete="off"
-            className="h-9"
+            className="h-10"
           />
         ))}
       </div>
@@ -406,7 +413,8 @@ async function Pagination({
   }
   const current = Math.min(state.page, total);
   const pages = pageWindow(current, total);
-  const link = 'inline-flex h-9 min-w-9 items-center justify-center rounded-md border px-3 text-sm';
+  const link =
+    'inline-flex h-10 min-w-10 items-center justify-center rounded-full border px-3.5 text-label tabular-nums outline-none transition-colors duration-150 focus-visible:shadow-focus-ring';
   return (
     <nav aria-label={t('label')}>
       <ul className="flex flex-wrap items-center gap-2">
@@ -415,7 +423,7 @@ async function Pagination({
             <Link
               href={searchHref(basePath, state, { page: current - 1 })}
               rel="prev"
-              className={cn(link, 'border-border')}
+              className={cn(link, 'border-border-strong bg-card hover:bg-canvas')}
             >
               {t('previous')}
             </Link>
@@ -435,8 +443,8 @@ async function Pagination({
                 className={cn(
                   link,
                   page === current
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border',
+                    ? 'border-brand-strong bg-brand-strong text-primary-foreground'
+                    : 'border-border-strong bg-card hover:bg-canvas',
                 )}
               >
                 {page}
@@ -449,7 +457,7 @@ async function Pagination({
             <Link
               href={searchHref(basePath, state, { page: current + 1 })}
               rel="next"
-              className={cn(link, 'border-border')}
+              className={cn(link, 'border-border-strong bg-card hover:bg-canvas')}
             >
               {t('next')}
             </Link>

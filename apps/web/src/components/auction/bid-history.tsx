@@ -38,55 +38,56 @@ export function BidHistory({ initial }: { readonly initial: PublicAuctionDto }) 
 
   return (
     <section aria-labelledby="bid-history-title" className="space-y-3">
-      <h2 id="bid-history-title" className="text-xl font-semibold">
+      <h2 id="bid-history-title" className="text-overline text-muted-foreground uppercase">
         {t('title')}
       </h2>
       {history.isPending ? (
         <div className="space-y-2" aria-busy="true">
           <span className="sr-only">{t('loading')}</span>
-          <Skeleton className="h-6 w-full" />
-          <Skeleton className="h-6 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
         </div>
       ) : history.isError ? (
-        <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-3 rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+        >
           {t('error')}
           <Button type="button" variant="outline" size="sm" onClick={() => void history.refetch()}>
             {t('retry')}
           </Button>
         </div>
       ) : items.length === 0 ? (
-        <p className="text-muted-foreground">{t('empty')}</p>
+        <p className="rounded-lg bg-muted px-4 py-3 text-body-sm text-foreground-secondary">
+          {t('empty')}
+        </p>
       ) : (
         <>
-          <table className="w-full text-sm">
-            <thead className="text-left text-muted-foreground">
+          <table className="w-full text-body-sm">
+            <thead className="sr-only">
               <tr>
-                <th scope="col" className="py-2 font-medium">
-                  {t('bidder')}
-                </th>
-                <th scope="col" className="py-2 text-right font-medium">
-                  {t('amount')}
-                </th>
-                <th scope="col" className="py-2 text-right font-medium">
-                  {t('time')}
-                </th>
+                <th scope="col">{t('bidder')}</th>
+                <th scope="col">{t('amount')}</th>
+                <th scope="col">{t('time')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border border-y border-border">
               {items.map((bid) => (
                 <tr key={bid.id}>
-                  <td className="py-2">
-                    {bid.bidder}
+                  <td className="py-2.5 pr-3">
+                    <span className="font-semibold text-foreground">{bid.bidder}</span>
                     {bid.kind === 'MANUAL' ? null : (
-                      <span className="block text-xs text-muted-foreground">
+                      <span className="block text-caption text-muted-foreground">
                         {t('kind', { kind: bid.kind })}
                       </span>
                     )}
                   </td>
-                  <td className="py-2 text-right tabular-nums">
-                    {formatMoney(money(bid.amount, history.data?.pages[0]?.currency ?? 'PLN'))}
+                  <td className="py-2.5 text-right text-price whitespace-nowrap tabular-nums">
+                    {formatMoney(money(bid.amount, history.data?.pages[0]?.currency ?? 'PLN'), {
+                      trailingZeroDisplay: 'stripIfInteger',
+                    })}
                   </td>
-                  <td className="py-2 text-right text-muted-foreground">
+                  <td className="py-2.5 pl-3 text-right text-caption whitespace-nowrap text-muted-foreground">
                     <time dateTime={bid.createdAt}>
                       {format.dateTime(new Date(bid.createdAt), {
                         dateStyle: 'short',
@@ -101,8 +102,7 @@ export function BidHistory({ initial }: { readonly initial: PublicAuctionDto }) 
           {history.hasNextPage ? (
             <Button
               type="button"
-              variant="outline"
-              size="sm"
+              variant="link"
               disabled={history.isFetchingNextPage}
               onClick={() => void history.fetchNextPage()}
             >

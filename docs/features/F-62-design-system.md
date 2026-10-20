@@ -78,7 +78,11 @@ Według design systemu (README, „Wzorce UX”) i makiet z `design/`. Zasady, k
   - Plus Jakarta Sans, logo, ikona karty, kolory e-maili;
   - komponenty bazowe i nowe (`Chip`, `IconTile`, `PillTabs`, `SegmentedControl`, `Price`, `EmptyState`);
   - nagłówek i stopka.
-- [ ] Krok 2: aukcje i przeglądanie.
+- [x] **Krok 2, aukcje i przeglądanie:**
+  - strona aukcji: tytuł z chipami stanu i marki obok galerii, panel licytacji (cena, licznik w trzech tonach, stany z ikonami, CTA „Licytuj”, obserwowanie), historia ofert, parametry, przewoźnicy w kafelkach, karta sprzedawcy;
+  - karta aukcji z datą końca na zdjęciu;
+  - wyszukiwarka i strona kategorii (panel filtrów, pusty stan, paginacja);
+  - strona główna (hero z kartą kończącej się aukcji, sekcje list, kategorie, „Dlaczego Biddy”).
 - [ ] Krok 3: konto i Moje Biddy.
 - [ ] Krok 4: logowanie i wystawianie.
 
@@ -109,7 +113,7 @@ Bez zmian.
 - [x] Given aplikacja web, Then klasy kolorów, typografii, promieni, cieni i kontenerów pochodzą wyłącznie z tokenów, bez starych nazw (`highlight`, `navy`, `orange`, `gray`).
 - [x] Given dowolna strona, Then tekst jest w Plus Jakarta Sans, a nagłówek pokazuje logo Biddy.
 - [ ] Given widok z główną akcją, Then jest na nim najwyżej jeden przycisk `cta`.
-- [ ] Given strona aukcji, Then panel pokazuje stan użytkownika z ikoną i tekstem, a licznik zmienia ton przy 24 h i 1 h do końca.
+- [x] Given strona aukcji, Then panel pokazuje stan użytkownika z ikoną i tekstem, a licznik zmienia ton przy 24 h i 1 h do końca.
 - [ ] Given Moje Biddy, Then każda pozycja ma stan, cenę i następny krok w układzie karty z design systemu.
 - [ ] Given strony z F-06–F-21, Then e2e (ścieżki, role, etykiety) i axe (WCAG 2.1 AA) przechodzą bez zmian w zachowaniu.
 - [ ] Given szerokość 360–1440 px, Then żadna strona nie przewija się w poziomie.

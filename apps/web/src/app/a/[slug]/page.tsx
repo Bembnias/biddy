@@ -7,6 +7,7 @@ import {
 } from '@biddy/api-client';
 import { auctionCacheTag, auctionPath, formatMoney, money, parseAuctionPath } from '@biddy/shared';
 import type { Metadata } from 'next';
+import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
@@ -18,6 +19,7 @@ import { AuctionGallery } from '@/components/auction/auction-gallery';
 import { BidHistory } from '@/components/auction/bid-history';
 import { BidPanel } from '@/components/auction/bid-panel';
 import { SellerCard } from '@/components/auction/seller-card';
+import { Chip } from '@/components/ui/chip';
 import { config } from '@/config';
 import { jsonLdText, productJsonLd } from '@/lib/auction/structured-data';
 import { categoryUrl } from '@/lib/routes';
@@ -116,10 +118,11 @@ export default async function AuctionPage({ params }: PageProps) {
   }
   const feeSchedule = await loadFeeSchedule();
   const t = await getTranslations('auction');
+  const conditions = await getTranslations('listing.details.conditions');
   const url = new URL(auctionPath(auction.slug, auction.publicId), config.siteUrl).toString();
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-10">
+    <div className="mx-auto w-full max-w-page px-4 py-6 md:px-10 md:py-8">
       <script
         type="application/ld+json"
         // Treść użytkownika escapowana w jsonLdText (bez `</script>`).
@@ -130,16 +133,16 @@ export default async function AuctionPage({ params }: PageProps) {
         properties={{ auctionId: auction.id, status: auction.status }}
       />
       {auction.category.length === 0 ? null : (
-        <nav aria-label={t('categoryPath')} className="mb-3 text-sm text-muted-foreground">
-          <ol className="flex flex-wrap gap-x-2">
+        <nav aria-label={t('categoryPath')} className="mb-5 text-body-sm text-muted-foreground">
+          <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             {auction.category.map((crumb, index) => (
-              <li key={crumb.id} className="flex gap-x-2">
-                {index === 0 ? null : <span aria-hidden>›</span>}
+              <li key={crumb.id} className="flex items-center gap-x-1.5">
+                {index === 0 ? null : <ChevronRight aria-hidden className="size-3.5" />}
                 <Link
                   href={categoryUrl(
                     auction.category.slice(0, index + 1).map((entry) => entry.slug),
                   )}
-                  className="underline-offset-4 hover:underline"
+                  className="rounded-xs text-foreground-secondary underline-offset-3 outline-none hover:text-foreground hover:underline focus-visible:shadow-focus-ring"
                 >
                   {crumb.name}
                 </Link>
@@ -148,23 +151,31 @@ export default async function AuctionPage({ params }: PageProps) {
           </ol>
         </nav>
       )}
-      <h1 className="text-2xl font-bold break-words md:text-3xl">{auction.title}</h1>
 
-      {/* Jedna siatka: na telefonie galeria, panel, opis i historia jedno pod drugim; na desktopie
-          panel i sprzedawca w prawej kolumnie, przyklejone przy przewijaniu. */}
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_1fr]">
+      {/* Jedna siatka: na telefonie galeria, tytuł z panelem licytacji, historia, opis
+          i sprzedawca jedno pod drugim; na desktopie tytuł, panel i historia w prawej kolumnie. */}
+      <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:grid-rows-[auto_1fr]">
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <AuctionGallery title={auction.title} photos={auction.photos} />
         </div>
-        <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <div className="space-y-6 lg:sticky lg:top-6">
-            <BidPanel initial={auction} feeSchedule={feeSchedule} />
-            <SellerCard seller={auction.seller} />
+        <div className="min-w-0 space-y-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <div className="space-y-3">
+            {auction.condition === null && auction.brand === null ? null : (
+              <div className="flex flex-wrap gap-2">
+                {auction.condition === null ? null : (
+                  <Chip>{t('conditionChip', { condition: conditions(auction.condition) })}</Chip>
+                )}
+                {auction.brand === null ? null : <Chip tone="brand">{auction.brand}</Chip>}
+              </div>
+            )}
+            <h1 className="text-h2 break-words md:text-h1">{auction.title}</h1>
           </div>
-        </div>
-        <div className="min-w-0 space-y-10 lg:col-start-1 lg:row-start-2">
-          <AuctionDetails auction={auction} />
+          <BidPanel initial={auction} feeSchedule={feeSchedule} />
           <BidHistory initial={auction} />
+        </div>
+        <div className="min-w-0 space-y-12 lg:col-start-1 lg:row-start-2">
+          <AuctionDetails auction={auction} />
+          <SellerCard seller={auction.seller} />
         </div>
       </div>
     </div>

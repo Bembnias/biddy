@@ -43,13 +43,12 @@ export function WatchButton({
   }
   if (user === null) {
     return (
-      <Link
-        href={withNext(routes.signIn, auctionPath(auction.slug, auction.publicId))}
-        className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline"
-      >
-        <Heart aria-hidden className="size-4" />
-        {t('guest')}
-      </Link>
+      <Button asChild variant="soft" className="w-full">
+        <Link href={withNext(routes.signIn, auctionPath(auction.slug, auction.publicId))}>
+          <Heart aria-hidden />
+          {t('guest')}
+        </Link>
+      </Button>
     );
   }
   if (bidding === undefined || bidding.isSeller) {
@@ -82,18 +81,18 @@ export function WatchButton({
     <div>
       <Button
         type="button"
-        variant="outline"
-        size="sm"
+        variant="soft"
+        className="w-full"
         aria-pressed={watching}
         aria-label={watching ? t('unwatchLabel') : t('watchLabel')}
         disabled={pending}
         onClick={() => void toggle()}
       >
-        <Heart aria-hidden className={cn('size-4', watching && 'fill-current text-destructive')} />
+        <Heart aria-hidden className={cn(watching && 'fill-current text-brand-strong')} />
         {watching ? t('watching') : t('watch')}
       </Button>
       {error ? (
-        <p role="alert" className="mt-1 text-sm text-destructive">
+        <p role="alert" className="mt-2 text-body-sm text-destructive">
           {t('error')}
         </p>
       ) : null}

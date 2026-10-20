@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { type ReactNode, useEffect, useRef } from 'react';
 
 /**
@@ -20,9 +21,16 @@ export function FilterPanel({
     }
   }, []);
   return (
-    <details ref={ref} className="group rounded-lg border border-border">
-      <summary className="cursor-pointer px-4 py-3 font-semibold">{summary}</summary>
-      <div className="border-t border-border p-4">{children}</div>
+    <details ref={ref} className="group rounded-xl border border-border bg-card">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-xl px-5 py-4 text-title outline-none focus-visible:shadow-focus-ring [&::-webkit-details-marker]:hidden">
+        <SlidersHorizontal aria-hidden className="size-4.5 text-foreground-secondary" />
+        {summary}
+        <ChevronDown
+          aria-hidden
+          className="ml-auto size-4.5 text-foreground-secondary transition-transform group-open:rotate-180 motion-reduce:transition-none"
+        />
+      </summary>
+      <div className="border-t border-border p-5">{children}</div>
     </details>
   );
 }

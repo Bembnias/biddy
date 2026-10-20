@@ -596,6 +596,7 @@
     "metaDescription": "{title}. Licytuj na Biddy: aktualna cena {price}, kończy się {date}.",
     "metaDescriptionEnded": "{title}. Aukcja na Biddy zakończona.",
     "categoryPath": "Kategoria",
+    "conditionChip": "Stan: {condition}",
     "gallery": {
       "label": "Zdjęcia przedmiotu",
       "photo": "Zdjęcie {index} z {count}: {title}",
@@ -620,6 +621,8 @@
       "avatar": "Zdjęcie profilowe: {name}",
       "ratings": "Oceny",
       "noRatings": "Brak ocen",
+      "profile": "Zobacz profil",
+      "profileOf": ": {name}",
       "private": "Osoba prywatna",
       "privateNotice": "Sprzedawca jest osobą prywatną, więc prawa konsumenta wobec przedsiębiorcy (np. zwrot w 14 dni) wobec niego nie przysługują. Zakup chroni Pakiet Ochrony Kupujących."
     },
@@ -679,7 +682,7 @@
     },
     "history": {
       "title": "Historia ofert",
-      "empty": "Nikt jeszcze nie licytował. Zostań pierwszy!",
+      "empty": "Nikt jeszcze nie licytował. Złóż pierwszą ofertę.",
       "bidder": "Licytujący",
       "amount": "Kwota",
       "time": "Czas",

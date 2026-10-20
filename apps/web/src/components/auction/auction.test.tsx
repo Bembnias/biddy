@@ -246,6 +246,16 @@ describe('BidPanel: na żywo i stany', () => {
     expect(screen.getByRole('timer').textContent).toMatch(/^01:[23]\d$/u);
   });
 
+  it.each([
+    ['3 dni', 3 * 86_400_000, 'calm'],
+    ['5 godzin', 5 * 3_600_000, 'soon'],
+    ['40 minut', 40 * 60_000, 'urgent'],
+  ])('ton licznika (F-62): do końca %s → %s', async (_label, remaining, tone) => {
+    setup(publicAuction({}, remaining));
+    const timer = await screen.findByRole('timer');
+    expect(timer.closest('[data-tone]')?.getAttribute('data-tone')).toBe(tone);
+  });
+
   it('wygrana: kwota i termin płatności z zamówienia', async () => {
     setup(publicAuction({ status: 'ENDED_SOLD', currentPrice: 10_000, bidCount: 1 }), {
       user: BUYER,

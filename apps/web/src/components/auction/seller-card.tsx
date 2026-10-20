@@ -1,25 +1,29 @@
 import type { PublicAuctionDto } from '@biddy/api-client';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, Star } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 import { UserAvatar } from '@/components/profile/user-avatar';
+import { Button } from '@/components/ui/button';
 import { monthAndYear } from '@/lib/dates';
 import { publicProfileUrl } from '@/lib/routes';
 
 /**
- * Sprzedawca na stronie aukcji (F-18): profil, weryfikacja telefonu, oceny (F-30) i informacja,
- * że to osoba prywatna (prawo konsumenckie, PROJECT.md §17).
+ * Sprzedawca na stronie aukcji (F-18, wygląd F-62): profil, weryfikacja telefonu, oceny (F-30)
+ * i informacja, że to osoba prywatna (prawo konsumenckie, PROJECT.md §17).
  */
 export async function SellerCard({ seller }: { readonly seller: PublicAuctionDto['seller'] }) {
   const t = await getTranslations('auction.seller');
   const profile = await getTranslations('profile.public');
   return (
-    <section aria-labelledby="auction-seller" className="rounded-lg border border-border p-4">
-      <h2 id="auction-seller" className="text-lg font-semibold">
+    <section
+      aria-labelledby="auction-seller"
+      className="space-y-4 rounded-xl border border-border bg-canvas p-6"
+    >
+      <h2 id="auction-seller" className="text-overline text-muted-foreground uppercase">
         {t('title')}
       </h2>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <UserAvatar
           userId={seller.id}
           name={seller.name}
@@ -27,28 +31,34 @@ export async function SellerCard({ seller }: { readonly seller: PublicAuctionDto
           imageUrl={seller.avatarUrl}
         />
         <div className="min-w-0">
-          <Link
-            href={publicProfileUrl(seller.id)}
-            className="font-medium break-words text-primary underline-offset-4 hover:underline"
-          >
-            {seller.name}
-          </Link>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-title break-words">{seller.name}</p>
+          <p className="text-body-sm text-muted-foreground">
             {t('private')} ·{' '}
             {profile('memberSince', { date: monthAndYear(new Date(seller.memberSince)) })}
           </p>
         </div>
       </div>
-      {seller.phoneVerified ? (
-        <p className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-success">
-          <BadgeCheck aria-hidden className="size-4" />
-          {profile('phoneVerified')}
-        </p>
-      ) : null}
-      <p className="mt-2 text-sm">
-        <span className="text-muted-foreground">{t('ratings')}:</span> {t('noRatings')}
-      </p>
-      <p className="mt-3 text-sm text-muted-foreground">{t('privateNotice')}</p>
+      <ul className="space-y-2 text-body-sm">
+        {seller.phoneVerified ? (
+          <li className="flex items-center gap-2 font-semibold text-success">
+            <BadgeCheck aria-hidden className="size-4" />
+            {profile('phoneVerified')}
+          </li>
+        ) : null}
+        <li className="flex items-center gap-2 text-foreground-secondary">
+          <Star aria-hidden className="size-4 text-rating" />
+          <span>
+            {t('ratings')}: <span className="font-semibold text-foreground">{t('noRatings')}</span>
+          </span>
+        </li>
+      </ul>
+      <p className="text-caption text-muted-foreground">{t('privateNotice')}</p>
+      <Button asChild variant="outline" className="w-full">
+        <Link href={publicProfileUrl(seller.id)}>
+          {t('profile')}
+          <span className="sr-only">{t('profileOf', { name: seller.name })}</span>
+        </Link>
+      </Button>
     </section>
   );
 }

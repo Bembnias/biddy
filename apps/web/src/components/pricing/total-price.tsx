@@ -78,7 +78,7 @@ export function TotalPrice({
   }
 
   return (
-    <div className={cn('text-sm text-muted-foreground', className)}>
+    <div className={cn('text-body-sm text-muted-foreground', className)}>
       <p>
         {t('lead', { kind, amount: short(amount) })}
         {total === undefined ? (
@@ -93,7 +93,7 @@ export function TotalPrice({
       </p>
       {withDetails && quote !== undefined && schedule !== undefined ? (
         <details className="mt-1">
-          <summary className="cursor-pointer text-foreground underline-offset-4 hover:underline">
+          <summary className="cursor-pointer text-link underline-offset-3 hover:text-link-hover hover:underline">
             {t('details')}
           </summary>
           <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">
@@ -101,7 +101,7 @@ export function TotalPrice({
             <dd className="text-end tabular-nums">{formatMoney(amount)}</dd>
             <dt>
               {t('pok')}
-              <span className="block text-xs">{pokRule(schedule, t)}</span>
+              <span className="block text-caption">{pokRule(schedule, t)}</span>
             </dt>
             <dd className="text-end tabular-nums">{formatMoney(quote.fee)}</dd>
             <dt className="font-medium text-foreground">{t('subtotal')}</dt>
