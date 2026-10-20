@@ -1,6 +1,6 @@
 import { palette, toHex } from '@biddy/design-tokens';
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
@@ -15,7 +15,7 @@ import './globals.css';
 
 // Font z tokenów (typography.fontFamily.sans): next/font hostuje go u nas (bez zapytań do Google
 // w przeglądarce) i podaje w zmiennej --font-face-sans, z której korzysta motyw Tailwinda.
-const inter = Inter({
+const sans = Plus_Jakarta_Sans({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-face-sans',
   display: 'swap',
@@ -46,12 +46,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: toHex(palette.navy[700]),
+  // Pasek przeglądarki w kolorze nagłówka (biały).
+  themeColor: toHex(palette.white),
 };
 
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
-    <html lang="pl" className={inter.variable}>
+    <html lang="pl" className={sans.variable}>
       <body>
         <NextIntlClientProvider>
           <AppProviders>

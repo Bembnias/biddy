@@ -1,8 +1,8 @@
 // Motyw Tailwind CSS 4 z tokenów: blok `@theme`, który najpierw zeruje domyślne kolory, fonty,
-// rozmiary tekstu, grubości i promienie Tailwinda (`--color-*: initial` itd.), a potem definiuje
-// wyłącznie wartości z tokenów. Klasa spoza tokenów (np. `bg-red-500`) nie wygeneruje więc
-// żadnego CSS. Plik zapisuje build pakietu (scripts/build-theme.ts) do dist/theme.css.
-import { radius, palette, semanticColors, typography } from './tokens.js';
+// rozmiary tekstu, grubości, promienie i cienie Tailwinda (`--color-*: initial` itd.), a potem
+// definiuje wyłącznie wartości z tokenów. Klasa spoza tokenów (np. `bg-blue-500`) nie wygeneruje
+// więc żadnego CSS. Plik zapisuje build pakietu (scripts/build-theme.ts) do dist/theme.css.
+import { containers, palette, radius, semanticColors, shadows, typography } from './tokens.js';
 
 /** Zmienna CSS, w której aplikacja podaje font załadowany np. przez next/font. */
 export function fontFaceVariable(name: string): string {
@@ -38,6 +38,17 @@ function typographyLines(): string[] {
   for (const [name, weight] of Object.entries(typography.fontWeight)) {
     lines.push(`--font-weight-${name}: ${weight};`);
   }
+  // Style semantyczne: Tailwind 4 nadaje klasą `text-<nazwa>` też interlinię, grubość i rozstaw.
+  for (const [name, style] of Object.entries(typography.textStyles)) {
+    lines.push(
+      `--text-${name}: ${style.fontSize};`,
+      `--text-${name}--line-height: ${style.lineHeight};`,
+      `--text-${name}--font-weight: ${style.fontWeight};`,
+    );
+    if ('letterSpacing' in style) {
+      lines.push(`--text-${name}--letter-spacing: ${style.letterSpacing};`);
+    }
+  }
   return lines;
 }
 
@@ -50,12 +61,17 @@ export function themeCss(): string {
     '--text-*: initial;',
     '--font-weight-*: initial;',
     '--radius-*: initial;',
+    '--shadow-*: initial;',
     '',
     ...colorLines(),
     '',
     ...typographyLines(),
     '',
     ...Object.entries(radius).map(([name, value]) => `--radius-${name}: ${value};`),
+    '',
+    ...Object.entries(shadows).map(([name, value]) => `--shadow-${name}: ${value};`),
+    '',
+    ...Object.entries(containers).map(([name, value]) => `--container-${name}: ${value};`),
   ];
   return [
     '/* Wygenerowane z packages/design-tokens/src/tokens.ts przez `pnpm build`. Nie edytuj. */',

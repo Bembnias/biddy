@@ -1066,7 +1066,7 @@ Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, a
 | Framework | **Next.js 16** (App Router, Server Components, Turbopack, ISR dla stron aukcji i kategorii) |
 | Świeżość stron aukcji | ISR z `revalidate` 60 s + **rewalidacja na żądanie** wywoływana przez worker po zmianach aukcji (oferta, zakończenie, anulowanie, publikacja, edycja), maks. raz na 5 s na aukcję. HTML bez JS pokazuje cenę nie starszą niż ok. 10 s. Implementacja (F-18): job `auction.revalidate-page` w kolejce `web` z końcem 5-sekundowego okna w ID, `POST /api/revalidate` z sekretem `WEB_REVALIDATE_SECRET`, `revalidateTag('auction:{publicId}', { expire: 0 })`. |
 | PWA i web push | Manifest, service worker, **Web Push (VAPID)** przez bibliotekę `web-push` w module `notifications`. Na iOS web push działa tylko po dodaniu strony do ekranu głównego (iOS 16.4+), więc po pierwszej ofercie na iPhonie proponujemy instalację. |
-| UI | **Tailwind CSS 4** + **shadcn/ui** (Radix). Kolory, typografia i promienie wyłącznie z `packages/design-tokens` (motyw Tailwind bez domyślnej palety i fontów). |
+| UI | **Tailwind CSS 4** + **shadcn/ui** (Radix). Kolory, typografia, promienie, cienie i szerokości kontenerów wyłącznie z `packages/design-tokens` (motyw Tailwind bez domyślnej palety i fontów), według design systemu Biddy (F-62, [spec](features/F-62-design-system.md)). |
 | Dane | TanStack Query (client), fetch w Server Components z przekazywaniem cookie sesji |
 | Formularze | react-hook-form + Zod |
 | Realtime | `socket.io-client` (wspólny wrapper z `packages/realtime`) |
@@ -1790,7 +1790,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 5 | Sprzedawcy firmowi dopiero w v2. Próg „ukrytej firmy” do ręcznej weryfikacji = próg DAC7 (30 sprzedaży lub 2000 EUR rocznie) | Przyjęta | §17 | — |
 | 6 | Kategorie startowe do marketingu: TCG/kolekcjonerstwo, sneakers/vintage, retro gaming | Przyjęta | §2.4 | Przed betą |
 | 7 | Limity kont i strike'i (wartości startowe) | Przyjęta | §4.1 | Beta, zmiana bez deployu |
-| 8 | Projekt wizualny kluczowych ekranów: freelancer w Fazie 0–1, wireframe'y robi osoba prowadząca feature | Tymczasowa | §20 | Faza 0 |
+| 8 | Projekt wizualny kluczowych ekranów: makiety Figma właściciela (2025) przełożone na design system Biddy (F-62); kolejne ekrany projektuje osoba prowadząca feature według tego systemu | Przyjęta | §20 | — |
 
 **Transakcje**
 
@@ -1831,7 +1831,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 36 | Bull Board tylko lokalnie (osobny proces, bez uwierzytelniania); na produkcji kolejki i DLQ w panelu administracyjnym | Przyjęta | §11.5, §18.3 |
 | 37 | Kontrakt API: odpowiedzi przez `@ZodResponse` (serializacja schematem DTO), `operationId` = nazwa metody kontrolera (unikalna), błąd `default` = ProblemDetails; klient orval z fetcherem `apiFetch` i kodem w repozytorium | Przyjęta | §11.1, §14.1 |
 | 38 | Web: Next.js 16 + Tailwind CSS 4 + shadcn/ui, next-intl bez prefiksu języka; konfiguracja `NEXT_PUBLIC_*` walidowana przy buildzie, środowisko w `NEXT_PUBLIC_ENVIRONMENT` (indeksowanie tylko na produkcji) | Przyjęta | §11.3 |
-| 39 | Design tokens w TypeScript (`packages/design-tokens`) generują motyw Tailwind 4 z wyzerowaną domyślną paletą; paleta (granat i pomarańcz) i font Inter tymczasowo, do czasu identyfikacji wizualnej | Tymczasowa | §11.3, §22 nr 8 |
+| 39 | Design tokens w TypeScript (`packages/design-tokens`) generują motyw Tailwind 4 z wyzerowaną domyślną paletą; paleta i font z identyfikacji wizualnej (nr 87) | Przyjęta | §11.3, §22 nr 8 |
 | 40 | Sentry w przeglądarce ładowany osobnym fragmentem JS po starcie strony (błędy z pierwszych chwil buforowane), PostHog dopiero po zgodzie | Przyjęta | §17, §18.3, §19 |
 | 41 | Konta: Better Auth pod `/v1/auth/*` z błędami jako Problem Details; web woła je fetcherem klienta API (bez klienta Better Auth w paczce), mobile dostaje token Bearer (`set-auth-token`) | Przyjęta | §11.2, §14.1 |
 | 42 | Klucze obce tylko wewnątrz modułu; między modułami kolumny `uuid` bez FK | Przyjęta | §10.3, §13.1 |
@@ -1879,6 +1879,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 84 | Szablony e-maili w React Email (`packages/emails`, render HTML i tekstu w API/workerze); treść powiadomień budowana w API, wspólna dla in-app i e-maili | Przyjęta | §11.2 |
 | 85 | Moje Biddy pod `/moje-biddy` z zakładkami (licytuję, wygrane, obserwowane, moje aukcje, sprzedane); dawne `/konto/aukcje` przekierowuje regułą `next.config.ts` (przekierowanie w stronie pod granicą Suspense nie ustawia kodu 308) | Przyjęta | §11.3 |
 | 86 | Każda pozycja Moje Biddy ma następną akcję; akcje zależne od płatności i dostaw (Zapłać, Nadaj paczkę) widoczne, ale nieaktywne z wyjaśnieniem do F-25/F-26 | Tymczasowa | §5 |
+| 87 | Identyfikacja wizualna (F-62): design system Biddy z makiet Figma; font Plus Jakarta Sans; skale `ink`, `violet`, `pink`, `red`, `green`, `amber`, `sky`; gradient fiolet → róż tylko dla jednej głównej akcji widoku, granat dla akcji w kartach, fiolet dla zaznaczenia, czerwień dla LIVE, pilności i usuwania; kolory makiet niespełniające WCAG AA zastąpione ciemniejszymi krokami tej samej skali; style tekstu semantyczne (`text-h1`, `text-price-xl`…) w motywie Tailwinda i w konfiguracji tailwind-merge | Przyjęta | §11.3, §22 nr 8 |
 
 ---
 

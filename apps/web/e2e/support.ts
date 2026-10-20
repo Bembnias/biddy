@@ -159,8 +159,6 @@ export async function settle(page: Page): Promise<void> {
   for (const button of await page.locator('main button[type="submit"]').all()) {
     await expect(button).toBeEnabled();
   }
-  // Odświeżenie danych z serwera (router.refresh) na chwilę podmienia metadane, w tym <title>.
-  await page.waitForFunction(() => document.title !== '');
   await page.evaluate(() =>
     Promise.all(
       document
@@ -169,6 +167,21 @@ export async function settle(page: Page): Promise<void> {
         // Przerwane przejście (np. nowy stan przycisku) odrzuca `finished`: wtedy już się skończyło.
         .map((animation) => animation.finished.catch(() => undefined)),
     ),
+  );
+  // Odświeżenie danych z serwera (router.refresh) na chwilę podmienia metadane, w tym <title>,
+  // także już po zakończeniu przejść. Czekamy, aż tytuł będzie niepusty przez 300 ms z rzędu.
+  await page.waitForFunction(
+    () => {
+      const state = window as unknown as { biddyTitleSince?: number | undefined };
+      if (document.title === '') {
+        state.biddyTitleSince = undefined;
+        return false;
+      }
+      state.biddyTitleSince ??= performance.now();
+      return performance.now() - state.biddyTitleSince >= 300;
+    },
+    undefined,
+    { polling: 50 },
   );
 }
 

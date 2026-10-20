@@ -5,8 +5,10 @@ import { themeCss } from './theme-css.js';
 import {
   TEXT_CONTRAST_PAIRS,
   UI_CONTRAST_PAIRS,
+  containers,
   palette,
   semanticColors,
+  shadows,
   typography,
 } from './tokens.js';
 
@@ -57,13 +59,20 @@ describe('paleta', () => {
 describe('contrastRatio', () => {
   it('czarny na białym: 21, kolor sam ze sobą: 1', () => {
     expect(contrastRatio(palette.black, palette.white)).toBeCloseTo(21, 1);
-    expect(contrastRatio(palette.navy[500], palette.navy[500])).toBe(1);
+    expect(contrastRatio(palette.violet[500], palette.violet[500])).toBe(1);
   });
 
   it('toHex: biały, czarny i kolor marki w #rrggbb', () => {
     expect(toHex(palette.white)).toBe('#ffffff');
     expect(toHex(palette.black)).toBe('#000000');
-    expect(toHex(palette.navy[700])).toMatch(/^#[0-9a-f]{6}$/);
+    expect(toHex(palette.violet[600])).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it('kolory z makiet zachowują dokładną wartość (atrament, tekst opisów, fiolet akcentu)', () => {
+    expect(toHex(palette.ink[950])).toBe('#001743');
+    expect(toHex(palette.ink[600])).toBe('#4b5f84');
+    expect(toHex(palette.violet[500])).toBe('#b468fa');
+    expect(toHex(palette.pink[500])).toBe('#f0409f');
   });
 
   it('odrzuca zapis inny niż oklch(L C H)', () => {
@@ -81,22 +90,40 @@ describe('themeCss (motyw Tailwind CSS 4)', () => {
       '--text-*: initial;',
       '--font-weight-*: initial;',
       '--radius-*: initial;',
+      '--shadow-*: initial;',
     ]) {
       expect(css).toContain(reset);
     }
   });
 
   it('definiuje paletę, kolory semantyczne i typografię z tokenów', () => {
-    expect(css).toContain(`--color-navy-700: ${palette.navy[700]};`);
+    expect(css).toContain(`--color-violet-600: ${palette.violet[600]};`);
     expect(css).toContain(`--color-primary: ${semanticColors.primary};`);
     expect(css).toContain(`--color-muted-foreground: ${semanticColors['muted-foreground']};`);
     expect(css).toContain(
-      '--font-sans: var(--font-face-sans, "Inter", ui-sans-serif, system-ui, sans-serif);',
+      '--font-sans: var(--font-face-sans, "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif);',
     );
     expect(css).toContain(`--text-base: ${typography.fontSize.base[0]};`);
     expect(css).toContain(`--text-base--line-height: ${typography.fontSize.base[1]};`);
     expect(css).toContain('--font-weight-semibold: 600;');
-    expect(css).toContain('--radius-md: 0.375rem;');
+    expect(css).toContain('--radius-md: 0.5rem;');
+  });
+
+  it('style semantyczne niosą interlinię, grubość i rozstaw', () => {
+    const { h1, body } = typography.textStyles;
+    expect(css).toContain(`--text-h1: ${h1.fontSize};`);
+    expect(css).toContain(`--text-h1--line-height: ${h1.lineHeight};`);
+    expect(css).toContain(`--text-h1--font-weight: ${String(h1.fontWeight)};`);
+    expect(css).toContain(`--text-h1--letter-spacing: ${h1.letterSpacing};`);
+    expect(css).toContain(`--text-body: ${body.fontSize};`);
+    expect(css).not.toContain('--text-body--letter-spacing');
+  });
+
+  it('cienie z granatowym odcieniem i szerokości kontenerów', () => {
+    expect(css).toContain(`--shadow-cta: ${shadows.cta};`);
+    expect(css).toContain(`--shadow-focus-ring: ${shadows['focus-ring']};`);
+    expect(shadows.md).toContain(`${palette.ink[950].slice(0, -1)} / `);
+    expect(css).toContain(`--container-page: ${containers.page};`);
   });
 
   it('jest jednym blokiem @theme', () => {

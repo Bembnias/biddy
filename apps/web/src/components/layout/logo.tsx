@@ -1,18 +1,27 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
+import logo from '@/assets/brand/biddy-logo.png';
+import { cn } from '@/lib/utils';
 import { routes } from '@/lib/routes';
 
-/** Logo tekstowe (tymczasowe, do czasu identyfikacji wizualnej). */
-export function Logo() {
+/**
+ * Logo Biddy (napis w gradiencie marki) jako link do strony głównej. Plik to PNG 160 × 90 px,
+ * ostry do ok. 45 px wysokości; wektor dojdzie z eksportem z Figmy (F-62).
+ */
+export function Logo({ className }: { readonly className?: string }) {
   const t = useTranslations('layout');
   return (
     <Link
       href={routes.home}
       aria-label={t('home')}
-      className="rounded-md text-2xl font-bold text-primary"
+      className={cn(
+        'inline-flex shrink-0 rounded-sm outline-none focus-visible:shadow-focus-ring',
+        className,
+      )}
     >
-      Biddy<span className="text-highlight">.</span>
+      <Image src={logo} alt="" width={160} height={90} priority className="h-8 w-auto md:h-9" />
     </Link>
   );
 }

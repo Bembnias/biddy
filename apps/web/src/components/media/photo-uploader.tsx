@@ -230,7 +230,9 @@ export function PhotoUploader({
                     </span>
                   )}
                   {index === 0 && entry.state === 'ready' ? (
-                    <Badge className="absolute top-2 left-2">{t('uploader.cover')}</Badge>
+                    <Badge tone="neutral" variant="solid" className="absolute top-2 left-2">
+                      {t('uploader.cover')}
+                    </Badge>
                   ) : null}
                 </div>
                 <div className="flex justify-between gap-1">

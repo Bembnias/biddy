@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
+import { Chip } from '@/components/ui/chip';
 import { Button } from '@/components/ui/button';
 import { formatPhoneNumber } from '@/lib/phone';
 import { editAddressUrl } from '@/lib/routes';
@@ -67,10 +67,12 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
         {addresses.map((address) => (
           <li key={address.id} className="rounded-lg border border-border bg-card p-5">
             <div className="flex flex-wrap gap-2">
-              {address.isDefault ? <Badge>{t('defaultDelivery')}</Badge> : null}
-              {address.isSenderDefault ? (
-                <Badge variant="secondary">{t('defaultSender')}</Badge>
+              {address.isDefault ? (
+                <Chip tone="brand-outline" shape="pill">
+                  {t('defaultDelivery')}
+                </Chip>
               ) : null}
+              {address.isSenderDefault ? <Chip shape="pill">{t('defaultSender')}</Chip> : null}
             </div>
             <address className="mt-3 not-italic">
               <p className="font-medium">{address.recipientName}</p>

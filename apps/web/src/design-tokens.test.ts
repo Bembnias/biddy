@@ -32,6 +32,13 @@ const RULES: readonly Rule[] = [
     files: /\.(?:tsx?|css)$/,
   },
   {
+    // F-62: tymczasowa paleta z F-06 zniknęła; jej klasy nie dawałyby żadnego CSS.
+    name: 'klasy dawnej palety (navy, orange, gray, highlight) zamiast tokenów F-62',
+    pattern:
+      /(?:^|[\s"'`:])(?:bg|text|border|ring|outline|from|via|to|fill|stroke|shadow|decoration|divide|placeholder|caret|accent)-(?:navy|orange|gray|highlight)(?:-|\/|\b)/,
+    files: /\.(?:tsx?|css)$/,
+  },
+  {
     name: 'font-family, font-size albo color w CSS (użyj klas z tokenów)',
     pattern: /^\s*(?:font-family|font-size|color|background-color)\s*:/,
     files: /\.css$/,
@@ -84,6 +91,8 @@ describe('kolory i typografia tylko z design tokens', () => {
     ["className='font-[Arial]'", 1],
     ["const brand = '#1f4eac';", 2],
     ['background: oklch(0.5 0.1 200);', 2],
+    ['className="bg-highlight text-highlight-foreground"', 3],
+    ["'bg-navy-100 text-navy-900'", 3],
   ])('reguły wykrywają naruszenie w „%s”', (line, ruleIndex) => {
     expect(RULES[ruleIndex]?.pattern.test(line)).toBe(true);
   });
@@ -94,6 +103,8 @@ describe('kolory i typografia tylko z design tokens', () => {
     'bg-primary/90',
     'text-muted-foreground',
     'grid-cols-[1fr_auto]',
+    'bg-linear-to-r from-cta-from to-cta-to',
+    'text-h1 text-foreground-secondary',
   ])('nie zgłasza poprawnego „%s”', (line) => {
     expect(RULES.some((rule) => rule.files.test('x.tsx') && rule.pattern.test(line))).toBe(false);
   });

@@ -1,4 +1,4 @@
-import { CirclePlus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -12,26 +12,20 @@ import { SearchForm } from './search-form';
 import { UserMenu } from './user-menu';
 
 /**
- * Nagłówek: logo, wyszukiwarka, „Wystaw przedmiot” i „Zaloguj się”. Na wąskich ekranach
- * (< 768 px) wyszukiwarka przechodzi do drugiego wiersza, a akcje są ikonami z etykietami.
+ * Nagłówek (F-62): logo, wyszukiwarka w pigułce, Moje Biddy, powiadomienia, konto i „Wystaw
+ * przedmiot” w granacie (gradient należy do treści strony, nie do nagłówka). Przyklejony do góry.
+ * Na wąskich ekranach (< 768 px) wyszukiwarka przechodzi do drugiego wiersza, a akcje są ikonami
+ * z etykietami dla czytników.
  */
 export function SiteHeader() {
   const t = useTranslations('layout');
   return (
-    <header className="border-b border-border bg-background">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 md:flex-nowrap md:px-6">
+    <header className="sticky top-0 z-40 border-b border-border bg-background">
+      <div className="mx-auto flex max-w-page flex-wrap items-center gap-x-3 gap-y-3 px-4 py-3 md:h-16 md:flex-nowrap md:gap-x-6 md:px-10 md:py-0">
         <Logo />
-        <SearchForm className="order-last w-full md:order-none md:flex-1" />
-        <nav aria-label={t('mainNavigation')} className="ml-auto md:ml-0">
-          <ul className="flex items-center gap-2">
-            <li>
-              <Button asChild variant="ghost" className="max-sm:size-10 max-sm:px-0">
-                <Link href={routes.sell}>
-                  <CirclePlus aria-hidden className="sm:hidden" />
-                  <span className="max-sm:sr-only">{t('sell')}</span>
-                </Link>
-              </Button>
-            </li>
+        <SearchForm className="order-last w-full md:order-none md:max-w-md md:flex-1" />
+        <nav aria-label={t('mainNavigation')} className="ml-auto">
+          <ul className="flex items-center gap-1 md:gap-2">
             <li>
               <MyBiddyLink />
             </li>
@@ -40,6 +34,14 @@ export function SiteHeader() {
             </li>
             <li>
               <UserMenu />
+            </li>
+            <li className="md:ml-2">
+              <Button asChild className="max-sm:size-10 max-sm:rounded-full max-sm:px-0">
+                <Link href={routes.sell}>
+                  <Plus aria-hidden />
+                  <span className="max-sm:sr-only">{t('sell')}</span>
+                </Link>
+              </Button>
             </li>
           </ul>
         </nav>

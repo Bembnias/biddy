@@ -3,6 +3,8 @@ import { useTranslations } from 'next-intl';
 
 import { routes } from '@/lib/routes';
 
+import { Logo } from './logo';
+
 interface FooterGroup {
   readonly title: string;
   readonly links: readonly { readonly href: string; readonly label: string }[];
@@ -36,19 +38,23 @@ export function SiteFooter({ year = new Date().getFullYear() }: { readonly year?
     },
   ];
   return (
-    <footer aria-label={t('label')} className="border-t border-border bg-muted">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3 md:px-6">
+    <footer aria-label={t('label')} className="mt-16 border-t border-border bg-canvas">
+      <div className="mx-auto grid max-w-page gap-8 px-4 py-12 sm:grid-cols-2 md:px-10 lg:grid-cols-4">
+        <div className="flex flex-col items-start gap-3">
+          <Logo />
+          <p className="max-w-[32ch] text-body-sm text-foreground-secondary">{t('tagline')}</p>
+        </div>
         {groups.map((group) => (
           <nav key={group.title} aria-label={group.title}>
-            <h2 className="text-sm font-semibold text-foreground">{group.title}</h2>
-            <ul className="mt-3 space-y-2">
+            <h2 className="text-overline text-muted-foreground uppercase">{group.title}</h2>
+            <ul className="mt-4 space-y-2.5">
               {group.links.map((link) => (
                 <li key={link.href}>
                   {/* Strony informacyjne: bez wstępnego pobierania przy każdym wejściu na stronę. */}
                   <Link
                     href={link.href}
                     prefetch={false}
-                    className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                    className="rounded-xs text-body-sm text-foreground-secondary underline-offset-3 outline-none hover:text-foreground hover:underline focus-visible:shadow-focus-ring"
                   >
                     {link.label}
                   </Link>
@@ -58,7 +64,7 @@ export function SiteFooter({ year = new Date().getFullYear() }: { readonly year?
           </nav>
         ))}
       </div>
-      <p className="mx-auto max-w-6xl px-4 pb-8 text-xs text-muted-foreground md:px-6">
+      <p className="mx-auto max-w-page border-t border-border px-4 py-6 text-caption text-muted-foreground md:px-10">
         {t('copyright', { year })}
       </p>
     </footer>

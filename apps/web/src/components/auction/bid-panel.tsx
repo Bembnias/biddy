@@ -197,7 +197,7 @@ function Timing({
   }
   const remaining = now === null ? null : remainingParts(Date.parse(auction.endsAt) - now);
   return (
-    <div className={cn('space-y-1', phase === 'ending' && 'rounded-md bg-highlight/20 p-3')}>
+    <div className={cn('space-y-1', phase === 'ending' && 'rounded-md bg-urgent-soft p-3')}>
       {remaining === null ? null : (
         <p>
           <span className="text-sm text-muted-foreground">{t('remaining')}: </span>
@@ -281,11 +281,17 @@ function BidderStatus({
     return null;
   }
   return bidding.leading ? (
-    <p className="rounded-md bg-success/10 p-3 text-sm font-medium" data-testid="bidder-status">
+    <p
+      className="rounded-md bg-success-soft p-3 text-sm font-medium text-success"
+      data-testid="bidder-status"
+    >
       {t('leading', { max: short(bidding.maxAmount) })}
     </p>
   ) : (
-    <p className="rounded-md bg-highlight/20 p-3 text-sm font-medium" data-testid="bidder-status">
+    <p
+      className="rounded-md bg-urgent-soft p-3 text-sm font-medium text-urgent"
+      data-testid="bidder-status"
+    >
       {t('outbid', { minimum: short(auction.minimumNextBid ?? auction.startPrice) })}
     </p>
   );

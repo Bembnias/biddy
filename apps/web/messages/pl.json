@@ -14,10 +14,12 @@
     },
     "sell": "Wystaw przedmiot",
     "signIn": "Zaloguj się",
-    "account": "Moje konto"
+    "account": "Moje konto",
+    "greeting": "Hej,"
   },
   "footer": {
     "label": "Stopka",
+    "tagline": "Second-hand na żywo: oglądaj, licytuj, kupuj i sprzedawaj z ochroną kupujących.",
     "company": {
       "title": "Biddy",
       "about": "O nas",

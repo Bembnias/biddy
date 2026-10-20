@@ -2,11 +2,15 @@ import { cn } from '@/lib/utils';
 
 /** Pary tło/tekst z palety tokenów, z kontrastem WCAG AA (jasne tło, ciemny tekst). */
 const COLORS = [
-  'bg-navy-100 text-navy-900',
-  'bg-orange-100 text-orange-900',
-  'bg-green-100 text-green-900',
-  'bg-gray-200 text-gray-900',
+  'bg-violet-100 text-violet-800',
+  'bg-pink-100 text-pink-800',
+  'bg-sky-100 text-sky-800',
+  'bg-green-100 text-green-800',
 ] as const;
+
+const SIZES = { xs: 'size-7', md: 'size-10', lg: 'size-20' } as const;
+const PIXELS = { xs: 28, md: 40, lg: 80 } as const;
+const TEXT = { xs: 'text-badge', md: 'text-base', lg: 'text-2xl' } as const;
 
 /** Inicjały z dwóch pierwszych słów imienia, np. „Kasia Kupująca” → „KK”. */
 export function initialsOf(name: string): string {
@@ -42,11 +46,14 @@ export function UserAvatar({
   readonly name: string;
   readonly label: string;
   readonly imageUrl?: string | null;
-  readonly size?: 'md' | 'lg';
+  /** `xs` 28 px (nagłówek, historia ofert), `md` 40 px, `lg` 80 px (profil). */
+  readonly size?: 'xs' | 'md' | 'lg';
 }) {
-  const dimensions = size === 'lg' ? 'size-20' : 'size-10';
+  const dimensions = SIZES[size];
+  // Pusta etykieta: avatar jest dekoracją obok tekstu, który już nazywa osobę.
+  const decorative = label === '';
   if (imageUrl !== undefined && imageUrl !== null) {
-    const pixels = size === 'lg' ? 80 : 40;
+    const pixels = PIXELS[size];
     return (
       // Gotowy wariant WebP z CDN (256 px); optymalizacja Next.js nic by tu nie dała.
       // eslint-disable-next-line @next/next/no-img-element
@@ -61,12 +68,13 @@ export function UserAvatar({
   }
   return (
     <span
-      role="img"
-      aria-label={label}
+      role={decorative ? undefined : 'img'}
+      aria-label={decorative ? undefined : label}
+      aria-hidden={decorative ? true : undefined}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full font-semibold',
+        'inline-flex shrink-0 items-center justify-center rounded-full font-bold',
         dimensions,
-        size === 'lg' ? 'text-2xl' : 'text-base',
+        TEXT[size],
         avatarColor(userId),
       )}
     >

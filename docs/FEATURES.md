@@ -110,6 +110,7 @@ Szacunki nie obejmują projektu wizualnego kluczowych ekranów (freelancer w Faz
 | F-19 | Wyszukiwarka i przeglądanie | 1 | L |
 | F-20 | Obserwowane i powiadomienia | 1 | M |
 | F-21 | Moje Biddy | 1 | S |
+| F-62 | Design system i odświeżenie UI web | 1 | L |
 | F-22 | Ledger | 2a | M |
 | F-23 | Port płatności i FakeGateway | 2a | M |
 | F-24 | Dostawy | 2a | L |
@@ -627,6 +628,25 @@ flowchart TD
 - Każda aukcja i każde zamówienie ma widoczną następną akcję.
 
 **Zależności:** F-15, F-16, F-17 · **Spec:** §5
+
+### F-62 · Design system i odświeżenie UI web · `L`
+
+> Pełny spec: [docs/features/F-62-design-system.md](features/F-62-design-system.md).
+
+Dodany po oszacowaniu planu: to wdrożenie projektu wizualnego, którego szacunki nie obejmowały (patrz „Przegląd i szacunki”).
+
+**Cel:** identyfikacja Biddy w całej aplikacji web: tokeny, font, logo, komponenty bazowe i kluczowe ekrany według design systemu zbudowanego z makiet Figma.
+
+**Zakres:**
+- Tokeny (paleta, role semantyczne, style tekstu, cienie, kontenery), Plus Jakarta Sans, logo.
+- Komponenty bazowe (`Button`, `Badge`, pola, `Chip`, `IconTile`, `PillTabs`, `SegmentedControl`, `Price`, `EmptyState`), nagłówek i stopka.
+- Ekrany: strona aukcji i przeglądanie, Moje Biddy i konto, logowanie i kreator aukcji.
+
+**Kryteria akceptacji:**
+- Pary tekst/tło ≥ 4,5:1, elementy interfejsu ≥ 3:1 (test tokenów), axe bez naruszeń na stronach z e2e.
+- Jedna akcja `cta` na widok; kolory, typografia, promienie i cienie wyłącznie z tokenów.
+
+**Zależności:** F-06, F-18, F-19, F-21 · **Spec:** §11.3, §22 nr 8, nr 87
 
 ---
 

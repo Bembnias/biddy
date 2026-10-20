@@ -43,14 +43,10 @@ export default async function HomePage() {
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-pretty text-foreground">{t('hero.lead')}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
+            <Button asChild variant="cta" size="lg">
               <Link href={routes.search}>{t('hero.browse')}</Link>
             </Button>
-            <Button
-              asChild
-              size="lg"
-              className="bg-highlight text-highlight-foreground hover:bg-highlight/90"
-            >
+            <Button asChild variant="outline" size="lg">
               <Link href={routes.sell}>{t('hero.sell')}</Link>
             </Button>
           </div>

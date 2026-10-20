@@ -533,9 +533,11 @@ Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.examp
 
 ### Design tokens i style
 
-- Kolory, typografia i promienie są w [`packages/design-tokens/src/tokens.ts`](packages/design-tokens/src/tokens.ts). Build pakietu generuje z nich `theme.css` dla Tailwinda, a test sprawdza kontrast WCAG AA par tekst/tło.
-- Tailwind nie ma domyślnej palety ani fontów: `bg-blue-500` czy `text-red-600` nie dadzą żadnego stylu. Używaj nazw semantycznych (`bg-primary`, `text-muted-foreground`, `border-input`, `bg-highlight`) albo palety z tokenów (`bg-navy-50`). Test `apps/web/src/design-tokens.test.ts` odrzuca wartości dowolne (`bg-[#fff]`, `text-[13px]`, `font-[…]`) i literały kolorów w kodzie.
-- Paleta i font (Inter) są tymczasowe, do czasu identyfikacji wizualnej. Zmiana palety to zmiana tokenów, bez zmian w komponentach.
+- Wzorzec wyglądu to **design system Biddy** (F-62): tokeny, komponenty z podglądem, wzorce UX i mapowanie na kod w artefakcie <https://claude.ai/artifact/Hg6ZTSbvwaN5j7GiQD2cPn>; makiety źródłowe w `design/`.
+- Kolory, typografia, promienie, cienie i szerokości kontenerów są w [`packages/design-tokens/src/tokens.ts`](packages/design-tokens/src/tokens.ts). Build pakietu generuje z nich `theme.css` dla Tailwinda, a test sprawdza kontrast WCAG AA par tekst/tło.
+- Tailwind nie ma domyślnej palety ani fontów: `bg-blue-500` czy `text-red-600` nie dadzą żadnego stylu. Używaj nazw semantycznych (`bg-primary`, `text-foreground-secondary`, `border-input`, `bg-urgent-soft`) albo skal z tokenów (`bg-violet-100`). Test `apps/web/src/design-tokens.test.ts` odrzuca wartości dowolne (`bg-[#fff]`, `text-[13px]`, `font-[…]`), literały kolorów i klasy dawnej palety.
+- Typografia: style semantyczne `text-h1`, `text-h3`, `text-title`, `text-body`, `text-body-sm`, `text-caption`, `text-label`, `text-overline` (z `uppercase`), `text-price-xl`, `text-price` (z `tabular-nums`) niosą rozmiar, interlinię i grubość; font Plus Jakarta Sans przez `next/font`. `cn()` zna te nazwy (tailwind-merge rozszerzony o tokeny).
+- Role kolorów: gradient `Button variant="cta"` tylko dla jednej głównej akcji widoku, granat (`default`) dla akcji w kartach, fiolet (`brand`) dla zaznaczenia, czerwień (`live`, `urgent`, `destructive`) dla LIVE, pilności i usuwania. Tło stron konta to `bg-canvas` z białymi kartami.
 - Komponenty shadcn/ui leżą w `apps/web/src/components/ui`. Nowy komponent: `pnpm dlx shadcn@4.21.2 add <nazwa>` w katalogu `apps/web`, potem `pnpm --filter @biddy/web typecheck` (CLI zdarza się wpisać zły import `cn`; poprawny to `@/lib/utils`) i `pnpm format`.
 
 ### Teksty, monitoring, analityka

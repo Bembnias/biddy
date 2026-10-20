@@ -3,31 +3,67 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 import { Slot } from 'radix-ui';
 
+/**
+ * Plakietka statusu (F-62): jedno–dwa słowa wielkimi literami w tonie, który coś znaczy
+ * (`live` zawsze pełna czerwień z pulsującą kropką). Do atrybutów i filtrów służy `Chip`.
+ */
 const badgeVariants = cva(
-  'inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3',
+  'inline-flex h-5.5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 text-badge whitespace-nowrap uppercase [&>svg]:pointer-events-none [&>svg]:size-3',
   {
     variants: {
+      tone: {
+        neutral: '',
+        brand: '',
+        success: '',
+        warning: '',
+        danger: '',
+        info: '',
+        live: 'bg-live text-primary-foreground',
+      },
       variant: {
-        default: 'bg-primary text-primary-foreground [a&]:hover:bg-primary/90',
-        secondary: 'bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
-        destructive:
-          'bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90',
-        outline:
-          'border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
-        ghost: '[a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 [a&]:hover:underline',
+        soft: '',
+        solid: '',
+        outline: 'bg-card',
       },
     },
+    compoundVariants: [
+      { tone: 'neutral', variant: 'soft', className: 'bg-muted text-foreground' },
+      { tone: 'neutral', variant: 'solid', className: 'bg-primary text-primary-foreground' },
+      { tone: 'neutral', variant: 'outline', className: 'border-border-strong text-foreground' },
+      { tone: 'brand', variant: 'soft', className: 'bg-accent text-accent-foreground' },
+      { tone: 'brand', variant: 'solid', className: 'bg-brand-strong text-primary-foreground' },
+      {
+        tone: 'brand',
+        variant: 'outline',
+        className: 'border-brand bg-accent text-accent-foreground',
+      },
+      { tone: 'success', variant: 'soft', className: 'bg-success-soft text-success' },
+      { tone: 'success', variant: 'solid', className: 'bg-success text-success-foreground' },
+      { tone: 'success', variant: 'outline', className: 'border-green-600 text-success' },
+      { tone: 'warning', variant: 'soft', className: 'bg-warning-soft text-warning' },
+      { tone: 'warning', variant: 'solid', className: 'bg-warning text-primary-foreground' },
+      { tone: 'warning', variant: 'outline', className: 'border-amber-600 text-warning' },
+      { tone: 'danger', variant: 'soft', className: 'bg-destructive-soft text-destructive' },
+      { tone: 'danger', variant: 'solid', className: 'bg-destructive text-destructive-foreground' },
+      { tone: 'danger', variant: 'outline', className: 'border-red-500 text-destructive' },
+      { tone: 'info', variant: 'soft', className: 'bg-info-soft text-info' },
+      { tone: 'info', variant: 'solid', className: 'bg-info text-primary-foreground' },
+      { tone: 'info', variant: 'outline', className: 'border-sky-600 text-info' },
+      { tone: 'live', className: 'border-transparent bg-live text-primary-foreground' },
+    ],
     defaultVariants: {
-      variant: 'default',
+      tone: 'neutral',
+      variant: 'soft',
     },
   },
 );
 
 function Badge({
   className,
-  variant = 'default',
+  tone = 'neutral',
+  variant = 'soft',
   asChild = false,
+  children,
   ...props
 }: React.ComponentProps<'span'> & VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
   const Comp = asChild ? Slot.Root : 'span';
@@ -35,10 +71,18 @@ function Badge({
   return (
     <Comp
       data-slot="badge"
-      data-variant={variant}
-      className={cn(badgeVariants({ variant }), className)}
+      data-tone={tone}
+      className={cn(badgeVariants({ tone, variant }), className)}
       {...props}
-    />
+    >
+      {tone === 'live' && !asChild ? (
+        <span
+          aria-hidden
+          className="size-1.5 rounded-full bg-primary-foreground motion-safe:animate-pulse"
+        />
+      ) : null}
+      {children}
+    </Comp>
   );
 }
 

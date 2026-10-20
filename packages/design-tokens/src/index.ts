@@ -14,11 +14,14 @@ export { fontFaceVariable, themeCss } from './theme-css.js';
 export {
   TEXT_CONTRAST_PAIRS,
   UI_CONTRAST_PAIRS,
+  containers,
   palette,
   radius,
   semanticColors,
+  shadows,
   typography,
   type ColorScale,
   type PaletteStep,
   type SemanticColor,
+  type TextStyle,
 } from './tokens.js';
