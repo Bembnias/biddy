@@ -26,6 +26,9 @@
     "infra:down": "pnpm --filter @biddy/infra run infra:down",
     "infra:logs": "pnpm --filter @biddy/infra run infra:logs",
     "infra:reset": "pnpm --filter @biddy/infra run infra:reset",
+    "app:up": "pnpm infra:up && pnpm storage:setup && docker compose -f infra/docker-compose.yml -f infra/docker-compose.app.yml up -d --build --wait",
+    "app:down": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.app.yml down",
+    "app:logs": "docker compose -f infra/docker-compose.yml -f infra/docker-compose.app.yml logs -f api worker web",
     "db:reset": "pnpm --filter @biddy/infra run db:reset",
     "storage:setup": "pnpm --filter @biddy/infra run storage:setup",
     "mail:test": "pnpm --filter @biddy/infra run mail:test"

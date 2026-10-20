@@ -65,6 +65,10 @@ Konta testowe (tworzy je seed w `pnpm bootstrap` i `pnpm db:reset`), wszystkie z
 
 Maile z linkami (weryfikacja adresu, reset hasła) wysyła worker, a lokalnie przechwytuje je Mailpit: http://localhost:8025. Kody SMS weryfikacji telefonu lokalnie nie wychodzą: API zapisuje je w logu (`SMS (atrapa) do +48…`).
 
+### Cała aplikacja w Dockerze
+
+Do ręcznego testowania bez uruchamiania kodu lokalnie: `pnpm app:up` buduje obrazy API (`apps/api/Dockerfile`) i web (`apps/web/Dockerfile`) i startuje infrastrukturę, migracje z kontami testowymi, API, worker i web (`infra/docker-compose.app.yml`). Web: http://localhost:3000, API: http://localhost:3001, Mailpit: http://localhost:8025. Konta testowe: `kupujacy@biddy.local`, `sprzedajacy@biddy.local`, `admin@biddy.local`, hasło `Biddy-test-2026`. Kody SMS i logi: `pnpm app:logs`; zatrzymanie: `pnpm app:down` (dane zostają). Zdjęcia idą do S3 pod nazwą `s3.localhost` (Chrome i Firefox kierują ją na 127.0.0.1). Przy pisaniu kodu wygodniejsze jest `pnpm dev`.
+
 ## Usługi
 
 Wszystkie usługi działają w Dockerze (projekt compose `biddy`) i są dostępne tylko z tej maszyny (porty wystawione na `127.0.0.1`). Dane trzymają nazwane wolumeny, więc przetrwają `pnpm infra:down`.
