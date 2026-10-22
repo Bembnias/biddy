@@ -14,6 +14,7 @@ export * from '../../modules/identity/db/identity.schema.js';
 export * from '../../modules/catalog/db/catalog.schema.js';
 export * from '../../modules/media/db/media.schema.js';
 export * from '../../modules/payments/db/payments.schema.js';
+export * from '../../modules/ledger/db/ledger.schema.js';
 export * from '../../modules/shipping/db/shipping.schema.js';
 export * from '../../modules/auctions/db/auctions.schema.js';
 export * from '../../modules/orders/db/orders.schema.js';

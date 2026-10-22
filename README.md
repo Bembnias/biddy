@@ -452,6 +452,16 @@ Jedno miejsce na licytacje i sprzedaże. Spec: [F-21](docs/features/F-21-moje-bi
 - **Web:** `/moje-biddy` z zakładkami Licytuję (filtr prowadzę/przebito, przegrane), Wygrane, Obserwowane, Moje aukcje (`/moje-biddy/aukcje`, dawne `/konto/aukcje` przekierowuje) i Sprzedane. Każda pozycja ma następną akcję (`apps/web/src/lib/my-biddy/next-action.ts`); „Zapłać” i „Nadaj paczkę” są widoczne, ale nieaktywne do F-25 i F-26.
 - **Na żywo:** `user.outbid`, `user.won` i `notification.new` odświeżają listy; aktywne aukcje na liście (do 40) subskrybują kanał aukcji i aktualizują cenę bez odświeżania.
 
+### Ledger (F-22)
+
+Księga podwójnego zapisu wszystkich ruchów pieniędzy (moduł `ledger`, plan kont z [PROJECT.md §7.7](docs/PROJECT.md#77-księga-ledger)). Spec: [F-22](docs/features/F-22-ledger.md).
+
+- **Księgowanie przez szablony:** inne moduły wołają `LedgerService.post(tx, posting)` w swojej transakcji, podając zdarzenie z kwotami (`PAYMENT_RECEIVED`, `ORDER_COMPLETED`, `ORDER_REFUNDED`, `NOT_PICKED_UP_REFUNDED`, `ORDER_PARTIALLY_REFUNDED`, `PAYOUT_*`, `DISPUTE_COSTS_CHARGED`, chargebacki, rekompensaty, `CARRIER_CLAIM_SETTLED`, `RECEIVABLE_WRITTEN_OFF`…), a nie wpisy. Szablony są w `apps/api/src/modules/ledger/domain/postings.ts`. Każde księgowanie ma `idempotencyKey`: ponowienie nie dubluje wpisów. Korekta to storno (`LedgerService.reverse`), nigdy edycja.
+- **Salda:** `sellerBalances(sellerId)` (dostępne, w trakcie, należność, wypłaty w drodze), `heldForOrder(orderId)`, `balance(konto)`. Uznanie sprzedającego najpierw spłaca `seller_receivable`, obciążenie bierze z salda dostępnego do zera, a niedobór staje się należnością. Błędy: `LedgerError` (`INSUFFICIENT_FUNDS`, `IDEMPOTENCY_CONFLICT`, `ACCOUNT_MISMATCH`…) przerywa transakcję wywołującego.
+- **Gwarancje w bazie** (migracja `0015_ledger`): transakcja ma ≥ 2 wpisy sumujące się do zera (trigger przy zatwierdzeniu), `ledger_accounts.balance` zmienia tylko trigger przy wstawieniu wpisu, CHECK nie pozwala saldom użytkowników i zamówień zejść poniżej zera, a UPDATE, DELETE i TRUNCATE na wpisach, transakcjach i kontach są odrzucane.
+- **Spójność:** `LedgerIntegrity.verify()` liczy salda od nowa z wpisów; job `ledger.verify-integrity` (kolejka `maintenance`, codziennie o 4:30) kończy się błędem w Sentry, gdy coś się nie zgadza.
+- **Testy:** szablony na przykładach z §7.4, property-based niezmienniki w modelu w pamięci (`apps/api/test/support/ledger-model.ts`) i te same losowe sekwencje porównane z Postgresem (`test/integration/ledger.int.test.ts`).
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):

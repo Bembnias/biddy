@@ -656,6 +656,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-22 · Ledger · `M`
 
+> Pełny spec: [docs/features/F-22-ledger.md](features/F-22-ledger.md).
+
 **Cel:** audytowalna księga wszystkich ruchów pieniędzy.
 
 **Zakres:**

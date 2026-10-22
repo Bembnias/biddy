@@ -72,6 +72,7 @@
     "drizzle-kit": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-boundaries": "catalog:",
+    "fast-check": "catalog:",
     "pino-pretty": "catalog:",
     "socket.io-client": "catalog:",
     "testcontainers": "catalog:",

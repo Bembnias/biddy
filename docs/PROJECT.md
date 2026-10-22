@@ -617,11 +617,14 @@ Mapowanie modelu na operatorów (do potwierdzenia w dokumentacji i umowie):
 | Zwrot nieodebranej | D `buyer_funds_held` total · C `provider_cash` (total − dostawa) · C `platform_shipping` dostawa |
 | Zwrot częściowy | D `buyer_funds_held` kwota zwrotu · C `provider_cash` kwota zwrotu. Reszta jak przy zakończeniu, z ceną pomniejszoną o zwrot |
 | Zlecenie wypłaty | D `seller_balance_available` · C `payouts_in_transit` |
-| Wypłata zrealizowana / nieudana | D `payouts_in_transit` · C `provider_cash` / storno do `seller_balance_available` |
+| Wypłata zrealizowana / nieudana | D `payouts_in_transit` · C `provider_cash` / C `seller_balance_available` (najpierw spłata `seller_receivable`, jeśli jest) |
 | Opłata operatora | D `payment_fees_expense` · C `provider_cash` |
 | Koszty sporu po stronie sprzedającego | D `seller_balance_available` (do wysokości salda) + D `seller_receivable` (reszta) · C `platform_shipping` |
 | Chargeback po zakończeniu, ponosi Biddy | D `platform_losses` · C `provider_cash` |
-| Rekompensata za zaginioną paczkę | D `carrier_claims_receivable` · C `seller_balance_available` lub `platform_external`. Nieodzyskana część reklamacji → D `platform_losses` · C `carrier_claims_receivable` |
+| Chargeback po zakończeniu, oszustwo sprzedającego (§7.9) | D `seller_balance_available` (do wysokości salda) + D `seller_receivable` (reszta) · C `provider_cash` |
+| Rekompensata za zaginioną paczkę | D `carrier_claims_receivable` · C `seller_balance_available` (najpierw spłata `seller_receivable`) lub `platform_external` |
+| Rozliczenie reklamacji u przewoźnika | D `platform_external` odszkodowanie · D `platform_losses` nieodzyskana część · C `carrier_claims_receivable` |
+| Spisanie należności (180 dni, §7.9) | D `platform_losses` · C `seller_receivable` |
 
 Niezmienniki (testowane w F-22):
 
@@ -629,6 +632,9 @@ Niezmienniki (testowane w F-22):
 - `seller_balance_available` nigdy nie jest ujemne. Niedobór trafia na `seller_receivable`.
 - `buyer_funds_held:{orderId}` po zakończeniu zamówienia (w każdym stanie końcowym) wynosi 0.
 - Każde saldo da się odtworzyć z samych wpisów.
+- Saldo dostępne i należność sprzedającego nigdy nie są jednocześnie dodatnie: **każde** uznanie salda sprzedającego (zakończenie, reszta po zwrocie częściowym, nieudana wypłata, rekompensata) najpierw spłaca `seller_receivable` (F-22).
+
+**Implementacja (F-22):** konta planu w `ledger_accounts` z saldem utrzymywanym wyłącznie przez trigger przy wstawieniu wpisu, transakcje w `ledger_transactions`, wpisy w `ledger_entries` ([§13.3](#133-tabele-kluczowe-kolumny)). Moduły nie podają wpisów, tylko zdarzenie (szablon z tabeli wyżej) z kluczem idempotencji; korekta to storno całej transakcji. Bilans transakcji, strona salda kont użytkowników i zamówień oraz niemodyfikowalność są wymuszane w bazie, a codzienny job porównuje salda z sumami wpisów.
 
 Wszystkie kwoty są w **groszach jako liczby całkowite** (`bigint`). **Nigdy float.** Zaokrąglenia POK i VAT: half-up do grosza, jedna funkcja w `packages/shared`.
 
@@ -1245,7 +1251,9 @@ erDiagram
 | `payments` | id, order_id, provider, provider_payment_id, method, amount, status, failure_reason, idempotency_key, raw (jsonb), created_at |
 | `refunds` | id, order_id, payment_id, dispute_id, reason (`DISPUTE`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, raw (jsonb), created_at |
 | `chargebacks` | id, payment_id, order_id, amount, reason, status, liable_party (`PLATFORM`/`SELLER`), provider_ref, evidence_submitted_at, opened_at, closed_at |
-| `ledger_entries` | id, transaction_id, account, amount (+/−), currency, order_id, payout_id, description, created_at |
+| `ledger_accounts` | id, code (konto planu §7.7), subject (operator albo ID sprzedającego, zamówienia lub wypłaty; null dla kont platformy), currency, seller_id, seller_amount (tylko `buyer_funds_held`: część dla sprzedającego, saldo „w trakcie”), balance (= suma wpisów, zmienia je tylko trigger), created_at. Unikalne (code, subject, currency) (moduł `ledger`, F-22) |
+| `ledger_transactions` | id, type (szablon księgowania albo `REVERSAL`), idempotency_key (unikalny), currency, order_id, payout_id, reverses_transaction_id (storno, najwyżej jedno), payload (jsonb: dane wejściowe), created_at |
+| `ledger_entries` | id, transaction_id, account_id, amount (+/−, ≠ 0). Niemodyfikowalne; wpisy transakcji sumują się do 0 (trigger przy zatwierdzeniu) |
 | `payouts` | id, seller_id, provider, amount, status, provider_payout_id, idempotency_key, requested_at, completed_at |
 | `shipments` | id, order_id, direction (`OUTBOUND`/`RETURN`), provider, carrier, service, package_size, pickup_point_id, sender (jsonb), recipient (jsonb), tracking_number, label_key, dropoff_code, status, cost, created_at |
 | `shipment_events` | id, shipment_id, raw_status, status, occurred_at, raw (jsonb) |
@@ -1884,6 +1892,8 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 87 | Identyfikacja wizualna (F-62): design system Biddy z makiet Figma; font Plus Jakarta Sans; skale `ink`, `violet`, `pink`, `red`, `green`, `amber`, `sky`; gradient fiolet → róż tylko dla jednej głównej akcji widoku, granat dla akcji w kartach, fiolet dla zaznaczenia, czerwień dla LIVE, pilności i usuwania; kolory makiet niespełniające WCAG AA zastąpione ciemniejszymi krokami tej samej skali; style tekstu semantyczne (`text-h1`, `text-price-xl`…) w motywie Tailwinda i w konfiguracji tailwind-merge | Przyjęta | §11.3, §22 nr 8 |
 | 88 | Maks. wartość aukcji nowego i sprawdzonego sprzedawcy 5000 zł (było 500 i 1000 zł), próg KYC dla aukcji 5000 zł (było 1000 zł): pierwsze aukcje sprzedawcy mogą obejmować droższe przedmioty (elektronika, kolekcje), a limit nie jest niższy niż próg KYC, który i tak go ogranicza | Przyjęta | §4.1, §7.6 |
 | 89 | Staging na własnej VM Oracle Cloud (Ampere A1, ARM64, Always Free) z Dokploy zamiast Render + Vercel: cały stos w jednym pliku compose (`infra/dokploy`), Postgres jako baza Dokploy z nocnym backupem do R2, Meilisearch na tym samym serwerze; obrazy `linux/arm64` budowane w GitHub Actions i trzymane w GHCR (tag na każdy commit), deploy przez API Dokploy po zielonym CI z automatycznym wycofaniem nieudanej wersji; `render.yaml` i konfiguracja Vercel zostają jako alternatywa. Hosting produkcji do wyboru przed startem | Tymczasowa | §11.6, [deployment-dokploy.md](deployment-dokploy.md) |
+| 90 | Ledger: saldo konta w `ledger_accounts.balance` zmienia wyłącznie trigger przy wstawieniu wpisu (saldo zawsze = suma wpisów), CHECK nie pozwala saldom użytkowników i zamówień przejść na złą stronę, bilans transakcji sprawdza odroczony trigger przy zatwierdzeniu, wpisy, transakcje i konta są niemodyfikowalne (także TRUNCATE); konta księgowania blokowane `FOR UPDATE` w stałej kolejności; codzienny job `ledger.verify-integrity` porównuje salda z wpisami | Przyjęta | §7.7, §13.3 |
+| 91 | Księgowanie tylko przez szablony zdarzeń (`LedgerService.post`) z kluczem idempotencji, korekta przez storno całej transakcji; każde uznanie salda sprzedającego (także nieudana wypłata i rekompensata) najpierw spłaca `seller_receivable`; saldo „w trakcie” z części sprzedającego zapisanej przy koncie `buyer_funds_held` przy pierwszej płatności | Przyjęta | §7.7 |
 
 ---
 
