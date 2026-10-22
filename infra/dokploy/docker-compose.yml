@@ -1,0 +1,223 @@
+# Biddy na jednym serwerze z Dokploy (VM Oracle Cloud): web, API, worker, migracje, Redis
+# kolejek, Redis cache i Meilisearch. Walkthrough: docs/deployment-dokploy.md.
+#
+# - Obrazy buduje CI (.github/workflows/deploy-dokploy.yml) i wysyła do GHCR; ten plik ich nie
+#   buduje. BIDDY_TAG to `staging` (najnowszy z main) albo `sha-<commit>` (konkretna wersja, np.
+#   przy wycofaniu).
+# - Postgres to baza Dokploy (zakładka Databases) z automatycznymi backupami do S3. Usługi łączą
+#   się z nią przez sieć `dokploy-network` (DATABASE_URL z panelu bazy, adres wewnętrzny).
+# - Domeny (web → port 3000, API → port 3001) ustawia się w panelu Dokploy (zakładka Domains),
+#   który dopisuje etykiety Traefika i certyfikaty Let's Encrypt. Porty nie są wystawiane na hosta.
+# - Zmienne podaje zakładka Environment (szablon: infra/dokploy/.env.example). `${X:?…}` przerywa
+#   deploy z komunikatem, gdy wymaganej zmiennej brakuje.
+#
+# Nazwy wewnętrzne (np. `staging-api`) mają prefiks środowiska (BIDDY_ENV), żeby staging
+# i produkcja mogły stać na jednym serwerze we wspólnej sieci `dokploy-network`.
+
+x-api-image: &api-image
+  image: ${BIDDY_REGISTRY:-ghcr.io/bembnias}/biddy-api:${BIDDY_TAG:-staging}
+  pull_policy: always
+
+# Wspólne dla API, workera i migracji (ten sam obraz, apps/api/Dockerfile).
+x-api-env: &api-env
+  NODE_ENV: production
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DATABASE_URL: ${DATABASE_URL:?podaj adres bazy Postgres z panelu Dokploy (adres wewnętrzny)}
+  REDIS_QUEUE_URL: redis://${BIDDY_ENV:-staging}-redis-queue:6379
+  REDIS_CACHE_URL: redis://${BIDDY_ENV:-staging}-redis-cache:6379
+  QUEUE_PREFIX: biddy
+  MEILI_URL: http://${BIDDY_ENV:-staging}-meilisearch:7700
+  MEILI_API_KEY: ${MEILI_MASTER_KEY:?podaj klucz główny Meilisearch (openssl rand -base64 32)}
+  SEARCH_INDEX_PREFIX: biddy-${BIDDY_ENV:-staging}
+  WEB_URL: ${WEB_URL:?podaj adres aplikacji web, np. https://staging.biddy.pl}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?podaj sekret sesji (openssl rand -base64 32)}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_ENVIRONMENT: ${BIDDY_ENV:-staging}
+  SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.2}
+  RESEND_API_KEY: ${RESEND_API_KEY:?podaj klucz Resend}
+  MAIL_FROM: ${MAIL_FROM:?podaj nadawcę e-maili, np. Biddy Staging <no-reply@staging.biddy.pl>}
+  S3_ENDPOINT: ${S3_ENDPOINT:?podaj endpoint S3 (Cloudflare R2)}
+  S3_REGION: ${S3_REGION:-auto}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?podaj klucz dostępu S3}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?podaj sekret klucza S3}
+  S3_FORCE_PATH_STYLE: 'true'
+  S3_BUCKET_MEDIA: ${S3_BUCKET_MEDIA:?podaj kubełek media, np. biddy-staging-media}
+  S3_BUCKET_UPLOADS: ${S3_BUCKET_UPLOADS:?podaj kubełek uploads, np. biddy-staging-uploads}
+  MEDIA_PUBLIC_URL: ${MEDIA_PUBLIC_URL:?podaj publiczny adres zdjęć, np. https://media.staging.biddy.pl}
+  WEB_REVALIDATE_SECRET: ${WEB_REVALIDATE_SECRET:?podaj sekret rewalidacji (openssl rand -base64 32)}
+
+services:
+  # Migracje przed startem nowej wersji API i workera (blokada doradcza Postgresa: równoległe
+  # uruchomienie czeka). Compose usuwa stare kontenery api, workera i web, zanim migracje się
+  # skończą, więc nieudana migracja zostawia je wyłączone; workflow wdrożenia wraca wtedy do
+  # poprzedniej wersji (.github/workflows/deploy-dokploy.yml).
+  migrate:
+    <<: *api-image
+    command: ['node', 'dist/infra/db/migrate.js']
+    environment: *api-env
+    restart: 'no'
+    networks: [default, dokploy-network]
+
+  api:
+    <<: *api-image
+    environment:
+      <<: *api-env
+      API_PORT: '3001'
+      API_PUBLIC_URL: ${API_PUBLIC_URL:?podaj publiczny adres API, np. https://api.staging.biddy.pl}
+      CORS_ORIGINS: ${WEB_URL}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:?podaj domenę ciasteczka sesji, np. staging.biddy.pl}
+      OPENAPI_ENABLED: ${OPENAPI_ENABLED:-false}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:?podaj klucz witryny Turnstile}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:?podaj klucz tajny Turnstile}
+      SMSAPI_TOKEN: ${SMSAPI_TOKEN:?podaj token SMSAPI}
+      SMSAPI_SENDER: ${SMSAPI_SENDER:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID:-}
+      APPLE_CLIENT_SECRET: ${APPLE_CLIENT_SECRET:-}
+    expose: ['3001']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-queue:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    # Liveness bez bazy (/health): awaria Postgresa nie wyłącza API z ruchu Traefika.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 30s
+    restart: unless-stopped
+    networks:
+      default:
+        aliases: ['${BIDDY_ENV:-staging}-api']
+      dokploy-network: {}
+
+  worker:
+    <<: *api-image
+    command: ['node', '--import', './dist/instrument.js', 'dist/worker.js']
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-queue:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+    # Worker kończy rozpoczęte joby po SIGTERM (F-04).
+    stop_grace_period: 120s
+    restart: unless-stopped
+    networks: [default, dokploy-network]
+
+  web:
+    image: ${BIDDY_REGISTRY:-ghcr.io/bembnias}/biddy-web-${BIDDY_ENV:-staging}:${BIDDY_TAG:-staging}
+    pull_policy: always
+    environment:
+      # Renderowanie na serwerze woła API siecią wewnętrzną, bez wyjścia do internetu.
+      API_INTERNAL_URL: http://${BIDDY_ENV:-staging}-api:3001
+      WEB_REVALIDATE_SECRET: ${WEB_REVALIDATE_SECRET}
+    expose: ['3000']
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/robots.txt').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks: [default, dokploy-network]
+
+  # Kolejki BullMQ: noeviction (wymóg BullMQ) i AOF, żeby zaplanowane joby (np. koniec aukcji)
+  # przetrwały restart.
+  redis-queue:
+    image: redis:7.4-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes:
+      - redis-queue-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      default:
+        aliases: ['${BIDDY_ENV:-staging}-redis-queue']
+
+  # Cache, limity i pub/sub Socket.IO: dane do odtworzenia, bez trwałości.
+  redis-cache:
+    image: redis:7.4-alpine
+    command:
+      [
+        'redis-server',
+        '--maxmemory',
+        '512mb',
+        '--maxmemory-policy',
+        'allkeys-lru',
+        '--save',
+        '',
+        '--appendonly',
+        'no',
+      ]
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      default:
+        aliases: ['${BIDDY_ENV:-staging}-redis-cache']
+
+  # Wyszukiwarka (F-19). Indeks da się odbudować (nocny reindeks), więc bez backupu.
+  meilisearch:
+    image: getmeili/meilisearch:v1.52
+    environment:
+      MEILI_ENV: production
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_NO_ANALYTICS: 'true'
+    volumes:
+      - meili-data:/meili_data
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:7700/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      default:
+        aliases: ['${BIDDY_ENV:-staging}-meilisearch']
+
+volumes:
+  redis-queue-data:
+  meili-data:
+
+networks:
+  # Sieć Dokploy: Traefik (domeny) i bazy z zakładki Databases.
+  dokploy-network:
+    external: true

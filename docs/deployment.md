@@ -2,6 +2,8 @@
 
 Runbook F-09 ([FEATURES.md](FEATURES.md#f-09--cicd-i-środowiska--m), [PROJECT.md §11.6](PROJECT.md#116-hosting-i-usługi-zewnętrzne), [§18](PROJECT.md#18-infrastruktura-devops-jakość)): jak działają staging i preview, jak je uruchomić od zera i co robić przy migracjach, wycofaniu wersji i problemach.
 
+**Staging na własnym serwerze (Oracle Cloud + Dokploy)** ma osobny walkthrough: [deployment-dokploy.md](deployment-dokploy.md) (decyzja [PROJECT.md §22 nr 89](PROJECT.md#22-rejestr-decyzji)). Ten dokument opisuje wariant Render + Vercel; sekcje o usługach zewnętrznych, R2, migracjach i `TRUST_PROXY` dotyczą obu wariantów.
+
 ## Środowiska
 
 | Środowisko | Web                                   | API i worker                         | Kiedy powstaje                                |
@@ -9,6 +11,7 @@ Runbook F-09 ([FEATURES.md](FEATURES.md#f-09--cicd-i-środowiska--m), [PROJECT.m
 | local      | `pnpm dev` (http://localhost:3000)    | `pnpm dev` (http://localhost:3001)   | zawsze, usługi z `infra/docker-compose.yml`   |
 | preview    | Vercel, adres `*.vercel.app` per PR   | API stagingu                         | każdy push do pull requesta                   |
 | staging    | Vercel, https://staging.biddy.pl      | Render, https://api.staging.biddy.pl | każdy commit na `main` po zielonym CI         |
+| staging (Dokploy) | VM Oracle Cloud, https://staging.biddy.pl | ten sam serwer, https://api.staging.biddy.pl | każdy commit na `main` po zielonym CI ([deployment-dokploy.md](deployment-dokploy.md)) |
 | production | —                                     | —                                    | przed startem (osobny feature, tag + akcepty) |
 
 **[DECYZJA TYMCZASOWA]** Domeny stagingu to `staging.biddy.pl` (web) i `api.staging.biddy.pl` (API), z ciasteczkiem sesji na `staging.biddy.pl`. Zmiana domen to zmiana zmiennych w `render.yaml` i w projekcie Vercel.

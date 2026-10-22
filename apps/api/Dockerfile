@@ -7,7 +7,7 @@
 #   docker build -f apps/api/Dockerfile -t biddy-api .
 #
 # Wersje Node i Turborepo muszą zgadzać się z .nvmrc i katalogiem pnpm (pnpm-workspace.yaml);
-# pilnuje tego test apps/api/test/unit/dockerfile.test.ts.
+# pilnuje tego test apps/api/test/unit/deployment.test.ts.
 
 ARG NODE_IMAGE=node:24.21.0-alpine3.24
 ARG TURBO_VERSION=2.11.7
@@ -52,7 +52,11 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 # 4. Obraz końcowy: zbudowany kod, migracje SQL i zależności produkcyjne, bez źródeł i narzędzi.
 FROM ${NODE_IMAGE} AS runner
-ENV NODE_ENV=production
+# Wersja (SHA commita) dla /health i Sentry; CI podaje ją przy budowie obrazu (Dokploy). Render
+# podaje ją sam w RENDER_GIT_COMMIT.
+ARG APP_RELEASE=
+ENV NODE_ENV=production \
+    APP_RELEASE=${APP_RELEASE}
 WORKDIR /app
 COPY --from=production-deps --chown=node:node /repo/package.json ./
 COPY --from=production-deps --chown=node:node /repo/node_modules ./node_modules

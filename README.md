@@ -5,6 +5,7 @@ Biddy to marketplace C2C z licytacjami czasowymi. Kupujący płaci za Pakiet Och
 - Specyfikacja produktu i architektury: [docs/PROJECT.md](docs/PROJECT.md)
 - Lista feature speców z szacunkami i zależnościami: [docs/FEATURES.md](docs/FEATURES.md)
 - Wdrożenia i środowiska (staging, preview, migracje, wycofanie wersji): [docs/deployment.md](docs/deployment.md)
+- Staging na własnym serwerze (Oracle Cloud + Dokploy, CI/CD z GitHub Actions): [docs/deployment-dokploy.md](docs/deployment-dokploy.md)
 
 ## Wymagania
 

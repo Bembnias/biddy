@@ -31,6 +31,11 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // Obraz Docker (apps/web/Dockerfile ustawia NEXT_OUTPUT=standalone): samodzielny serwer
+  // z minimalnym node_modules. Śledzenie plików od korzenia monorepo (pakiety workspace).
+  ...(process.env.NEXT_OUTPUT === 'standalone'
+    ? { output: 'standalone' as const, outputFileTracingRoot: path.resolve(process.cwd(), '../..') }
+    : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   env: { BIDDY_PUBLIC_CONFIG: JSON.stringify(publicConfig) },

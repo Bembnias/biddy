@@ -1114,6 +1114,8 @@ Osobna aplikacja Next.js z shadcn/ui i TanStack Table, pod osobną domeną (`adm
 | Mobile CI | EAS | |
 | CI | GitHub Actions + Turborepo remote cache | |
 
+**Staging na teraz** (decyzja §22 nr 89): VM Oracle Cloud z Dokploy, cały stos (web, API, worker, Postgres, oba Redisy, Meilisearch) na jednym serwerze, R2 i usługi zewnętrzne bez zmian ([deployment-dokploy.md](deployment-dokploy.md)). Tabela opisuje hosting produkcji.
+
 Docker od pierwszego dnia, więc migracja z Render do AWS nie wymaga zmian w kodzie. **Szacunek kosztów infrastruktury w MVP** (bez kosztów transakcyjnych): rząd **kilkuset do ok. 2 tys. zł miesięcznie**. Zweryfikuj przy konfiguracji.
 
 ---
@@ -1881,6 +1883,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 86 | Każda pozycja Moje Biddy ma następną akcję; akcje zależne od płatności i dostaw (Zapłać, Nadaj paczkę) widoczne, ale nieaktywne z wyjaśnieniem do F-25/F-26 | Tymczasowa | §5 |
 | 87 | Identyfikacja wizualna (F-62): design system Biddy z makiet Figma; font Plus Jakarta Sans; skale `ink`, `violet`, `pink`, `red`, `green`, `amber`, `sky`; gradient fiolet → róż tylko dla jednej głównej akcji widoku, granat dla akcji w kartach, fiolet dla zaznaczenia, czerwień dla LIVE, pilności i usuwania; kolory makiet niespełniające WCAG AA zastąpione ciemniejszymi krokami tej samej skali; style tekstu semantyczne (`text-h1`, `text-price-xl`…) w motywie Tailwinda i w konfiguracji tailwind-merge | Przyjęta | §11.3, §22 nr 8 |
 | 88 | Maks. wartość aukcji nowego i sprawdzonego sprzedawcy 5000 zł (było 500 i 1000 zł), próg KYC dla aukcji 5000 zł (było 1000 zł): pierwsze aukcje sprzedawcy mogą obejmować droższe przedmioty (elektronika, kolekcje), a limit nie jest niższy niż próg KYC, który i tak go ogranicza | Przyjęta | §4.1, §7.6 |
+| 89 | Staging na własnej VM Oracle Cloud (Ampere A1, ARM64, Always Free) z Dokploy zamiast Render + Vercel: cały stos w jednym pliku compose (`infra/dokploy`), Postgres jako baza Dokploy z nocnym backupem do R2, Meilisearch na tym samym serwerze; obrazy `linux/arm64` budowane w GitHub Actions i trzymane w GHCR (tag na każdy commit), deploy przez API Dokploy po zielonym CI z automatycznym wycofaniem nieudanej wersji; `render.yaml` i konfiguracja Vercel zostają jako alternatywa. Hosting produkcji do wyboru przed startem | Tymczasowa | §11.6, [deployment-dokploy.md](deployment-dokploy.md) |
 
 ---
 

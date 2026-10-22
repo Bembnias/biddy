@@ -1,0 +1,208 @@
+# Wdrożenie stagingu na serwer z Dokploy (VM Oracle Cloud, ARM64). Walkthrough i konfiguracja:
+# docs/deployment-dokploy.md.
+#
+# Kiedy: po zielonym CI na main (każdy commit, który przeszedł wszystkie checki) albo ręcznie
+# (Actions → „Deploy (Dokploy)” → Run workflow, z wyborem gałęzi, tagu albo SHA).
+#
+# Co robi:
+#   1. Buduje obrazy API (apps/api/Dockerfile) i web (apps/web/Dockerfile, ze zmiennymi
+#      NEXT_PUBLIC_* stagingu) dla linux/arm64 na runnerze ARM i wysyła je do GHCR z tagami
+#      `sha-<commit>` i `staging`.
+#   2. Każe Dokploy wdrożyć stos (POST /api/compose.deploy): Dokploy pobiera obrazy `staging`,
+#      uruchamia migracje, potem API, workera i web.
+#   3. Czeka, aż /health API pokaże wdrażany commit, i sprawdza, że web odpowiada
+#      (.github/scripts/dokploy-deploy.sh). Gdy nowa wersja nie wstanie, wraca do poprzedniej.
+#
+# Wymaga środowiska GitHub `staging` (Settings → Environments) ze zmiennymi i sekretami z
+# docs/deployment-dokploy.md. Bez zmiennej repozytorium DOKPLOY_ENABLED=true nic się nie dzieje.
+name: Deploy (Dokploy)
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Gałąź, tag albo SHA do wdrożenia
+        required: true
+        default: main
+
+# Jedno wdrożenie naraz; kolejne czeka (nie przerywamy migracji w trakcie).
+concurrency:
+  group: deploy-dokploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  BIDDY_ENV: staging
+
+jobs:
+  prepare:
+    name: Wersja do wdrożenia
+    # Tylko udane CI z pusha na main (nie z pull requestów) albo uruchomienie ręczne.
+    if: >-
+      vars.DOKPLOY_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.version.outputs.sha }}
+      registry: ${{ steps.version.outputs.registry }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.ref }}
+          persist-credentials: false
+
+      - name: SHA commita i rejestr
+        id: version
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          # GHCR wymaga małych liter w nazwie właściciela.
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+  images:
+    name: Obraz ${{ matrix.image }} (linux/arm64)
+    needs: prepare
+    # Natywny runner ARM: Oracle Ampere A1 to arm64, a emulacja QEMU wydłużyłaby build web
+    # kilkukrotnie. Dla innej architektury serwera: zmienna DEPLOY_RUNNER i DEPLOY_PLATFORM.
+    runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-24.04-arm' }}
+    timeout-minutes: 30
+    environment: staging
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        image: [api, web]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+
+      - name: Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Logowanie do GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # API: jeden obraz dla każdego środowiska. Web: osobne repozytorium obrazu per środowisko
+      # (biddy-web-staging), bo NEXT_PUBLIC_* są wklejane przy buildzie.
+      - name: Nazwa obrazu i tagi
+        id: meta
+        env:
+          REGISTRY: ${{ needs.prepare.outputs.registry }}
+          SHA: ${{ needs.prepare.outputs.sha }}
+          IMAGE: ${{ matrix.image }}
+        run: |
+          if [ "$IMAGE" = api ]; then name="$REGISTRY/biddy-api"; else name="$REGISTRY/biddy-web-$BIDDY_ENV"; fi
+          {
+            echo "tags<<EOF"
+            echo "$name:sha-$SHA"
+            echo "$name:$BIDDY_ENV"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build i push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/${{ matrix.image }}/Dockerfile
+          platforms: ${{ vars.DEPLOY_PLATFORM || 'linux/arm64' }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.prepare.outputs.sha }}
+          # API ignoruje argumenty web i odwrotnie (Docker zgłasza tylko ostrzeżenie).
+          build-args: |
+            APP_RELEASE=${{ needs.prepare.outputs.sha }}
+            NEXT_PUBLIC_APP_RELEASE=${{ needs.prepare.outputs.sha }}
+            NEXT_PUBLIC_ENVIRONMENT=${{ env.BIDDY_ENV }}
+            NEXT_PUBLIC_API_URL=${{ vars.API_PUBLIC_URL }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.WEB_URL }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+            NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+            SENTRY_ORG=${{ vars.SENTRY_ORG }}
+            SENTRY_PROJECT=${{ vars.SENTRY_PROJECT_WEB }}
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+          cache-from: type=gha,scope=dokploy-${{ matrix.image }}-${{ env.BIDDY_ENV }}
+          cache-to: type=gha,scope=dokploy-${{ matrix.image }}-${{ env.BIDDY_ENV }},mode=max
+
+  deploy:
+    name: Wdrożenie w Dokploy
+    needs: [prepare, images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: staging
+      url: ${{ vars.WEB_URL }}
+    permissions:
+      contents: read
+      # Wycofanie przestawia tag `staging` w GHCR na poprzedni obraz.
+      packages: write
+    env:
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID }}
+      API_URL: ${{ vars.API_PUBLIC_URL }}
+      WEB_URL: ${{ vars.WEB_URL }}
+      REGISTRY: ${{ needs.prepare.outputs.registry }}
+      SHA: ${{ needs.prepare.outputs.sha }}
+    steps:
+      - name: Checkout (skrypt wdrożenia)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+
+      - name: Wersja przed wdrożeniem
+        id: previous
+        run: |
+          release=$(curl -fsS --max-time 10 "${API_URL%/}/health" | jq -r '.release // empty' || true)
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "Na stagingu działa wersja: ${release:-brak odpowiedzi API}"
+
+      # Zleca deploy i czeka, aż /health API pokaże nowy commit, a web odpowie.
+      - name: Wdrożenie
+        id: deploy
+        run: .github/scripts/dokploy-deploy.sh "$SHA"
+
+      # Docker Compose usuwa stare kontenery, zanim nowe wstaną, więc nieudana wersja (np. błąd
+      # migracji) zostawiłaby staging wyłączony. Wtedy wracamy do wersji sprzed wdrożenia: tag
+      # `staging` na jej obrazy i ponowny deploy. Migracja w transakcji nie zostawia zmian w bazie.
+      - name: Logowanie do GHCR (wycofanie)
+        if: >-
+          failure() && steps.deploy.outcome == 'failure' && steps.previous.outputs.release != '' &&
+          steps.previous.outputs.release != env.SHA
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wycofanie do poprzedniej wersji
+        if: >-
+          failure() && steps.deploy.outcome == 'failure' && steps.previous.outputs.release != '' &&
+          steps.previous.outputs.release != env.SHA
+        env:
+          PREVIOUS: ${{ steps.previous.outputs.release }}
+        run: |
+          for name in "$REGISTRY/biddy-api" "$REGISTRY/biddy-web-$BIDDY_ENV"; do
+            docker buildx imagetools create --tag "$name:$BIDDY_ENV" "$name:sha-$PREVIOUS"
+          done
+          .github/scripts/dokploy-deploy.sh "$PREVIOUS"
+          echo "::error::Wersja $SHA nie wstała, staging wrócił do $PREVIOUS. Przyczyna w logach wdrożenia w Dokploy."
