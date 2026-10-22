@@ -676,6 +676,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-23 · Port płatności i FakeGateway · `M`
 
+> Pełny spec: [docs/features/F-23-port-platnosci.md](features/F-23-port-platnosci.md).
+
 **Cel:** pełny przepływ płatności bez umowy z operatorem.
 
 **Zakres:**

@@ -2,6 +2,7 @@ export * from './admin/admin';
 export * from './auctions/auctions';
 export * from './auth/auth';
 export * from './categories/categories';
+export * from './dev/dev';
 export * from './fee-schedules/fee-schedules';
 export * from './me/me';
 export * from './media/media';

@@ -878,5 +878,96 @@
       "browse": "Przeglądaj aukcje",
       "sell": "Wystaw przedmiot"
     }
+  },
+  "devPayments": {
+    "banner": "Środowisko testowe: FakeGateway. Żadne pieniądze nie są pobierane.",
+    "pay": {
+      "metaTitle": "Testowa płatność",
+      "title": "Testowa płatność",
+      "amount": "Do zapłaty",
+      "method": "Metoda",
+      "paymentId": "Numer płatności",
+      "status": "Stan",
+      "pay": "Zapłać",
+      "decline": "Odrzuć",
+      "sending": "Wysyłanie…",
+      "redirecting": "Wracamy do Biddy…",
+      "settled": "Ta płatność jest już rozliczona.",
+      "back": "Wróć do Biddy",
+      "returnUrl": "Adres powrotu spoza Biddy: {url}",
+      "notFound": "Nie znaleziono płatności. Link mógł być błędny albo FakeGateway jest wyłączony.",
+      "error": "Nie udało się połączyć z serwerem. Spróbuj ponownie.",
+      "actionError": "Nie udało się rozliczyć płatności: {detail}",
+      "retry": "Spróbuj ponownie",
+      "loading": "Wczytywanie płatności…"
+    },
+    "paymentStatus": {
+      "PENDING": "W toku",
+      "SUCCEEDED": "Opłacona",
+      "FAILED": "Odrzucona"
+    },
+    "methods": {
+      "BLIK": "BLIK",
+      "CARD": "Karta",
+      "PAY_BY_LINK": "Przelew online",
+      "APPLE_PAY": "Apple Pay",
+      "GOOGLE_PAY": "Google Pay"
+    },
+    "kycStatus": {
+      "PENDING": "W toku",
+      "VERIFIED": "Potwierdzona",
+      "REJECTED": "Odrzucona"
+    },
+    "payoutStatus": {
+      "PENDING": "W toku",
+      "PAID": "Wypłacona",
+      "FAILED": "Odrzucona"
+    },
+    "chargebackStatus": {
+      "OPEN": "Chargeback otwarty",
+      "WON": "Chargeback wygrany",
+      "LOST": "Chargeback przegrany"
+    },
+    "panel": {
+      "metaTitle": "Panel FakeGateway",
+      "title": "Panel FakeGateway",
+      "lead": "Płatności, sprzedawcy, wypłaty i webhooki symulowanego operatora. Widok odświeża się co 5 sekund.",
+      "blikCodes": "Kody BLIK: 777123 (udana), 111111 (odrzucona), 222222 (bez odpowiedzi operatora).",
+      "kycEmails": "Weryfikacja sprzedawcy: adres e-mail z +kyc-pending albo +kyc-rejected przed @.",
+      "payments": "Płatności",
+      "sellers": "Sprzedawcy",
+      "payouts": "Wypłaty",
+      "events": "Webhooki",
+      "empty": "Brak wpisów.",
+      "id": "ID",
+      "amount": "Kwota",
+      "method": "Metoda",
+      "status": "Stan",
+      "created": "Utworzono",
+      "seller": "Sprzedawca",
+      "verification": "Weryfikacja",
+      "balance": "Saldo u operatora",
+      "type": "Typ",
+      "object": "Obiekt",
+      "delivery": "Dostarczenie",
+      "actions": "Akcje",
+      "delivered": "Dostarczony",
+      "notDelivered": "Niedostarczony",
+      "attempts": "{count, plural, =0 {bez prób} one {# próba} few {# próby} many {# prób} other {# próby}}",
+      "pay": "Zapłać",
+      "decline": "Odrzuć",
+      "settleSilently": "Rozlicz bez webhooka",
+      "openChargeback": "Chargeback",
+      "chargebackWon": "Wygrany",
+      "chargebackLost": "Przegrany",
+      "failPayout": "Odrzuć wypłatę",
+      "newStatus": "Nowy status weryfikacji",
+      "redeliver": "Wyślij ponownie",
+      "done": "Gotowe: {action}.",
+      "failed": "Nie udało się: {detail}",
+      "error": "Nie udało się wczytać panelu.",
+      "retry": "Spróbuj ponownie",
+      "loading": "Wczytywanie panelu…"
+    }
   }
 }

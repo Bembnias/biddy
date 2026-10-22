@@ -19,6 +19,7 @@ API_URL="${API_URL:-http://127.0.0.1:${API_PORT}}"
 # Konfiguracja jak na stagingu (NODE_ENV=production wymaga kompletu zmiennych), z kluczami testowymi.
 ENV_ARGS=(
   -e NODE_ENV=production
+  -e DEPLOYMENT_ENV=staging
   -e "DATABASE_URL=${DATABASE_URL}"
   -e "REDIS_QUEUE_URL=${REDIS_QUEUE_URL}"
   -e "REDIS_CACHE_URL=${REDIS_CACHE_URL:-${REDIS_QUEUE_URL}}"

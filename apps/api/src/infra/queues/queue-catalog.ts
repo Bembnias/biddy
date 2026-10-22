@@ -64,6 +64,11 @@ export const QUEUE_DEFINITIONS = {
       'Rewalidacja stron ISR w web po zmianach aukcji: najwyżej raz na 5 s na stronę (ID z końcem okna, F-18)',
     concurrency: 5,
   },
+  payments: {
+    description:
+      'Płatności: polling zapasowy płatności w PENDING co minutę i symulator FakeGateway (rozliczenie z opóźnieniem, webhooki HTTP, F-23)',
+    concurrency: 5,
+  },
   emails: {
     description:
       'Wysyłka e-maili (weryfikacja adresu, reset hasła). Treść zawiera linki z tokenami, więc job znika po wysłaniu',

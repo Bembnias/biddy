@@ -352,7 +352,8 @@ Ten sam serwer albo osobny (lepiej osobny: awaria stagingu nie dotyka produkcji)
 
 1. Drugi stos Compose `biddy-production` z tego samego pliku, `BIDDY_ENV=production`, osobna baza z backupem, osobne kubełki R2, domeny `biddy.pl` i `api.biddy.pl`, `OPENAPI_ENABLED=false`. Prefiks `BIDDY_ENV` w nazwach wewnętrznych pozwala obu stosom działać w jednej sieci `dokploy-network`.
 2. Workflow: środowisko GitHub `production` (z wymaganym zatwierdzeniem) i wyzwalacz na tag wersji; obraz API przenosi się bez budowania (`sha-<commit>` → `production`), obraz web buduje się z adresami produkcji (`biddy-web-production`).
-3. Przed prawdziwymi płatnościami: przegląd PITR bazy, wdrożeń bez przerwy i planu awaryjnego (PROJECT.md §11.6).
+3. Płatności: compose ustawia `DEPLOYMENT_ENV` z `BIDDY_ENV`, a przy `production` FakeGateway jest zablokowany. Stos produkcyjny wystartuje dopiero z prawdziwym operatorem w `PAYMENTS_DEFAULT_PROVIDER` (adapter w F-31, PROJECT.md §7.8). Staging działa na FakeGateway, a worker wysyła jego webhooki do API w sieci wewnętrznej (`PAYMENTS_FAKE_WEBHOOK_URL`).
+4. Przed prawdziwymi płatnościami: przegląd PITR bazy, wdrożeń bez przerwy i planu awaryjnego (PROJECT.md §11.6).
 
 ## Rozwiązywanie problemów
 

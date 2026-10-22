@@ -7,6 +7,7 @@ import {
   ConfigError,
   DEFAULT_PRODUCTION_TRUST_PROXY,
   DEVELOPMENT_AUTH_SECRET,
+  fakeWebhookSecret,
   TURNSTILE_TEST_SECRET_KEY,
   TURNSTILE_TEST_SITE_KEY,
   ENV_KEYS,
@@ -40,6 +41,8 @@ const production = {
   WEB_REVALIDATE_SECRET: 'revalidate-secret-0123456789-0123456789',
   MEILI_URL: 'https://ms-test.meilisearch.io',
   MEILI_API_KEY: 'meili-production-key-0123456789',
+  // Na produkcji operator jest wymagany, a FakeGateway zablokowany (F-23).
+  PAYMENTS_DEFAULT_PROVIDER: 'payu',
 } as const;
 
 function issuesFor(
@@ -67,6 +70,7 @@ describe('loadConfig: wartości domyślne', () => {
 
     expect(config).toEqual({
       env: 'development',
+      deployment: 'local',
       release: undefined,
       http: {
         host: '127.0.0.1',
@@ -118,6 +122,15 @@ describe('loadConfig: wartości domyślne', () => {
         indexPrefix: 'biddy',
       },
       web: { url: 'http://localhost:3000', revalidateSecret: undefined },
+      payments: {
+        defaultProvider: 'fake',
+        fake: {
+          enabled: true,
+          webhookUrl: 'http://localhost:3001/v1/webhooks/payments/fake',
+          webhookDelayMs: 2_000,
+          webhookSecret: fakeWebhookSecret(DEVELOPMENT_AUTH_SECRET),
+        },
+      },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
     });
   });
@@ -290,6 +303,124 @@ describe('loadConfig: kolejki (Redis, prefiks, relay outboxa)', () => {
   });
 });
 
+describe('loadConfig: płatności i środowisko wdrożenia (F-23)', () => {
+  const staging = {
+    ...production,
+    CORS_ORIGINS: 'https://staging.biddy.pl',
+    DEPLOYMENT_ENV: 'staging',
+    PAYMENTS_DEFAULT_PROVIDER: undefined,
+  };
+
+  it('poza produkcją domyślnie FakeGateway z webhookiem na lokalne API', () => {
+    const config = loadConfig({ ...minimal, NODE_ENV: 'test', API_PORT: '4000' });
+    expect(config.deployment).toBe('local');
+    expect(config.payments.defaultProvider).toBe('fake');
+    expect(config.payments.fake).toMatchObject({
+      enabled: true,
+      webhookUrl: 'http://localhost:4000/v1/webhooks/payments/fake',
+      webhookDelayMs: 2_000,
+    });
+  });
+
+  it.each<ProcessRole>(['api', 'worker'])(
+    'NODE_ENV=production bez DEPLOYMENT_ENV to produkcja: fake odrzucony (%s)',
+    (role) => {
+      const issues = issuesFor(
+        { ...production, CORS_ORIGINS: 'https://biddy.pl', PAYMENTS_DEFAULT_PROVIDER: 'fake' },
+        role,
+      );
+      expect(issues.map((issue) => issue.variable)).toEqual(['PAYMENTS_DEFAULT_PROVIDER']);
+      expect(issues[0]?.message).toContain('nie może działać na produkcji');
+      expect(issues[0]?.message).toContain('DEPLOYMENT_ENV=staging');
+    },
+  );
+
+  it('jawne DEPLOYMENT_ENV=production blokuje fake także przy NODE_ENV=development', () => {
+    expect(
+      variablesWithIssues({
+        ...minimal,
+        DEPLOYMENT_ENV: 'production',
+        PAYMENTS_DEFAULT_PROVIDER: 'fake',
+      }),
+    ).toEqual(['PAYMENTS_DEFAULT_PROVIDER']);
+  });
+
+  it('na produkcji operator jest wymagany, a FakeGateway wyłączony', () => {
+    const issues = issuesFor({
+      ...production,
+      CORS_ORIGINS: 'https://biddy.pl',
+      PAYMENTS_DEFAULT_PROVIDER: undefined,
+    });
+    expect(issues.map((issue) => issue.variable)).toEqual(['PAYMENTS_DEFAULT_PROVIDER']);
+    expect(issues[0]?.message).toContain('brak zmiennej');
+
+    const config = loadConfig({ ...production, CORS_ORIGINS: 'https://biddy.pl' });
+    expect(config.deployment).toBe('production');
+    expect(config.payments.defaultProvider).toBe('payu');
+    expect(config.payments.fake.enabled).toBe(false);
+  });
+
+  it('staging (DEPLOYMENT_ENV=staging) działa z FakeGateway i adresem webhooka z API_PUBLIC_URL', () => {
+    const api = loadConfig(staging, 'api');
+    expect(api.env).toBe('production');
+    expect(api.deployment).toBe('staging');
+    expect(api.payments.defaultProvider).toBe('fake');
+    expect(api.payments.fake.enabled).toBe(true);
+    expect(api.payments.fake.webhookUrl).toBe('https://api.biddy.pl/v1/webhooks/payments/fake');
+  });
+
+  it('worker na stagingu bez API_PUBLIC_URL wymaga PAYMENTS_FAKE_WEBHOOK_URL', () => {
+    const worker = { ...staging, API_PUBLIC_URL: undefined };
+    const issues = issuesFor(worker, 'worker');
+    expect(issues.map((issue) => issue.variable)).toEqual(['PAYMENTS_FAKE_WEBHOOK_URL']);
+    expect(issues[0]?.message).toContain('webhooki FakeGateway');
+
+    const config = loadConfig(
+      {
+        ...worker,
+        PAYMENTS_FAKE_WEBHOOK_URL: 'http://staging-api:3001/v1/webhooks/payments/fake',
+        PAYMENTS_FAKE_WEBHOOK_DELAY_MS: '500',
+      },
+      'worker',
+    );
+    expect(config.payments.fake).toMatchObject({
+      webhookUrl: 'http://staging-api:3001/v1/webhooks/payments/fake',
+      webhookDelayMs: 500,
+    });
+  });
+
+  it('sekret webhooków wynika z BETTER_AUTH_SECRET: ten sam w API i workerze, inny niż sam sekret', () => {
+    const api = loadConfig(staging, 'api');
+    const worker = loadConfig(staging, 'worker');
+    expect(api.payments.fake.webhookSecret).toBe(worker.payments.fake.webhookSecret);
+    expect(api.payments.fake.webhookSecret).not.toBe(production.BETTER_AUTH_SECRET);
+    expect(api.payments.fake.webhookSecret).not.toBe(
+      loadConfig(minimal).payments.fake.webhookSecret,
+    );
+  });
+
+  it.each([
+    ['nieznane środowisko', { DEPLOYMENT_ENV: 'qa' }, 'DEPLOYMENT_ENV'],
+    [
+      'operator wielkimi literami',
+      { PAYMENTS_DEFAULT_PROVIDER: 'PayU' },
+      'PAYMENTS_DEFAULT_PROVIDER',
+    ],
+    [
+      'adres webhooka bez schematu',
+      { PAYMENTS_FAKE_WEBHOOK_URL: 'api/webhooks' },
+      'PAYMENTS_FAKE_WEBHOOK_URL',
+    ],
+    [
+      'ujemne opóźnienie',
+      { PAYMENTS_FAKE_WEBHOOK_DELAY_MS: '-1' },
+      'PAYMENTS_FAKE_WEBHOOK_DELAY_MS',
+    ],
+  ])('odrzuca: %s', (_label, env, variable) => {
+    expect(variablesWithIssues({ ...minimal, ...env })).toEqual([variable]);
+  });
+});
+
 describe('loadConfig: magazyn plików (F-12)', () => {
   it('produkcja: R2 z publicznym adresem CDN (bez ukośnika na końcu)', () => {
     const config = loadConfig({
@@ -359,6 +490,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
         'TURNSTILE_SECRET_KEY',
         'TURNSTILE_SITE_KEY',
         'WEB_URL',
+        'PAYMENTS_DEFAULT_PROVIDER',
       ].sort(),
     );
     expect(issuesFor(missing, 'worker').map((issue) => issue.variable)).toEqual([
@@ -373,6 +505,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
       'MEILI_URL',
       'MEILI_API_KEY',
       'WEB_REVALIDATE_SECRET',
+      'PAYMENTS_DEFAULT_PROVIDER',
     ]);
   });
 

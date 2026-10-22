@@ -1,5 +1,6 @@
 // Konfiguracja API walidowana Zodem przy starcie (PROJECT.md §11.2). Brakująca lub błędna
 // zmienna kończy start aplikacji z czytelną listą błędów, zanim cokolwiek się połączy.
+import { createHmac } from 'node:crypto';
 import { isIP } from 'node:net';
 
 import { z } from 'zod';
@@ -7,6 +8,9 @@ import { z } from 'zod';
 const MISSING = 'brak zmiennej (nie ustawiono jej albo jest pusta)';
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
+
+/** Środowiska wdrożenia (PROJECT.md §18.1). Staging działa z NODE_ENV=production. */
+export const DEPLOYMENT_ENVIRONMENTS = ['local', 'preview', 'staging', 'production'] as const;
 
 function text() {
   return z.string({
@@ -167,6 +171,9 @@ function trustProxy() {
  */
 export const envSchema = z.object({
   NODE_ENV: oneOf(['development', 'test', 'production']).default('development'),
+  // Środowisko wdrożenia (§18.1, F-23): odróżnia staging od produkcji, bo oba mają
+  // NODE_ENV=production. Bez zmiennej: production przy NODE_ENV=production, inaczej local.
+  DEPLOYMENT_ENV: oneOf(DEPLOYMENT_ENVIRONMENTS).optional(),
   // Platformy (Render) podają port w PORT; lokalnie używamy API_PORT, żeby nie kolidować z web.
   PORT: port().optional(),
   API_PORT: port().optional(),
@@ -258,12 +265,26 @@ export const envSchema = z.object({
   WEB_REVALIDATE_SECRET: text()
     .min(32, 'oczekiwano co najmniej 32 znaków (np. openssl rand -base64 32)')
     .optional(),
+  // Płatności (F-23): operator nowych płatności (adapter w GatewayRegistry). Poza produkcją
+  // domyślnie FakeGateway; na produkcji wymagany i różny od `fake`.
+  PAYMENTS_DEFAULT_PROVIDER: text()
+    .regex(/^[a-z][a-z0-9-]{0,31}$/, 'oczekiwano nazwy operatora małymi literami, np. payu')
+    .optional(),
+  // Dokąd worker wysyła webhooki FakeGateway (domyślnie publiczny adres API).
+  PAYMENTS_FAKE_WEBHOOK_URL: url(
+    ['https:', 'http:'],
+    'http://staging-api:3001/v1/webhooks/payments/fake',
+  ).optional(),
+  // Opóźnienie rozliczenia płatności i webhooka FakeGateway (symulacja potwierdzenia w banku).
+  PAYMENTS_FAKE_WEBHOOK_DELAY_MS: integer(0, 600_000).optional(),
 });
 
 /** Nazwy wszystkich zmiennych obsługiwanych przez schemat. */
 export const ENV_KEYS = Object.keys(envSchema.shape) as (keyof z.input<typeof envSchema>)[];
 
 export type AppEnvironment = 'development' | 'test' | 'production';
+
+export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
 
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
@@ -295,6 +316,15 @@ export const TURNSTILE_TEST_SECRET_KEY = '1x0000000000000000000000000000000AA';
 
 /** Sekret sesji poza produkcją (lokalnie i w testach); na produkcji BETTER_AUTH_SECRET jest wymagany. */
 export const DEVELOPMENT_AUTH_SECRET = 'biddy-development-only-auth-secret-0123456789';
+
+/** Operator testowy (F-23): działa tylko poza produkcją. */
+export const FAKE_PAYMENT_PROVIDER = 'fake';
+
+/** Ścieżka webhooków FakeGateway w API (prefiks /v1 jak API_PREFIX w create-app.ts). */
+export const FAKE_PAYMENTS_WEBHOOK_PATH = '/v1/webhooks/payments/fake';
+
+/** Domyślne opóźnienie rozliczenia i webhooka FakeGateway. */
+export const DEFAULT_FAKE_WEBHOOK_DELAY_MS = 2_000;
 
 /** Nadawca e-maili lokalnie (jak MAIL_FROM w .env.example). */
 export const DEFAULT_MAIL_FROM = 'Biddy <no-reply@biddy.local>';
@@ -339,6 +369,8 @@ export interface OAuthProviderConfig {
 /** Konfiguracja aplikacji po walidacji i wyliczeniu wartości domyślnych. */
 export interface AppConfig {
   readonly env: AppEnvironment;
+  /** Środowisko wdrożenia (§18.1); `production` blokuje FakeGateway. */
+  readonly deployment: DeploymentEnvironment;
   readonly release: string | undefined;
   readonly http: {
     readonly host: string;
@@ -413,6 +445,19 @@ export interface AppConfig {
     readonly url: string;
     /** Sekret `POST /api/revalidate` w web; undefined = bez rewalidacji (strony co 60 s). */
     readonly revalidateSecret: string | undefined;
+  };
+  readonly payments: {
+    /** Operator nowych płatności; GatewayRegistry musi mieć dla niego adapter. */
+    readonly defaultProvider: string;
+    /** FakeGateway (F-23, §7.8): adapter testowy, wyłączony na produkcji. */
+    readonly fake: {
+      readonly enabled: boolean;
+      /** Adres endpointu webhooków API, na który worker wysyła zdarzenia. */
+      readonly webhookUrl: string;
+      readonly webhookDelayMs: number;
+      /** Sekret podpisu webhooków, wyprowadzony z BETTER_AUTH_SECRET. */
+      readonly webhookSecret: string;
+    };
   };
   readonly sentry: {
     readonly dsn: string | undefined;
@@ -560,6 +605,65 @@ function crossFieldIssues(
   return issues;
 }
 
+/** Środowisko wdrożenia z surowych zmiennych; undefined, gdy NODE_ENV albo DEPLOYMENT_ENV są błędne. */
+function deploymentOf(input: Readonly<Record<string, string>>): DeploymentEnvironment | undefined {
+  const nodeEnv = input['NODE_ENV'] ?? 'development';
+  if (!['development', 'test', 'production'].includes(nodeEnv)) {
+    return undefined;
+  }
+  const declared = input['DEPLOYMENT_ENV'];
+  if (declared === undefined) {
+    return nodeEnv === 'production' ? 'production' : 'local';
+  }
+  return (DEPLOYMENT_ENVIRONMENTS as readonly string[]).includes(declared)
+    ? (declared as DeploymentEnvironment)
+    : undefined;
+}
+
+/**
+ * Płatności (F-23): na produkcji operator jest wymagany, a FakeGateway zablokowany. Poza nią
+ * worker przy NODE_ENV=production (staging) musi wiedzieć, dokąd wysyłać webhooki FakeGateway.
+ */
+function paymentIssues(input: Readonly<Record<string, string>>, role: ProcessRole): ConfigIssue[] {
+  const deployment = deploymentOf(input);
+  const provider = input['PAYMENTS_DEFAULT_PROVIDER'];
+  if (deployment === 'production') {
+    if (provider === undefined) {
+      return [
+        {
+          variable: 'PAYMENTS_DEFAULT_PROVIDER',
+          message: `${MISSING}; na produkcji podaj operatora płatności, np. payu (FakeGateway działa tylko poza produkcją)`,
+        },
+      ];
+    }
+    if (provider === FAKE_PAYMENT_PROVIDER) {
+      return [
+        {
+          variable: 'PAYMENTS_DEFAULT_PROVIDER',
+          message:
+            'FakeGateway (fake) nie może działać na produkcji (DEPLOYMENT_ENV=production); podaj operatora, np. payu, a na stagingu ustaw DEPLOYMENT_ENV=staging',
+        },
+      ];
+    }
+    return [];
+  }
+  if (
+    deployment !== undefined &&
+    input['NODE_ENV'] === 'production' &&
+    role === 'worker' &&
+    input['PAYMENTS_FAKE_WEBHOOK_URL'] === undefined &&
+    input['API_PUBLIC_URL'] === undefined
+  ) {
+    return [
+      {
+        variable: 'PAYMENTS_FAKE_WEBHOOK_URL',
+        message: `${MISSING}; worker wysyła webhooki FakeGateway do API, np. http://staging-api:3001${FAKE_PAYMENTS_WEBHOOK_PATH} (albo ustaw API_PUBLIC_URL)`,
+      },
+    ];
+  }
+  return [];
+}
+
 /** Klucze dostawcy OAuth podaje się parami: sam identyfikator albo sam sekret to błąd. */
 function oauthPairIssues(input: Readonly<Record<string, string>>): ConfigIssue[] {
   const issues: ConfigIssue[] = [];
@@ -600,6 +704,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     ...(result.success ? [] : issuesOf(result.error)),
     ...crossFieldIssues(input, role),
     ...oauthPairIssues(input),
+    ...paymentIssues(input, role),
   ];
   if (!result.success || issues.length > 0) {
     throw new ConfigError(issues.sort(byVariableOrder));
@@ -608,9 +713,15 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
   const production = vars.NODE_ENV === 'production';
   const development = vars.NODE_ENV === 'development';
   const host = vars.API_HOST ?? (production ? '0.0.0.0' : '127.0.0.1');
+  const deployment = vars.DEPLOYMENT_ENV ?? (production ? 'production' : 'local');
+  const authSecret = vars.BETTER_AUTH_SECRET ?? DEVELOPMENT_AUTH_SECRET;
+  const apiUrl = (
+    vars.API_PUBLIC_URL ?? `http://localhost:${vars.PORT ?? vars.API_PORT ?? 3001}`
+  ).replace(/\/+$/, '');
 
   return {
     env: vars.NODE_ENV,
+    deployment,
     release: vars.APP_RELEASE ?? vars.RENDER_GIT_COMMIT,
     http: {
       host,
@@ -642,10 +753,8 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
       enabled: vars.OPENAPI_ENABLED ?? !production,
     },
     auth: {
-      secret: vars.BETTER_AUTH_SECRET ?? DEVELOPMENT_AUTH_SECRET,
-      apiUrl: (
-        vars.API_PUBLIC_URL ?? `http://localhost:${vars.PORT ?? vars.API_PORT ?? 3001}`
-      ).replace(/\/+$/, ''),
+      secret: authSecret,
+      apiUrl,
       webUrl: (vars.WEB_URL ?? 'http://localhost:3000').replace(/\/+$/, ''),
       cookieDomain: vars.AUTH_COOKIE_DOMAIN,
       secureCookies: production || (vars.API_PUBLIC_URL?.startsWith('https:') ?? false),
@@ -697,12 +806,31 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
       vars.SMSAPI_TOKEN === undefined
         ? { kind: 'log' }
         : { kind: 'smsapi', token: vars.SMSAPI_TOKEN, sender: vars.SMSAPI_SENDER },
+    payments: {
+      // Na produkcji paymentIssues wymaga zmiennej, więc `fake` zostaje tylko poza nią.
+      defaultProvider: vars.PAYMENTS_DEFAULT_PROVIDER ?? FAKE_PAYMENT_PROVIDER,
+      fake: {
+        enabled: deployment !== 'production',
+        webhookUrl: vars.PAYMENTS_FAKE_WEBHOOK_URL ?? `${apiUrl}${FAKE_PAYMENTS_WEBHOOK_PATH}`,
+        webhookDelayMs: vars.PAYMENTS_FAKE_WEBHOOK_DELAY_MS ?? DEFAULT_FAKE_WEBHOOK_DELAY_MS,
+        webhookSecret: fakeWebhookSecret(authSecret),
+      },
+    },
     sentry: {
       dsn: vars.SENTRY_DSN,
       environment: vars.SENTRY_ENVIRONMENT ?? vars.NODE_ENV,
       tracesSampleRate: vars.SENTRY_TRACES_SAMPLE_RATE ?? 0,
     },
   };
+}
+
+/**
+ * Sekret podpisu webhooków FakeGateway wyprowadzony z sekretu sesji (osobny klucz do osobnego
+ * celu). API i worker mają zawsze ten sam BETTER_AUTH_SECRET, więc staging nie potrzebuje
+ * kolejnego sekretu, a webhooka nie podrobi nikt, kto nie zna sekretu sesji.
+ */
+export function fakeWebhookSecret(authSecret: string): string {
+  return createHmac('sha256', authSecret).update('biddy:fake-payments-webhook').digest('base64url');
 }
 
 /** Ustawienia Sentry potrzebne w instrument.ts (przed załadowaniem reszty aplikacji). */

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { loadConfig } from '../../src/infra/config/index.js';
+import { FAKE_PAYMENTS_WEBHOOK_PATH, loadConfig } from '../../src/infra/config/index.js';
 
 const root = (file: string) => fileURLToPath(new URL(`../../../../${file}`, import.meta.url));
 const read = (file: string) => readFileSync(root(file), 'utf8');
@@ -103,6 +103,13 @@ describe('render.yaml', () => {
     expect(
       blueprint.match(/^ +preDeployCommand: node dist\/infra\/db\/migrate\.js$/gm),
     ).toHaveLength(2);
+  });
+
+  it('staging: DEPLOYMENT_ENV=staging i webhooki FakeGateway na publiczny adres API (F-23)', () => {
+    expect(blueprint).toMatch(/- key: DEPLOYMENT_ENV\n {8}value: staging\n/);
+    const webhook = /- key: PAYMENTS_FAKE_WEBHOOK_URL\n {8}value: (.+)\n/.exec(blueprint)?.[1];
+    const apiUrl = /- key: API_PUBLIC_URL\n {8}value: (.+)\n/.exec(blueprint)?.[1];
+    expect(webhook).toBe(`${apiUrl ?? ''}${FAKE_PAYMENTS_WEBHOOK_PATH}`);
   });
 
   it('Redis kolejek ma noeviction (inaczej worker nie wystartuje)', () => {
@@ -245,6 +252,16 @@ describe('infra/dokploy (stos na serwerze z Dokploy)', () => {
     expect(loadConfig(sharedEnv, 'worker').env).toBe('production');
   });
 
+  it('staging z szablonu działa z FakeGateway; BIDDY_ENV=production go blokuje (F-23)', () => {
+    const worker = loadConfig(sharedEnv, 'worker');
+    expect(worker.deployment).toBe('staging');
+    expect(worker.payments.defaultProvider).toBe('fake');
+    expect(worker.payments.fake.enabled).toBe(true);
+    expect(sharedEnv['DEPLOYMENT_ENV']).toBe(stackVariables['BIDDY_ENV']);
+    const production = { ...apiEnv, DEPLOYMENT_ENV: 'production' };
+    expect(() => loadConfig(production, 'api')).toThrow(/PAYMENTS_DEFAULT_PROVIDER/);
+  });
+
   it('adresy Redisa, Meilisearch i API wskazują aliasy usług z tego stosu', () => {
     const aliases = [...compose.matchAll(/aliases: \['(.+)'\]/g)].map(([, alias]) =>
       interpolate(alias ?? ''),
@@ -254,11 +271,16 @@ describe('infra/dokploy (stos na serwerze z Dokploy)', () => {
       sharedEnv['REDIS_CACHE_URL'],
       sharedEnv['MEILI_URL'],
       webEnv['API_INTERNAL_URL'],
+      sharedEnv['PAYMENTS_FAKE_WEBHOOK_URL'],
     ];
     for (const url of urls) {
       expect(aliases, url).toContain(new URL(url ?? '').hostname);
     }
     expect(new URL(webEnv['API_INTERNAL_URL'] ?? '').port).toBe(apiEnv['API_PORT']);
+    // Webhooki FakeGateway idą na port API i ścieżkę endpointu webhooków (F-23).
+    const webhook = new URL(sharedEnv['PAYMENTS_FAKE_WEBHOOK_URL'] ?? '');
+    expect(webhook.port).toBe(apiEnv['API_PORT']);
+    expect(webhook.pathname).toBe(FAKE_PAYMENTS_WEBHOOK_PATH);
   });
 
   it('migracje i worker wskazują istniejące pliki, a API startuje dopiero po migracjach', () => {

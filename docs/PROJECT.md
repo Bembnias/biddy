@@ -757,7 +757,7 @@ W modelu `SELLER_BALANCE` jedyną blokadą przed przedwczesną wypłatą jest na
 1. `POST /webhooks/payments/:provider` przyjmuje surowe body.
 2. `adapter.parseWebhook()` weryfikuje podpis i zwraca zdarzenia znormalizowane.
 3. Tabela `processed_webhooks` zapewnia idempotencję (to samo zdarzenie przetwarzamy raz).
-4. Handler domenowy w jednej transakcji aktualizuje płatność, zapisuje wpisy w ledgerze, przełącza stan zamówienia i dodaje eventy do outboxa.
+4. Handler domenowy w jednej transakcji z wpisem idempotencji aktualizuje płatność, zapisuje wpisy w ledgerze i dodaje eventy do outboxa (`PaymentSucceeded`, `PaymentFailed`). Stan zamówienia przełącza konsument tych eventów w module `orders` (F-25, F-26), bo `payments` nie zależy od `orders`.
 5. Polling zapasowy: job sprawdza przez `getPayment()` płatności w stanie `PENDING` dłużej niż 15 minut, bo webhooki potrafią zaginąć.
 
 #### FakeGateway
@@ -774,9 +774,26 @@ Pełnoprawny adapter do developmentu, testów i stagingu. Dzięki niemu cały pr
 - Panel deweloperski do ręcznego wyzwalania zdarzeń: chargeback, nieudana wypłata, zmiana statusu KYC.
 - **Nie może się uruchomić w produkcji.** Walidacja konfiguracji przy starcie aplikacji blokuje `fake` w środowisku `production`.
 
+**Implementacja (F-23):**
+
+- **Stan symulowanego operatora** jest w Postgresie (tabele `fake_gateway_*`), bo płatność tworzy API, a rozlicza ją worker.
+- **Asynchroniczność:** rozliczenie z opóźnieniem (`PAYMENTS_FAKE_WEBHOOK_DELAY_MS`, domyślnie 2 s) i wysyłka webhooka to joby w kolejce `payments`.
+  - Webhook idzie HTTP na `PAYMENTS_FAKE_WEBHOOK_URL` (domyślnie `API_PUBLIC_URL` + `/v1/webhooks/payments/fake`).
+  - Podpis: nagłówek `x-fake-signature: t={unix},v1={HMAC-SHA256}` z tolerancją ±5 min.
+  - Sekret wyprowadzamy z `BETTER_AUTH_SECRET`.
+- **Model:** FakeGateway odwzorowuje `SELLER_BALANCE` z saldem sprzedawcy u operatora.
+- **Magiczne wartości:** nieznany kod BLIK jest od razu odrzucony (`INVALID_BLIK_CODE`). Sprzedawca z `+kyc-pending` albo `+kyc-rejected` w adresie e-mail zaczyna z weryfikacją w toku albo odrzuconą.
+- **Ekrany:** testowa strona płatności jest pod `/dev/fake-pay/[paymentId]`, a panel zdarzeń pod `/dev/fake-gateway` (po zalogowaniu).
+- **Środowisko:** `DEPLOYMENT_ENV` odróżnia staging od produkcji, bo oba mają `NODE_ENV=production` (§18.1).
+- **Blokada na produkcji:**
+  - konfiguracja z `fake` przy `DEPLOYMENT_ENV=production` jest odrzucona, a operator domyślny jest tam wymagany;
+  - `GatewayRegistry` nie rejestruje FakeGateway;
+  - trasy `/v1/dev/fake-gateway/*` odpowiadają 404.
+- **Brak adaptera** dla `PAYMENTS_DEFAULT_PROVIDER` zatrzymuje start aplikacji.
+
 #### Testy kontraktowe
 
-Jeden wspólny zestaw testów (`describeGatewayContract(makeGateway)` w Vitest), który musi przejść każdy adapter:
+Jeden wspólny zestaw testów (`describeGatewayContract(name, setup)` w Vitest, `apps/api/test/support/payment-gateway-contract.ts`), który musi przejść każdy adapter:
 
 - ponowne `createPayment` z tym samym kluczem idempotencji zwraca ten sam wynik,
 - `parseWebhook` odrzuca zmanipulowany podpis,
@@ -784,7 +801,7 @@ Jeden wspólny zestaw testów (`describeGatewayContract(makeGateway)` w Vitest),
 - wypłata ponad dostępne saldo kończy się błędem,
 - statusy operatora mapują się na zdarzenia znormalizowane.
 
-Na każdym PR zestaw działa na FakeGateway. Na prawdziwym sandboksie operatora uruchamia się co noc w CI.
+Na każdym PR zestaw działa na FakeGateway (testy integracyjne na Postgresie, bo tam jest stan symulatora). Na prawdziwym sandboksie operatora uruchamia się co noc w CI.
 
 #### Zasady
 
@@ -806,8 +823,10 @@ apps/api/src/modules/payments/
 │  ├─ fake/          # FakeGateway, symulator webhooków, testowa strona płatności
 │  ├─ payu/          # po decyzji
 │  └─ mangopay/      # po decyzji
-├─ webhooks/         # kontroler /webhooks/payments/:provider
-└─ contract-tests/   # wspólny zestaw testów dla każdego adaptera
+├─ webhooks/         # trasa /v1/webhooks/payments/:provider (surowe body)
+└─ fees/             # cenniki POK (F-13)
+
+apps/api/test/support/payment-gateway-contract.ts   # wspólny zestaw testów kontraktowych
 ```
 
 Ledger pozostaje osobnym modułem `ledger` ([§10.3](#103-moduły-backendu-bounded-contexts)).
@@ -1219,7 +1238,7 @@ erDiagram
 | `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), staff_role, bidding_blocked_until, listing_blocked_until, seller_kyc_notice_accepted_at, limits (jsonb, nadpisania §4.1), created_at |
 | `terms_acceptances` | id, user_id, document (`TERMS`/`PRIVACY`), version, accepted_at, ip |
 | `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, order_id, auction_id, issued_by (system/admin), statement_of_reasons, expires_at, appeal_status, revoked_at, created_at |
-| `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider). |
+| `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider) i (provider, provider_account_id). Moduł `payments`: F-23 tworzy kolumny do kyc_status, resztę dodadzą F-27 i F-32. |
 | `addresses` | id, user_id, recipient_name, street, postal_code, city, country, phone, is_default, is_sender_default (moduł `identity`; najwyżej jeden domyślny adres dostawy i nadania na konto, F-10) |
 | `payment_methods` (v1) | id, user_id, provider_ref, type, brand, last4, is_default (tylko referencje/tokeny operatora, **żadnych danych kart**) |
 | `devices` | id, user_id, platform (`WEB`/`IOS`/`ANDROID`), push_token (Expo), web_push_subscription (jsonb: endpoint, klucze), fingerprint, last_seen_at |
@@ -1248,7 +1267,7 @@ erDiagram
 | `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, cancelled_at, chargeback_status, second_chance_offer_id, created_at (F-16 tworzy kolumny do payment_due_at; pozostałe dodadzą F-25 i F-26) |
 | `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb), is_active (false po anulowaniu zamówienia) |
 | `fee_schedules` | id, currency, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), vat_rate_bp, valid_from, valid_to, note (moduł `payments`, F-13; okresy bez nakładania, wiersz niezmienny poza zamknięciem; category_id dojdzie z cennikami per kategoria) |
-| `payments` | id, order_id, provider, provider_payment_id, method, amount, status, failure_reason, idempotency_key, raw (jsonb), created_at |
+| `payments` | id, order_id, buyer_id, seller_id, provider, provider_payment_id (unikalne z provider), method, currency, amount, seller_amount, platform_amount (split, suma = amount), status (`PENDING`/`SUCCEEDED`/`FAILED`), failure_reason, redirect_url, idempotency_key (unikalny), raw (jsonb), polled_at, succeeded_at, failed_at, created_at, updated_at (moduł `payments`, F-23) |
 | `refunds` | id, order_id, payment_id, dispute_id, reason (`DISPUTE`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, raw (jsonb), created_at |
 | `chargebacks` | id, payment_id, order_id, amount, reason, status, liable_party (`PLATFORM`/`SELLER`), provider_ref, evidence_submitted_at, opened_at, closed_at |
 | `ledger_accounts` | id, code (konto planu §7.7), subject (operator albo ID sprzedającego, zamówienia lub wypłaty; null dla kont platformy), currency, seller_id, seller_amount (tylko `buyer_funds_held`: część dla sprzedającego, saldo „w trakcie”), balance (= suma wpisów, zmienia je tylko trigger), created_at. Unikalne (code, subject, currency) (moduł `ledger`, F-22) |
@@ -1270,7 +1289,8 @@ erDiagram
 | `notifications` | id, user_id, type, auction_id, payload (migawka), dedupe_key (unikalny z user_id), read_at, emailed_at, created_at (F-20) |
 | `reports` | id, reporter_id, target_type, target_id, reason, status, decision, statement_of_reasons, created_at (DSA *notice & action*) |
 | `outbox` | id, type, payload, created_at, processed_at, attempts |
-| `processed_webhooks` | provider, event_id (PK), processed_at (idempotencja webhooków) |
+| `processed_webhooks` | provider, event_id (PK z provider), event_type, outcome (`HANDLED`/`IGNORED`: bez obsługi w tej wersji), processed_at (idempotencja webhooków, F-23) |
+| `fake_gateway_*` | stan FakeGateway (F-23): `sellers` (status KYC, saldo), `payments`, `refunds`, `payouts` (klucze idempotencji i odcisk żądania), `events` (webhooki w notacji symulatora ze stanem dostarczenia); na produkcji puste |
 | `audit_log` | id, actor_id, action, target, diff, ip, created_at |
 
 **Kluczowe indeksy:**
@@ -1353,8 +1373,13 @@ POST   /orders/:id/review
 POST   /reports
 
 # Webhooki (weryfikacja podpisu + idempotencja)
-POST   /webhooks/payments/:provider
+POST   /webhooks/payments/:provider       (surowe body, poza OpenAPI; F-23)
 POST   /webhooks/shipping/:provider
+
+# FakeGateway (F-23, poza produkcją; inaczej 404)
+GET    /dev/fake-gateway/payments/:id     POST /dev/fake-gateway/payments/:id/complete   (strona testowa, bez sesji)
+GET    /dev/fake-gateway                  (panel, sesja)   POST /dev/fake-gateway/payments/:id/chargeback
+POST   /dev/fake-gateway/payouts/:id/fail   POST /dev/fake-gateway/sellers/:id/status   POST /dev/fake-gateway/events/:id/redeliver
 
 # Admin (/admin/*, osobna sesja i RBAC) — m.in.:
 POST   /admin/bids/:id/cancel      (unieważnienie oferty + replay, §15.6)
@@ -1412,7 +1437,7 @@ interface UserWonEvent {
 
 - **Aukcje:** `AuctionPublished`, `AuctionSubmittedForReview`, `AuctionUpdated` (zmiana przed pierwszą ofertą), `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
 - **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`.
-- **Spory i pieniądze:** `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged`.
+- **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged` (F-23). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
 - **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `ReviewPublished`, `ReportCreated`.
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
@@ -1611,6 +1636,8 @@ Odpowiedzi nie blokują Etapów 0–1. Do czasu ich otrzymania obowiązują decy
 | `preview` | Per pull request (Vercel preview dla web, opcjonalnie efemeryczne API) | Seed |
 | `staging` | Integracje w trybie testowym (sandbox płatności, sandbox kurierów) | Syntetyczne |
 | `production` | — | Produkcyjne |
+
+API i worker dostają środowisko w `DEPLOYMENT_ENV`, bo staging działa z `NODE_ENV=production`. Bez tej zmiennej `NODE_ENV=production` oznacza produkcję (bezpieczna wartość domyślna). Od niej zależy m.in. blokada FakeGateway (§7.8).
 
 ### 18.2 CI/CD (GitHub Actions)
 
@@ -1894,6 +1921,10 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 89 | Staging na własnej VM Oracle Cloud (Ampere A1, ARM64, Always Free) z Dokploy zamiast Render + Vercel: cały stos w jednym pliku compose (`infra/dokploy`), Postgres jako baza Dokploy z nocnym backupem do R2, Meilisearch na tym samym serwerze; obrazy `linux/arm64` budowane w GitHub Actions i trzymane w GHCR (tag na każdy commit), deploy przez API Dokploy po zielonym CI z automatycznym wycofaniem nieudanej wersji; `render.yaml` i konfiguracja Vercel zostają jako alternatywa. Hosting produkcji do wyboru przed startem | Tymczasowa | §11.6, [deployment-dokploy.md](deployment-dokploy.md) |
 | 90 | Ledger: saldo konta w `ledger_accounts.balance` zmienia wyłącznie trigger przy wstawieniu wpisu (saldo zawsze = suma wpisów), CHECK nie pozwala saldom użytkowników i zamówień przejść na złą stronę, bilans transakcji sprawdza odroczony trigger przy zatwierdzeniu, wpisy, transakcje i konta są niemodyfikowalne (także TRUNCATE); konta księgowania blokowane `FOR UPDATE` w stałej kolejności; codzienny job `ledger.verify-integrity` porównuje salda z wpisami | Przyjęta | §7.7, §13.3 |
 | 91 | Księgowanie tylko przez szablony zdarzeń (`LedgerService.post`) z kluczem idempotencji, korekta przez storno całej transakcji; każde uznanie salda sprzedającego (także nieudana wypłata i rekompensata) najpierw spłaca `seller_receivable`; saldo „w trakcie” z części sprzedającego zapisanej przy koncie `buyer_funds_held` przy pierwszej płatności | Przyjęta | §7.7 |
+| 92 | Środowisko wdrożenia `DEPLOYMENT_ENV` (`local`/`preview`/`staging`/`production`) obok `NODE_ENV`, bo staging działa z `NODE_ENV=production`. Bez zmiennej przy `NODE_ENV=production` przyjmujemy `production`. Na produkcji `PAYMENTS_DEFAULT_PROVIDER` jest wymagany i różny od `fake`, więc do adaptera operatora (F-31) produkcja nie wystartuje | Przyjęta | §7.8, §18.1 |
+| 93 | FakeGateway jako pełny adapter: stan symulowanego operatora w Postgresie (`fake_gateway_*`), rozliczenie i webhooki jako joby BullMQ wysyłane HTTP na nasz endpoint z podpisem HMAC (sekret wyprowadzony z `BETTER_AUTH_SECRET`). Do tego magiczne kody BLIK i adresy e-mail (KYC), strona testowa i panel w web pod `/dev/*`. Blokada na produkcji: konfiguracja, rejestr adapterów i 404 tras deweloperskich | Przyjęta | §7.8 |
+| 94 | Zdarzenie operatora: wpis `processed_webhooks` i obsługa w jednej transakcji ze stanem płatności, ledgerem i outboxem. Stan zamówienia zmienia konsument `PaymentSucceeded`/`PaymentFailed` (F-25, F-26), bo `payments` nie zależy od `orders`. Płatność bez odpowiedzi operatora jest po 15 min `FAILED` (`PROVIDER_ERROR`), a późną wpłatę przyjmujemy (`FAILED → SUCCEEDED`). Zdarzenia bez obsługi (zwroty, wypłaty, chargebacki do F-28) zapisujemy jako `IGNORED` | Przyjęta | §7.8, §14.3 |
+| 95 | Testy kontraktowe portu w `apps/api/test/support/payment-gateway-contract.ts`, a nie w `src/`: zestaw importuje Vitest, a build kompiluje `src/`. FakeGateway przechodzi je w testach integracyjnych na każdym PR | Przyjęta | §7.8 |
 
 ---
 

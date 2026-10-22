@@ -33,7 +33,28 @@ export const routes = {
   prohibitedItems: '/pomoc/zakazane-przedmioty',
   terms: '/regulamin',
   privacy: '/polityka-prywatnosci',
+  /** Panel deweloperski FakeGateway (F-23, poza produkcją). */
+  fakeGateway: '/dev/fake-gateway',
 } as const;
+
+/** Testowa strona płatności FakeGateway (F-23): tu FakeGateway odsyła płatności z przekierowaniem. */
+export function fakePayUrl(paymentId: string): string {
+  return `/dev/fake-pay/${encodeURIComponent(paymentId)}`;
+}
+
+/**
+ * Adres powrotu po płatności na stronie testowej (F-23): tylko adres http(s) w obrębie strony
+ * Biddy (`siteUrl`). Inny adres to null: strona pokaże go jako tekst, a nie przekieruje
+ * (ochrona przed open redirect).
+ */
+export function safeReturnUrl(value: string, siteUrl: string): string | null {
+  const target = URL.parse(value);
+  const site = URL.parse(siteUrl);
+  if (target === null || site === null || !['http:', 'https:'].includes(target.protocol)) {
+    return null;
+  }
+  return target.origin === site.origin ? target.toString() : null;
+}
 
 /** Strona aukcji (F-18): `/a/{slug}-{publicId}`. */
 export function auctionUrl(auction: { readonly slug: string; readonly publicId: string }): string {

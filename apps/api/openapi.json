@@ -2283,6 +2283,356 @@
         ]
       }
     },
+    "/v1/dev/fake-gateway/payments/{id}": {
+      "get": {
+        "description": "Bez logowania, jak strona operatora. 404, gdy FakeGateway jest wyłączony.",
+        "operationId": "getFakePayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Płatność",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FakePaymentDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Płatność FakeGateway (testowa strona płatności)",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-gateway/payments/{id}/complete": {
+      "post": {
+        "description": "Rozlicza płatność w toku i (domyślnie) wysyła webhook. Płatność już rozliczona: 409.",
+        "operationId": "completeFakePayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteFakePaymentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rozliczona płatność",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FakePaymentDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Zapłać albo odrzuć płatność FakeGateway",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-gateway": {
+      "get": {
+        "description": "Najnowsze płatności, sprzedawcy, wypłaty i webhooki ze stanem dostarczenia.",
+        "operationId": "getFakeGatewayOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Stan FakeGateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FakeGatewayOverviewDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Panel FakeGateway",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-gateway/payments/{id}/chargeback": {
+      "post": {
+        "operationId": "fakeChargeback",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FakeChargebackBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Płatność ze stanem chargebacku",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FakePaymentDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Chargeback płatności FakeGateway (otwarcie albo wynik)",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-gateway/payouts/{id}/fail": {
+      "post": {
+        "operationId": "failFakePayout",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Wypłata odrzucona, webhook w drodze"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odrzuć wypłatę FakeGateway (kwota wraca na saldo)",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-gateway/sellers/{id}/status": {
+      "post": {
+        "operationId": "setFakeSellerStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FakeSellerStatusBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sprzedawca",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FakeSellerDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zmień status weryfikacji sprzedawcy FakeGateway (symulacja KYC)",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-gateway/events/{id}/redeliver": {
+      "post": {
+        "description": "To samo zdarzenie drugi raz: API pominie je jako przetworzone.",
+        "operationId": "redeliverFakeEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Webhook w kolejce"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Wyślij ponownie webhook FakeGateway",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
     "/v1/shipping/carriers": {
       "get": {
         "operationId": "getCarriers",
@@ -5613,6 +5963,518 @@
           "id",
           "validFrom",
           "validTo"
+        ],
+        "additionalProperties": false
+      },
+      "FakePaymentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID płatności u FakeGateway"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SUCCEEDED",
+              "FAILED"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "BLIK",
+              "CARD",
+              "PAY_BY_LINK",
+              "APPLE_PAY",
+              "GOOGLE_PAY"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Kwota płatności w groszach"
+          },
+          "sellerAmount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Część sprzedawcy"
+          },
+          "platformAmount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Część Biddy (POK + dostawa)"
+          },
+          "refundedAmount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Suma rozliczonych zwrotów"
+          },
+          "failureReason": {
+            "type": "string",
+            "enum": [
+              "DECLINED",
+              "INVALID_BLIK_CODE",
+              "EXPIRED",
+              "CANCELLED",
+              "SELLER_NOT_VERIFIED",
+              "PROVIDER_ERROR",
+              null
+            ],
+            "nullable": true
+          },
+          "returnUrl": {
+            "type": "string",
+            "description": "Dokąd wrócić po płatności (strona Biddy)"
+          },
+          "chargebackStatus": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "WON",
+              "LOST",
+              null
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "settledAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "method",
+          "currency",
+          "amount",
+          "sellerAmount",
+          "platformAmount",
+          "refundedAmount",
+          "failureReason",
+          "returnUrl",
+          "chargebackStatus",
+          "createdAt",
+          "settledAt"
+        ],
+        "additionalProperties": false
+      },
+      "CompleteFakePaymentBody": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "SUCCEEDED",
+              "FAILED"
+            ],
+            "description": "Wynik wybrany przez kupującego"
+          },
+          "deliverWebhook": {
+            "default": true,
+            "description": "false: rozliczenie bez webhooka (zaginiony webhook, test pollingu)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "FakeGatewayOverviewDto": {
+        "type": "object",
+        "properties": {
+          "payments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "ID płatności u FakeGateway"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PENDING",
+                    "SUCCEEDED",
+                    "FAILED"
+                  ]
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "BLIK",
+                    "CARD",
+                    "PAY_BY_LINK",
+                    "APPLE_PAY",
+                    "GOOGLE_PAY"
+                  ]
+                },
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "PLN"
+                  ]
+                },
+                "amount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Kwota płatności w groszach"
+                },
+                "sellerAmount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Część sprzedawcy"
+                },
+                "platformAmount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Część Biddy (POK + dostawa)"
+                },
+                "refundedAmount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Suma rozliczonych zwrotów"
+                },
+                "failureReason": {
+                  "type": "string",
+                  "enum": [
+                    "DECLINED",
+                    "INVALID_BLIK_CODE",
+                    "EXPIRED",
+                    "CANCELLED",
+                    "SELLER_NOT_VERIFIED",
+                    "PROVIDER_ERROR",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "returnUrl": {
+                  "type": "string",
+                  "description": "Dokąd wrócić po płatności (strona Biddy)"
+                },
+                "chargebackStatus": {
+                  "type": "string",
+                  "enum": [
+                    "OPEN",
+                    "WON",
+                    "LOST",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "settledAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "method",
+                "currency",
+                "amount",
+                "sellerAmount",
+                "platformAmount",
+                "refundedAmount",
+                "failureReason",
+                "returnUrl",
+                "chargebackStatus",
+                "createdAt",
+                "settledAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "sellers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "sellerRef": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Użytkownik Biddy"
+                },
+                "displayName": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "PRIVATE",
+                    "BUSINESS"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PENDING",
+                    "VERIFIED",
+                    "REJECTED"
+                  ]
+                },
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "PLN"
+                  ]
+                },
+                "balance": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Saldo u operatora w groszach (może być ujemne po zwrocie)"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "sellerRef",
+                "displayName",
+                "type",
+                "status",
+                "currency",
+                "balance",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "payouts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "sellerId": {
+                  "type": "string"
+                },
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "PLN"
+                  ]
+                },
+                "amount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PENDING",
+                    "PAID",
+                    "FAILED"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "sellerId",
+                "currency",
+                "amount",
+                "status",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "Typ w notacji FakeGateway, np. payment.completed"
+                },
+                "objectId": {
+                  "type": "string"
+                },
+                "attempts": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Liczba prób dostarczenia"
+                },
+                "lastError": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Błąd ostatniej nieudanej próby",
+                  "nullable": true
+                },
+                "deliveredAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "objectId",
+                "attempts",
+                "lastError",
+                "deliveredAt",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "payments",
+          "sellers",
+          "payouts",
+          "events"
+        ],
+        "additionalProperties": false
+      },
+      "FakeChargebackBody": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "WON",
+              "LOST"
+            ],
+            "description": "Otwarcie albo wynik chargebacku"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "FakeSellerStatusBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "VERIFIED",
+              "REJECTED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "FakeSellerDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sellerRef": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Użytkownik Biddy"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "PRIVATE",
+              "BUSINESS"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "VERIFIED",
+              "REJECTED"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "balance": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Saldo u operatora w groszach (może być ujemne po zwrocie)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "sellerRef",
+          "displayName",
+          "type",
+          "status",
+          "currency",
+          "balance",
+          "createdAt"
         ],
         "additionalProperties": false
       },

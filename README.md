@@ -462,6 +462,28 @@ Księga podwójnego zapisu wszystkich ruchów pieniędzy (moduł `ledger`, plan 
 - **Spójność:** `LedgerIntegrity.verify()` liczy salda od nowa z wpisów; job `ledger.verify-integrity` (kolejka `maintenance`, codziennie o 4:30) kończy się błędem w Sentry, gdy coś się nie zgadza.
 - **Testy:** szablony na przykładach z §7.4, property-based niezmienniki w modelu w pamięci (`apps/api/test/support/ledger-model.ts`) i te same losowe sekwencje porównane z Postgresem (`test/integration/ledger.int.test.ts`).
 
+### Płatności: port i FakeGateway (F-23)
+
+Domena rozmawia z operatorem płatności wyłącznie przez port `PaymentGateway` ([PROJECT.md §7.8](docs/PROJECT.md#78-moduł-płatności-adapter)). Do czasu umowy z operatorem działa adapter testowy FakeGateway. Spec: [F-23](docs/features/F-23-port-platnosci.md).
+
+- **Płatność:** `PaymentService.createPayment` (moduł `payments`) zakłada wiersz `PENDING` idempotentny po kluczu wywołującego, woła operatora z kluczem `payment:{id}` i zapisuje wynik. Sprzedający musi mieć konto u operatora (`SellerAccountService.register`).
+- **Webhooki:** `POST /v1/webhooks/payments/:provider` (surowe body, podpis adaptera).
+  - Każde zdarzenie we własnej transakcji: wpis `processed_webhooks` (duplikat jest pomijany), stan płatności, księgowanie w ledgerze i event `PaymentSucceeded` / `PaymentFailed` / `SellerKycStatusChanged`.
+  - Błąd obsługi to 500, a operator ponawia.
+- **Polling zapasowy:** job `payments.poll-pending` (kolejka `payments`, co minutę) dociąga przez `getPayment()` płatności w `PENDING` starsze niż 15 minut.
+- **FakeGateway lokalnie** (`pnpm dev` + `pnpm dev:worker`): worker rozlicza płatność po `PAYMENTS_FAKE_WEBHOOK_DELAY_MS` (2 s) i wysyła podpisany webhook na API.
+  - Kody BLIK: `777123` udana, `111111` odrzucona, `222222` bez odpowiedzi (polling); inny kod jest od razu odrzucony.
+  - Karta, przelew i BLIK bez kodu kierują na testową stronę płatności `http://localhost:3000/dev/fake-pay/{id}`.
+  - Sprzedawca z `+kyc-pending` albo `+kyc-rejected` w adresie e-mail zaczyna z weryfikacją w toku albo odrzuconą.
+- **Panel deweloperski:** `http://localhost:3000/dev/fake-gateway` (po zalogowaniu).
+  - Pokazuje płatności, sprzedawców, wypłaty i webhooki ze stanem dostarczenia.
+  - Zdarzenia na żądanie: chargeback, odrzucona wypłata, zmiana weryfikacji, ponowny webhook, „rozlicz bez webhooka” (test pollingu).
+- **Produkcja:** `DEPLOYMENT_ENV` odróżnia staging od produkcji (oba mają `NODE_ENV=production`).
+  - Przy `DEPLOYMENT_ENV=production` (domyślnie przy `NODE_ENV=production`) `PAYMENTS_DEFAULT_PROVIDER` jest wymagany, a `fake` zatrzymuje start z komunikatem.
+  - Trasy `/v1/dev/fake-gateway/*` odpowiadają wtedy 404.
+  - Staging ma `DEPLOYMENT_ENV=staging` i działa na FakeGateway.
+- **Testy kontraktowe:** `describeGatewayContract` w `apps/api/test/support/payment-gateway-contract.ts`; FakeGateway przechodzi go w `test/integration/payments-contract.int.test.ts`. Każdy nowy adapter (F-31) musi przejść ten sam zestaw.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):
