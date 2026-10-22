@@ -374,18 +374,18 @@ describe('publikacja', () => {
     expect(errorPaths(await publish(user, belowReserve.id))).toEqual(['buyNowPrice']);
   });
 
-  it('nowe konto: wartość aukcji do 500 zł, powyżej 1000 zł także brak KYC', async () => {
+  it('nowe konto: wartość aukcji do 5000 zł, powyżej także brak KYC', async () => {
     const user = await createUser();
-    const pricey = await completeDraft(user, { startPrice: 10_000, reservePrice: 50_001 });
+    const pricey = await completeDraft(user, { startPrice: 10_000, reservePrice: 500_001 });
     const response = await publish(user, pricey.id);
     expect(problemOf(response).errors).toEqual([
       expect.objectContaining({
         path: 'reservePrice',
-        message: expect.stringContaining('Twój limit wartości aukcji to 500') as string,
+        message: expect.stringContaining('Twój limit wartości aukcji to 5000 zł') as string,
       }),
     ]);
     expect(
-      (await publish(user, (await completeDraft(user, { startPrice: 50_000 })).id)).statusCode,
+      (await publish(user, (await completeDraft(user, { startPrice: 500_000 })).id)).statusCode,
     ).toBe(200);
   });
 
@@ -407,9 +407,9 @@ describe('publikacja', () => {
       level: 'NEW',
       maxActiveAuctions: 5,
       activeAuctions: 5,
-      maxAuctionValue: 50_000,
+      maxAuctionValue: 500_000,
       kycVerified: false,
-      kycRequiredAbove: 100_000,
+      kycRequiredAbove: 500_000,
       listingBlockedUntil: null,
       kycNoticeAccepted: true,
     });

@@ -74,9 +74,9 @@ const LIMITS: SellingLimitsDto = {
   level: 'NEW',
   maxActiveAuctions: 5,
   activeAuctions: 0,
-  maxAuctionValue: 50_000,
+  maxAuctionValue: 500_000,
   kycVerified: false,
-  kycRequiredAbove: 100_000,
+  kycRequiredAbove: 500_000,
   listingBlockedUntil: null,
   kycNoticeAccepted: false,
 };

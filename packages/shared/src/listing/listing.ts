@@ -60,13 +60,13 @@ export interface SellerLevelLimits {
 
 /** Wartości startowe limitów sprzedawcy z §4.1. */
 export const SELLER_LIMITS: Readonly<Record<SellerLevel, SellerLevelLimits>> = {
-  NEW: { maxActiveAuctions: 5, maxAuctionValue: 50_000 },
-  VERIFIED: { maxActiveAuctions: 20, maxAuctionValue: 100_000 },
+  NEW: { maxActiveAuctions: 5, maxAuctionValue: 500_000 },
+  VERIFIED: { maxActiveAuctions: 20, maxAuctionValue: 500_000 },
   KYC: { maxActiveAuctions: 50, maxAuctionValue: null },
 };
 
 /** Aukcja o wartości powyżej tej kwoty wymaga pozytywnego KYC (§4.1, §7.6). */
-export const KYC_REQUIRED_ABOVE = 100_000;
+export const KYC_REQUIRED_ABOVE = 500_000;
 
 export interface ListingPrices {
   readonly startPrice: number | null;

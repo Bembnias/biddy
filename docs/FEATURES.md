@@ -476,7 +476,7 @@ flowchart TD
 - Nie da się opublikować aukcji bez wymaganych pól.
 - Kup teraz poniżej 130% ceny wywoławczej lub poniżej ceny minimalnej jest odrzucane.
 - Nowe konto nie przekroczy limitu aktywnych aukcji i maksymalnej wartości aukcji (§4.1).
-- Aukcja o wartości > 1000 zł wymaga pozytywnego KYC (blokada aktywna od F-32).
+- Aukcja o wartości > 5000 zł wymaga pozytywnego KYC (blokada aktywna od F-32).
 - Po pierwszej ofercie cena, opis i zdjęcia są zablokowane do edycji.
 - Przed pierwszą publikacją użytkownik widzi informację, że wypłata wymaga weryfikacji tożsamości.
 
@@ -890,12 +890,12 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Cel:** sprzedawcy przechodzą KYC wymagane prawem, a my informujemy ich o tym z góry.
 
 **Zakres:**
-- Rejestracja sprzedawcy u operatora (submerchant lub portfel) przy pierwszym wystawieniu, asynchronicznie (§7.6 pkt 5). Pełne KYC: przekazanie danych i dokumentów (osadzone w UI lub przez przekierowanie) przed wypłatą lub aukcją > 1000 zł.
+- Rejestracja sprzedawcy u operatora (submerchant lub portfel) przy pierwszym wystawieniu, asynchronicznie (§7.6 pkt 5). Pełne KYC: przekazanie danych i dokumentów (osadzone w UI lub przez przekierowanie) przed wypłatą lub aukcją > 5000 zł.
 - Statusy KYC z webhooków, komunikaty w UI.
-- Blokady: wypłata, aukcje powyżej 1000 zł.
+- Blokady: wypłata, aukcje powyżej 5000 zł.
 
 **Kryteria akceptacji:**
-- Bez pozytywnej weryfikacji nie da się wypłacić środków ani wystawić aukcji powyżej 1000 zł.
+- Bez pozytywnej weryfikacji nie da się wypłacić środków ani wystawić aukcji powyżej 5000 zł.
 - Zmiana statusu u operatora jest widoczna w UI w mniej niż 1 minutę.
 - Odrzucona weryfikacja pokazuje powód i kolejne kroki.
 

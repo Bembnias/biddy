@@ -53,7 +53,7 @@ Wszystkie błędy naraz, jako błędy pól (400 `VALIDATION_FAILED`), żeby krea
 - **Tytuł** 10–80 znaków, **opis** 30–5000 znaków (po przycięciu), **stan** z listy (nowy, jak nowy, bardzo dobry, dobry, zadowalający, uszkodzony lub na części), **marka** do 60 znaków.
 - **Gabaryt** S, M, L albo XL; XL wymaga wymiarów (cm) i wagi (do 100 kg). **Przewoźnicy:** co najmniej jeden aktywny, obsługujący wybrany gabaryt.
 - **Ceny:** wywoławcza ≥ 1 zł; minimalna (opcjonalna) ≥ wywoławczej; Kup teraz (opcjonalne) ≥ 130% wywoławczej i ≥ minimalnej (§6.2). **Czas trwania:** 1, 3, 5, 7 albo 10 dni.
-- **Limity sprzedawcy** (§4.1): wartość aukcji (najwyższa z: wywoławcza, minimalna, Kup teraz) do limitu poziomu (nowy: 500 zł) i powyżej 1000 zł tylko z pozytywnym KYC (błąd pola przy cenie). Liczba aktywnych aukcji (`ACTIVE` i `PENDING_REVIEW`) poniżej limitu poziomu (nowy: 5): inaczej 409 `LISTING_LIMIT_REACHED`.
+- **Limity sprzedawcy** (§4.1): wartość aukcji (najwyższa z: wywoławcza, minimalna, Kup teraz) do limitu poziomu (nowy: 5000 zł, decyzja nr 88) i powyżej 5000 zł tylko z pozytywnym KYC (błąd pola przy cenie). Liczba aktywnych aukcji (`ACTIVE` i `PENDING_REVIEW`) poniżej limitu poziomu (nowy: 5): inaczej 409 `LISTING_LIMIT_REACHED`.
 - **Blokada wystawiania** (F-61): 403 `LISTING_BLOCKED` z datą końca. **Telefon:** publikacja wymaga zweryfikowanego telefonu (`@RequireVerifiedPhone`, F-08).
 - **Informacja o weryfikacji tożsamości:** przed pierwszą publikacją sprzedający potwierdza, że przeczytał informację („wypłata środków wymaga weryfikacji tożsamości i konta bankowego u operatora płatności”). Potwierdzenie (`kycNoticeAccepted: true`) zapisujemy z datą jako dowód poinformowania.
 - **Filtr słów:** `BLOCK` → błąd pola; `REVIEW` albo kategoria z ograniczeniami → `PENDING_REVIEW`.
@@ -106,7 +106,7 @@ Wystaw przedmiot                                    Zapisano ✓
  Czas trwania       ( ) 1 ( ) 3 (•) 7 ( ) 10 dni
  Cena minimalna     [        ] zł     opcjonalna, ukryta przed kupującymi
  Kup teraz          [        ] zł     co najmniej 130% ceny wywoławczej
- ⓘ Jako nowy sprzedawca wystawiasz przedmioty o wartości do 500 zł.
+ ⓘ Jako nowy sprzedawca wystawiasz przedmioty o wartości do 5000 zł.
  Kupujący przy cenie wywoławczej: zapłaci 4,07 zł + dostawa
 
                                         [ Wstecz ]  [ Dalej ]
@@ -172,8 +172,8 @@ PostHog (po zgodzie): `listing_started`, `listing_step_completed` (`step`), `lis
 
 - [x] Given szkic bez wymaganych pól, When publikacja, Then API odrzuca ją z błędem każdego brakującego pola, a kreator pokazuje braki przy krokach.
 - [x] Given Kup teraz poniżej 130% ceny wywoławczej albo poniżej ceny minimalnej, Then publikacja (i walidacja w kreatorze) jest odrzucana.
-- [x] Given nowe konto z 5 aktywnymi aukcjami albo aukcja o wartości powyżej 500 zł, Then publikacja jest odrzucana (`LISTING_LIMIT_REACHED`, błąd pola ceny).
-- [x] Given aukcja o wartości powyżej 1000 zł i sprzedawca bez pozytywnego KYC, Then publikacja jest odrzucana (blokada aktywna od F-32).
+- [x] Given nowe konto z 5 aktywnymi aukcjami albo aukcja o wartości powyżej 5000 zł, Then publikacja jest odrzucana (`LISTING_LIMIT_REACHED`, błąd pola ceny).
+- [x] Given aukcja o wartości powyżej 5000 zł i sprzedawca bez pozytywnego KYC, Then publikacja jest odrzucana (blokada aktywna od F-32).
 - [x] Given aukcja z co najmniej jedną ofertą, Then zmiana ceny, opisu, zdjęć (i pozostałych pól) jest odrzucana z `AUCTION_HAS_BIDS`.
 - [x] Given pierwsza publikacja, Then sprzedający widzi informację o weryfikacji tożsamości i bez jej potwierdzenia nie opublikuje aukcji; potwierdzenie jest zapisane z datą.
 - [x] Given aktywna blokada wystawiania, Then publikacja zwraca `LISTING_BLOCKED` z datą końca.

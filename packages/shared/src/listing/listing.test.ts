@@ -19,7 +19,7 @@ const CONTEXT: ListingContext = {
     { id: 'inpost-paczkomat', name: 'InPost Paczkomat 24/7', packageSizes: ['S', 'M', 'L'] },
     { id: 'dpd-kurier', name: 'DPD Kurier', packageSizes: ['S', 'M', 'L', 'XL'] },
   ],
-  limits: { maxAuctionValue: 50_000, kycVerified: false },
+  limits: { maxAuctionValue: 500_000, kycVerified: false },
 };
 
 const COMPLETE: ListingInput = {
@@ -172,20 +172,20 @@ describe('validateListing', () => {
   });
 
   it('limit wartości aukcji (najwyższa cena) i próg KYC, błąd przy polu wyznaczającym wartość', () => {
-    expect(paths({ startPrice: 50_000 })).toEqual([]);
-    expect(paths({ startPrice: 40_000, reservePrice: 50_001 })).toEqual(['reservePrice']);
-    expect(messages({ startPrice: 10_000, buyNowPrice: 60_000 })).toEqual([
-      'Twój limit wartości aukcji to 500 zł (liczy się najwyższa z cen: wywoławczej, minimalnej i Kup teraz). Limit rośnie po udanych sprzedażach.',
+    expect(paths({ startPrice: 500_000 })).toEqual([]);
+    expect(paths({ startPrice: 400_000, reservePrice: 500_001 })).toEqual(['reservePrice']);
+    expect(messages({ startPrice: 10_000, buyNowPrice: 600_000 })).toEqual([
+      'Twój limit wartości aukcji to 5000 zł (liczy się najwyższa z cen: wywoławczej, minimalnej i Kup teraz). Limit rośnie po udanych sprzedażach.',
     ]);
     const unlimited = { limits: { maxAuctionValue: null, kycVerified: false } };
-    expect(messages({ startPrice: 100_001 }, unlimited)).toEqual([
-      'Aukcje o wartości powyżej 1000 zł wymagają weryfikacji tożsamości u operatora płatności.',
+    expect(messages({ startPrice: 500_001 }, unlimited)).toEqual([
+      'Aukcje o wartości powyżej 5000 zł wymagają weryfikacji tożsamości u operatora płatności.',
     ]);
-    expect(paths({ startPrice: 100_000 }, unlimited)).toEqual([]);
+    expect(paths({ startPrice: 500_000 }, unlimited)).toEqual([]);
     expect(
-      paths({ startPrice: 500_000 }, { limits: { maxAuctionValue: null, kycVerified: true } }),
+      paths({ startPrice: 1_000_000 }, { limits: { maxAuctionValue: null, kycVerified: true } }),
     ).toEqual([]);
-    expect(paths({ startPrice: 500_000 }, { limits: undefined })).toEqual([]);
+    expect(paths({ startPrice: 1_000_000 }, { limits: undefined })).toEqual([]);
   });
 
   it('czas trwania z listy 1, 3, 5, 7, 10 dni', () => {

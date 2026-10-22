@@ -206,8 +206,8 @@ Role wewnętrzne (panel admina): `support`, `moderator`, `finance`, `admin`, z p
 
 | Poziom | Warunek | Aktywne aukcje | Maks. wartość aukcji |
 |---|---|---:|---:|
-| Nowy | 0 zakończonych sprzedaży | 5 | 500 zł |
-| Sprawdzony | ≥ 3 zakończone sprzedaże, 0 przegranych sporów | 20 | 1000 zł |
+| Nowy | 0 zakończonych sprzedaży | 5 | 5000 zł |
+| Sprawdzony | ≥ 3 zakończone sprzedaże, 0 przegranych sporów | 20 | 5000 zł |
 | Z KYC | pozytywna weryfikacja u operatora | 50 (100 po 10 sprzedażach) | bez limitu |
 
 **Strike'i:**
@@ -564,7 +564,7 @@ Przykład: sprzedawca sprzedaje jeden przedmiot za 50 zł w miesiącu i wypłaca
    - opcjonalnie automatyczna wypłata zbiorcza raz w tygodniu (sprzedający włącza ją w ustawieniach, obowiązuje to samo minimum),
    - saldo poniżej minimum **nie może utknąć**: wypłacamy całość przy zamknięciu konta i automatycznie po 90 dniach bez nowych sprzedaży (lekcja z Vinted, [§17](#17-prawo-i-compliance)).
 5. **[DECYZJA TYMCZASOWA] Moment rejestracji sprzedawcy u operatora.**
-   - Domyślnie: rejestracja z minimalnym zestawem danych przy **pierwszym wystawieniu** (asynchronicznie, bez blokowania kreatora), a pełne KYC przed pierwszą wypłatą lub przed aukcją o wartości > 1000 zł.
+   - Domyślnie: rejestracja z minimalnym zestawem danych przy **pierwszym wystawieniu** (asynchronicznie, bez blokowania kreatora), a pełne KYC przed pierwszą wypłatą lub przed aukcją o wartości > 5000 zł.
    - Jeśli operator przyjmie płatność na rzecz sprzedawcy dopiero po pełnym KYC, przenosimy KYC przed pierwszą publikację. To gorszy UX, więc w takim przypadku Mangopay (portfel kupującego nie wymaga konta sprzedawcy do zwolnienia środków) zyskuje w porównaniu.
 
 > **Opcja długoterminowa:** własne zezwolenie, np. wpis jako **mała instytucja płatnicza (MIP)** w KNF, pozwoliłoby obsługiwać escrow bez pośrednika. Wymaga to procedur AML, kapitału, raportowania i ma limity obrotu. To temat na etap dużej skali, do analizy z prawnikiem, **nie na MVP**.
@@ -1529,7 +1529,7 @@ Terminy w dniach roboczych (nadanie, nadanie zwrotu) liczy jedna funkcja w `pack
 | **Shill bidding** (sztuczne podbijanie przez sprzedającego) | Wykrywanie powiązań kont: urządzenie, IP, metoda płatności, adres, numer telefonu. Wzorzec: konto często licytuje u jednego sprzedającego i rzadko wygrywa. Kolejka do ręcznej weryfikacji, unieważnianie ofert (§15.6), bany. Zasady poniżej. |
 | Fałszywe konta / boty | 1 telefon = 1 konto, Turnstile, limity dla nowych kont (§4.1) |
 | Niepłacący zwycięzcy | Limity nowych kupujących i strike'i (§4.1); w v1 wymóg zapisanej metody płatności dla aukcji powyżej określonej kwoty |
-| Oszuści-sprzedawcy | Limity dla nowych sprzedawców (§4.1: 5 aktywnych aukcji, maks. 500 zł), KYC przed wypłatą i przed aukcją > 1000 zł, środki wstrzymane do weryfikacji |
+| Oszuści-sprzedawcy | Limity dla nowych sprzedawców (§4.1: 5 aktywnych aukcji, maks. 5000 zł), KYC przed wypłatą i przed aukcją > 5000 zł, środki wstrzymane do weryfikacji |
 | Transakcje poza platformą | Wykrywanie telefonów, e-maili i IBAN-ów w czacie z ostrzeżeniem, edukacja („poza Biddy nie masz ochrony”) |
 | Podróbki | Kategorie „brand-sensitive” wymagają więcej zdjęć (metki, kody), zgłoszenia, docelowo weryfikacja autentyczności |
 | Fraud płatniczy | Narzędzia antyfraudowe operatora, 3DS/SCA |
@@ -1803,7 +1803,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 13 | Podział kosztów w sporach i stratach, rekompensata za zaginioną paczkę = cena do limitu przewoźnika | Tymczasowa | §7.5, §7.9 | Prawnik, operator (transfery) |
 | 14 | Zwrot częściowy tylko z części sprzedającego; POK i dostawa bez zwrotu | Przyjęta | §7.5 | — |
 | 15 | Oferta drugiej szansy po maksimum licytującego, niewiążąca, 24 h | Przyjęta | §6.8 | Prawnik (KC) |
-| 16 | Rejestracja sprzedawcy u operatora przy pierwszym wystawieniu; KYC przed wypłatą i przed aukcją > 1000 zł | Tymczasowa | §7.6 | Oferta operatora |
+| 16 | Rejestracja sprzedawcy u operatora przy pierwszym wystawieniu; KYC przed wypłatą i przed aukcją > 5000 zł | Tymczasowa | §7.6 | Oferta operatora |
 | 17 | Wypłaty: minimum 20 zł, opcjonalna wypłata tygodniowa, saldo poniżej minimum wypłacane przy zamknięciu konta i po 90 dniach | Przyjęta | §7.6 | Prawnik (§17.1 pkt 6) |
 | 18 | Przesyłka tworzona po kliknięciu „Nadaj” przez sprzedającego | Tymczasowa | §8.3 | Oferta Furgonetki |
 | 19 | Oceny także po sporze zakończonym zwrotem | Przyjęta | §5 | — |
@@ -1880,6 +1880,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 85 | Moje Biddy pod `/moje-biddy` z zakładkami (licytuję, wygrane, obserwowane, moje aukcje, sprzedane); dawne `/konto/aukcje` przekierowuje regułą `next.config.ts` (przekierowanie w stronie pod granicą Suspense nie ustawia kodu 308) | Przyjęta | §11.3 |
 | 86 | Każda pozycja Moje Biddy ma następną akcję; akcje zależne od płatności i dostaw (Zapłać, Nadaj paczkę) widoczne, ale nieaktywne z wyjaśnieniem do F-25/F-26 | Tymczasowa | §5 |
 | 87 | Identyfikacja wizualna (F-62): design system Biddy z makiet Figma; font Plus Jakarta Sans; skale `ink`, `violet`, `pink`, `red`, `green`, `amber`, `sky`; gradient fiolet → róż tylko dla jednej głównej akcji widoku, granat dla akcji w kartach, fiolet dla zaznaczenia, czerwień dla LIVE, pilności i usuwania; kolory makiet niespełniające WCAG AA zastąpione ciemniejszymi krokami tej samej skali; style tekstu semantyczne (`text-h1`, `text-price-xl`…) w motywie Tailwinda i w konfiguracji tailwind-merge | Przyjęta | §11.3, §22 nr 8 |
+| 88 | Maks. wartość aukcji nowego i sprawdzonego sprzedawcy 5000 zł (było 500 i 1000 zł), próg KYC dla aukcji 5000 zł (było 1000 zł): pierwsze aukcje sprzedawcy mogą obejmować droższe przedmioty (elektronika, kolekcje), a limit nie jest niższy niż próg KYC, który i tak go ogranicza | Przyjęta | §4.1, §7.6 |
 
 ---
 
