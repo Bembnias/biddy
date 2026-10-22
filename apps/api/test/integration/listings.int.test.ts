@@ -381,7 +381,8 @@ describe('publikacja', () => {
     expect(problemOf(response).errors).toEqual([
       expect.objectContaining({
         path: 'reservePrice',
-        message: expect.stringContaining('Twój limit wartości aukcji to 5000 zł') as string,
+        // formatMoney oddziela kwotę od „zł” twardą spacją (Intl.NumberFormat).
+        message: expect.stringContaining('Twój limit wartości aukcji to 5000 zł') as string,
       }),
     ]);
     expect(
