@@ -1,5 +1,5 @@
 // Kryteria F-21 (API) na prawdziwym Postgresie: listy Moje Biddy. Licytacje trwające
-// (prowadzę/przebity), wygrane z zamówieniem, przegrane (także cena minimalna i anulowanie),
+// (prowadzę/przebity, podsumowanie z F-63), wygrane z zamówieniem, przegrane (także cena minimalna i anulowanie),
 // unieważnione oferty pominięte, obserwowane w kolejności i zamówienie przy sprzedanej aukcji.
 import type { LightMyRequestResponse } from 'fastify';
 import { Pool } from 'pg';
@@ -127,6 +127,7 @@ interface MyBids {
   }[];
   total: number;
   totalPages: number;
+  summary: { leading: number; outbid: number; endingSoon: number } | null;
 }
 
 async function myBids(user: TestUser, status: string): Promise<MyBids> {
@@ -195,10 +196,13 @@ describe('Moje Biddy: licytacje', () => {
       ['Aukcja przebita', false, 3_000],
     ]);
     expect(active.items[1]?.auction.price).toBe(3_100);
+    // Podsumowanie (F-63): prowadzona kończy się za godzinę, przebita za tydzień.
+    expect(active.summary).toEqual({ leading: 1, outbid: 1, endingSoon: 1 });
     expect(active.items[0]?.auction.coverUrl).toMatch(/^https?:\/\//u);
 
     const won = await myBids(anna, 'WON');
     expect(won.items).toHaveLength(1);
+    expect(won.summary).toBeNull();
     expect(won.items[0]).toMatchObject({
       auction: { title: 'Aukcja kupiona', status: 'ENDED_SOLD' },
       outcome: 'WON',

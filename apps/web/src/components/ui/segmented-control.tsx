@@ -67,7 +67,7 @@ export function SegmentedControl<T extends string>({
               }
             }}
             className={cn(
-              'h-10 flex-1 rounded-md px-4 text-label transition-colors duration-150 ease-out outline-none focus-visible:shadow-focus-ring motion-reduce:transition-none',
+              'h-10 flex-1 rounded-md px-3 text-label whitespace-nowrap transition-colors duration-150 ease-out outline-none focus-visible:shadow-focus-ring motion-reduce:transition-none sm:px-4',
               checked
                 ? 'bg-primary text-primary-foreground shadow-sm'
                 : 'text-foreground hover:bg-ink-200',

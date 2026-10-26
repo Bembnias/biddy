@@ -284,14 +284,25 @@
       "editProfile": "Edytuj profil",
       "addresses": "Adresy",
       "notifications": "Powiadomienia",
-      "sellingSection": "Sprzedaż",
+      "sellingSection": "Licytacje i sprzedaż",
       "myAuctions": "Moje aukcje",
       "sell": "Wystaw przedmiot",
       "viewPublicProfile": "Zobacz swój profil publiczny",
       "signOut": "Wyloguj się",
       "signOutEverywhere": "Wyloguj ze wszystkich urządzeń",
-      "signOutEverywhereHint": "Np. po zgubieniu telefonu. Wylogujemy też aplikację mobilną.",
-      "myBiddy": "Moje Biddy"
+      "signOutEverywhereHint": "Wyloguj ze wszystkich urządzeń, np. po zgubieniu telefonu. Wylogujemy też aplikację mobilną.",
+      "myBiddy": "Moje Biddy",
+      "memberSinceLine": "Konto od {date}",
+      "noPhone": "Brak numeru",
+      "securitySection": "Bezpieczeństwo",
+      "shortcuts": {
+        "myBiddy": "Licytacje, wygrane i obserwowane",
+        "myAuctions": "Szkice, aktywne aukcje i sprzedaż",
+        "sell": "Wystaw aukcję w kilka minut",
+        "editProfile": "Imię wyświetlane i zdjęcie",
+        "addresses": "Dostawa i nadanie paczek",
+        "notifications": "E-maile o przebiciu i końcu aukcji"
+      }
     },
     "panel": {
       "tagline": "Second-hand na żywo: oglądaj, licytuj, kupuj i sprzedawaj.",
@@ -364,12 +375,14 @@
       "city": "Miasto",
       "phone": "Telefon",
       "phoneHint": "Przewoźnik wyśle na niego powiadomienie o paczce.",
-      "country": "Kraj: Polska",
       "isDefault": "Domyślny adres dostawy",
       "isSenderDefault": "Domyślny adres nadania",
       "submit": "Zapisz adres",
       "pending": "Zapisywanie…",
-      "cancel": "Anuluj"
+      "cancel": "Anuluj",
+      "countryLabel": "Kraj",
+      "countryValue": "Polska",
+      "flags": "Ustawienia adresu"
     }
   },
   "catalog": {
@@ -645,7 +658,25 @@
       "deleteConfirm": "Usuń szkic",
       "published": "Aukcja „{title}” jest aktywna do {date}.",
       "submitted": "Aukcja „{title}” czeka na sprawdzenie przez moderatora. Damy znać po decyzji.",
-      "actionError": "Nie udało się wykonać operacji. Spróbuj ponownie."
+      "actionError": "Nie udało się wykonać operacji. Spróbuj ponownie.",
+      "state": {
+        "bidding": "Trwa licytacja",
+        "noBids": "Bez ofert",
+        "noBidsEditable": "Bez ofert · możesz jeszcze edytować",
+        "updated": "Ostatnia zmiana {date}"
+      },
+      "endedAt": "Zakończona {date}",
+      "finalPrice": "Cena końcowa",
+      "show": "Pokaż licytację",
+      "showNamed": "Pokaż licytację: {title}",
+      "hot": {
+        "label": "Twoja aukcja jest gorąca",
+        "bids": "{count, plural, one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+        "price": "Aktualna oferta",
+        "gain": "+{amount} od startu",
+        "show": "Pokaż licytację",
+        "noPhoto": "Brak zdjęcia"
+      }
     }
   },
   "auction": {
@@ -926,19 +957,31 @@
       "title": "Ustawienia powiadomień",
       "lead": "Powiadomienia w aplikacji dostajesz zawsze. Tu wybierasz, o czym napiszemy też e-mailem.",
       "email": "E-mail",
-      "always": "Zawsze wysyłamy (termin płatności i wysyłka)",
+      "always": "Zawsze wysyłamy",
       "saved": "Zapisano",
-      "error": "Nie udało się zapisać. Spróbuj ponownie.",
+      "error": "Nie udało się zapisać ustawienia „{type}”. Spróbuj ponownie.",
       "types": {
-        "OUTBID": "Ktoś przebił Twoją ofertę (najwyżej raz na 15 minut na aukcję)",
-        "ENDING_SOON": "Obserwowana albo licytowana aukcja kończy się za godzinę",
+        "OUTBID": "Ktoś przebił Twoją ofertę",
+        "ENDING_SOON": "Aukcja kończy się za godzinę",
         "WON": "Wygrana aukcja",
         "SOLD": "Sprzedany przedmiot",
         "UNSOLD": "Aukcja zakończona bez sprzedaży",
-        "AUCTION_CANCELLED": "Anulowana aukcja, którą obserwujesz albo licytujesz",
+        "AUCTION_CANCELLED": "Anulowana aukcja",
         "FOLLOWED_SELLER_NEW_AUCTION": "Nowa aukcja obserwowanego sprzedawcy",
         "ORDER_PAID": "Opłacone zamówienie: nadaj paczkę"
-      }
+      },
+      "groups": {
+        "bidding": "Licytacje",
+        "selling": "Sprzedaż",
+        "following": "Obserwowani sprzedawcy"
+      },
+      "hints": {
+        "OUTBID": "Najwyżej raz na 15 minut na aukcję",
+        "ENDING_SOON": "Obserwowana albo licytowana",
+        "WON": "Z terminem płatności",
+        "AUCTION_CANCELLED": "Którą obserwujesz albo licytujesz"
+      },
+      "back": "Powiadomienia"
     },
     "unsubscribe": {
       "metaTitle": "Wypisanie z e-maili",
@@ -951,6 +994,12 @@
       "invalid": "Link wypisania jest nieprawidłowy. Zmień ustawienia po zalogowaniu.",
       "error": "Nie udało się wypisać. Spróbuj ponownie.",
       "settings": "Ustawienia powiadomień"
+    },
+    "newCount": "{count, plural, one {# nowe} few {# nowe} many {# nowych} other {# nowego}}",
+    "settingsShort": "Ustawienia",
+    "groups": {
+      "today": "Dzisiaj",
+      "earlier": "Wcześniej"
     }
   },
   "myBiddy": {
@@ -969,7 +1018,11 @@
       "label": "Pokaż",
       "all": "Wszystkie",
       "leading": "Prowadzę",
-      "outbid": "Przebito Cię"
+      "outbid": "Przebito Cię",
+      "empty": {
+        "leading": "Brak aukcji, w których prowadzisz.",
+        "outbid": "Brak aukcji, w których ktoś Cię przebił."
+      }
     },
     "lostTitle": "Nie udało się wygrać",
     "loading": "Wczytywanie…",
@@ -982,11 +1035,14 @@
       "finalPrice": "Cena końcowa",
       "bids": "{count, plural, =0 {Brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
       "endsAt": "Koniec: {date}",
-      "noPhoto": "Brak zdjęcia"
+      "noPhoto": "Brak zdjęcia",
+      "yourMax": "Twoje maksimum",
+      "yourMaxLine": "Twoje maksimum {max}",
+      "finalPriceLine": "Cena końcowa {price}"
     },
     "status": {
-      "leading": "Prowadzisz · Twoje maksimum {max}",
-      "outbid": "Przebito Cię · Twoje maksimum {max}",
+      "leading": "Prowadzisz",
+      "outbid": "Przebito Cię",
       "won": "Do zapłaty {total} (bez dostawy) do {date} · zamówienie {number}",
       "wonPaid": "Opłacone · zamówienie {number}",
       "lost": "Nie udało się wygrać",
@@ -996,7 +1052,7 @@
       "ended": "Zakończona",
       "awaitingPayment": "Czeka na płatność kupującego do {date} · zamówienie {number}",
       "paid": "Opłacone · zamówienie {number}",
-      "orderStatus": "Zamówienie {number}: {status}"
+      "orderStatus": "{status} · zamówienie {number}"
     },
     "actions": {
       "view": "Zobacz aukcję",
@@ -1015,6 +1071,40 @@
       "sales": "Nie masz jeszcze sprzedanych przedmiotów.",
       "browse": "Przeglądaj aukcje",
       "sell": "Wystaw przedmiot"
+    },
+    "lead": "Twoje licytacje, wygrane i sprzedaż w jednym miejscu.",
+    "summary": {
+      "bidding": {
+        "label": "Licytujesz",
+        "hint": "aktywne aukcje"
+      },
+      "leading": {
+        "label": "Prowadzisz",
+        "hint": "Biddy pilnuje Twojego maksimum"
+      },
+      "outbid": {
+        "label": "Przebito Cię",
+        "hint": "zalicytuj ponownie przed końcem",
+        "none": "nikt Cię nie przebił"
+      },
+      "endingSoon": {
+        "label": "Kończą się",
+        "hint": "w ciągu doby"
+      }
+    },
+    "orderStatuses": {
+      "AWAITING_PAYMENT": "Czeka na płatność",
+      "PAID": "Opłacone",
+      "SHIPPED": "W drodze",
+      "DELIVERED": "Doręczone",
+      "COMPLETED": "Zakończone",
+      "DISPUTED": "Zgłoszony problem",
+      "NOT_PICKED_UP": "Paczka nieodebrana",
+      "LOST": "Przesyłka zaginęła",
+      "REFUNDED": "Zwrot pieniędzy",
+      "PARTIALLY_REFUNDED": "Częściowy zwrot pieniędzy",
+      "CANCELLED_UNPAID": "Anulowane: brak płatności",
+      "CANCELLED_NOT_SHIPPED": "Anulowane: brak wysyłki"
     }
   },
   "devPayments": {

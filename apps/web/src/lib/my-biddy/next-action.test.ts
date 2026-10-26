@@ -34,20 +34,18 @@ function entry(overrides: Partial<MyBidEntry> = {}): MyBidEntry {
 const text = (value: string | undefined) => value?.replaceAll(' ', ' ');
 
 describe('bidRow', () => {
-  it('prowadzę: maksimum i podgląd; przebity: zalicytuj ponownie (główna akcja)', () => {
+  it('prowadzę: podgląd; przebity: ton „urgent” i zalicytuj ponownie (główna akcja)', () => {
     const leading = bidRow(entry(), date);
-    expect(leading.status.key).toBe('leading');
-    expect(text(leading.status.values?.['max'])).toBe('50,00 zł');
+    expect(leading.status).toEqual({ key: 'leading', tone: 'positive' });
     expect(leading.action).toEqual({
       kind: 'link',
       label: 'view',
       href: '/a/wazon-k3x9qa7m',
       primary: false,
     });
-    expect(bidRow(entry({ leading: false }), date).action).toMatchObject({
-      label: 'rebid',
-      primary: true,
-    });
+    const outbid = bidRow(entry({ leading: false }), date);
+    expect(outbid.status).toEqual({ key: 'outbid', tone: 'urgent' });
+    expect(outbid.action).toMatchObject({ label: 'rebid', primary: true });
   });
 
   it('wygrana: kwota, termin i nieaktywne „Zapłać”; opłacona: podgląd', () => {
@@ -127,8 +125,17 @@ describe('watchRow i saleRow', () => {
       },
     });
     expect(saleRow(sale('AWAITING_PAYMENT'), date)).toMatchObject({
-      status: { key: 'awaitingPayment', values: { date: '[2026-10-21]', number: 'p7q2m4nx' } },
+      status: {
+        key: 'awaitingPayment',
+        values: { date: '[2026-10-21]', number: 'p7q2m4nx' },
+        tone: 'warning',
+      },
       action: { kind: 'none' },
+    });
+    expect(saleRow(sale('SHIPPED'), date).status).toMatchObject({
+      key: 'orderStatus',
+      values: { status: 'SHIPPED' },
+      tone: 'info',
     });
     expect(saleRow(sale('PAID'), date).action).toEqual({
       kind: 'link',

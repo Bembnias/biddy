@@ -174,7 +174,7 @@ describe('lista adresów', () => {
   it('oznaczenia domyślnych i ustawienie adresu domyślnym do dostawy', async () => {
     const api = mockApi({ [`/v1/me/addresses/${SECOND.id}`]: SECOND });
     const user = userEvent.setup();
-    render(<AddressList addresses={[ADDRESS, SECOND]} />, { wrapper: AppWrapper });
+    render(<AddressList canAdd addresses={[ADDRESS, SECOND]} />, { wrapper: AppWrapper });
 
     const [first, second] = screen.getAllByRole('listitem');
     expect(within(first as HTMLElement).getByText('Domyślny adres dostawy')).toBeDefined();
@@ -192,7 +192,7 @@ describe('lista adresów', () => {
       [`/v1/me/addresses/${ADDRESS_ID}`]: () => new Response(null, { status: 204 }),
     });
     const user = userEvent.setup();
-    render(<AddressList addresses={[ADDRESS]} />, { wrapper: AppWrapper });
+    render(<AddressList canAdd addresses={[ADDRESS]} />, { wrapper: AppWrapper });
 
     await user.click(screen.getByRole('button', { name: 'Usuń' }));
     const dialog = await screen.findByRole('alertdialog');

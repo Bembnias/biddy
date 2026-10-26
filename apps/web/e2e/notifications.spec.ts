@@ -91,7 +91,7 @@ test('centrum powiadomień: dzwonek na żywo, lista, oznaczanie wszystkich', asy
   expect(api.requests('POST /v1/me/notifications/read')[0]?.postDataJSON()).toEqual({ all: true });
 });
 
-test('ustawienia powiadomień: e-mail per typ, transakcyjne zawsze', async ({
+test('ustawienia powiadomień: przełączniki per typ, transakcyjne z kłódką', async ({
   page,
   context,
   baseURL,
@@ -116,12 +116,16 @@ test('ustawienia powiadomień: e-mail per typ, transakcyjne zawsze', async ({
   });
   await mockRealtime(page);
   await gotoHydrated(page, '/konto/powiadomienia');
-  await expect(page.getByLabel('Wygrana aukcja')).toBeDisabled();
+  const bidding = page.getByRole('region', { name: 'Licytacje' });
+  const won = bidding.getByRole('listitem').filter({ hasText: 'Wygrana aukcja' });
+  await expect(won.getByText('Zawsze wysyłamy')).toBeVisible();
+  await expect(won.getByRole('switch')).toHaveCount(0);
   await expectNoAxeViolations(page);
-  const outbid = page.getByLabel(/Ktoś przebił Twoją ofertę/u);
-  await expect(outbid).toBeChecked();
-  await outbid.uncheck();
-  await expect(page.getByText('Zapisano')).toBeVisible();
+  const outbid = page.getByRole('switch', { name: 'Ktoś przebił Twoją ofertę' });
+  await expect(outbid).toHaveAttribute('aria-checked', 'true');
+  await outbid.click();
+  await expect(page.getByRole('status').getByText('Zapisano')).toBeVisible();
+  await expect(outbid).toHaveAttribute('aria-checked', 'false');
   expect(api.requests('PUT /v1/me/notification-preferences')[0]?.postDataJSON()).toEqual({
     items: [{ type: 'OUTBID', channel: 'EMAIL', enabled: false }],
   });

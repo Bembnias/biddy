@@ -104,7 +104,13 @@ const DARK_TONES: Record<TimerTone, string> = {
 };
 
 /** Licznik pod ceną na ciemnej karcie („Kończą się wkrótce”). */
-export function CardTimer({ endsAt }: { readonly endsAt: string }) {
+export function CardTimer({
+  endsAt,
+  className,
+}: {
+  readonly endsAt: string;
+  readonly className?: string;
+}) {
   const t = useTranslations('search.card');
   const time = useTimeLeft(endsAt);
   if (time === null) {
@@ -116,12 +122,56 @@ export function CardTimer({ endsAt }: { readonly endsAt: string }) {
       className={cn(
         'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-timer tabular-nums',
         DARK_TONES[time.tone],
+        className,
       )}
     >
       <Timer aria-hidden className="size-4" />
       <span className="sr-only">{t('endsIn')} </span>
       <span aria-hidden>{time.text}</span>
       <span className="sr-only">{time.label}</span>
+    </span>
+  );
+}
+
+const ROW_TONES: Record<TimerTone, string> = {
+  calm: 'bg-muted text-ink-700',
+  soon: 'bg-violet-50 text-violet-700',
+  urgent: 'bg-urgent text-primary-foreground',
+};
+
+/**
+ * Licznik w wierszu listy (Moje Biddy, F-63): kafelek w tonie czasu do końca. Przed hydracją data
+ * końca z serwera.
+ */
+export function RowTimer({
+  endsAt,
+  endsAtLabel,
+}: {
+  readonly endsAt: string;
+  /** „Koniec: 12 lis, 18:30” do HTML z serwera. */
+  readonly endsAtLabel: string;
+}) {
+  const t = useTranslations('search.card');
+  const time = useTimeLeft(endsAt);
+  const tone = time?.tone ?? 'calm';
+  return (
+    <span
+      data-tone={time === null ? undefined : tone}
+      className={cn(
+        'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-caption font-extrabold whitespace-nowrap tabular-nums [&>svg]:size-3.5 [&>svg]:shrink-0',
+        ROW_TONES[tone],
+      )}
+    >
+      {tone === 'urgent' ? <Timer aria-hidden /> : <Clock aria-hidden />}
+      {time === null ? (
+        endsAtLabel
+      ) : (
+        <>
+          <span className="sr-only">{t('endsIn')} </span>
+          <span aria-hidden>{time.text}</span>
+          <span className="sr-only">{time.label}</span>
+        </>
+      )}
     </span>
   );
 }

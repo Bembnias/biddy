@@ -20,6 +20,7 @@ export default async function SellPage() {
       title={t('title')}
       text={t('text')}
       back={{ href: routes.myAuctions, label: t('myAuctions') }}
+      compact
     >
       <SellStart phoneVerified={me.phoneVerified} />
     </AccountPage>

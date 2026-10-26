@@ -92,38 +92,44 @@ export function AddressForm({
   return (
     <AuthForm
       onSubmit={(event) => void form.handleSubmit(submit)(event)}
-      className="space-y-5 rounded-xl border border-border bg-card p-6"
+      className="grid gap-5 rounded-xl border border-border bg-card p-5 sm:grid-cols-2 sm:p-7"
     >
-      {error === undefined ? null : <FormAlert>{error}</FormAlert>}
-      <TextField
-        label={t('recipientName')}
-        autoComplete="name"
-        error={errors.recipientName?.message}
-        {...form.register('recipientName')}
-      />
-      <TextField
-        label={t('street')}
-        hint={t('streetHint')}
-        autoComplete="street-address"
-        error={errors.street?.message}
-        {...form.register('street')}
-      />
-      <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
+      {error === undefined ? null : (
+        <div className="sm:col-span-2">
+          <FormAlert>{error}</FormAlert>
+        </div>
+      )}
+      <div className="sm:col-span-2">
         <TextField
-          label={t('postalCode')}
-          autoComplete="postal-code"
-          inputMode="numeric"
-          placeholder="00-000"
-          error={errors.postalCode?.message}
-          {...form.register('postalCode')}
-        />
-        <TextField
-          label={t('city')}
-          autoComplete="address-level2"
-          error={errors.city?.message}
-          {...form.register('city')}
+          label={t('recipientName')}
+          autoComplete="name"
+          error={errors.recipientName?.message}
+          {...form.register('recipientName')}
         />
       </div>
+      <div className="sm:col-span-2">
+        <TextField
+          label={t('street')}
+          hint={t('streetHint')}
+          autoComplete="street-address"
+          error={errors.street?.message}
+          {...form.register('street')}
+        />
+      </div>
+      <TextField
+        label={t('postalCode')}
+        autoComplete="postal-code"
+        inputMode="numeric"
+        placeholder="00-000"
+        error={errors.postalCode?.message}
+        {...form.register('postalCode')}
+      />
+      <TextField
+        label={t('city')}
+        autoComplete="address-level2"
+        error={errors.city?.message}
+        {...form.register('city')}
+      />
       <TextField
         label={t('phone')}
         hint={t('phoneHint')}
@@ -133,9 +139,15 @@ export function AddressForm({
         error={errors.phone?.message}
         {...form.register('phone')}
       />
-      <p className="text-body-sm text-muted-foreground">{t('country')}</p>
+      <div className="space-y-2">
+        <p className="text-label">{t('countryLabel')}</p>
+        <p className="flex h-12 items-center rounded-md bg-muted px-3.5 text-body font-semibold text-foreground-secondary">
+          {t('countryValue')}
+        </p>
+      </div>
       {address === undefined ? (
-        <div className="space-y-3">
+        <fieldset className="space-y-3 sm:col-span-2">
+          <legend className="sr-only">{t('flags')}</legend>
           {(['isDefault', 'isSenderDefault'] as const).map((flag) => (
             <div key={flag} className="flex items-center gap-3">
               <Checkbox
@@ -148,13 +160,13 @@ export function AddressForm({
               <Label htmlFor={`address-${flag}`}>{t(flag)}</Label>
             </div>
           ))}
-        </div>
+        </fieldset>
       ) : null}
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={pending}>
+      <div className="flex flex-wrap gap-3 pt-1 sm:col-span-2">
+        <Button type="submit" size="lg" disabled={pending}>
           {pending ? t('pending') : t('submit')}
         </Button>
-        <Button asChild variant="outline">
+        <Button asChild variant="ghost" size="lg">
           <Link href={routes.addresses}>{t('cancel')}</Link>
         </Button>
       </div>

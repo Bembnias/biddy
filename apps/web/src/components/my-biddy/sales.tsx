@@ -8,15 +8,27 @@ import { useFormatter, useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { IconTile } from '@/components/ui/icon-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { saleRow } from '@/lib/my-biddy/next-action';
-import { routes } from '@/lib/routes';
+import { auctionUrl, routes } from '@/lib/routes';
+import { cn } from '@/lib/utils';
 
-import { AuctionRow } from './auction-row';
+import { STATUS_TEXT, STATUS_TILES, shortMoney } from './auction-row';
+import { CompactRow } from './listing-card';
 
 const SOLD = { status: ['ENDED_SOLD' as const] };
 
-/** Sprzedane (F-21): stan zamówienia i następny krok sprzedającego. */
+/** Kafelek stanu zamówienia: ton z `saleRow` (w drodze: informacyjny, zakończone: zielony). */
+const ORDER_TILES = {
+  info: 'info',
+  positive: 'success',
+  neutral: 'neutral',
+  warning: 'warning',
+  urgent: 'urgent',
+} as const;
+
+/** Sprzedane (F-21, zwarte wiersze F-63): stan zamówienia w tonie i następny krok sprzedającego. */
 export function Sales() {
   const t = useTranslations('myBiddy');
   const format = useFormatter();
@@ -26,7 +38,8 @@ export function Sales() {
     return (
       <div aria-busy="true" className="space-y-2">
         <span className="sr-only">{t('loading')}</span>
-        <Skeleton className="h-44 w-full rounded-lg" />
+        <Skeleton className="h-22 w-full rounded-xl" />
+        <Skeleton className="h-22 w-full rounded-xl" />
       </div>
     );
   }
@@ -59,20 +72,59 @@ export function Sales() {
   const date = (iso: string) =>
     format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
   return (
-    <ul className="space-y-4">
+    <ul className="space-y-3">
       {list.data.map((auction) => {
         const { status, action } = saleRow(auction, date);
+        const title = auction.title ?? '';
+        const { Icon } = STATUS_TILES[status.key];
+        const values =
+          status.key === 'orderStatus' && auction.order !== null
+            ? {
+                number: auction.order.publicId,
+                status: t(`orderStatuses.${auction.order.status}`),
+              }
+            : (status.values ?? {});
         return (
-          <AuctionRow
+          <CompactRow
             key={auction.id}
-            auction={{
-              ...auction,
-              slug: auctionSlug(auction.title),
-              price: auction.currentPrice ?? auction.startPrice ?? 0,
-              coverThumbUrl: auction.coverUrl,
-            }}
-            status={status}
-            action={action}
+            className="rounded-xl border border-border bg-card"
+            tile={
+              <IconTile
+                tone={
+                  status.key === 'orderStatus'
+                    ? ORDER_TILES[status.tone]
+                    : STATUS_TILES[status.key].tone
+                }
+                className="max-sm:hidden"
+              >
+                <Icon />
+              </IconTile>
+            }
+            imageUrl={auction.coverUrl}
+            noPhotoLabel={t('row.noPhoto')}
+            title={
+              <Link
+                href={auctionUrl({ slug: auctionSlug(title), publicId: auction.publicId })}
+                className="rounded-xs underline-offset-3 outline-none hover:underline focus-visible:shadow-focus-ring"
+              >
+                {title}
+              </Link>
+            }
+            line={
+              <span className={cn('font-semibold', STATUS_TEXT[status.tone])}>
+                {t(`status.${status.key}`, values)}
+              </span>
+            }
+            price={shortMoney(auction.currentPrice ?? auction.startPrice ?? 0)}
+            action={
+              action.kind === 'link' ? (
+                <Button asChild variant={action.primary ? 'default' : 'outline'}>
+                  <Link href={action.href} aria-label={`${t(`actions.${action.label}`)}: ${title}`}>
+                    {t(`actions.${action.label}`)}
+                  </Link>
+                </Button>
+              ) : null
+            }
           />
         );
       })}

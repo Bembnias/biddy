@@ -6393,13 +6393,45 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 9007199254740991
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "leading": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Aukcje, w których prowadzę"
+              },
+              "outbid": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Aukcje, w których przebito moją ofertę"
+              },
+              "endingSoon": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Aukcje kończące się w ciągu doby"
+              }
+            },
+            "required": [
+              "leading",
+              "outbid",
+              "endingSoon"
+            ],
+            "additionalProperties": false,
+            "description": "Podsumowanie trwających licytacji (tylko status=ACTIVE), niezależne od strony",
+            "nullable": true
           }
         },
         "required": [
           "items",
           "total",
           "page",
-          "totalPages"
+          "totalPages",
+          "summary"
         ],
         "additionalProperties": false
       },

@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('metaTitle'), robots: { index: false } };
 }
 
-/** Adresy dostawy i nadania (F-10), renderowane na serwerze z sesją. */
+/** Adresy dostawy i nadania (F-10, siatka kart F-63), renderowane na serwerze z sesją. */
 export default async function AddressesPage() {
   await loadMeOrRedirect(routes.addresses);
   const addresses = await getMyAddresses(await withSessionCookies());
@@ -32,22 +32,26 @@ export default async function AddressesPage() {
       text={t('text')}
       back={{ href: routes.account, label: t('back') }}
     >
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        {full ? (
-          <p className="text-body-sm text-muted-foreground">{t('limit', { max: MAX_ADDRESSES })}</p>
-        ) : (
-          <Button asChild variant="accent">
-            <Link href={routes.newAddress}>
-              <Plus aria-hidden />
-              {t('add')}
-            </Link>
-          </Button>
-        )}
-      </div>
+      {full ? (
+        <p className="mb-4 text-body-sm text-muted-foreground">
+          {t('limit', { max: MAX_ADDRESSES })}
+        </p>
+      ) : null}
       {addresses.length === 0 ? (
-        <EmptyState icon={MapPin} title={t('empty')} />
+        <EmptyState
+          icon={MapPin}
+          title={t('empty')}
+          action={
+            <Button asChild variant="accent">
+              <Link href={routes.newAddress}>
+                <Plus aria-hidden />
+                {t('add')}
+              </Link>
+            </Button>
+          }
+        />
       ) : (
-        <AddressList addresses={addresses} />
+        <AddressList addresses={addresses} canAdd={!full} />
       )}
     </AccountPage>
   );

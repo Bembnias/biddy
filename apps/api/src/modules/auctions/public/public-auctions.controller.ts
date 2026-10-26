@@ -137,6 +137,14 @@ export class MyBidsDto extends createZodDto(
     total: z.int().min(0),
     page: z.int().min(1),
     totalPages: z.int().min(0),
+    summary: z
+      .object({
+        leading: z.int().min(0).describe('Aukcje, w których prowadzę'),
+        outbid: z.int().min(0).describe('Aukcje, w których przebito moją ofertę'),
+        endingSoon: z.int().min(0).describe('Aukcje kończące się w ciągu doby'),
+      })
+      .nullable()
+      .describe('Podsumowanie trwających licytacji (tylko status=ACTIVE), niezależne od strony'),
   }),
 ) {}
 
@@ -269,7 +277,7 @@ export class MyBidsController {
     @Query() query: MyBidsQuery,
   ): Promise<MyBidsDto> {
     const page = query.page ?? 1;
-    const { items, total } = await this.lists.bids(user.id, query.status, page);
+    const { items, total, summary } = await this.lists.bids(user.id, query.status, page);
     return {
       items: items.map((entry) => ({
         auction: auctionCardDto(entry.card),
@@ -291,6 +299,7 @@ export class MyBidsController {
       total,
       page,
       totalPages: Math.ceil(total / MY_BIDS_PAGE),
+      summary,
     };
   }
 

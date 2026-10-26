@@ -6,17 +6,66 @@ import {
   updateNotificationPreferences,
   useGetNotificationPreferences,
 } from '@biddy/api-client';
-import { NOTIFICATION_TYPES, type NotificationType } from '@biddy/shared';
+import type { NotificationType } from '@biddy/shared';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  Ban,
+  BadgeCheck,
+  CircleCheck,
+  CircleX,
+  Clock,
+  Lock,
+  type LucideIcon,
+  Package,
+  Store,
+  TriangleAlert,
+  Trophy,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type ComponentProps, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { IconTile } from '@/components/ui/icon-tile';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+
+/** Grupy ustawień (F-63): licytacje, sprzedaż i obserwowani sprzedawcy. */
+const GROUPS: readonly {
+  readonly key: 'bidding' | 'selling' | 'following';
+  readonly types: readonly NotificationType[];
+}[] = [
+  { key: 'bidding', types: ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED'] },
+  { key: 'selling', types: ['SOLD', 'ORDER_PAID', 'UNSOLD'] },
+  { key: 'following', types: ['FOLLOWED_SELLER_NEW_AUCTION'] },
+];
+
+/** Ikona typu w spokojnym tonie (w ustawieniach nic nie wymaga reakcji). */
+const TYPE_TILES: Record<
+  NotificationType,
+  { readonly tone: ComponentProps<typeof IconTile>['tone']; readonly Icon: LucideIcon }
+> = {
+  OUTBID: { tone: 'danger', Icon: TriangleAlert },
+  ENDING_SOON: { tone: 'brand', Icon: Clock },
+  WON: { tone: 'brand', Icon: Trophy },
+  AUCTION_CANCELLED: { tone: 'neutral', Icon: Ban },
+  SOLD: { tone: 'success', Icon: BadgeCheck },
+  ORDER_PAID: { tone: 'success', Icon: Package },
+  UNSOLD: { tone: 'danger', Icon: CircleX },
+  FOLLOWED_SELLER_NEW_AUCTION: { tone: 'neutral', Icon: Store },
+};
+
+/** Typy z opisem pod nazwą (`settings.hints`). */
+const HINT_TYPES = ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED'] as const;
+
+function hasHint(type: NotificationType): type is (typeof HINT_TYPES)[number] {
+  return (HINT_TYPES as readonly string[]).includes(type);
+}
 
 /**
- * E-maile per typ powiadomienia (F-20). Zmiana zapisuje się od razu; e-maile transakcyjne
- * (wygrana, sprzedaż) są zawsze włączone. Powiadomienia w aplikacji są zawsze.
+ * E-maile per typ powiadomienia (F-20, układ F-63): grupy w kartach, przełącznik
+ * (`role="switch"`) przy każdym typie. Zmiana zapisuje się od razu; e-maile transakcyjne
+ * (wygrana, sprzedaż, opłacone zamówienie) są zawsze włączone i mają kłódkę zamiast przełącznika.
+ * Powiadomienia w aplikacji są zawsze.
  */
 export function NotificationSettings() {
   const t = useTranslations('notifications.settings');
@@ -83,49 +132,83 @@ export function NotificationSettings() {
   };
 
   return (
-    <fieldset className="space-y-4">
-      <legend className="mb-4 text-title">{t('email')}</legend>
-      {NOTIFICATION_TYPES.map((type) => {
-        const entry = email.get(type);
-        const id = `email-${type}`;
-        return (
-          <div key={type} className="flex items-start gap-3">
-            <input
-              id={id}
-              type="checkbox"
-              checked={entry?.enabled ?? true}
-              disabled={entry?.configurable !== true}
-              aria-describedby={entry?.configurable === true ? undefined : `${id}-hint`}
-              className="mt-1 size-4.5 accent-brand-strong"
-              onChange={(event) => {
-                void change(type, event.target.checked);
-              }}
-            />
-            <div>
-              <label htmlFor={id} className="text-body text-foreground">
-                {t(`types.${type}`)}
-              </label>
-              {entry?.configurable === true ? null : (
-                <p id={`${id}-hint`} className="text-body-sm text-muted-foreground">
-                  {t('always')}
-                </p>
-              )}
-              {status?.type === type ? (
-                <p
-                  role={status.kind === 'error' ? 'alert' : 'status'}
-                  className={
-                    status.kind === 'error'
-                      ? 'text-body-sm text-destructive'
-                      : 'text-body-sm font-semibold text-success'
-                  }
-                >
-                  {status.kind === 'error' ? t('error') : t('saved')}
-                </p>
-              ) : null}
-            </div>
+    <div className="space-y-5">
+      {GROUPS.map((group) => (
+        <section
+          key={group.key}
+          aria-labelledby={`settings-${group.key}`}
+          className="overflow-hidden rounded-xl border border-border bg-card"
+        >
+          <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+            <h2 id={`settings-${group.key}`} className="text-title font-extrabold">
+              {t(`groups.${group.key}`)}
+            </h2>
+            <span aria-hidden className="text-overline text-muted-foreground uppercase">
+              {t('email')}
+            </span>
           </div>
-        );
-      })}
-    </fieldset>
+          <ul>
+            {group.types.map((type) => {
+              const entry = email.get(type);
+              const id = `email-${type}`;
+              const { tone, Icon } = TYPE_TILES[type];
+              return (
+                <li
+                  key={type}
+                  className="flex items-center gap-4 border-t border-ink-100 px-5 py-4 sm:px-6"
+                >
+                  <IconTile tone={tone}>
+                    <Icon />
+                  </IconTile>
+                  <div className="min-w-0 flex-1">
+                    <p id={`${id}-label`} className="text-title">
+                      {t(`types.${type}`)}
+                    </p>
+                    {hasHint(type) ? (
+                      <p id={`${id}-hint`} className="text-body-sm text-muted-foreground">
+                        {t(`hints.${type}`)}
+                      </p>
+                    ) : null}
+                  </div>
+                  {entry?.configurable === true ? (
+                    <Switch
+                      id={id}
+                      checked={entry.enabled}
+                      aria-labelledby={`${id}-label`}
+                      aria-describedby={hasHint(type) ? `${id}-hint` : undefined}
+                      onCheckedChange={(checked) => {
+                        void change(type, checked);
+                      }}
+                    />
+                  ) : (
+                    <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-muted px-2.5 text-caption font-bold text-ink-700">
+                      <Lock aria-hidden className="size-3.5" />
+                      {t('always')}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+      {status?.kind === 'error' ? (
+        <p
+          role="alert"
+          className="rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
+        >
+          {t('error', { type: t(`types.${status.type}`) })}
+        </p>
+      ) : null}
+      {/* Region stały, żeby czytnik ogłosił „Zapisano” po każdej zmianie. */}
+      <p role="status" className="min-h-9">
+        {status?.kind === 'saved' ? (
+          <span className="inline-flex h-9 items-center gap-2 rounded-full bg-success-soft px-3.5 text-label text-success">
+            <CircleCheck aria-hidden className="size-4" />
+            {t('saved')}
+          </span>
+        ) : null}
+      </p>
+    </div>
   );
 }

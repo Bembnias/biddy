@@ -1,6 +1,6 @@
 # F-63 · Puls licytacji: nowy UI/UX web
 
-**Status:** W trakcie (etapy 1–2 gotowe; decyzje D1–D5 przyjęte 2026-10-26)
+**Status:** W trakcie (etapy 1–3 gotowe; decyzje D1–D5 przyjęte 2026-10-26)
 **Rozmiar:** L · **Właściciel:** Mateusz Bienias · **Zależności:** F-62 (design system), F-17 (realtime), F-18 (strona aukcji), F-19 (wyszukiwarka), F-21 (Moje Biddy), F-24 (nadanie paczki)
 
 ## Kontekst i cel
@@ -56,11 +56,12 @@ Wdrożenie w czterech etapach; każdy kończy się działającą aplikacją, zie
 
 **Płótno:** Moje Biddy: licytuję, Moje Biddy: moje aukcje i sprzedane, Powiadomienia, Moje konto, Profil i adresy, Ustawienia powiadomień, Telefon: Moje Biddy. **Trasy:** `/moje-biddy`, `/moje-biddy/{aukcje,obserwowane,sprzedane,wygrane}`, `/powiadomienia`, `/konto`, `/konto/profil`, `/konto/adresy/*`, `/konto/powiadomienia`.
 
-- **Licytuję:** kafelki podsumowania (prowadzę, przebito mnie, kończą się dziś), wiersze z `BidStateBar` i licznikiem, wyraźny wiersz „przebito Cię” z akcją przebicia, sekcja „Nie udało się wygrać” na dole.
-- **Moje aukcje i sprzedane:** karta „Twoja aukcja jest gorąca” nad listą (najgorętsza aktywna aukcja sprzedawcy), listy: aktywne z ofertami, aktywne bez ofert (edycja, anulowanie), zakończone bez sprzedaży (wystaw ponownie), sprzedane z następnym krokiem (nadaj paczkę, czeka na płatność, w drodze).
-- **Powiadomienia:** grupy „Dzisiaj” i „Wcześniej”, wyraźny stan nieprzeczytanego (kropka i tło), ikona w tonie typu powiadomienia.
-- **Konto, profil i adresy:** układ z płótna na `canvas` z białymi kartami, karty adresów z domyślnym w obramowaniu marki, błędy pól jak w F-62.
-- **Ustawienia powiadomień:** przełączniki (`role="switch"`) zamiast pól wyboru, kanały, których nie da się wyłączyć, oznaczone „Zawsze wysyłamy” z kłódką.
+- **Licytuję:** kafelki podsumowania (licytujesz, prowadzisz, przebito Cię, kończą się w ciągu doby) z dokładnymi liczbami z API (lista ma strony po 24), filtr jako `SegmentedControl`, wiersze z paskiem stanu w tonie `BidStateBar` (przebito Cię: czerwona ramka i nagłówek) i licznikiem w tonie z etapu 1, ceny „Aktualna cena” i „Twoje maksimum”, akcja przebicia w wierszu „przebito Cię”, zwarta sekcja „Nie udało się wygrać” na dole.
+- **Moje aukcje i sprzedane:** ciemna karta „Twoja aukcja jest gorąca” nad listą (najgorętsza aktywna aukcja sprzedawcy według `isHotAuction`: najwięcej ofert, przy remisie najbliższy koniec; cena na żywo z kanału aukcji), filtry z liczbą pozycji, nagłówek karty zależny od stanu: trwa licytacja (LIVE i licznik), aktywna bez ofert (edycja, anulowanie), szkic, w moderacji, bez sprzedaży (wystaw ponownie), anulowana. Sprzedane zostają osobną zakładką (jak dziś) i dostają zwarte wiersze z następnym krokiem w tonie (nadaj paczkę, czeka na płatność, w drodze i pozostałe stany zamówienia po polsku).
+- **Powiadomienia:** grupy „Dzisiaj” i „Wcześniej” (dzień w strefie Europe/Warsaw), liczba nowych przy tytule, wyraźny stan nieprzeczytanego (kropka, tło i pogrubiony tytuł), ikona w tonie typu powiadomienia. Wiersz zostaje jednym linkiem do aukcji (bez przycisków w środku).
+- **Konto, profil i adresy:** układ z płótna na `canvas` z białymi kartami (szerokość jak Moje Biddy), karta konta z e-mailem i telefonem w kafelkach, skróty z opisami, karta „Bezpieczeństwo” z wylogowaniem; profil z awatarem obok formularza; karty adresów w siatce z domyślnym w obramowaniu marki i kafelkiem „Dodaj adres”, błędy pól jak w F-62.
+- **Ustawienia powiadomień:** grupy (licytacje, sprzedaż, obserwowani sprzedawcy) w kartach, przełączniki (`role="switch"`, Radix) zamiast pól wyboru, kanały, których nie da się wyłączyć, oznaczone „Zawsze wysyłamy” z kłódką (bez kontrolki), jeden komunikat „Zapisano” pod listą.
+- **Telefon:** jak płótno „Telefon: Moje Biddy”: zakładki przewijane w poziomie, filtr na całą szerokość, karty z akcją na całą szerokość, bez przycisku „Wystaw przedmiot” w nagłówku (jest w dolnym pasku).
 
 ### Etap 4 · Logowanie, wystawianie i wysyłka
 
@@ -114,7 +115,14 @@ Według płótna i zasad z F-62. Dodatkowo:
   - profil sprzedawcy: okładka, karta profilu z awatarem 112 px, chipy (weryfikacja telefonu, członek od), liczba aktywnych aukcji, siatka aukcji; oceny bez zmian do F-30;
   - nagłówek półprzezroczysty, granatowa stopka; dolny pasek nawigacji (D4) poniżej 768 px (punkt `md`; płótno: 760 px) z Moje Biddy i „Wystaw”, które znikają wtedy z nagłówka; ukryty na stronie aukcji (pasek licytacji);
   - odstępstwa od płótna: piąta pozycja paska to „Konto” (D4), a nie „Obserwowane”; bez kropki przy Moje Biddy i bez serduszka „Obserwuj” na karcie (wymagałyby nowych danych na listach); bez szkieletów ładowania: wyszukiwarka renderuje się na serwerze z cache, a `loading.tsx` przy streamingu psuje wyszukiwanie bez JavaScriptu i status 404 strony kategorii i profilu.
-- [ ] **Etap 3, Moje Biddy, konto i powiadomienia.**
+- [x] **Etap 3, Moje Biddy, konto i powiadomienia:**
+  - API: `summary` w `GET /v1/me/bids?status=ACTIVE` (`leading`, `outbid`, `endingSoon` w ciągu doby; jedno zapytanie z `total`), test integracyjny, klient API wygenerowany ponownie;
+  - wspólne klocki: `ListingCard` w układzie płótna (pasek stanu z licznikiem, ton `urgent`, kwoty w `dl`, akcje na całą szerokość na telefonie), `CompactRow` (przegrane, sprzedane), `RowTimer` (licznik w tonie z etapu 1), tony `urgent` i `won` w `IconTile`, `Switch` (Radix);
+  - Licytuję: cztery kafelki podsumowania, filtr jako `SegmentedControl`, karty z „Twoje maksimum”, przebite w czerwonej ramce z „Zalicytuj ponownie”, zwarta sekcja „Nie udało się wygrać” (cena końcowa albo powód i maksimum);
+  - Moje aukcje: ciemna karta gorącej aukcji (najwięcej ofert, przy remisie najbliższy koniec; LIVE, cena z przyrostem od startu, licznik; cena i oferty na żywo przez `useLiveCard`, który obsługuje teraz też `AuctionSummaryDto`), filtry z liczbą pozycji, nagłówki kart według stanu, link do aukcji i „Pokaż licytację”; Sprzedane: zwarte wiersze, stany zamówienia po polsku w tonie;
+  - powiadomienia: liczba nowych przy tytule, grupy „Dzisiaj” i „Wcześniej” (`warsawDay`), nieprzeczytane z tłem, kropką i pogrubionym tytułem, ikona w tonie typu; ustawienia w trzech grupach z przełącznikami, kłódką „Zawsze wysyłamy” i jednym regionem „Zapisano”;
+  - konto: karta z awatarem, e-mailem i telefonem, skróty z opisami, karta „Bezpieczeństwo”; profil z awatarem obok formularza; adresy w siatce z domyślnym w obramowaniu marki i kafelkiem „Dodaj adres”, formularz w dwóch kolumnach; podstrony konta szerokości Moje Biddy (`/wystaw` zostaje węższy do etapu 4);
+  - odstępstwa od płótna: bez liczników przy zakładkach Moje Biddy, kafelka „Do zapłaty” i liczby transakcji na koncie (wymagałyby dodatkowych zapytań na każdej stronie); na karcie gorącej aukcji bez liczby licytujących i oglądających (lista sprzedawcy nie zgłasza oglądania, D1); czwarty kafelek to „Kończą się w ciągu doby” zamiast „Do zapłaty” z płótna, a w miejsce „kończą się dziś” z pierwszej wersji specu, bo to ten sam próg co fioletowy licznik i bez niejednoznaczności końca dnia; wiersz powiadomienia zostaje jednym linkiem, bez przycisków w środku (zagnieżdżone elementy interaktywne); Moje aukcje i Sprzedane zostają osobnymi zakładkami.
 - [ ] **Etap 4, logowanie, wystawianie i wysyłka.**
 
 ## Model danych
@@ -129,6 +137,7 @@ Bez zmian w bazie. Licznik oglądających (D1) trzyma stan w Redis.
   - Nowe zdarzenie `auction.viewers` w room `auction:{id}`: `{ auctionId, count, serverTime }`, najwyżej raz na 5 s na aukcję i instancję, tylko po zmianie liczby.
   - `@biddy/realtime`: `viewAuction(auctionId, onViewers)` (zgłasza oglądanie ponownie po reconnect), w web hook `useAuctionViewers`.
 - **Etap 2, pasek „kończy się w ciągu godziny”:** opcjonalny parametr `endsBefore` (data ISO) w `GET /v1/auctions`. Filtr dokłada `endsAtTs < …` do zapytania Meilisearch; liczbę bierzemy z `total` przy `pageSize=1`. Wynik cache'owany 60 s jak listy na stronie głównej.
+- **Etap 3, podsumowanie licytacji:** pole `summary` w `GET /v1/me/bids` dla `status=ACTIVE`: `{ leading, outbid, endingSoon }` (liczba aukcji, w których prowadzę, w których przebito mnie, i tych, które kończą się w ciągu doby: próg `SOON_WINDOW_MS`, ten sam co fioletowy licznik). Liczone w tym samym zapytaniu co `total`, więc nie zależą od strony. Dla `WON` i `LOST` `null`.
 - **Etap 4, postęp szkicu:** pole `completedSteps` (0–6) w `AuctionSummaryDto` dla szkiców, liczone tymi samymi regułami co walidacja kroków kreatora (`LISTING_RULES`). Dla pozostałych statusów `null`.
 - Pozostałe dane już są: `bidCount`, `currentPrice`, `minimumNextBid`, `endsAt`, historia ofert, zdarzenia `auction.updated`, `auction.extended`, `auction.ended`, `user.outbid`, `user.won` (F-17).
 - Klient API (`packages/api-client`) generowany ponownie po każdej zmianie.
@@ -179,7 +188,7 @@ Propozycje z płótna, które wykraczają poza obecny produkt albo design system
 - [x] Given wygrana, Then strona aukcji pokazuje panel wygranej z ceną końcową i następnym krokiem, bez przycisku płatności przed F-25.
 - [x] Given `prefers-reduced-motion: reduce`, Then żaden element nie animuje się ani nie pulsuje, a zmiany ceny i stanu są nadal widoczne.
 - [x] Given wyszukiwarka, Then pasek pokazuje liczbę aukcji kończących się w ciągu godziny i prowadzi do sortowania po końcu.
-- [ ] Given Moje Biddy: licytuję, Then aukcje z przebitą ofertą są wyróżnione i mają akcję przebicia.
+- [x] Given Moje Biddy: licytuję, Then aukcje z przebitą ofertą są wyróżnione i mają akcję przebicia.
 - [ ] Given lista szkiców, Then każdy szkic pokazuje postęp w krokach kreatora.
 - [ ] Given kod SMS, Then autouzupełnianie `one-time-code` i wklejenie całego kodu działają jak przed zmianą.
 - [ ] Given każdy widok, Then ma najwyżej jedno CTA, a kolory, typografia, promienie i cienie pochodzą z tokenów (test `design-tokens.test.ts`).
@@ -193,7 +202,7 @@ Propozycje z płótna, które wykraczają poza obecny produkt albo design system
   - panel licytacji w sześciu stanach, toast po `user.outbid` i `auction.extended`, „Zalicytuj ponownie” i fokus;
   - brak animacji przy `prefers-reduced-motion` (klasy, nie piksele);
   - Moje Biddy (wyróżnienie przebitych, karta gorącej aukcji), przełączniki w ustawieniach (`role="switch"`), postęp szkicu.
-- **API, integracyjne:** licznik oglądających przy dwóch instancjach API (subskrypcja, rozłączenie, wygaśnięcie, throttling), `endsBefore` w `GET /v1/auctions`, `completedSteps` w `GET /v1/me/auctions`.
+- **API, integracyjne:** licznik oglądających przy dwóch instancjach API (subskrypcja, rozłączenie, wygaśnięcie, throttling), `endsBefore` w `GET /v1/auctions`, `summary` w `GET /v1/me/bids`, `completedSteps` w `GET /v1/me/auctions`.
 - **E2E (Playwright):** istniejące scenariusze z axe; przebicie na atrapie realtime (`user.outbid` → toast, axe z otwartym toastem, „Zalicytuj ponownie” wpisuje minimalną ofertę i ustawia fokus); telefon 390 px (pasek licytacji w widoku, dolny arkusz z szybkimi kwotami, axe, brak przewijania w poziomie); zrzuty ekranu kluczowych stron na 390 i 1440 px do przeglądu ręcznego.
 
 ## Otwarte pytania

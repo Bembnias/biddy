@@ -408,9 +408,18 @@ describe('MyAuctions', () => {
     expect(screen.getByText('3 oferty')).toBeDefined();
     expect(screen.getByText('Bez sprzedaży')).toBeDefined();
 
-    await user.click(screen.getByRole('button', { name: 'Zakończone' }));
+    expect(screen.getByRole('button', { name: 'Wszystkie 2' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    await user.click(screen.getByRole('button', { name: 'Zakończone 1' }));
     expect(screen.queryByText('Wazon ceramiczny')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Aktywne' }));
+    await user.click(screen.getByRole('button', { name: 'Aktywne 1' }));
+    // Aktywna z ofertami: „Trwa licytacja”, link do aukcji i „Pokaż licytację”.
+    expect(screen.getByText('Trwa licytacja')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Wazon ceramiczny' }).getAttribute('href')).toBe(
+      '/a/wazon-ceramiczny-k3x9qa7m',
+    );
+    expect(screen.getByRole('link', { name: 'Pokaż licytację: Wazon ceramiczny' })).toBeDefined();
 
     await user.click(screen.getByRole('button', { name: 'Anuluj aukcję' }));
     const dialog = await screen.findByRole('alertdialog');

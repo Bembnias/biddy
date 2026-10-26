@@ -18,6 +18,9 @@ const iconTileVariants = cva(
         warning: 'bg-warning-soft text-amber-700',
         danger: 'bg-red-100 text-red-700',
         info: 'bg-info-soft text-sky-700',
+        // Pełne tła (F-63) dla zdarzeń, które wymagają uwagi: przebicie i wygrana.
+        urgent: 'bg-urgent text-primary-foreground',
+        won: 'bg-violet-700 text-primary-foreground',
       },
       size: {
         sm: 'size-8 rounded-md text-label [&>svg]:size-4',

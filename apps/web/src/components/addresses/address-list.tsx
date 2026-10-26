@@ -7,6 +7,7 @@ import {
   useUpdateAddress,
 } from '@biddy/api-client';
 import { useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -28,7 +29,7 @@ import {
 import { Chip } from '@/components/ui/chip';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { formatPhoneNumber } from '@/lib/phone';
-import { editAddressUrl } from '@/lib/routes';
+import { editAddressUrl, routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 /** Jedna linia adresu do komunikatów, np. „ul. Długa 5, 00-950 Warszawa”. */
@@ -37,10 +38,17 @@ function addressLine(address: AddressDto): string {
 }
 
 /**
- * Adresy z akcjami (F-10): edycja, ustawienie domyślnego adresu dostawy i nadania, usunięcie
+ * Adresy z akcjami (F-10, siatka kart F-63; domyślny adres dostawy w obramowaniu marki): edycja, ustawienie domyślnego adresu dostawy i nadania, usunięcie
  * z potwierdzeniem. Po zmianie strona (SSR) odświeża listę.
  */
-export function AddressList({ addresses }: { readonly addresses: readonly AddressDto[] }) {
+export function AddressList({
+  addresses,
+  canAdd,
+}: {
+  readonly addresses: readonly AddressDto[];
+  /** Kafelek „Dodaj adres” na końcu siatki (poniżej limitu adresów). */
+  readonly canAdd: boolean;
+}) {
   const t = useTranslations('addresses');
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -64,40 +72,43 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
   return (
     <div className="space-y-4">
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
-      <ul className="space-y-4">
+      <ul className="grid gap-4 sm:grid-cols-2">
         {addresses.map((address) => (
           <li
             key={address.id}
             className={cn(
-              'rounded-xl border border-border bg-card p-5',
-              address.isDefault && 'border-brand ring-1 ring-brand',
+              'flex flex-col rounded-xl border bg-card p-5',
+              address.isDefault ? 'border-violet-400 ring-1 ring-violet-400' : 'border-border',
             )}
           >
-            <div className="flex flex-wrap gap-2">
-              {address.isDefault ? (
-                <Chip tone="brand-outline" shape="pill">
-                  {t('defaultDelivery')}
-                </Chip>
-              ) : null}
-              {address.isSenderDefault ? <Chip shape="pill">{t('defaultSender')}</Chip> : null}
-            </div>
-            <address className="mt-3 text-body text-foreground-secondary not-italic">
-              <p className="text-title">{address.recipientName}</p>
+            {address.isDefault || address.isSenderDefault ? (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {address.isDefault ? (
+                  <Chip tone="brand-outline" shape="pill">
+                    {t('defaultDelivery')}
+                  </Chip>
+                ) : null}
+                {address.isSenderDefault ? <Chip shape="pill">{t('defaultSender')}</Chip> : null}
+              </div>
+            ) : null}
+            <address className="mb-4 text-body text-foreground-secondary not-italic">
+              <p className="text-title font-extrabold text-foreground">{address.recipientName}</p>
               <p>{address.street}</p>
               <p>
                 {address.postalCode} {address.city}
               </p>
               <p className="text-muted-foreground">{formatPhoneNumber(address.phone)}</p>
             </address>
-            <div className="mt-5 flex flex-wrap gap-2 border-t border-border pt-4">
-              <Button asChild variant="outline" size="sm">
+            <div className="mt-auto flex flex-wrap gap-1 border-t border-ink-100 pt-3">
+              <Button asChild variant="ghost" size="sm">
                 <Link href={editAddressUrl(address.id)}>{t('edit')}</Link>
               </Button>
               {address.isDefault ? null : (
                 <Button
                   type="button"
-                  variant="soft"
+                  variant="ghost"
                   size="sm"
+                  className="text-link"
                   disabled={pending}
                   onClick={() =>
                     void run(() =>
@@ -111,8 +122,9 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
               {address.isSenderDefault ? null : (
                 <Button
                   type="button"
-                  variant="soft"
+                  variant="ghost"
                   size="sm"
+                  className="text-link"
                   disabled={pending}
                   onClick={() =>
                     void run(() =>
@@ -125,7 +137,13 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
               )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button type="button" variant="destructive-outline" size="sm" disabled={pending}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive-soft"
+                    disabled={pending}
+                  >
                     {t('delete')}
                   </Button>
                 </AlertDialogTrigger>
@@ -155,6 +173,17 @@ export function AddressList({ addresses }: { readonly addresses: readonly Addres
             </div>
           </li>
         ))}
+        {canAdd ? (
+          <li className="flex">
+            <Link
+              href={routes.newAddress}
+              className="flex min-h-44 flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-brand-border bg-accent text-label-lg text-accent-foreground outline-none transition-colors duration-150 hover:bg-violet-100 focus-visible:shadow-focus-ring motion-reduce:transition-none"
+            >
+              <Plus aria-hidden className="size-7" />
+              {t('add')}
+            </Link>
+          </li>
+        ) : null}
       </ul>
     </div>
   );

@@ -41,7 +41,7 @@ export function Watchlist() {
     return (
       <div aria-busy="true" className="space-y-2">
         <span className="sr-only">{t('loading')}</span>
-        <Skeleton className="h-44 w-full rounded-lg" />
+        <Skeleton className="h-52 w-full rounded-xl" />
       </div>
     );
   }

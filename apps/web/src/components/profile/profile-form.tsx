@@ -76,7 +76,7 @@ export function ProfileForm({ name }: { readonly name: string }) {
         })}
       />
       <div className="flex flex-wrap items-center gap-4">
-        <Button type="submit" disabled={update.isPending}>
+        <Button type="submit" size="lg" disabled={update.isPending}>
           {update.isPending ? t('pending') : t('submit')}
         </Button>
         <p role="status" className="text-body-sm font-semibold text-success">

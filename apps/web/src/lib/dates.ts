@@ -14,3 +14,15 @@ export function monthAndYear(date: Date): string {
     parts.find((part) => part.type === type)?.value ?? '';
   return `${value('month')} ${value('year')}`;
 }
+
+const DAY = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: 'Europe/Warsaw',
+});
+
+/** Dzień kalendarzowy w strefie Europe/Warsaw jako „2026-10-26” (do grup „Dzisiaj”, F-63). */
+export function warsawDay(date: Date | number): string {
+  return DAY.format(date);
+}

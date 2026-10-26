@@ -99,7 +99,13 @@ describe('NotificationList', () => {
       name: /Nieprzeczytane: Przebito Twoją ofertę 1/u,
     });
     expect(first.getAttribute('href')).toBe('/a/wazon-k3x9qa7m');
-    expect(screen.getByRole('link', { name: /^Przebito Twoją ofertę 2/u })).toBeDefined();
+    expect(first.getAttribute('data-unread')).toBe('true');
+    const read = screen.getByRole('link', { name: /^Przebito Twoją ofertę 2/u });
+    expect(read.getAttribute('data-unread')).toBeNull();
+    expect(screen.getByText('1 nowe')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Ustawienia powiadomień' }).getAttribute('href')).toBe(
+      '/konto/powiadomienia',
+    );
 
     await user.click(screen.getByRole('button', { name: 'Oznacz wszystkie jako przeczytane' }));
     await waitFor(() => {
@@ -109,15 +115,42 @@ describe('NotificationList', () => {
     });
   });
 
+  it('grupy „Dzisiaj” i „Wcześniej”, ikona w tonie typu', async () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    mockApi({
+      '/v1/me/notifications': {
+        items: [
+          notification(1),
+          {
+            ...notification(2, true),
+            type: 'WON',
+            title: 'Wygrana: Wazon',
+            createdAt: new Date(Date.now() - 3 * DAY).toISOString(),
+          },
+        ],
+        unreadCount: 1,
+        nextBefore: null,
+      },
+    });
+    render(<NotificationList />, { wrapper: AppWrapper });
+    const today = await screen.findByRole('region', { name: 'Dzisiaj' });
+    expect(within(today).getByRole('link', { name: /Przebito Twoją ofertę 1/u })).toBeDefined();
+    expect(today.querySelector('[data-slot="icon-tile"]')?.className).toContain('bg-urgent');
+    const earlier = screen.getByRole('region', { name: 'Wcześniej' });
+    expect(within(earlier).getByRole('link', { name: /Wygrana: Wazon/u })).toBeDefined();
+    expect(earlier.querySelector('[data-slot="icon-tile"]')?.className).toContain('bg-violet-700');
+  });
+
   it('pusta lista', async () => {
     mockApi({ '/v1/me/notifications': { items: [], unreadCount: 0, nextBefore: null } });
     render(<NotificationList />, { wrapper: AppWrapper });
     expect(await screen.findByText(/Nie masz jeszcze powiadomień/u)).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Oznacz wszystkie jako przeczytane' })).toBeNull();
   });
 });
 
 describe('NotificationSettings', () => {
-  it('e-mail per typ: zmiana zapisuje się od razu; transakcyjne zablokowane', async () => {
+  it('przełączniki per typ: zmiana zapisuje się od razu; transakcyjne z kłódką', async () => {
     const items = (enabled: boolean) => [
       { type: 'OUTBID', channel: 'IN_APP', enabled: true, configurable: false },
       { type: 'OUTBID', channel: 'EMAIL', enabled, configurable: true },
@@ -130,12 +163,19 @@ describe('NotificationSettings', () => {
     });
     const user = userEvent.setup();
     render(<NotificationSettings />, { wrapper: AppWrapper });
-    const outbid = await screen.findByLabelText<HTMLInputElement>(/Ktoś przebił Twoją ofertę/u);
-    expect(outbid.checked).toBe(true);
-    expect(screen.getByLabelText<HTMLInputElement>('Wygrana aukcja').disabled).toBe(true);
+    const outbid = await screen.findByRole('switch', { name: 'Ktoś przebił Twoją ofertę' });
+    expect(outbid.getAttribute('aria-checked')).toBe('true');
+    expect(outbid.getAttribute('aria-describedby')).not.toBeNull();
+    expect(screen.getByText('Najwyżej raz na 15 minut na aukcję')).toBeDefined();
+
+    const bidding = screen.getByRole('region', { name: 'Licytacje' });
+    const won = within(bidding).getByText('Wygrana aukcja').closest('li') as HTMLElement;
+    expect(within(won).queryByRole('switch')).toBeNull();
+    expect(within(won).getByText('Zawsze wysyłamy')).toBeDefined();
+
     await user.click(outbid);
-    expect(await screen.findByText('Zapisano')).toBeDefined();
-    expect(outbid.checked).toBe(false);
+    expect(within(screen.getByRole('status')).getByText('Zapisano')).toBeDefined();
+    expect(outbid.getAttribute('aria-checked')).toBe('false');
     expect(
       apiCalls(fetchMock, '/v1/me/notification-preferences').find((call) => call.body !== undefined)
         ?.body,

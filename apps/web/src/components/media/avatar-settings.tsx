@@ -103,63 +103,59 @@ export function AvatarSettings({
   };
 
   return (
-    <section aria-labelledby={`${inputId}-title`} className="space-y-4">
-      <h2 id={`${inputId}-title`} className="text-title">
+    <section
+      aria-labelledby={`${inputId}-title`}
+      className="flex flex-col items-center gap-3 text-center"
+    >
+      <h2 id={`${inputId}-title`} className="sr-only">
         {t('avatar.title')}
       </h2>
-      {error === undefined ? null : <FormAlert>{error}</FormAlert>}
-      <div className="flex flex-wrap items-center gap-4">
-        <UserAvatar
-          userId={userId}
-          name={name}
-          label={tProfile('avatarLabel', { name })}
-          imageUrl={current}
-          size="lg"
-        />
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-2">
-            <input
-              ref={input}
-              id={inputId}
-              type="file"
-              accept={ACCEPTED_IMAGE_TYPES.join(',')}
-              className="sr-only"
-              aria-label={current === null ? t('avatar.add') : t('avatar.change')}
-              aria-describedby={`${inputId}-hint`}
-              onChange={(event) => void upload(event.target.files?.[0])}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              aria-controls={inputId}
-              onClick={() => input.current?.click()}
-            >
-              {busy
-                ? t('avatar.uploading')
-                : current === null
-                  ? t('avatar.add')
-                  : t('avatar.change')}
-            </Button>
-            {current === null ? null : (
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={busy || removeAvatar.isPending}
-                onClick={() => void remove()}
-              >
-                {t('avatar.remove')}
-              </Button>
-            )}
-          </div>
-          <p id={`${inputId}-hint`} className="text-body-sm text-muted-foreground">
-            {t('avatar.hint')}
-          </p>
-          <p role="status" className="text-body-sm font-semibold text-success">
-            {status}
-          </p>
-        </div>
+      <UserAvatar
+        userId={userId}
+        name={name}
+        label={tProfile('avatarLabel', { name })}
+        imageUrl={current}
+        size="xl"
+      />
+      <input
+        ref={input}
+        id={inputId}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES.join(',')}
+        className="sr-only"
+        aria-label={current === null ? t('avatar.add') : t('avatar.change')}
+        aria-describedby={`${inputId}-hint`}
+        onChange={(event) => void upload(event.target.files?.[0])}
+      />
+      <div className="flex flex-wrap justify-center gap-1">
+        <Button
+          type="button"
+          variant="ghost"
+          className="text-link"
+          disabled={busy}
+          aria-controls={inputId}
+          onClick={() => input.current?.click()}
+        >
+          {busy ? t('avatar.uploading') : current === null ? t('avatar.add') : t('avatar.change')}
+        </Button>
+        {current === null ? null : (
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={busy || removeAvatar.isPending}
+            onClick={() => void remove()}
+          >
+            {t('avatar.remove')}
+          </Button>
+        )}
       </div>
+      <p id={`${inputId}-hint`} className="max-w-60 text-caption text-muted-foreground">
+        {t('avatar.hint')}
+      </p>
+      {error === undefined ? null : <FormAlert>{error}</FormAlert>}
+      <p role="status" className="text-body-sm font-semibold text-success">
+        {status}
+      </p>
     </section>
   );
 }

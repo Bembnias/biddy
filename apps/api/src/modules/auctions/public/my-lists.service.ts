@@ -1,5 +1,6 @@
 // Listy Moje Biddy (F-21): aukcje, w których użytkownik licytuje (aktywne, wygrane, przegrane),
 // z jego maksimum i zamówieniem zwycięzcy, oraz obserwowane aukcje.
+import { SOON_WINDOW_MS } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, countDistinct, desc, eq, inArray, max, ne, or, sql } from 'drizzle-orm';
 
@@ -22,6 +23,14 @@ export interface MyBidEntry {
   readonly outcome: BiddingOutcome;
   /** Zamówienie zwycięzcy (wygrane). */
   readonly order: Order | undefined;
+}
+
+/** Podsumowanie trwających licytacji (F-63): nie zależy od strony listy. */
+export interface MyBidsSummary {
+  readonly leading: number;
+  readonly outbid: number;
+  /** Kończą się w ciągu doby (próg fioletowego licznika). */
+  readonly endingSoon: number;
 }
 
 function outcomeOf(auction: Auction, userId: string): BiddingOutcome {
@@ -48,7 +57,7 @@ export class MyListsService {
     userId: string,
     filter: MyBidsFilter,
     page: number,
-  ): Promise<{ items: MyBidEntry[]; total: number }> {
+  ): Promise<{ items: MyBidEntry[]; total: number; summary: MyBidsSummary | null }> {
     const mine = and(eq(bids.bidderId, userId), eq(bids.status, 'VALID'));
     const condition = {
       ACTIVE: eq(auctions.status, 'ACTIVE'),
@@ -58,8 +67,17 @@ export class MyListsService {
         and(eq(auctions.status, 'ENDED_SOLD'), ne(auctions.leaderId, userId)),
       ),
     }[filter];
+    const soon = new Date(Date.now() + SOON_WINDOW_MS);
     const [totals] = await this.db
-      .select({ total: countDistinct(bids.auctionId) })
+      .select({
+        total: countDistinct(bids.auctionId),
+        leading: countDistinct(
+          sql`case when ${auctions.leaderId} = ${userId} then ${auctions.id} end`,
+        ),
+        endingSoon: countDistinct(
+          sql`case when ${auctions.endsAt} < ${soon} then ${auctions.id} end`,
+        ),
+      })
       .from(bids)
       .innerJoin(auctions, eq(auctions.id, bids.auctionId))
       .where(and(mine, condition));
@@ -80,8 +98,14 @@ export class MyListsService {
       filter === 'WON'
         ? await this.orders.activeForAuctions(rows.map((row) => row.auction.id))
         : new Map<string, Order>();
+    const total = totals?.total ?? 0;
+    const leading = totals?.leading ?? 0;
     return {
-      total: totals?.total ?? 0,
+      total,
+      summary:
+        filter === 'ACTIVE'
+          ? { leading, outbid: total - leading, endingSoon: totals?.endingSoon ?? 0 }
+          : null,
       items: rows.map((row, index) => {
         const order = orders.get(row.auction.id);
         return {

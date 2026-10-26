@@ -25,7 +25,8 @@ export interface RowStatus {
     | 'paid'
     | 'orderStatus';
   readonly values?: Readonly<Record<string, string>>;
-  readonly tone: 'positive' | 'warning' | 'neutral';
+  /** Ton tekstu stanu; `urgent` (przebito Cię) wyróżnia też całą kartę (F-63). */
+  readonly tone: 'positive' | 'urgent' | 'warning' | 'info' | 'neutral';
 }
 
 export type RowAction =
@@ -53,7 +54,6 @@ export function bidRow(
   date: DateFormatter,
 ): { readonly status: RowStatus; readonly action: RowAction } {
   const href = auctionUrl(entry.auction);
-  const max = zl(entry.maxAmount);
   switch (entry.outcome) {
     case 'WON': {
       const order = entry.order;
@@ -111,11 +111,11 @@ export function bidRow(
   }
   return entry.leading
     ? {
-        status: { key: 'leading', values: { max }, tone: 'positive' },
+        status: { key: 'leading', tone: 'positive' },
         action: { kind: 'link', label: 'view', href, primary: false },
       }
     : {
-        status: { key: 'outbid', values: { max }, tone: 'warning' },
+        status: { key: 'outbid', tone: 'urgent' },
         action: { kind: 'link', label: 'rebid', href, primary: true },
       };
 }
@@ -145,7 +145,7 @@ export function saleRow(
       status: {
         key: 'awaitingPayment',
         values: { date: date(order.paymentDueAt), number: order.publicId },
-        tone: 'neutral',
+        tone: 'warning',
       },
       action: { kind: 'none' },
     };
@@ -160,8 +160,15 @@ export function saleRow(
     status: {
       key: 'orderStatus',
       values: { number: order.publicId, status: order.status },
-      tone: 'neutral',
+      tone: IN_TRANSIT.has(order.status)
+        ? 'info'
+        : order.status === 'COMPLETED'
+          ? 'positive'
+          : 'neutral',
     },
     action: { kind: 'none' },
   };
 }
+
+/** Zamówienie w drodze do kupującego (ton informacyjny w sprzedanych). */
+const IN_TRANSIT: ReadonlySet<string> = new Set(['SHIPPED', 'DELIVERED']);

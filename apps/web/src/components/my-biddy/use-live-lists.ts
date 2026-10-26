@@ -26,16 +26,11 @@ export function useMyBiddyRealtime(): void {
   useUserRealtimeEvents({ onOutbid: refresh, onWon: refresh, onNotification: refresh });
 }
 
-interface LiveCard {
-  readonly id: string;
-  price: number;
-  currentPrice: number | null;
-  bidCount: number;
-  endsAt: string | null;
-}
-
-/** Nowy stan aukcji w każdej karcie o tym ID w danych zapytania (dowolnie zagnieżdżonych). */
-function patch(data: unknown, event: AuctionUpdatedEvent): unknown {
+/**
+ * Nowy stan aukcji w każdej karcie o tym ID w danych zapytania (dowolnie zagnieżdżonych): karty
+ * list licytującego (`price`) i aukcje sprzedającego (`AuctionSummaryDto`, bez `price`).
+ */
+export function patch(data: unknown, event: AuctionUpdatedEvent): unknown {
   if (Array.isArray(data)) {
     return data.map((entry) => patch(entry, event));
   }
@@ -43,15 +38,14 @@ function patch(data: unknown, event: AuctionUpdatedEvent): unknown {
     return data;
   }
   const record = data as Record<string, unknown>;
-  if (record['id'] === event.auctionId && 'bidCount' in record && 'price' in record) {
-    const card: LiveCard = {
-      ...(record as unknown as LiveCard),
-      price: event.currentPrice ?? (record as unknown as LiveCard).price,
+  if (record['id'] === event.auctionId && 'bidCount' in record && 'currentPrice' in record) {
+    return {
+      ...record,
+      ...('price' in record ? { price: event.currentPrice ?? record['price'] } : {}),
       currentPrice: event.currentPrice,
       bidCount: event.bidCount,
       endsAt: event.endsAt,
     };
-    return card;
   }
   return Object.fromEntries(
     Object.entries(record).map(([key, value]) => [key, patch(value, event)]),

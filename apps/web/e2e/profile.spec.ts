@@ -148,8 +148,12 @@ test('adresy: dodanie, ustawienie domyślnego i usunięcie z potwierdzeniem', as
     postalCode: '00950',
     phone: '+48 500 600 700',
   });
-  const cards = main.getByRole('listitem');
+  // Karty adresów (bez kafelka „Dodaj adres” na końcu siatki).
+  const cards = main.getByRole('listitem').filter({ has: page.locator('address') });
   await expect(cards).toHaveCount(2);
+  await expect(
+    main.getByRole('listitem').last().getByRole('link', { name: 'Dodaj adres' }),
+  ).toBeVisible();
   await expect(cards.nth(0).getByText('Domyślny adres dostawy')).toBeVisible();
 
   await cards.nth(1).getByRole('button', { name: 'Ustaw jako domyślny do dostawy' }).click();
@@ -174,11 +178,18 @@ test('konto: linki do profilu, adresów i profilu publicznego', async ({
   await mockBrowserApi(page);
   await gotoHydrated(page, '/konto');
   const main = page.getByRole('main');
-  await expect(main.getByRole('link', { name: 'Edytuj profil' })).toHaveAttribute(
+  await expect(main.getByRole('link', { name: 'Edytuj profil', exact: true })).toHaveAttribute(
     'href',
     '/konto/profil',
   );
-  await expect(main.getByRole('link', { name: 'Adresy' })).toHaveAttribute('href', '/konto/adresy');
+  await expect(main.getByRole('link', { name: /^Adresy/u })).toHaveAttribute(
+    'href',
+    '/konto/adresy',
+  );
+  await expect(main.getByRole('region', { name: 'Bezpieczeństwo' })).toContainText(
+    'Wyloguj ze wszystkich urządzeń',
+  );
+  await axe(page);
   await main.getByRole('link', { name: 'Zobacz swój profil publiczny' }).click();
   await expect(page).toHaveURL(new RegExp(`/u/${MEMBER.id}$`));
 });

@@ -450,9 +450,10 @@ Użytkownik nie przegapia ważnych momentów aukcji. Spec: [F-20](docs/features/
 
 Jedno miejsce na licytacje i sprzedaże. Spec: [F-21](docs/features/F-21-moje-biddy.md).
 
-- **API:** `GET /v1/me/bids?status=ACTIVE|WON|LOST` (aukcje z moimi ważnymi ofertami: moje maksimum, czy prowadzę, wynik, zamówienie zwycięzcy; po 24), `GET /v1/me/watchlist` (obserwowane, aktywne najpierw) i `order` przy sprzedanych w `GET /v1/me/auctions`.
+- **API:** `GET /v1/me/bids?status=ACTIVE|WON|LOST` (aukcje z moimi ważnymi ofertami: moje maksimum, czy prowadzę, wynik, zamówienie zwycięzcy; po 24; przy `ACTIVE` także `summary` z liczbą aukcji, w których prowadzę, w których przebito mnie i które kończą się w ciągu doby, F-63), `GET /v1/me/watchlist` (obserwowane, aktywne najpierw) i `order` przy sprzedanych w `GET /v1/me/auctions`.
 - **Web:** `/moje-biddy` z zakładkami Licytuję (filtr prowadzę/przebito, przegrane), Wygrane, Obserwowane, Moje aukcje (`/moje-biddy/aukcje`, dawne `/konto/aukcje` przekierowuje) i Sprzedane. Każda pozycja ma następną akcję (`apps/web/src/lib/my-biddy/next-action.ts`); „Zapłać” i „Nadaj paczkę” są widoczne, ale nieaktywne do F-25 i F-26.
 - **Na żywo:** `user.outbid`, `user.won` i `notification.new` odświeżają listy; aktywne aukcje na liście (do 40) subskrybują kanał aukcji i aktualizują cenę bez odświeżania.
+- **Puls licytacji (F-63):** Licytuję z kafelkami podsumowania (z `summary`, niezależnie od strony listy), filtrem `SegmentedControl` i kartami z paskiem stanu i licznikiem w tonie (przebito Cię: czerwona ramka, „Zalicytuj ponownie”); przegrane i sprzedane jako zwarte wiersze; Moje aukcje z ciemną kartą „Twoja aukcja jest gorąca” (`isHotAuction`, cena na żywo) i filtrami z liczbą pozycji. Centrum powiadomień z grupami „Dzisiaj” i „Wcześniej” i ikoną w tonie typu, ustawienia z przełącznikami (`role="switch"`) i kłódką przy e-mailach transakcyjnych. Konto, profil i adresy w układzie z płótna (karty adresów w siatce, kafelek „Dodaj adres”).
 
 ### Ledger (F-22)
 

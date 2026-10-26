@@ -178,6 +178,7 @@ export * from './myBidsDtoItemsItemOrder';
 export * from './myBidsDtoItemsItemOrderCurrency';
 export * from './myBidsDtoItemsItemOrderStatus';
 export * from './myBidsDtoItemsItemOutcome';
+export * from './myBidsDtoSummary';
 export * from './myWatchlistDto';
 export * from './myWatchlistDtoItemsItem';
 export * from './myWatchlistDtoItemsItemCurrency';

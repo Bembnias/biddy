@@ -2,6 +2,7 @@
 
 import { getGetSessionQueryKey } from '@biddy/api-client';
 import { useQueryClient } from '@tanstack/react-query';
+import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -78,8 +79,9 @@ export function SignOutButtons() {
   return (
     <div className="space-y-3">
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2.5">
         <Button type="button" variant="outline" disabled={pending} onClick={() => run(signOut)}>
+          <LogOut aria-hidden />
           {t('signOut')}
         </Button>
         <Button
@@ -96,7 +98,6 @@ export function SignOutButtons() {
           {t('signOutEverywhere')}
         </Button>
       </div>
-      <p className="text-body-sm text-muted-foreground">{t('signOutEverywhereHint')}</p>
     </div>
   );
 }

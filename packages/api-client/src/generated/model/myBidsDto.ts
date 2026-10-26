@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.0.0
  */
 import type { MyBidsDtoItemsItem } from './myBidsDtoItemsItem';
+import type { MyBidsDtoSummary } from './myBidsDtoSummary';
 
 export interface MyBidsDto {
   items: MyBidsDtoItemsItem[];
@@ -24,4 +25,9 @@ export interface MyBidsDto {
      * @maximum 9007199254740991
      */
   totalPages: number;
+  /**
+     * Podsumowanie trwających licytacji (tylko status=ACTIVE), niezależne od strony
+     * @nullable
+     */
+  summary: MyBidsDtoSummary;
 }
