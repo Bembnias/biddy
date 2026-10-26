@@ -16,8 +16,10 @@ import { cache } from 'react';
 import { TrackOnMount } from '@/analytics/track-on-mount';
 import { AuctionDetails } from '@/components/auction/auction-details';
 import { AuctionGallery } from '@/components/auction/auction-gallery';
+import { AuctionSignals } from '@/components/auction/auction-signals';
 import { BidHistory } from '@/components/auction/bid-history';
 import { BidPanel } from '@/components/auction/bid-panel';
+import { MobileBidBarSlot } from '@/components/auction/mobile-bid-bar-slot';
 import { SellerCard } from '@/components/auction/seller-card';
 import { Chip } from '@/components/ui/chip';
 import { config } from '@/config';
@@ -156,7 +158,11 @@ export default async function AuctionPage({ params }: PageProps) {
           i sprzedawca jedno pod drugim; na desktopie tytuł, panel i historia w prawej kolumnie. */}
       <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_26rem] lg:grid-rows-[auto_1fr]">
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <AuctionGallery title={auction.title} photos={auction.photos} />
+          <AuctionGallery
+            title={auction.title}
+            photos={auction.photos}
+            badges={<AuctionSignals initial={auction} />}
+          />
         </div>
         <div className="min-w-0 space-y-6 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <div className="space-y-3">
@@ -178,6 +184,7 @@ export default async function AuctionPage({ params }: PageProps) {
           <SellerCard seller={auction.seller} />
         </div>
       </div>
+      <MobileBidBarSlot />
     </div>
   );
 }

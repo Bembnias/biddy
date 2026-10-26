@@ -285,7 +285,7 @@ export interface MockRealtime {
 /**
  * Serwer Socket.IO (F-17) w przeglądarce testu: protokół Engine.IO 4 / Socket.IO 5 przez
  * `page.routeWebSocket`. Otwarcie (`0{…}`), połączenie przestrzeni nazw (`40`), potwierdzenia
- * `auction:subscribe` i `time:ping` (`43{id}[…]`) i zdarzenia (`42[…]`).
+ * `auction:subscribe`, `auction:view` i `time:ping` (`43{id}[…]`) i zdarzenia (`42[…]`).
  */
 export async function mockRealtime(page: Page): Promise<MockRealtime> {
   const subscriptions = new Set<string>();
@@ -317,6 +317,9 @@ export async function mockRealtime(page: Page): Promise<MockRealtime> {
         subscriptions.add(argument);
         waiting.get(argument)?.();
         ack({ ok: true });
+      } else if (name === 'auction:view' && typeof argument === 'string') {
+        // F-63: strona aukcji zgłasza oglądanie; jedna osoba (poniżej progu pokazywania liczby).
+        ack({ ok: true, viewers: 1 });
       } else if (name === 'time:ping') {
         ack({ serverTime: new Date().toISOString() });
       }

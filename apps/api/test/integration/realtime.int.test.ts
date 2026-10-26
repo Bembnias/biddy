@@ -9,14 +9,21 @@ import type {
   ServerToClientEvents,
   SubscribeResult,
   UserOutbidEvent,
+  ViewResult,
   UserWonEvent,
 } from '@biddy/realtime';
+import { Redis } from 'ioredis';
 import { Pool } from 'pg';
 import { io, type Socket } from 'socket.io-client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { newId } from '../../src/infra/db/index.js';
-import { REALTIME_PATH } from '../../src/infra/realtime/index.js';
+import {
+  AuctionPresence,
+  PRESENCE_STALE_MS,
+  REALTIME_PATH,
+  presenceKey,
+} from '../../src/infra/realtime/index.js';
 import { AuctionClosingService } from '../../src/modules/auctions/index.js';
 import { type TestUser, WEB_ORIGIN, createUser } from './support/accounts.js';
 import { integrationConfig, startTestApp, type TestApp } from './support/app.js';
@@ -117,6 +124,11 @@ async function connected(client: Client): Promise<void> {
 async function subscribe(client: Client, auctionId: string): Promise<SubscribeResult> {
   await connected(client);
   return client.emitWithAck('auction:subscribe', auctionId);
+}
+
+async function view(client: Client, auctionId: string): Promise<ViewResult> {
+  await connected(client);
+  return client.emitWithAck('auction:view', auctionId);
 }
 
 /** Zbiera zdarzenia danego typu z gniazda. */
@@ -326,5 +338,56 @@ describe('koniec aukcji', () => {
     await waitFor(() => ended.length === 1 && won.length === 1, 'zamknięcie z workera', 3_000);
     expect(updated.at(-1)).toMatchObject({ status: 'ENDED_SOLD', minimumNextBid: null });
     expect(won[0]?.orderPublicId).toMatch(/^[a-z2-9]{8}$/u);
+  });
+});
+
+describe('oglądający aukcję (F-63)', () => {
+  it('liczba z obu instancji w potwierdzeniu i w auction.viewers, spadek po rozłączeniu', async () => {
+    const id = await auction();
+    const first = connect(urlA);
+    expect(await subscribe(first, id)).toEqual({ ok: true });
+    const counts = collect(first, 'auction.viewers');
+    expect(await view(first, id)).toEqual({ ok: true, viewers: 1 });
+
+    const second = connect(urlB);
+    expect(await view(second, id)).toEqual({ ok: true, viewers: 2 });
+    // Najwyżej jedno zdarzenie na 5 s: liczba 2 dochodzi najpóźniej po oknie throttlingu.
+    await waitFor(() => counts.at(-1)?.count === 2, 'liczba oglądających 2', 10_000);
+    expect(counts.every((event) => event.auctionId === id)).toBe(true);
+
+    second.disconnect();
+    await waitFor(() => counts.at(-1)?.count === 1, 'liczba oglądających 1', 10_000);
+    // Liczba nie zdradza, kto ogląda: tylko aukcja, liczba i czas serwera.
+    expect(Object.keys(counts.at(-1) ?? {}).sort()).toEqual(['auctionId', 'count', 'serverTime']);
+  });
+
+  it('błędny identyfikator i limit aukcji oglądanych przez jedno połączenie', async () => {
+    const client = connect(urlA);
+    expect(await view(client, 'nie-uuid')).toEqual({ ok: false, error: 'INVALID_AUCTION_ID' });
+    for (let index = 0; index < 5; index += 1) {
+      expect((await view(client, newId())).ok).toBe(true);
+    }
+    expect(await view(client, newId())).toEqual({ ok: false, error: 'TOO_MANY_VIEWS' });
+  });
+
+  it('wpisy instancji, która padła, przestają się liczyć po PRESENCE_STALE_MS', async () => {
+    const redis = new Redis(redisUrl());
+    try {
+      let now = Date.now();
+      const presence = new AuctionPresence(redis, () => now);
+      const id = newId();
+      expect(await presence.add(id, 'gniazdo-a')).toBe(1);
+      expect(await presence.add(id, 'gniazdo-b')).toBe(2);
+      now += PRESENCE_STALE_MS / 2;
+      await presence.refresh([{ auctionId: id, member: 'gniazdo-a' }]);
+      now += PRESENCE_STALE_MS / 2 + 1;
+      expect(await presence.count(id)).toBe(1);
+      expect(await redis.ttl(presenceKey(id))).toBeGreaterThan(0);
+      // Ostatni oglądający wychodzi: pusty zbiór (i klucz) znika.
+      expect(await presence.remove(id, 'gniazdo-a')).toBe(0);
+      expect(await redis.exists(presenceKey(id))).toBe(0);
+    } finally {
+      await redis.quit();
+    }
   });
 });

@@ -1,8 +1,9 @@
 'use client';
 
-// Panel licytacji (F-18): cena, licznik z zegara serwera, stan użytkownika i formularz oferty
-// z ceną łączną (F-13) i potwierdzeniem. Oferty i Kup teraz z Idempotency-Key: ponowienie tej
-// samej próby (np. po zerwaniu sieci) nie złoży drugiej oferty (F-15).
+// Panel licytacji (F-18, „Puls licytacji” F-63): cena z impulsem, licznik w trzech tonach, stan
+// licytującego, formularz z szybkimi kwotami i toasty na żywo (przebicie, przedłużenie, koniec,
+// ostatnie minuty). Na telefonie pasek z ceną i licznikiem przyklejony do dołu strony i dolny
+// arkusz z formularzem. Wygrana zastępuje panel panelem wygranej (decyzja D2).
 import {
   type FeeScheduleDto,
   type MyBiddingDto,
@@ -10,16 +11,28 @@ import {
   type SessionDto,
   buyNow,
   isApiError,
-  placeBid,
 } from '@biddy/api-client';
-import { auctionPath, formatMoney, money } from '@biddy/shared';
-import { CircleCheck, Clock, Gavel, Timer, TriangleAlert, Trophy } from 'lucide-react';
+import { auctionPath, money } from '@biddy/shared';
+import {
+  CircleCheck,
+  CircleX,
+  Gavel,
+  Info,
+  LockKeyhole,
+  RefreshCw,
+  ShieldCheck,
+  Timer,
+  TriangleAlert,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type FormEvent, useId, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 
 import { track } from '@/analytics/posthog';
 import { TotalPrice } from '@/components/pricing/total-price';
+import { useToast } from '@/components/providers/toast-provider';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,17 +44,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  type AuctionPhase,
-  auctionPhase,
-  parseBidAmount,
-  remainingParts,
-} from '@/lib/auction/auction-state';
+import { IconTile } from '@/components/ui/icon-tile';
+import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/components/ui/sheet';
+import { auctionPhase, clockParts, remainingParts, shortMoney } from '@/lib/auction/auction-state';
 import { routes, withNext } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
+import { BidForm, type BidRequest, type BidResult, type BidderStanding } from './bid-form';
+import { BidStateBar } from './bid-state-bar';
+import { Countdown } from './countdown';
+import { MOBILE_BID_BAR_ID } from './mobile-bid-bar-slot';
+import { PriceTicker } from './price-ticker';
 import { WatchButton } from './watch-button';
 import {
   useAuction,
@@ -50,22 +63,17 @@ import {
   useRefreshAuction,
   useServerNow,
 } from './use-auction';
+import { WinPanel } from './win-panel';
 
-/** Licznik zmienia ton poniżej doby (fiolet) i godziny (czerwień), jak w design systemie (F-62). */
-const DAY_MS = 86_400_000;
-const HOUR_MS = 3_600_000;
+/** Toast „kończy się” na tyle przed końcem, raz na aukcję i sesję przeglądarki. */
+const ENDING_SOON_MS = 5 * 60_000;
 
-/** Kody błędów, po których stan aukcji na stronie jest nieaktualny. */
-const STALE_STATE_CODES = new Set(['BID_TOO_LOW', 'AUCTION_ENDED', 'BUY_NOW_UNAVAILABLE']);
-
-/** Najtańsza dostawa z cennika Biddy („+ dostawa od”, F-24); null bez opcji dostawy. */
-const shippingFromOf = (auction: PublicAuctionDto) =>
-  auction.shippingFrom === null ? null : money(auction.shippingFrom);
-
-const short = (amount: number) =>
-  formatMoney(money(amount), { trailingZeroDisplay: 'stripIfInteger' });
+/** Od tej szerokości formularz jest w panelu obok galerii; poniżej w dolnym arkuszu. */
+const DESKTOP_QUERY = '(min-width: 1024px)';
 
 type SessionUser = NonNullable<SessionDto['user']>;
+
+const noSubscribe = () => () => undefined;
 
 export function BidPanel({
   initial,
@@ -76,191 +84,380 @@ export function BidPanel({
 }) {
   const t = useTranslations('auction.panel');
   const format = useFormatter();
+  const show = useToast();
   const auction = useAuction(initial);
   const { user, bidding } = useBidder(auction.publicId);
   const now = useServerNow();
   const phase = auctionPhase(auction, now);
-  const [notice, setNotice] = useState<string>();
+  const [extendedTo, setExtendedTo] = useState<string | null>(null);
+  const [panelRequest, setPanelRequest] = useState<BidRequest | null>(null);
+  const [sheetRequest, setSheetRequest] = useState<BidRequest | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const barSlot = useSyncExternalStore(
+    noSubscribe,
+    () => document.getElementById(MOBILE_BID_BAR_ID),
+    () => null,
+  );
+
+  const left = now === null || auction.endsAt === null ? null : Date.parse(auction.endsAt) - now;
+  const time = (iso: string) => format.dateTime(new Date(iso), { timeStyle: 'short' });
+
+  /** „Zalicytuj ponownie” z toastu: kwota minimalna w polu i fokus; na telefonie w arkuszu. */
+  const requestBid = () => {
+    track('rebid_opened', { from: 'toast' });
+    const request = { key: Date.now() };
+    if (window.matchMedia(DESKTOP_QUERY).matches) {
+      setPanelRequest(request);
+    } else {
+      setSheetRequest(request);
+      setSheetOpen(true);
+    }
+  };
+
+  const showOutbid = (minimum: number) => {
+    show({
+      id: `outbid:${auction.id}`,
+      tone: 'urgent',
+      icon: TriangleAlert,
+      title: t('outbidTitle'),
+      description: t('outbidToast', { title: auction.title, minimum: shortMoney(minimum) }),
+      action: {
+        label: t('rebid'),
+        onSelect: requestBid,
+      },
+      urgent: true,
+    });
+  };
+
+  const onBidResult = (result: BidResult) => {
+    setSheetOpen(false);
+    if (result.leading) {
+      show({
+        id: `bid:${auction.id}`,
+        tone: 'success',
+        icon: CircleCheck,
+        title: t('leadingTitle'),
+        description: t('leadingToast', {
+          max: shortMoney(result.amount),
+          price: shortMoney(result.price),
+        }),
+      });
+    } else {
+      showOutbid(result.minimum);
+    }
+  };
 
   useLiveAuction(auction, user !== undefined && user !== null, (event) => {
     if (event.kind === 'outbid') {
-      setNotice(
-        t('outbidLive', {
-          minimum: short(event.event.minimumNextBid ?? event.event.currentPrice),
-        }),
-      );
+      showOutbid(event.event.minimumNextBid ?? event.event.currentPrice);
     } else if (event.kind === 'extended') {
-      setNotice(
-        t('extendedLive', {
-          date: format.dateTime(new Date(event.event.endsAt), {
-            dateStyle: 'medium',
-            timeStyle: 'medium',
-          }),
-        }),
-      );
+      setExtendedTo(event.event.endsAt);
+      show({
+        id: `extended:${auction.id}`,
+        tone: 'brand',
+        icon: RefreshCw,
+        title: t('extendedTitle'),
+        description: t('extendedToast', { time: time(event.event.endsAt) }),
+      });
     } else {
-      setNotice(t('endedLive'));
+      show({ id: `ended:${auction.id}`, tone: 'brand', icon: Gavel, title: t('endedLive') });
     }
   });
 
+  // Ostatnie minuty aukcji, w której użytkownik licytuje albo którą obserwuje.
+  const endingSoon =
+    phase !== 'closing' &&
+    auction.status === 'ACTIVE' &&
+    left !== null &&
+    left > 0 &&
+    left <= ENDING_SOON_MS &&
+    (bidding?.hasBid === true || bidding?.watching === true);
+  const endingShown = useRef(false);
+  useEffect(() => {
+    if (!endingSoon || endingShown.current) {
+      return;
+    }
+    endingShown.current = true;
+    const key = `biddy:ending-soon:${auction.id}`;
+    try {
+      if (sessionStorage.getItem(key) !== null) {
+        return;
+      }
+      sessionStorage.setItem(key, '1');
+    } catch {
+      // Bez pamięci sesji (tryb prywatny): toast najwyżej raz na wejście na stronę.
+    }
+    show({
+      id: `ending:${auction.id}`,
+      tone: 'warning',
+      icon: Timer,
+      title: t('endingSoonTitle'),
+      description: t('endingSoonText', { title: auction.title }),
+    });
+  }, [endingSoon, auction.id, auction.title, show, t]);
+
+  if (bidding?.outcome === 'WON') {
+    return <WinPanel auction={auction} bidding={bidding} />;
+  }
+
   const ended = phase === 'sold' || phase === 'unsold' || phase === 'cancelled';
+  const standing = standingOf(auction, bidding);
+  const canBid =
+    !ended &&
+    phase !== 'closing' &&
+    phase !== 'scheduled' &&
+    user !== undefined &&
+    user !== null &&
+    bidding?.isSeller !== true &&
+    user.id !== auction.seller.id &&
+    user.termsAccepted &&
+    user.phoneVerified;
   const priceLabel = ended
     ? t('finalPrice')
     : auction.currentPrice === null
       ? t('startPrice')
       : t('currentPrice');
+  const price = auction.currentPrice ?? auction.startPrice;
+  const timeLeft = left === null ? null : countdownText(left, t);
 
   return (
-    <section
-      aria-labelledby="bid-panel-title"
-      className="space-y-5 rounded-xl border border-border bg-card p-5 shadow-md sm:p-6"
-    >
-      <h2 id="bid-panel-title" className="sr-only">
-        {t('title')}
-      </h2>
-      <div className="space-y-1">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-overline text-muted-foreground uppercase">{priceLabel}</p>
-            <p className="mt-1 text-price-xl tabular-nums" data-testid="auction-price">
-              {short(auction.currentPrice ?? auction.startPrice)}
-            </p>
+    <>
+      <section
+        id="bid-panel"
+        aria-labelledby="bid-panel-title"
+        className={cn(
+          'scroll-mt-24 space-y-5 rounded-2xl border bg-card p-5 shadow-md sm:p-6',
+          standing === 'outbid' ? 'border-red-300' : 'border-border',
+        )}
+      >
+        <h2 id="bid-panel-title" className="sr-only">
+          {t('title')}
+        </h2>
+        <div className="space-y-1">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-overline text-muted-foreground uppercase">{priceLabel}</p>
+              <div className="mt-1">
+                <PriceTicker amount={price} currency={auction.currency} />
+              </div>
+            </div>
+            <div className="mt-5 flex shrink-0 flex-col items-end gap-1">
+              {auction.bidCount === 0 ? (
+                <span className="text-label text-foreground-secondary">
+                  {t('bids', { count: 0 })}
+                </span>
+              ) : (
+                <a
+                  href="#bid-history-title"
+                  className="rounded-xs text-label font-extrabold text-link underline-offset-3 outline-none hover:text-link-hover hover:underline focus-visible:shadow-focus-ring"
+                >
+                  {t('bids', { count: auction.bidCount })}
+                </a>
+              )}
+            </div>
           </div>
-          <a
-            href="#bid-history-title"
-            className="mt-5 shrink-0 rounded-xs text-label text-link underline-offset-3 outline-none hover:text-link-hover hover:underline focus-visible:shadow-focus-ring"
-          >
-            {t('bids', { count: auction.bidCount })}
-          </a>
+          {auction.leader === null ? null : (
+            <p className="text-body-sm text-muted-foreground">
+              {t('leader', { name: auction.leader.publicName })}
+            </p>
+          )}
+          {auction.reserveStatus === 'NONE' ? null : (
+            <p
+              className={cn(
+                'text-body-sm',
+                auction.reserveStatus === 'MET' ? 'text-success' : 'text-muted-foreground',
+              )}
+            >
+              {t('reserve', { status: auction.reserveStatus })}
+            </p>
+          )}
         </div>
-        {auction.leader === null ? null : (
-          <p className="text-body-sm text-muted-foreground">
-            {t('leader', { name: auction.leader.publicName })}
+
+        <Countdown auction={auction} phase={phase} now={now} />
+
+        {extendedTo === null || ended ? null : (
+          <p className="flex animate-enter items-center gap-2 rounded-lg bg-accent px-3 py-2.5 text-body-sm font-bold text-accent-foreground">
+            <RefreshCw aria-hidden className="size-4 shrink-0" />
+            {t('extendedLive', { time: time(extendedTo) })}
           </p>
         )}
-        {auction.reserveStatus === 'NONE' ? null : (
-          <p
-            className={cn(
-              'text-body-sm',
-              auction.reserveStatus === 'MET' ? 'text-success' : 'text-muted-foreground',
+
+        <BidderStatus auction={auction} bidding={bidding} />
+
+        {ended || phase === 'closing' || phase === 'scheduled' ? null : (
+          <Actions
+            auction={auction}
+            user={user}
+            bidding={bidding}
+            standing={standing}
+            feeSchedule={feeSchedule}
+            timeLeft={timeLeft}
+            request={panelRequest}
+            onResult={onBidResult}
+            onBought={() => {
+              show({
+                id: `bid:${auction.id}`,
+                tone: 'success',
+                icon: CircleCheck,
+                title: t('bought'),
+              });
+            }}
+          />
+        )}
+
+        <WatchButton auction={auction} user={user} bidding={bidding} />
+
+        {ended ? null : (
+          <p className="flex items-start gap-2.5 text-body-sm text-foreground-secondary">
+            <ShieldCheck aria-hidden className="mt-0.5 size-4.5 shrink-0 text-success" />
+            <span>
+              <span className="font-bold text-foreground">{t('protectionTitle')}</span>{' '}
+              {t('protectionText')}
+            </span>
+          </p>
+        )}
+      </section>
+
+      {barSlot === null || ended || phase === 'closing' ? null : (
+        <MobileBidBarPortal slot={barSlot}>
+          <div className="flex items-center gap-3 border-t border-border bg-card px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="text-price-lg tabular-nums">{shortMoney(price)}</span>
+              {timeLeft === null ? null : (
+                <span
+                  className={cn(
+                    'text-caption font-extrabold tabular-nums',
+                    left !== null && left < 3_600_000 ? 'text-urgent' : 'text-foreground-secondary',
+                  )}
+                >
+                  {timeLeft}
+                </span>
+              )}
+            </div>
+            {canBid ? (
+              <Button
+                type="button"
+                variant="cta"
+                size="lg"
+                onClick={() => {
+                  setSheetRequest(null);
+                  setSheetOpen(true);
+                }}
+              >
+                {ctaLabel(standing, t)}
+              </Button>
+            ) : (
+              <Button asChild variant="cta" size="lg">
+                <a href="#bid-panel">{t('bid')}</a>
+              </Button>
             )}
-          >
-            {t('reserve', { status: auction.reserveStatus })}
-          </p>
-        )}
-      </div>
-
-      <Timing auction={auction} phase={phase} now={now} />
-
-      <BidderStatus auction={auction} bidding={bidding} />
-
-      {ended || phase === 'closing' || phase === 'scheduled' ? null : (
-        <Actions
-          auction={auction}
-          user={user}
-          bidding={bidding}
-          feeSchedule={feeSchedule}
-          onNotice={setNotice}
-        />
+          </div>
+        </MobileBidBarPortal>
       )}
 
-      <WatchButton auction={auction} user={user} bidding={bidding} />
-
-      <p role="status" aria-live="polite" className="text-body-sm font-semibold empty:hidden">
-        {notice}
-      </p>
-    </section>
-  );
-}
-
-/** Licznik do końca (w przeglądarce) albo wynik aukcji. */
-function Timing({
-  auction,
-  phase,
-  now,
-}: {
-  readonly auction: PublicAuctionDto;
-  readonly phase: AuctionPhase;
-  readonly now: number | null;
-}) {
-  const t = useTranslations('auction.panel');
-  const format = useFormatter();
-  const date = (iso: string) =>
-    format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' });
-
-  const banner = (text: string) => (
-    <p className="flex items-center gap-2 rounded-md bg-muted px-4 py-3 text-label text-foreground-secondary">
-      <Clock aria-hidden className="size-4.5 shrink-0" />
-      <span>{text}</span>
-    </p>
-  );
-  switch (phase) {
-    case 'sold':
-      return banner(t('sold', { price: short(auction.currentPrice ?? auction.startPrice) }));
-    case 'unsold':
-      return banner(t('unsold'));
-    case 'cancelled':
-      return banner(t('cancelled'));
-    case 'closing':
-      return banner(t('closing'));
-    case 'scheduled':
-      return auction.startsAt === null
-        ? null
-        : banner(t('scheduled', { date: date(auction.startsAt) }));
-    case 'active':
-    case 'ending':
-      break;
-  }
-  if (auction.endsAt === null) {
-    return null;
-  }
-  const left = now === null ? null : Date.parse(auction.endsAt) - now;
-  const remaining = left === null ? null : remainingParts(left);
-  const tone =
-    phase === 'ending' || (left !== null && left < HOUR_MS)
-      ? 'urgent'
-      : left !== null && left < DAY_MS
-        ? 'soon'
-        : 'calm';
-  const Icon = tone === 'urgent' ? Timer : Clock;
-  return (
-    <div
-      data-tone={tone}
-      className={cn(
-        'space-y-1 rounded-md px-4 py-3',
-        tone === 'urgent' && 'bg-urgent-soft text-urgent',
-        tone === 'soon' && 'bg-accent text-accent-foreground',
-        tone === 'calm' && 'bg-muted text-foreground-secondary',
-      )}
-    >
-      {remaining === null ? null : (
-        <p className="flex flex-wrap items-center gap-x-2 text-label">
-          <Icon aria-hidden className="size-4.5 shrink-0" />
-          <span>{t('remaining')}:</span>
-          <span role="timer" className="text-timer tabular-nums">
-            {t('countdown', {
-              ...remaining,
-              ...(remaining.kind === 'minutes'
-                ? {
-                    minutes: String(remaining.minutes).padStart(2, '0'),
-                    seconds: String(remaining.seconds).padStart(2, '0'),
-                  }
-                : {}),
-            })}
-          </span>
-        </p>
-      )}
-      <p className="text-body-sm">{t('endsAt', { date: date(auction.endsAt) })}</p>
-      {phase === 'ending' ? (
-        <p className="text-body-sm font-semibold">
-          {t('ending', { minutes: Math.max(1, Math.round(auction.extensionWindowSeconds / 60)) })}
-        </p>
+      {canBid ? (
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent aria-describedby={undefined}>
+            {standing === 'outbid' ? (
+              <div className="flex items-center gap-3 rounded-xl bg-urgent p-3.5 text-primary-foreground">
+                <TriangleAlert aria-hidden className="size-6.5 shrink-0" />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <SheetTitle className="text-h3">{t('outbidTitle')}</SheetTitle>
+                  <span className="text-body-sm">
+                    {t('outbidSheet', { max: shortMoney(bidding?.maxAmount ?? 0) })}
+                  </span>
+                </div>
+                {timeLeft === null ? null : (
+                  <span className="rounded-md bg-card px-2 py-1 text-label font-extrabold text-urgent tabular-nums">
+                    {timeLeft}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <SheetTitle className="text-h3">{t('sheetTitle')}</SheetTitle>
+            )}
+            <div className="flex items-center gap-3">
+              {auction.photos[0] === undefined ? null : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={auction.photos[0].urls.thumb}
+                  alt=""
+                  className="size-12 shrink-0 rounded-lg bg-muted object-cover"
+                />
+              )}
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-label">{auction.title}</span>
+                <span className="text-body-sm text-foreground-secondary">
+                  {t('sheetPrice', { price: shortMoney(price), count: auction.bidCount })}
+                </span>
+              </div>
+            </div>
+            <BidForm
+              auction={auction}
+              standing={standing}
+              feeSchedule={feeSchedule}
+              timeLeft={timeLeft}
+              request={sheetRequest}
+              onResult={onBidResult}
+            />
+            <SheetClose asChild>
+              <Button type="button" variant="ghost" className="w-full">
+                {t('notNow')}
+              </Button>
+            </SheetClose>
+          </SheetContent>
+        </Sheet>
       ) : null}
-    </div>
+    </>
   );
 }
 
-/** Stan zalogowanego użytkownika: prowadzi, wygrał, przegrał. */
+/** Pasek licytacji w miejscu z page.tsx (koniec strony), żeby przyklejał się do dołu ekranu. */
+function MobileBidBarPortal({
+  slot,
+  children,
+}: {
+  readonly slot: HTMLElement;
+  readonly children: ReactNode;
+}) {
+  return createPortal(children, slot);
+}
+
+function standingOf(auction: PublicAuctionDto, bidding: MyBiddingDto | undefined): BidderStanding {
+  if (auction.status !== 'ACTIVE' || bidding === undefined || !bidding.hasBid) {
+    return 'first';
+  }
+  return bidding.leading ? 'leading' : 'outbid';
+}
+
+function ctaLabel(
+  standing: BidderStanding,
+  t: ReturnType<typeof useTranslations<'auction.panel'>>,
+): string {
+  switch (standing) {
+    case 'outbid':
+      return t('outbidCta');
+    case 'leading':
+      return t('raise');
+    case 'first':
+      return t('bid');
+  }
+}
+
+/** Czas do końca jednym tekstem: „2 dni 4 godz.” albo „00:12:31”. */
+function countdownText(
+  remaining: number,
+  t: ReturnType<typeof useTranslations<'auction.panel'>>,
+): string {
+  const parts = remainingParts(remaining);
+  if (parts.kind === 'days') {
+    return t('countdownDays', parts);
+  }
+  const clock = clockParts(remaining);
+  return `${clock.hh}:${clock.mm}:${clock.ss}`;
+}
+
+/** Stan zalogowanego użytkownika: prowadzi, przebity, przegrał, cena minimalna. */
 function BidderStatus({
   auction,
   bidding,
@@ -269,72 +466,53 @@ function BidderStatus({
   readonly bidding: MyBiddingDto | undefined;
 }) {
   const t = useTranslations('auction.panel');
-  const format = useFormatter();
   if (bidding === undefined) {
     return null;
   }
   switch (bidding.outcome) {
-    case 'WON':
-      return (
-        <div className="rounded-md bg-accent px-4 py-3" data-testid="bidder-status">
-          <p className="flex items-center gap-2 text-label text-accent-foreground">
-            <Trophy aria-hidden className="size-4.5 shrink-0" />
-            {t('won')}
-          </p>
-          {bidding.order === null ? null : (
-            <p className="mt-1 text-body-sm text-foreground">
-              {t('wonOrder', {
-                number: bidding.order.publicId,
-                total: formatMoney(money(bidding.order.total)),
-                date: format.dateTime(new Date(bidding.order.paymentDueAt), {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                }),
-              })}
-            </p>
-          )}
-        </div>
-      );
     case 'LOST':
       return (
-        <p
-          className="rounded-md bg-muted px-4 py-3 text-body-sm text-foreground-secondary"
-          data-testid="bidder-status"
-        >
-          {t('lost')}
-        </p>
+        <BidStateBar
+          tone="neutral"
+          icon={CircleX}
+          title={t('lost')}
+          description={
+            <Link
+              href={routes.search}
+              className="font-bold text-link underline-offset-3 hover:text-link-hover hover:underline"
+            >
+              {t('lostLink')}
+            </Link>
+          }
+        />
       );
     case 'RESERVE_NOT_MET':
-      return (
-        <p
-          className="rounded-md bg-muted px-4 py-3 text-body-sm text-foreground-secondary"
-          data-testid="bidder-status"
-        >
-          {t('reserveNotMet')}
-        </p>
-      );
+      return <BidStateBar tone="neutral" icon={Info} title={t('reserveNotMet')} />;
+    case 'WON':
     case 'NONE':
       break;
   }
   if (auction.status !== 'ACTIVE' || !bidding.hasBid || bidding.maxAmount === null) {
     return null;
   }
+  const max = shortMoney(bidding.maxAmount);
   return bidding.leading ? (
-    <p
-      className="flex items-center gap-2 rounded-md bg-success-soft px-4 py-3 text-label text-success"
-      data-testid="bidder-status"
-    >
-      <CircleCheck aria-hidden className="size-4.5 shrink-0" />
-      {t('leading', { max: short(bidding.maxAmount) })}
-    </p>
+    <BidStateBar
+      tone="success"
+      icon={CircleCheck}
+      title={t('leadingTitle')}
+      description={t('leadingText', { max })}
+    />
   ) : (
-    <p
-      className="flex items-center gap-2 rounded-md bg-urgent-soft px-4 py-3 text-label text-urgent"
-      data-testid="bidder-status"
-    >
-      <TriangleAlert aria-hidden className="size-4.5 shrink-0" />
-      {t('outbid', { minimum: short(auction.minimumNextBid ?? auction.startPrice) })}
-    </p>
+    <BidStateBar
+      tone="urgent"
+      icon={TriangleAlert}
+      title={t('outbidTitle')}
+      description={t('outbidText', {
+        max,
+        minimum: shortMoney(auction.minimumNextBid ?? auction.startPrice),
+      })}
+    />
   );
 }
 
@@ -343,14 +521,22 @@ function Actions({
   auction,
   user,
   bidding,
+  standing,
   feeSchedule,
-  onNotice,
+  timeLeft,
+  request,
+  onResult,
+  onBought,
 }: {
   readonly auction: PublicAuctionDto;
   readonly user: SessionUser | null | undefined;
   readonly bidding: MyBiddingDto | undefined;
+  readonly standing: BidderStanding;
   readonly feeSchedule: FeeScheduleDto | undefined;
-  readonly onNotice: (notice: string) => void;
+  readonly timeLeft: string | null;
+  readonly request: BidRequest | null;
+  readonly onResult: (result: BidResult) => void;
+  readonly onBought: () => void;
 }) {
   const t = useTranslations('auction.panel');
   const path = auctionPath(auction.slug, auction.publicId);
@@ -360,11 +546,19 @@ function Actions({
     return null;
   }
   if (user === null) {
-    return <Gate action={t('guest')} text={t('guestText')} href={withNext(routes.signIn, path)} />;
+    return (
+      <Gate
+        title={t('guest')}
+        text={t('guestText')}
+        action={t('guestLogin')}
+        href={withNext(routes.signIn, path)}
+        secondary={{ label: t('guestSignUp'), href: withNext(routes.signUp, path) }}
+      />
+    );
   }
   if (bidding?.isSeller === true || user.id === auction.seller.id) {
     return (
-      <p className="rounded-md bg-muted px-4 py-3 text-body-sm text-foreground-secondary">
+      <p className="rounded-lg bg-muted px-4 py-3 text-body-sm text-foreground-secondary">
         {t('own')}{' '}
         <Link
           href={routes.myAuctions}
@@ -376,224 +570,80 @@ function Actions({
     );
   }
   if (!user.termsAccepted) {
-    return <Gate action={t('terms')} href={withNext(routes.acceptTerms, path)} />;
+    return (
+      <Gate
+        title={t('terms')}
+        action={t('termsAction')}
+        href={withNext(routes.acceptTerms, path)}
+      />
+    );
   }
   if (!user.phoneVerified) {
     return (
-      <Gate action={t('phone')} text={t('phoneText')} href={withNext(routes.verifyPhone, path)} />
+      <Gate
+        title={t('phone')}
+        text={t('phoneText')}
+        action={t('phoneAction')}
+        href={withNext(routes.verifyPhone, path)}
+      />
     );
   }
   return (
     <div className="space-y-4">
       <BidForm
         auction={auction}
-        firstBid={!(bidding?.hasBid ?? false)}
+        standing={standing}
         feeSchedule={feeSchedule}
-        onNotice={onNotice}
+        timeLeft={timeLeft}
+        request={request}
+        onResult={onResult}
       />
       {auction.buyNowAvailable && auction.buyNowPrice !== null ? (
         <BuyNow
           auction={auction}
           price={auction.buyNowPrice}
           feeSchedule={feeSchedule}
-          onNotice={onNotice}
+          onBought={onBought}
         />
       ) : null}
     </div>
   );
 }
 
+/** Zamiast formularza: co zrobić, żeby licytować (logowanie, regulamin, telefon). */
 function Gate({
-  action,
+  title,
   text,
+  action,
   href,
+  secondary,
 }: {
-  readonly action: string;
+  readonly title: string;
   readonly text?: string;
+  readonly action: string;
   readonly href: string;
+  readonly secondary?: { readonly label: string; readonly href: string };
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border-strong bg-canvas px-4 py-5 text-center">
+        <IconTile tone="brand">
+          <LockKeyhole />
+        </IconTile>
+        <p className="text-title font-extrabold">{title}</p>
+        {text === undefined ? null : (
+          <p className="text-body-sm text-foreground-secondary">{text}</p>
+        )}
+      </div>
       <Button asChild variant="cta" size="lg" className="w-full">
         <Link href={href}>{action}</Link>
       </Button>
-      {text === undefined ? null : <p className="text-body-sm text-muted-foreground">{text}</p>}
+      {secondary === undefined ? null : (
+        <Button asChild variant="ghost" className="w-full text-link hover:text-link-hover">
+          <Link href={secondary.href}>{secondary.label}</Link>
+        </Button>
+      )}
     </div>
-  );
-}
-
-/** Próba oferty: ten sam klucz przy ponowieniu tej samej kwoty po błędzie sieci. */
-interface Attempt {
-  readonly amount: number;
-  readonly key: string;
-}
-
-function BidForm({
-  auction,
-  firstBid,
-  feeSchedule,
-  onNotice,
-}: {
-  readonly auction: PublicAuctionDto;
-  readonly firstBid: boolean;
-  readonly feeSchedule: FeeScheduleDto | undefined;
-  readonly onNotice: (notice: string) => void;
-}) {
-  const t = useTranslations('auction.panel');
-  const refresh = useRefreshAuction(auction);
-  const inputId = useId();
-  const hintId = useId();
-  const errorId = useId();
-  const [text, setText] = useState('');
-  const [error, setError] = useState<string>();
-  const [confirming, setConfirming] = useState<number | null>(null);
-  const [sending, setSending] = useState(false);
-  const attempt = useRef<Attempt | null>(null);
-
-  const minimum = auction.minimumNextBid ?? auction.startPrice;
-  const parsed = parseBidAmount(text);
-  const preview = typeof parsed === 'number' && parsed >= minimum ? parsed : minimum;
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (parsed === 'empty') {
-      setError(t('amountRequired'));
-      return;
-    }
-    if (parsed === 'invalid') {
-      setError(t('amountInvalid'));
-      return;
-    }
-    if (parsed < minimum) {
-      setError(t('amountTooLow', { minimum: short(minimum) }));
-      return;
-    }
-    setError(undefined);
-    if (attempt.current?.amount !== parsed) {
-      attempt.current = { amount: parsed, key: crypto.randomUUID() };
-    }
-    setConfirming(parsed);
-  };
-
-  const confirm = async (amount: number) => {
-    const current = attempt.current ?? { amount, key: crypto.randomUUID() };
-    setSending(true);
-    try {
-      const result = await placeBid(
-        auction.id,
-        { maxAmount: amount },
-        { headers: { 'Idempotency-Key': current.key } },
-      );
-      attempt.current = null;
-      setText('');
-      track('bid_placed', { leading: result.leading, firstBid });
-      onNotice(
-        result.leading
-          ? t('leading', { max: short(amount) })
-          : t('outbid', {
-              minimum: short(result.auction.minimumNextBid ?? auction.startPrice),
-            }),
-      );
-      await refresh();
-    } catch (failure) {
-      const definitive = isApiError(failure) && failure.status >= 400 && failure.status < 500;
-      if (definitive) {
-        attempt.current = null;
-        setError(failure.problem?.detail ?? t('error'));
-        track('bid_failed', { code: failure.code ?? `HTTP_${String(failure.status)}` });
-        if (failure.code !== undefined && STALE_STATE_CODES.has(failure.code)) {
-          await refresh();
-        }
-      } else {
-        // Sieć albo błąd serwera: ponowienie użyje tego samego klucza (bez drugiej oferty).
-        setError(t('error'));
-        track('bid_failed', { code: 'NETWORK' });
-      }
-    } finally {
-      setSending(false);
-      setConfirming(null);
-    }
-  };
-
-  return (
-    <form noValidate onSubmit={submit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor={inputId}>{t('maxLabel')}</Label>
-        <Input
-          id={inputId}
-          inputMode="decimal"
-          autoComplete="off"
-          value={text}
-          placeholder={short(minimum)}
-          aria-describedby={error === undefined ? hintId : `${errorId} ${hintId}`}
-          aria-invalid={error === undefined ? undefined : true}
-          onChange={(event) => {
-            setText(event.target.value);
-            setError(undefined);
-          }}
-        />
-        {error === undefined ? null : (
-          <p id={errorId} className="text-body-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <p id={hintId} className="text-body-sm text-muted-foreground">
-          {t('maxHint', { minimum: short(minimum) })}
-        </p>
-      </div>
-      <TotalPrice
-        amount={money(preview)}
-        kind="maxBid"
-        initialFeeSchedule={feeSchedule}
-        shippingFrom={shippingFromOf(auction)}
-      />
-      <Button type="submit" variant="cta" size="lg" className="w-full" disabled={sending}>
-        <Gavel aria-hidden />
-        {sending ? t('bidding') : t('bid')}
-      </Button>
-
-      <AlertDialog
-        open={confirming !== null}
-        onOpenChange={(open) => {
-          if (!open && !sending) {
-            setConfirming(null);
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('confirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('confirmText', { amount: short(confirming ?? preview) })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <TotalPrice
-            amount={money(confirming ?? preview)}
-            kind="maxBid"
-            initialFeeSchedule={feeSchedule}
-            shippingFrom={shippingFromOf(auction)}
-            withDetails={false}
-          />
-          <p className="text-body-sm text-muted-foreground">{t('confirmShipping')}</p>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={sending}>{t('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              className={buttonVariants({ variant: 'cta' })}
-              disabled={sending}
-              onClick={(event) => {
-                // Okno zamykamy po odpowiedzi API, nie od razu.
-                event.preventDefault();
-                if (confirming !== null) {
-                  void confirm(confirming);
-                }
-              }}
-            >
-              {sending ? t('bidding') : t('confirm')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </form>
   );
 }
 
@@ -601,12 +651,12 @@ function BuyNow({
   auction,
   price,
   feeSchedule,
-  onNotice,
+  onBought,
 }: {
   readonly auction: PublicAuctionDto;
   readonly price: number;
   readonly feeSchedule: FeeScheduleDto | undefined;
-  readonly onNotice: (notice: string) => void;
+  readonly onBought: () => void;
 }) {
   const t = useTranslations('auction.panel');
   const refresh = useRefreshAuction(auction);
@@ -614,6 +664,7 @@ function BuyNow({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
   const key = useRef<string | null>(null);
+  const shippingFrom = auction.shippingFrom === null ? null : money(auction.shippingFrom);
 
   const confirm = async () => {
     key.current ??= crypto.randomUUID();
@@ -622,7 +673,7 @@ function BuyNow({
       await buyNow(auction.id, { headers: { 'Idempotency-Key': key.current } });
       key.current = null;
       track('buy_now_completed');
-      onNotice(t('bought'));
+      onBought();
       setOpen(false);
       await refresh();
     } catch (failure) {
@@ -651,15 +702,17 @@ function BuyNow({
           setOpen(true);
         }}
       >
-        {t('buyNow', { price: short(price) })}
+        <Zap aria-hidden />
+        {t('buyNow', { price: shortMoney(price) })}
       </Button>
       <TotalPrice
         amount={money(price)}
         kind="buyNow"
         initialFeeSchedule={feeSchedule}
-        shippingFrom={shippingFromOf(auction)}
+        shippingFrom={shippingFrom}
         withDetails={false}
       />
+      <p className="text-caption text-muted-foreground">{t('buyNowNote')}</p>
       {error === undefined ? null : (
         <p role="alert" className="text-body-sm text-destructive">
           {error}
@@ -677,14 +730,14 @@ function BuyNow({
           <AlertDialogHeader>
             <AlertDialogTitle>{t('buyNowTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('buyNowText', { price: short(price) })}
+              {t('buyNowText', { price: shortMoney(price) })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <TotalPrice
             amount={money(price)}
             kind="buyNow"
             initialFeeSchedule={feeSchedule}
-            shippingFrom={shippingFromOf(auction)}
+            shippingFrom={shippingFrom}
             withDetails={false}
           />
           <p className="text-body-sm text-muted-foreground">{t('confirmShipping')}</p>

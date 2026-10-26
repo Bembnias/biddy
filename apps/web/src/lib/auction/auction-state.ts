@@ -2,7 +2,7 @@
 // fazy aukcji do panelu licytacji, licznik do końca i kwota oferty z pola tekstowego.
 import type { PublicAuctionDto } from '@biddy/api-client';
 import type { AuctionEndedEvent, AuctionUpdatedEvent } from '@biddy/realtime';
-import { MoneyParseError, parseMoney } from '@biddy/shared';
+import { type CurrencyCode, MoneyParseError, formatMoney, money, parseMoney } from '@biddy/shared';
 
 type PublicStatus = PublicAuctionDto['status'];
 
@@ -117,6 +117,31 @@ export function remainingParts(milliseconds: number): Remaining {
     return { kind: 'hours', hours, minutes };
   }
   return { kind: 'minutes', minutes, seconds: total % 60 };
+}
+
+/** Licznik gg:mm:ss (F-63) z częściami do opisu dla czytników ekranu. */
+export interface ClockParts {
+  readonly hours: number;
+  readonly minutes: number;
+  readonly seconds: number;
+  readonly hh: string;
+  readonly mm: string;
+  readonly ss: string;
+}
+
+/** Czas do końca jako gg:mm:ss (zaokrąglenie w górę, jak w `remainingParts`). */
+export function clockParts(milliseconds: number): ClockParts {
+  const total = Math.max(0, Math.ceil(milliseconds / 1000));
+  const hours = Math.floor(total / 3_600);
+  const minutes = Math.floor((total % 3_600) / 60);
+  const seconds = total % 60;
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return { hours, minutes, seconds, hh: pad(hours), mm: pad(minutes), ss: pad(seconds) };
+}
+
+/** Kwota w groszach bez zbędnych „,00” („320 zł”, „20,50 zł”). */
+export function shortMoney(amount: number, currency: CurrencyCode = 'PLN'): string {
+  return formatMoney(money(amount, currency), { trailingZeroDisplay: 'stripIfInteger' });
 }
 
 /** Kwota z pola oferty („120”, „120,50”, „1 200 zł”) w groszach albo błąd. */

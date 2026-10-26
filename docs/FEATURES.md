@@ -111,6 +111,7 @@ Szacunki nie obejmują projektu wizualnego kluczowych ekranów (freelancer w Faz
 | F-20 | Obserwowane i powiadomienia | 1 | M |
 | F-21 | Moje Biddy | 1 | S |
 | F-62 | Design system i odświeżenie UI web | 1 | L |
+| F-63 | Puls licytacji: nowy UI/UX web | 1 | L |
 | F-22 | Ledger | 2a | M |
 | F-23 | Port płatności i FakeGateway | 2a | M |
 | F-24 | Dostawy | 2a | L |
@@ -648,6 +649,27 @@ Dodany po oszacowaniu planu: to wdrożenie projektu wizualnego, którego szacunk
 
 **Zależności:** F-06, F-18, F-19, F-21 · **Spec:** §11.3, §22 nr 8, nr 87
 
+### F-63 · Puls licytacji: nowy UI/UX web · `L`
+
+> Pełny spec: [docs/features/F-63-puls-licytacji.md](features/F-63-puls-licytacji.md).
+
+Dodany po oszacowaniu planu, jak F-62: wdrożenie projektu widoków „Puls licytacji” (płótno z 31 ekranami) na fundamencie z F-62.
+
+**Cel:** interfejs, który oddaje emocje licytacji na żywo: sygnały zmian ceny i czasu, natychmiastowa informacja o przebiciu i moment wygranej.
+
+**Zakres:**
+- Etap 1, licytacja na żywo: komponenty pulsu (licznik, impuls ceny, LIVE, paski stanu, szybkie kwoty), panel licytacji w sześciu stanach, toasty na żywo, panel wygranej, pasek licytacji i arkusz „Przebito Cię” na telefonie, licznik oglądających.
+- Etap 2, przeglądanie: karta aukcji, strona główna, wyszukiwarka i kategoria, profil sprzedawcy, dolny pasek nawigacji na telefonie.
+- Etap 3: Moje Biddy, konto i powiadomienia.
+- Etap 4: logowanie, kreator aukcji z podglądem karty, nadanie paczki, strony 404 i błędu.
+
+**Kryteria akceptacji:**
+- Przebicie oferty widać w ciągu 1 s na stronie aukcji (pasek i toast) i na każdej innej stronie (toast).
+- Przy `prefers-reduced-motion` nic się nie animuje, a zmiany są nadal widoczne; axe bez naruszeń na stronach z e2e.
+- Jedna akcja `cta` na widok; kolory, typografia, promienie i cienie wyłącznie z tokenów.
+
+**Zależności:** F-62, F-17, F-18, F-19, F-21, F-24 · **Spec:** §11.3
+
 ---
 
 ## Etap 2a: Transakcje (niezależne od operatora płatności)
@@ -1158,7 +1180,7 @@ Startuje w trakcie bety (F-43), gdy rdzeń web jest stabilny. Publikacja w sklep
 
 ## Po MVP
 
-Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-62.
+Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-64.
 
 **v1 (miesiące 8–10)**
 

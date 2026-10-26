@@ -1054,12 +1054,12 @@ Jeden codebase `apps/api` ma dwa entrypointy:
 
 | Room | Kto subskrybuje | Zdarzenia |
 |---|---|---|
-| `auction:{id}` | Oglądający stronę aukcji | `auction.updated`, `auction.extended`, `auction.ended` |
+| `auction:{id}` | Oglądający stronę aukcji | `auction.updated`, `auction.extended`, `auction.ended`, `auction.viewers` |
 | `user:{id}` | Zalogowany użytkownik (wszystkie urządzenia) | `user.outbid`, `user.won`, `order.updated`, `message.new`, `notification.new` |
 
 Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez REST (nie polegamy na tym, że WS dostarczy wszystko).
 
-Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, adapter Redis na instancji cache. Do `user:{id}` dołącza wyłącznie serwer przy połączeniu (sesja z ciasteczka albo token Bearer); `auction:{id}` klient subskrybuje sam (`auction:subscribe`, najwyżej 50 aukcji). Zdarzenia publikuje API albo worker przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji. `notification.new` (F-20) niesie powiadomienie i liczbę nieprzeczytanych; `order.updated` i `message.new` dojdą z zamówieniami i czatem.
+Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, adapter Redis na instancji cache. Do `user:{id}` dołącza wyłącznie serwer przy połączeniu (sesja z ciasteczka albo token Bearer); `auction:{id}` klient subskrybuje sam (`auction:subscribe`, najwyżej 50 aukcji). Zdarzenia publikuje API albo worker przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji. `notification.new` (F-20) niesie powiadomienie i liczbę nieprzeczytanych; `order.updated` i `message.new` dojdą z zamówieniami i czatem. Liczba oglądających (F-63): strona aukcji zgłasza `auction:view` (najwyżej 5 aukcji na połączenie), API trzyma identyfikatory gniazd w Redisie cache z wygasaniem, a `auction.viewers` wysyła najwyżej raz na 5 s i tylko po zmianie; na zewnątrz wychodzi sama liczba.
 
 ---
 
@@ -1452,8 +1452,10 @@ interface UserWonEvent {
   auctionId: string; orderId: string; orderPublicId: string; currency: string; total: number;
   paymentDueAt: string; serverTime: string;
 }
+interface AuctionViewersEvent { auctionId: string; count: number; serverTime: string } // F-63
 // klient → serwer: 'auction:subscribe' (ack { ok } albo { ok: false, error }),
-// 'auction:unsubscribe', 'time:ping' (ack { serverTime })
+// 'auction:unsubscribe', 'auction:view' (ack { ok, viewers } albo { ok: false, error }, F-63),
+// 'auction:unview', 'time:ping' (ack { serverTime })
 ```
 
 ### 14.3 Eventy domenowe (outbox)

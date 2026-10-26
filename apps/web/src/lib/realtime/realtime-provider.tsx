@@ -156,6 +156,36 @@ export function useAuctionChannel(
 }
 
 /**
+ * Oglądanie strony aukcji (F-63): połączenie liczy się do „X osób ogląda”, a hook zwraca liczbę
+ * oglądających albo null przed pierwszą liczbą. Bez `auctionId` nic nie zgłasza.
+ */
+export function useAuctionViewers(auctionId: string | undefined): number | null {
+  const { client } = useRealtime();
+  const [viewers, setViewers] = useState<{ readonly auctionId: string; readonly count: number }>();
+
+  useEffect(() => {
+    if (auctionId === undefined) {
+      return undefined;
+    }
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+    void client().then((realtime) => {
+      if (!cancelled) {
+        stop = realtime.viewAuction(auctionId, (count) => {
+          setViewers({ auctionId, count });
+        });
+      }
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, [auctionId, client]);
+
+  return viewers !== undefined && viewers.auctionId === auctionId ? viewers.count : null;
+}
+
+/**
  * Zdarzenia zalogowanego użytkownika (przebicie, wygrana, nowe powiadomienie); serwer sam
  * dołącza room użytkownika.
  */

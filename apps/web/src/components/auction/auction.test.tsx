@@ -8,7 +8,7 @@ import type {
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ServerClockProvider } from '@/components/providers/server-clock-provider';
 import { RealtimeProvider } from '@/lib/realtime/realtime-provider';
@@ -92,22 +92,45 @@ function setup(
 
 const price = () => text(screen.getByTestId('auction-price'));
 
+// Panel na desktopie (formularz obok galerii), chyba że test mówi inaczej.
+beforeEach(() => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  sessionStorage.clear();
+});
+
 describe('BidPanel: kto może licytować', () => {
   it('gość: cena wywoławcza, licznik i logowanie z powrotem na aukcję', async () => {
     setup(publicAuction());
-    const login = await screen.findByRole('link', { name: 'Zaloguj się, aby licytować' });
+    expect(await screen.findByText('Zaloguj się, aby licytować')).toBeDefined();
+    const login = screen.getByRole('link', { name: 'Zaloguj się' });
     expect(login.getAttribute('href')).toBe(
       `/logowanie?next=${encodeURIComponent('/a/wazon-ceramiczny-k3x9qa7m')}`,
     );
+    expect(
+      screen.getByRole('link', { name: 'Nie masz konta? Załóż konto' }).getAttribute('href'),
+    ).toBe(`/rejestracja?next=${encodeURIComponent('/a/wazon-ceramiczny-k3x9qa7m')}`);
     expect(screen.getByText('Cena wywoławcza')).toBeDefined();
     expect(price()).toBe('20 zł');
-    expect(screen.getByRole('timer').textContent).toMatch(/^(3 dni 0 h|2 dni 23 h)$/u);
+    expect(screen.getByRole('timer').textContent).toMatch(/^(3 dni 0 godz\.|2 dni 23 godz\.)$/u);
     expect(screen.queryByRole('button', { name: 'Licytuj' })).toBeNull();
   });
 
   it('bez zweryfikowanego telefonu: zachęta do weryfikacji zamiast przycisku licytacji', async () => {
     setup(publicAuction(), { user: { ...BUYER, phoneVerified: false } });
-    const verify = await screen.findByRole('link', { name: 'Zweryfikuj telefon, aby licytować' });
+    expect(await screen.findByText('Zweryfikuj telefon, aby licytować')).toBeDefined();
+    const verify = screen.getByRole('link', { name: 'Zweryfikuj telefon' });
     expect(verify.getAttribute('href')).toBe(
       `/weryfikacja-telefonu?next=${encodeURIComponent('/a/wazon-ceramiczny-k3x9qa7m')}`,
     );
@@ -171,12 +194,117 @@ describe('BidPanel: oferta', () => {
     const dialog = await screen.findByRole('alertdialog', { name: 'Potwierdź ofertę' });
     expect(text(dialog)).toContain('Licytujesz do 500 zł. Oferta jest wiążąca');
     expect(text(dialog)).toContain('zapłacisz najwyżej 537,99 zł');
+    expect(text(dialog)).toContain('Wazon ceramiczny');
+    expect(text(dialog)).toContain('Aktualna oferta20 zł');
     await user.click(within(dialog).getByRole('button', { name: 'Potwierdź ofertę' }));
 
-    expect(await screen.findByText('Prowadzisz. Twoje maksimum: 500 zł')).toBeDefined();
+    // Wynik oferty w toaście (F-63), nie w linijce panelu.
+    const toast = await screen.findByText('Twoje maksimum 500 zł prowadzi. Cena: 20 zł.');
+    expect(toast.closest('[data-slot="toast"]')?.getAttribute('data-tone')).toBe('success');
     const [call] = apiCalls(fetchMock, `/v1/auctions/${AUCTION_ID}/bids`);
     expect(call?.body).toEqual({ maxAmount: 50_000 });
     expect(call?.headers.get('idempotency-key')).toMatch(/^[0-9a-f-]{36}$/u);
+  });
+
+  it('szybkie kwoty (F-63): minimalna i dwie okrągłe kwoty, wybór wpisuje kwotę do pola', async () => {
+    setup(publicAuction(), { user: BUYER });
+    const group = await screen.findByRole('group', { name: 'Szybkie kwoty' });
+    const buttons = within(group).getAllByRole('button');
+    expect(buttons.map((button) => text(button))).toEqual(['20 zł', '25 zł', '30 zł']);
+    await userEvent.setup().click(within(group).getByRole('button', { name: /^25\szł$/u }));
+    expect(screen.getByLabelText<HTMLInputElement>('Twoje maksimum').value).toBe('25');
+    expect(
+      within(group)
+        .getByRole('button', { name: /^25\szł$/u })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
+
+  it('potwierdzenie po ofercie kogoś innego: nowa minimalna zamiast starej kwoty', async () => {
+    const auction = publicAuction();
+    const { realtime, fetchMock } = setup(auction, { user: BUYER });
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Twoje maksimum'), '20');
+    await user.click(screen.getByRole('button', { name: 'Licytuj' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Potwierdź ofertę' });
+    await waitFor(() => {
+      expect(realtime.subscribers(AUCTION_ID)).toBe(1);
+    });
+    act(() => {
+      realtime.update(
+        auctionUpdated(auction, {
+          version: 5,
+          currentPrice: 2_400,
+          bidCount: 1,
+          minimumNextBid: 2_500,
+        }),
+      );
+    });
+    expect(
+      await within(dialog).findByText(
+        'W międzyczasie ktoś zalicytował. Najniższa oferta to teraz 25 zł.',
+      ),
+    ).toBeDefined();
+    await user.click(within(dialog).getByRole('button', { name: /^Licytuj 25\szł$/u }));
+    expect(text(dialog)).toContain('Licytujesz do 25 zł.');
+    expect(apiCalls(fetchMock, `/v1/auctions/${AUCTION_ID}/bids`)).toHaveLength(0);
+  });
+
+  it('błąd sieci: kwota zostaje, „Spróbuj ponownie” wysyła tę samą próbę (ten sam klucz)', async () => {
+    let attempts = 0;
+    const { fetchMock } = setup(publicAuction(), {
+      user: BUYER,
+      api: {
+        [`/v1/auctions/${AUCTION_ID}/bids`]: () => {
+          attempts += 1;
+          return attempts === 1
+            ? new Response('{}', { status: 503 })
+            : Response.json(
+                {
+                  bid: {
+                    id: '01960000-0000-7000-8000-0000000000f2',
+                    amount: 2_000,
+                    maxAmount: 3_000,
+                    kind: 'MANUAL',
+                    createdAt: new Date().toISOString(),
+                  },
+                  leading: true,
+                  auction: {
+                    id: AUCTION_ID,
+                    status: 'ACTIVE',
+                    currency: 'PLN',
+                    currentPrice: 2_000,
+                    bidCount: 1,
+                    endsAt: new Date(Date.now() + 86_400_000).toISOString(),
+                    reserveStatus: 'NONE',
+                    minimumNextBid: 2_100,
+                    buyNowAvailable: false,
+                  },
+                },
+                { status: 201 },
+              );
+        },
+      },
+    });
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Twoje maksimum'), '30');
+    await user.click(screen.getByRole('button', { name: 'Licytuj' }));
+    await user.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', {
+        name: 'Potwierdź ofertę',
+      }),
+    );
+    expect(
+      await screen.findByText(
+        'Nie udało się wysłać oferty. Sprawdź połączenie i spróbuj ponownie.',
+      ),
+    ).toBeDefined();
+    expect(screen.getByLabelText<HTMLInputElement>('Twoje maksimum').value).toBe('30');
+    await user.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+    expect(await screen.findByText('Twoje maksimum 30 zł prowadzi. Cena: 20 zł.')).toBeDefined();
+    const calls = apiCalls(fetchMock, `/v1/auctions/${AUCTION_ID}/bids`);
+    expect(calls).toHaveLength(2);
+    expect(calls[1]?.headers.get('idempotency-key')).toBe(calls[0]?.headers.get('idempotency-key'));
   });
 
   it('kwota poniżej minimalnej oferty: komunikat bez wysyłki', async () => {
@@ -233,6 +361,8 @@ describe('BidPanel: na żywo i stany', () => {
       expect(price()).toBe('45 zł');
     });
     expect(screen.getByText(/2 oferty/u)).toBeDefined();
+    // Impuls ceny (F-63): plakietka przyrostu po wzroście z realtime.
+    expect(screen.getByText('+25 zł')).toBeDefined();
     await act(async () => {
       realtime.update(auctionUpdated(auction, { version: 2, currentPrice: 3_000 }));
       await new Promise((resolve) => setTimeout(resolve, 20));
@@ -240,12 +370,53 @@ describe('BidPanel: na żywo i stany', () => {
     expect(price()).toBe('45 zł');
   });
 
-  it('końcówka: wyróżniony licznik i informacja o przedłużeniu', async () => {
+  it('końcówka: „Ostatnie minuty”, licznik w kafelkach i informacja o przedłużeniu', async () => {
     setup(publicAuction({}, 90_000));
     expect(
       await screen.findByText('Końcówka aukcji: oferta teraz przedłuży aukcję o 2 minuty.'),
     ).toBeDefined();
-    expect(screen.getByRole('timer').textContent).toMatch(/^01:[23]\d$/u);
+    expect(screen.getByText('Ostatnie minuty')).toBeDefined();
+    const timer = screen.getByRole('timer');
+    expect(timer.getAttribute('aria-label')).toMatch(/^1 min [23]\d s$/u);
+    expect(timer.textContent).toMatch(/^00godz:01min:[23]\dsek$/u);
+  });
+
+  it('poniżej doby licznik gg:mm:ss', async () => {
+    setup(publicAuction({}, 5 * 3_600_000));
+    expect((await screen.findByRole('timer')).textContent).toMatch(/^0[45]:\d{2}:\d{2}$/u);
+  });
+
+  it('przedłużenie: toast i informacja o nowym końcu w panelu', async () => {
+    const auction = publicAuction({}, 90_000);
+    const { realtime } = setup(auction);
+    await waitFor(() => {
+      expect(realtime.subscribers(AUCTION_ID)).toBe(1);
+    });
+    const endsAt = new Date(Date.now() + 210_000);
+    act(() => {
+      realtime.extended({
+        auctionId: AUCTION_ID,
+        endsAt: endsAt.toISOString(),
+        serverTime: new Date().toISOString(),
+      });
+    });
+    expect(await screen.findByText('Aukcja przedłużona')).toBeDefined();
+    const time = new Intl.DateTimeFormat('pl-PL', {
+      timeStyle: 'short',
+      timeZone: 'Europe/Warsaw',
+    }).format(endsAt);
+    expect(screen.getByText(`Aukcja przedłużona. Nowy koniec: ${time}.`)).toBeDefined();
+  });
+
+  it('ostatnie minuty obserwowanej aukcji: toast raz na sesję', async () => {
+    const auction = publicAuction({}, 4 * 60_000);
+    const { view } = setup(auction, { user: BUYER, bidding: myBidding({ watching: true }) });
+    expect(await screen.findByText('Aukcja kończy się za kilka minut')).toBeDefined();
+    view.unmount();
+    setup(auction, { user: BUYER, bidding: myBidding({ watching: true }) });
+    await screen.findByRole('region', { name: 'Licytacja' });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByText('Aukcja kończy się za kilka minut')).toBeNull();
   });
 
   it.each([
@@ -276,11 +447,18 @@ describe('BidPanel: na żywo i stany', () => {
         },
       }),
     });
-    expect(await screen.findByText('Wygrana! Przedmiot jest Twój.')).toBeDefined();
-    expect(text(screen.getByTestId('bidder-status'))).toContain(
-      'Zamówienie p7q2m4nx: do zapłaty 109,99 zł (bez dostawy) do 16 paź 2026, 14:00.',
-    );
-    expect(screen.getByText('Sprzedano za 100 zł')).toBeDefined();
+    // Panel wygranej (D2) zamiast panelu licytacji: cena, zamówienie, kroki i podsumowanie.
+    expect(await screen.findByRole('heading', { name: 'Wygrana!' })).toBeDefined();
+    const win = text(screen.getByTestId('bidder-status'));
+    expect(win).toContain('Przedmiot jest Twój.');
+    expect(win).toContain('Zamówienie p7q2m4nx');
+    expect(win).toContain('Zapłać do 16 października 2026');
+    expect(win).toContain('Pakiet Ochrony Kupujących9,99 zł');
+    expect(win).toContain('Do zapłaty bez dostawy109,99 zł');
+    expect(
+      screen.getByRole('link', { name: 'Zobacz zamówienie w Moje Biddy' }).getAttribute('href'),
+    ).toBe('/moje-biddy/wygrane');
+    expect(screen.queryByRole('region', { name: 'Licytacja' })).toBeNull();
   });
 
   it('przegrana i nieosiągnięta cena minimalna', async () => {
@@ -302,19 +480,52 @@ describe('BidPanel: na żywo i stany', () => {
     expect(screen.getByText('Aukcja zakończona bez sprzedaży')).toBeDefined();
   });
 
-  it('przebicie przez innego licytującego: komunikat na żywo', async () => {
-    const { realtime } = setup(publicAuction(), {
+  it('przebicie na żywo: jeden toast z „Zalicytuj ponownie”, które wpisuje minimalną ofertę', async () => {
+    const { realtime } = setup(publicAuction({ minimumNextBid: 3_100 }), {
       user: BUYER,
       bidding: myBidding({ hasBid: true, leading: true, maxAmount: 2_500 }),
     });
-    expect(await screen.findByText('Prowadzisz. Twoje maksimum: 25 zł')).toBeDefined();
+    expect(
+      await screen.findByText(
+        'Twoje maksimum: 25 zł. Biddy podbije cenę za Ciebie, jeśli ktoś zalicytuje.',
+      ),
+    ).toBeDefined();
     await waitFor(() => {
       expect(realtime.subscribers(AUCTION_ID)).toBe(1);
     });
     act(() => {
       realtime.outbid(AUCTION_ID, { minimumNextBid: 3_100 });
     });
-    expect(text(screen.getByRole('status'))).toBe('Przebito Cię. Najniższa oferta to 31 zł.');
+    const toast = (await screen.findByText('Wazon ceramiczny · najniższa oferta 31 zł')).closest(
+      '[data-slot="toast"]',
+    );
+    expect(toast?.getAttribute('data-tone')).toBe('urgent');
+    // Panel nie ma już własnej linijki role="status": czytnik ekranu słyszy tylko toast.
+    expect(
+      within(screen.getByRole('region', { name: 'Licytacja' })).queryByRole('status'),
+    ).toBeNull();
+
+    await userEvent
+      .setup()
+      .click(within(toast as HTMLElement).getByRole('button', { name: 'Zalicytuj ponownie' }));
+    const input = screen.getByLabelText('Nowe maksimum');
+    await waitFor(() => {
+      expect((input as HTMLInputElement).value).toBe('31');
+      expect(document.activeElement).toBe(input);
+    });
+  });
+
+  it('przebity: czerwony pasek z minimalną ofertą i przycisk „Przebij ofertę”', async () => {
+    setup(publicAuction({ currentPrice: 4_000, minimumNextBid: 4_100, bidCount: 3 }), {
+      user: BUYER,
+      bidding: myBidding({ hasBid: true, leading: false, maxAmount: 3_500 }),
+    });
+    const bar = await screen.findByTestId('bidder-status');
+    expect(bar.getAttribute('data-tone')).toBe('urgent');
+    expect(text(bar)).toBe(
+      'Przebito CięTwoje maksimum 35 zł nie wystarcza. Zalicytuj co najmniej 41 zł.',
+    );
+    expect(screen.getByRole('button', { name: 'Przebij ofertę' })).toBeDefined();
   });
 });
 

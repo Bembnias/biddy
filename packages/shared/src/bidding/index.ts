@@ -17,3 +17,14 @@ export {
   type BuyerLevelLimits,
   anonymizeName,
 } from './buyers.js';
+export {
+  type AuctionSignalSource,
+  HOT_MIN_BIDS,
+  HOT_WINDOW_MS,
+  LIVE_WINDOW_MS,
+  SOON_WINDOW_MS,
+  type TimerTone,
+  isHotAuction,
+  isLiveAuction,
+  timerTone,
+} from './signals.js';

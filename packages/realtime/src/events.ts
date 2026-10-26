@@ -8,6 +8,9 @@ export const REALTIME_PATH = '/v1/realtime';
 /** Najwięcej aukcji subskrybowanych naraz przez jedno połączenie. */
 export const MAX_AUCTION_SUBSCRIPTIONS = 50;
 
+/** Najwięcej aukcji „oglądanych” naraz przez jedno połączenie (strony aukcji w karcie, F-63). */
+export const MAX_AUCTION_VIEWS = 5;
+
 export type RealtimeAuctionStatus =
   'ACTIVE' | 'ENDED_SOLD' | 'ENDED_UNSOLD' | 'CANCELLED' | 'DRAFT' | 'PENDING_REVIEW';
 
@@ -51,6 +54,16 @@ export interface AuctionEndedEvent {
   readonly serverTime: string;
 }
 
+/**
+ * Liczba połączeń, które oglądają stronę aukcji (F-63, „X osób ogląda”). Sama liczba: bez
+ * tożsamości i bez rozróżnienia zalogowanych. Najwyżej raz na kilka sekund i tylko po zmianie.
+ */
+export interface AuctionViewersEvent {
+  readonly auctionId: string;
+  readonly count: number;
+  readonly serverTime: string;
+}
+
 /** Ktoś przebił zalogowanego użytkownika (room `user:{id}`). */
 export interface UserOutbidEvent {
   readonly auctionId: string;
@@ -90,6 +103,7 @@ export interface ServerToClientEvents {
   'auction.updated': (event: AuctionUpdatedEvent) => void;
   'auction.extended': (event: AuctionExtendedEvent) => void;
   'auction.ended': (event: AuctionEndedEvent) => void;
+  'auction.viewers': (event: AuctionViewersEvent) => void;
   'user.outbid': (event: UserOutbidEvent) => void;
   'user.won': (event: UserWonEvent) => void;
   'notification.new': (event: NotificationNewEvent) => void;
@@ -99,10 +113,17 @@ export type SubscribeResult =
   | { readonly ok: true }
   | { readonly ok: false; readonly error: 'INVALID_AUCTION_ID' | 'TOO_MANY_SUBSCRIPTIONS' };
 
+export type ViewResult =
+  | { readonly ok: true; readonly viewers: number }
+  | { readonly ok: false; readonly error: 'INVALID_AUCTION_ID' | 'TOO_MANY_VIEWS' };
+
 /** Zdarzenia klient → serwer (z potwierdzeniem, gdy jest funkcja `ack`). */
 export interface ClientToServerEvents {
   'auction:subscribe': (auctionId: string, ack: (result: SubscribeResult) => void) => void;
   'auction:unsubscribe': (auctionId: string) => void;
+  /** Strona aukcji otwarta: połączenie liczy się do „X osób ogląda” (F-63). */
+  'auction:view': (auctionId: string, ack: (result: ViewResult) => void) => void;
+  'auction:unview': (auctionId: string) => void;
   'time:ping': (ack: (result: { readonly serverTime: string }) => void) => void;
 }
 

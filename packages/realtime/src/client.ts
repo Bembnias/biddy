@@ -9,6 +9,7 @@ import {
   type AuctionEndedEvent,
   type AuctionExtendedEvent,
   type AuctionUpdatedEvent,
+  type AuctionViewersEvent,
   type ClientToServerEvents,
   REALTIME_PATH,
   type ServerToClientEvents,
@@ -25,6 +26,8 @@ export interface AuctionHandlers {
   readonly onUpdated?: (event: AuctionUpdatedEvent) => void;
   readonly onExtended?: (event: AuctionExtendedEvent) => void;
   readonly onEnded?: (event: AuctionEndedEvent) => void;
+  /** Liczba oglądających (F-63); przychodzi tylko dla aukcji, które ktoś ogląda. */
+  readonly onViewers?: (event: AuctionViewersEvent) => void;
 }
 
 export interface UserHandlers {
@@ -57,6 +60,11 @@ export interface RealtimeClient {
   close(): void;
   /** Zdarzenia aukcji; zwraca funkcję kończącą subskrypcję. */
   subscribeAuction(auctionId: string, handlers: AuctionHandlers): () => void;
+  /**
+   * Strona aukcji otwarta (F-63): połączenie liczy się do „X osób ogląda”, a `onViewers` dostaje
+   * liczbę oglądających (od razu po zgłoszeniu i po każdej zmianie). Zwraca funkcję kończącą.
+   */
+  viewAuction(auctionId: string, onViewers: (count: number) => void): () => void;
   /** Zdarzenia zalogowanego użytkownika (room `user:{id}` dołącza serwer). */
   onUserEvents(handlers: UserHandlers): () => void;
   /** Wywoływane po każdym ponownym połączeniu: dociągnij stan przez REST. */
@@ -95,6 +103,8 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
   const clockSamples = options.clockSamples ?? 5;
   const clockIntervalMs = options.clockIntervalMs ?? 60_000;
   const auctions = new Map<string, Set<AuctionHandlers>>();
+  const views = new Map<string, Set<(count: number) => void>>();
+  const viewers = new Map<string, number>();
   const users = listeners<UserHandlers>();
   const reconnects = listeners<() => void>();
   const statuses = listeners<(status: RealtimeStatus) => void>();
@@ -149,6 +159,21 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     socket?.emit('auction:subscribe', auctionId, () => undefined);
   };
 
+  const setViewers = (auctionId: string, count: number) => {
+    viewers.set(auctionId, count);
+    for (const callback of views.get(auctionId) ?? []) {
+      callback(count);
+    }
+  };
+
+  const viewOnServer = (auctionId: string) => {
+    socket?.emit('auction:view', auctionId, (result) => {
+      if (result.ok && views.has(auctionId)) {
+        setViewers(auctionId, result.viewers);
+      }
+    });
+  };
+
   const create = (): RealtimeSocket => {
     const socketOptions: Parameters<typeof io>[1] = {
       path: options.path ?? REALTIME_PATH,
@@ -169,6 +194,9 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
       setStatus('connected');
       for (const auctionId of auctions.keys()) {
         subscribeOnServer(auctionId);
+      }
+      for (const auctionId of views.keys()) {
+        viewOnServer(auctionId);
       }
       if (connectedBefore) {
         reconnects.forEach((callback) => {
@@ -213,6 +241,12 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     created.on('auction.ended', (event) => {
       dispatch('onEnded', event);
     });
+    created.on('auction.viewers', (event) => {
+      if (views.has(event.auctionId)) {
+        setViewers(event.auctionId, event.count);
+      }
+      dispatch('onViewers', event);
+    });
     created.on('user.outbid', (event) => {
       users.forEach((handlers) => handlers.onOutbid?.(event));
     });
@@ -234,6 +268,29 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     }
   };
 
+  const subscribeAuction = (auctionId: string, handlers: AuctionHandlers): (() => void) => {
+    const existing = auctions.get(auctionId);
+    if (existing === undefined) {
+      auctions.set(auctionId, new Set([handlers]));
+      if (socket?.connected === true) {
+        subscribeOnServer(auctionId);
+      }
+    } else {
+      existing.add(handlers);
+    }
+    connect();
+    return () => {
+      const set = auctions.get(auctionId);
+      set?.delete(handlers);
+      if (set?.size === 0) {
+        auctions.delete(auctionId);
+        if (socket?.connected === true) {
+          socket.emit('auction:unsubscribe', auctionId);
+        }
+      }
+    };
+  };
+
   return {
     get status() {
       return status;
@@ -247,27 +304,37 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
       socket?.removeAllListeners();
       socket = undefined;
       auctions.clear();
+      views.clear();
+      viewers.clear();
       connectedBefore = false;
       setStatus('idle');
     },
-    subscribeAuction(auctionId, handlers) {
-      const existing = auctions.get(auctionId);
+    subscribeAuction,
+    viewAuction(auctionId, onViewers) {
+      // Zdarzenia `auction.viewers` przychodzą do roomu aukcji, więc oglądanie go subskrybuje.
+      const unsubscribe = subscribeAuction(auctionId, {});
+      const existing = views.get(auctionId);
       if (existing === undefined) {
-        auctions.set(auctionId, new Set([handlers]));
+        views.set(auctionId, new Set([onViewers]));
         if (socket?.connected === true) {
-          subscribeOnServer(auctionId);
+          viewOnServer(auctionId);
         }
       } else {
-        existing.add(handlers);
+        existing.add(onViewers);
+        const known = viewers.get(auctionId);
+        if (known !== undefined) {
+          onViewers(known);
+        }
       }
-      connect();
       return () => {
-        const set = auctions.get(auctionId);
-        set?.delete(handlers);
+        unsubscribe();
+        const set = views.get(auctionId);
+        set?.delete(onViewers);
         if (set?.size === 0) {
-          auctions.delete(auctionId);
+          views.delete(auctionId);
+          viewers.delete(auctionId);
           if (socket?.connected === true) {
-            socket.emit('auction:unsubscribe', auctionId);
+            socket.emit('auction:unview', auctionId);
           }
         }
       };

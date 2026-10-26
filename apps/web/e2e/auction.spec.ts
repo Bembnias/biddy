@@ -50,7 +50,11 @@ function auctionFixture(overrides: Record<string, unknown> = {}) {
       },
     ],
     packageSize: 'M',
-    carriers: [{ id: 'inpost-paczkomat', name: 'InPost Paczkomat 24/7', kind: 'LOCKER' }],
+    // Ceny dostaw z cennika Biddy (F-24).
+    carriers: [
+      { id: 'inpost-paczkomat', name: 'InPost Paczkomat 24/7', kind: 'LOCKER', price: 1_399 },
+    ],
+    shippingFrom: 1_399,
     seller: {
       id: '01960000-0000-7000-8000-0000000000b1',
       name: 'Sprzedawca Testowy',
@@ -190,7 +194,9 @@ test('gość: logowanie z powrotem na aukcję; bez telefonu: zachęta do weryfik
   // Stary slug: przeglądarka trafia na adres kanoniczny.
   await gotoHydrated(page, `/a/stary-tytul-${auction.publicId}`);
   await expect(page).toHaveURL(pathOf(auction));
-  const login = page.getByRole('link', { name: 'Zaloguj się, aby licytować' });
+  const panel = page.getByRole('region', { name: 'Licytacja' });
+  await expect(panel.getByText('Zaloguj się, aby licytować')).toBeVisible();
+  const login = panel.getByRole('link', { name: 'Zaloguj się', exact: true });
   await expect(login).toHaveAttribute(
     'href',
     `/logowanie?next=${encodeURIComponent(pathOf(auction))}`,
@@ -203,7 +209,9 @@ test('gość: logowanie z powrotem na aukcję; bez telefonu: zachęta do weryfik
   await mockRealtime(page);
   await gotoHydrated(page, pathOf(auction));
   await expect(
-    page.getByRole('link', { name: 'Zweryfikuj telefon, aby licytować' }),
+    page
+      .getByRole('region', { name: 'Licytacja' })
+      .getByRole('link', { name: 'Zweryfikuj telefon', exact: true }),
   ).toHaveAttribute('href', `/weryfikacja-telefonu?next=${encodeURIComponent(pathOf(auction))}`);
   await expect(page.getByRole('button', { name: 'Licytuj' })).toHaveCount(0);
 });
@@ -253,7 +261,10 @@ test('oferta: cena łączna, potwierdzenie, Idempotency-Key; cena na żywo bez o
   const dialog = page.getByRole('alertdialog', { name: 'Potwierdź ofertę' });
   await expect(dialog).toContainText(/zapłacisz najwyżej 537,99\s+zł/u);
   await dialog.getByRole('button', { name: 'Potwierdź ofertę' }).click();
-  await expect(page.getByRole('status')).toHaveText(/Prowadzisz\. Twoje maksimum: 500\s+zł/u);
+  // Wynik oferty w toaście (F-63).
+  await expect(page.locator('[data-slot="toast"]')).toContainText(
+    /Twoje maksimum 500\s+zł prowadzi\. Cena: 20\s+zł\./u,
+  );
   const [bid] = api.requests(`POST /v1/auctions/${auction.id}/bids`);
   expect(bid?.postDataJSON()).toEqual({ maxAmount: 50_000 });
   expect(bid?.headers()['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/u);
@@ -274,4 +285,50 @@ test('oferta: cena łączna, potwierdzenie, Idempotency-Key; cena na żywo bez o
   });
   await expect(page.getByTestId('auction-price')).toHaveText(/^600\s+zł$/u);
   await expect(page.getByText('Prowadzi: b***k')).toBeVisible();
+});
+
+test('przebicie na żywo (F-63): toast, „Zalicytuj ponownie” i axe z otwartym toastem', async ({
+  page,
+}) => {
+  const auction = auctionFixture();
+  await setSsrPublicAuction(auction);
+  await mockBrowserApi(page, browserApi(auction, BUYER));
+  const realtime = await mockRealtime(page);
+  await gotoHydrated(page, pathOf(auction));
+  await realtime.subscribed(auction.id);
+
+  realtime.send('user.outbid', {
+    auctionId: auction.id,
+    currency: 'PLN',
+    currentPrice: 2_400,
+    minimumNextBid: 2_500,
+    endsAt: auction.endsAt,
+    serverTime: new Date().toISOString(),
+  });
+  const toast = page.locator('[data-slot="toast"]');
+  await expect(toast).toContainText('Przebito Cię');
+  await expectNoAxeViolations(page);
+  await toast.getByRole('button', { name: 'Zalicytuj ponownie' }).click();
+  const input = page.getByLabel('Twoje maksimum');
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue(/^2[05]$/u);
+});
+
+test('telefon (F-63): pasek licytacji przy dole ekranu i dolny arkusz z szybkimi kwotami', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const auction = auctionFixture();
+  await setSsrPublicAuction(auction);
+  await mockBrowserApi(page, browserApi(auction, BUYER));
+  await mockRealtime(page);
+  await gotoHydrated(page, pathOf(auction));
+
+  const bar = page.locator('#mobile-bid-bar');
+  await expect(bar.getByRole('button', { name: 'Licytuj' })).toBeInViewport();
+  await bar.getByRole('button', { name: 'Licytuj' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Twoje maksimum' });
+  await expect(sheet.getByRole('group', { name: 'Szybkie kwoty' })).toBeVisible();
+  await expectNoAxeViolations(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

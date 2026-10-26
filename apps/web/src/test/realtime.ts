@@ -18,6 +18,7 @@ import { vi } from 'vitest';
 export function fakeRealtimeClient() {
   const auctions = new Map<string, Set<AuctionHandlers>>();
   const users = new Set<UserHandlers>();
+  const views = new Map<string, Set<(count: number) => void>>();
   const reconnects = new Set<() => void>();
   const statuses = new Set<(status: RealtimeStatus) => void>();
   const clocks = new Set<(offset: number) => void>();
@@ -32,6 +33,14 @@ export function fakeRealtimeClient() {
       auctions.set(auctionId, set);
       return () => {
         set.delete(handlers);
+      };
+    },
+    viewAuction(auctionId, onViewers) {
+      const set = views.get(auctionId) ?? new Set();
+      set.add(onViewers);
+      views.set(auctionId, set);
+      return () => {
+        set.delete(onViewers);
       };
     },
     onUserEvents(handlers) {
@@ -103,6 +112,14 @@ export function fakeRealtimeClient() {
         handlers.onNotification?.(event);
       }
     },
+    /** Liczba oglądających aukcję (F-63), jak `auction.viewers` z serwera. */
+    viewers(auctionId: string, count: number) {
+      for (const callback of views.get(auctionId) ?? []) {
+        callback(count);
+      }
+    },
+    /** Liczba stron oglądających aukcję (zgłoszeń `viewAuction`). */
+    viewing: (auctionId: string) => views.get(auctionId)?.size ?? 0,
     /** Liczba subskrypcji zdarzeń użytkownika. */
     userSubscribers: () => users.size,
     reconnect() {

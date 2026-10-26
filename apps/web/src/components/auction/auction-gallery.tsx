@@ -3,7 +3,7 @@
 import type { PublicAuctionDto } from '@biddy/api-client';
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,9 +16,12 @@ import { cn } from '@/lib/utils';
 export function AuctionGallery({
   title,
   photos,
+  badges,
 }: {
   readonly title: string;
   readonly photos: PublicAuctionDto['photos'];
+  /** Sygnały na zdjęciu (LIVE, oglądający, gorąca aukcja; F-63), w lewym górnym rogu. */
+  readonly badges?: ReactNode;
 }) {
   const t = useTranslations('auction.gallery');
   const [index, setIndex] = useState(0);
@@ -27,9 +30,10 @@ export function AuctionGallery({
 
   if (current === undefined) {
     return (
-      <div className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-xl bg-muted text-muted-foreground">
+      <div className="relative flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-xl bg-muted text-muted-foreground">
         <ImageOff aria-hidden className="size-10" />
         <p>{t('noPhotos')}</p>
+        {badges === undefined ? null : <div className="absolute top-4 left-4">{badges}</div>}
       </div>
     );
   }
@@ -53,6 +57,7 @@ export function AuctionGallery({
           decoding="async"
           className="aspect-square w-full rounded-xl bg-muted object-contain"
         />
+        {badges === undefined ? null : <div className="absolute top-4 left-4">{badges}</div>}
         {count > 1 ? (
           <span
             aria-hidden

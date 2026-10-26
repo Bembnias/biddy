@@ -23,10 +23,14 @@ let url: string;
 let client: RealtimeClient | undefined;
 const subscribed: string[] = [];
 const unsubscribed: string[] = [];
+const viewed: string[] = [];
+const unviewed: string[] = [];
 
 beforeEach(async () => {
   subscribed.length = 0;
   unsubscribed.length = 0;
+  viewed.length = 0;
+  unviewed.length = 0;
   http = createServer();
   server = new Server(http, { path: REALTIME_PATH });
   server.on('connection', (socket) => {
@@ -38,6 +42,13 @@ beforeEach(async () => {
     socket.on('auction:unsubscribe', (auctionId) => {
       unsubscribed.push(auctionId);
       void socket.leave(auctionRoom(auctionId));
+    });
+    socket.on('auction:view', (auctionId, ack) => {
+      viewed.push(auctionId);
+      ack({ ok: true, viewers: 4 });
+    });
+    socket.on('auction:unview', (auctionId) => {
+      unviewed.push(auctionId);
     });
     socket.on('time:ping', (ack) => {
       ack({ serverTime: new Date(Date.now() + SERVER_SKEW_MS).toISOString() });
@@ -148,6 +159,37 @@ describe('createRealtimeClient', () => {
     await waitFor(() => received.length === 1);
     expect(received).toEqual([7]);
     expect(realtime.status).toBe('connected');
+  });
+
+  it('oglądanie aukcji (F-63): liczba z potwierdzenia, zmiany na żywo, ponownie po reconnect', async () => {
+    const realtime = connect();
+    const counts: number[] = [];
+    const stop = realtime.viewAuction('a', (count) => counts.push(count));
+    await waitFor(() => counts.length === 1);
+    expect(subscribed).toEqual(['a']);
+    expect(viewed).toEqual(['a']);
+    expect(counts).toEqual([4]);
+
+    server.to(auctionRoom('a')).emit('auction.viewers', {
+      auctionId: 'a',
+      count: 7,
+      serverTime: new Date().toISOString(),
+    });
+    await waitFor(() => counts.length === 2);
+    expect(counts.at(-1)).toBe(7);
+
+    // Drugi widok tej samej aukcji dostaje znaną liczbę od razu, bez drugiego zgłoszenia.
+    const second: number[] = [];
+    const stopSecond = realtime.viewAuction('a', (count) => second.push(count));
+    expect(second).toEqual([7]);
+
+    server.disconnectSockets();
+    await waitFor(() => viewed.length === 2);
+
+    stopSecond();
+    stop();
+    await waitFor(() => unviewed.length === 1 && unsubscribed.length === 1);
+    expect(unviewed).toEqual(['a']);
   });
 
   it('zegar: przesunięcie z pingów i czas serwera', async () => {
