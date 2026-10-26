@@ -623,7 +623,7 @@
       "packageSize": "Gabaryt paczki",
       "carriers": "Przewoźnicy",
       "carriersHint": "Przewoźnika wybierzesz przy płatności. Cena dostawy zależy od przewoźnika.",
-      "noCarriers": "Sprzedawca nie podał przewoźników."
+      "noCarriers": "Żadna dostawa nie pasuje teraz do tego przedmiotu."
     },
     "seller": {
       "title": "Sprzedawca",
@@ -798,13 +798,14 @@
         "SOLD": "Sprzedany przedmiot",
         "UNSOLD": "Aukcja zakończona bez sprzedaży",
         "AUCTION_CANCELLED": "Anulowana aukcja, którą obserwujesz albo licytujesz",
-        "FOLLOWED_SELLER_NEW_AUCTION": "Nowa aukcja obserwowanego sprzedawcy"
+        "FOLLOWED_SELLER_NEW_AUCTION": "Nowa aukcja obserwowanego sprzedawcy",
+        "ORDER_PAID": "Opłacone zamówienie: nadaj paczkę"
       }
     },
     "unsubscribe": {
       "metaTitle": "Wypisanie z e-maili",
       "title": "Wypisanie z e-maili",
-      "lead": "{scope, select, ALL {Nie będziemy wysyłać e-maili z powiadomieniami (poza wygranymi i sprzedażą).} other {Nie będziemy wysyłać e-maili tego typu: {type}.}}",
+      "lead": "{scope, select, ALL {Nie będziemy wysyłać e-maili z powiadomieniami (poza wygranymi, sprzedażą i opłaconymi zamówieniami).} other {Nie będziemy wysyłać e-maili tego typu: {type}.}}",
       "inApp": "Powiadomienia w aplikacji zostaną.",
       "action": "Wypisz mnie",
       "sending": "Wypisywanie…",
@@ -867,8 +868,7 @@
       "similar": "Szukaj podobnych",
       "bid": "Licytuj",
       "unwatch": "Przestań obserwować",
-      "ship": "Nadaj paczkę",
-      "shipHint": "Nadawanie paczek przez Biddy uruchomimy wkrótce."
+      "ship": "Nadaj paczkę"
     },
     "empty": {
       "bidding": "Nie licytujesz teraz żadnej aukcji.",
@@ -968,6 +968,125 @@
       "error": "Nie udało się wczytać panelu.",
       "retry": "Spróbuj ponownie",
       "loading": "Wczytywanie panelu…"
+    }
+  },
+  "shipping": {
+    "dispatch": {
+      "metaTitle": "Nadaj paczkę",
+      "title": "Nadaj paczkę",
+      "order": "Zamówienie nr {number}",
+      "destination": "Dokąd",
+      "service": "Dostawa",
+      "pickupPoint": "Punkt odbioru",
+      "recipient": "Odbiorca",
+      "packageSize": "Gabaryt",
+      "senderTitle": "Dane nadawcy",
+      "senderLead": "Te dane będą na etykiecie i zobaczy je kupujący.",
+      "senderDefault": "Wpisaliśmy Twój domyślny adres nadania. Zmiany dotyczą tylko tej paczki.",
+      "senderDefaultMissing": "Ustaw domyślny adres nadania w koncie, żeby nie wpisywać go przy każdej paczce.",
+      "addresses": "Adresy w koncie",
+      "name": "Imię i nazwisko",
+      "street": "Ulica i numer",
+      "streetHint": "Np. ul. Prosta 1/2",
+      "postalCode": "Kod pocztowy",
+      "city": "Miejscowość",
+      "phone": "Telefon",
+      "phoneHint": "Przewoźnik wyśle na ten numer informacje o przesyłce.",
+      "method": "Sposób nadania",
+      "methods": {
+        "DROP_OFF": "Nadam w paczkomacie lub punkcie",
+        "COURIER_PICKUP": "Kurier odbierze paczkę"
+      },
+      "methodHints": {
+        "DROP_OFF": "Dostaniesz kod nadania albo etykietę do wydruku.",
+        "COURIER_PICKUP": "Wydrukujesz etykietę i przekażesz paczkę kurierowi."
+      },
+      "submit": "Nadaj",
+      "submitting": "Wysyłanie…",
+      "preparing": "Przygotowujemy przesyłkę…",
+      "preparingHint": "To zwykle trwa kilka sekund.",
+      "ready": "Przesyłka gotowa do nadania",
+      "dropoffCode": "Kod nadania",
+      "dropoffHint": "Podaj kod w paczkomacie lub punkcie. Nie musisz drukować etykiety.",
+      "label": "Pobierz etykietę (PDF)",
+      "labelDownloading": "Pobieranie…",
+      "labelHint": "Wydrukuj etykietę i naklej ją na paczkę.",
+      "labelPending": "Etykieta w przygotowaniu…",
+      "labelError": "Nie udało się pobrać etykiety. Spróbuj ponownie.",
+      "trackingNumber": "Numer przesyłki",
+      "status": "Status",
+      "history": "Historia przesyłki",
+      "carrierError": "Przewoźnik nie przyjął przesyłki",
+      "notAwaiting": "To zamówienie nie czeka na nadanie.",
+      "notAwaitingHint": "Nadać można zamówienie opłacone, w którym kupujący wybrał dostawę.",
+      "notFound": "Nie znaleziono zamówienia.",
+      "loadError": "Nie udało się wczytać zamówienia.",
+      "loading": "Wczytywanie zamówienia…",
+      "retry": "Spróbuj ponownie",
+      "back": "Sprzedane w Moje Biddy"
+    },
+    "status": {
+      "PENDING": "Czeka na nadanie",
+      "REQUESTED": "W przygotowaniu",
+      "CREATED": "Gotowa do nadania",
+      "DROPPED_OFF": "Nadana",
+      "IN_TRANSIT": "W drodze",
+      "OUT_FOR_DELIVERY": "Wydana do doręczenia",
+      "READY_FOR_PICKUP": "Czeka w punkcie",
+      "DELIVERED": "Odebrana",
+      "EXCEPTION": "Problem z przesyłką",
+      "RETURNING": "Wraca do nadawcy",
+      "RETURNED": "Zwrócona nadawcy",
+      "CANCELLED": "Anulowana"
+    }
+  },
+  "devShipping": {
+    "banner": "Środowisko testowe: FakeShipping, żadne paczki nie są wysyłane.",
+    "panel": {
+      "metaTitle": "FakeShipping",
+      "title": "FakeShipping",
+      "lead": "Przesyłki symulowanego dostawcy: automat statusów, webhooki i ręczne zmiany.",
+      "magic": "Punkty …-NOPICKUP i …-LOST prowadzą paczkę ścieżką nieodebranej albo zagubionej przesyłki. Telefon nadawcy 500 000 000 przewoźnik odrzuca.",
+      "newTitle": "Nowa przesyłka testowa",
+      "newLead": "Przesyłka bez zamówienia, z Tobą jako odbiorcą. Potem „Nadaj” jak przy zamówieniu.",
+      "carrier": "Usługa",
+      "packageSize": "Gabaryt",
+      "pickupPoint": "Punkt odbioru",
+      "create": "Utwórz przesyłkę",
+      "shipments": "Przesyłki",
+      "shipment": "Przesyłka",
+      "status": "Status w Biddy",
+      "providerStatus": "U dostawcy",
+      "scenario": "Scenariusz",
+      "created": "Utworzona",
+      "actions": "Akcje",
+      "dispatch": "Nadaj",
+      "dispatchTitle": "Nadaj przesyłkę testową",
+      "next": "Następny status",
+      "setStatus": "Ustaw status",
+      "newStatus": "Nowy status",
+      "setScenario": "Zmień scenariusz",
+      "sync": "Synchronizuj",
+      "label": "Etykieta",
+      "webhooks": "Webhooki",
+      "attempts": "{count, plural, one {# próba} few {# próby} many {# prób} other {# próby}}",
+      "delivered": "dostarczony",
+      "notDelivered": "niedostarczony",
+      "test": "testowa",
+      "order": "zamówienie",
+      "empty": "Brak przesyłek.",
+      "loading": "Wczytywanie…",
+      "error": "Nie udało się wczytać panelu.",
+      "retry": "Spróbuj ponownie",
+      "done": "Gotowe: {action}.",
+      "failed": "Nie udało się: {detail}",
+      "close": "Zamknij"
+    },
+    "scenarios": {
+      "DELIVERED": "Doręczona",
+      "NOT_PICKED_UP": "Nieodebrana",
+      "LOST": "Zagubiona",
+      "MANUAL": "Ręcznie"
     }
   }
 }

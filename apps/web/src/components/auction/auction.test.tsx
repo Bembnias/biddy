@@ -164,6 +164,8 @@ describe('BidPanel: oferta', () => {
     await waitFor(() => {
       expect(text(panel)).toContain('Licytujesz do 500 zł · zapłacisz najwyżej 537,99 zł');
     });
+    // Najtańsza dostawa z cennika Biddy (F-24).
+    expect(text(panel)).toContain('+ dostawa od 13,99 zł');
 
     await user.click(screen.getByRole('button', { name: 'Licytuj' }));
     const dialog = await screen.findByRole('alertdialog', { name: 'Potwierdź ofertę' });

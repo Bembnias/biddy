@@ -7,6 +7,7 @@ import {
   ConfigError,
   DEFAULT_PRODUCTION_TRUST_PROXY,
   DEVELOPMENT_AUTH_SECRET,
+  derivedSecret,
   fakeWebhookSecret,
   TURNSTILE_TEST_SECRET_KEY,
   TURNSTILE_TEST_SITE_KEY,
@@ -20,6 +21,24 @@ import {
 } from './config.js';
 
 const DATABASE_URL = 'postgres://biddy:biddy@localhost:5432/biddy';
+/** Bez Furgonetki (np. staging z FakeShipping). */
+const NO_FURGONETKA = {
+  SHIPPING_DEFAULT_PROVIDER: undefined,
+  FURGONETKA_CLIENT_ID: undefined,
+  FURGONETKA_CLIENT_SECRET: undefined,
+  FURGONETKA_USERNAME: undefined,
+  FURGONETKA_PASSWORD: undefined,
+  FURGONETKA_WEBHOOK_TOKEN: undefined,
+} as const;
+/** Komplet zmiennych Furgonetki (F-24). */
+const FURGONETKA = {
+  SHIPPING_DEFAULT_PROVIDER: 'furgonetka',
+  FURGONETKA_CLIENT_ID: 'furgonetka-client',
+  FURGONETKA_CLIENT_SECRET: 'furgonetka-secret',
+  FURGONETKA_USERNAME: 'sklep@biddy.pl',
+  FURGONETKA_PASSWORD: 'haslo-konta',
+  FURGONETKA_WEBHOOK_TOKEN: 'webhook-token',
+} as const;
 const minimal = { DATABASE_URL } as const;
 /** Minimum na produkcji: adres Redisa kolejek nie ma tam wartości domyślnej. */
 const production = {
@@ -43,6 +62,8 @@ const production = {
   MEILI_API_KEY: 'meili-production-key-0123456789',
   // Na produkcji operator jest wymagany, a FakeGateway zablokowany (F-23).
   PAYMENTS_DEFAULT_PROVIDER: 'payu',
+  // Na produkcji dostawca przesyłek jest wymagany, a FakeShipping zablokowany (F-24).
+  ...FURGONETKA,
 } as const;
 
 function issuesFor(
@@ -130,6 +151,16 @@ describe('loadConfig: wartości domyślne', () => {
           webhookDelayMs: 2_000,
           webhookSecret: fakeWebhookSecret(DEVELOPMENT_AUTH_SECRET),
         },
+      },
+      shipping: {
+        defaultProvider: 'fake',
+        fake: {
+          enabled: true,
+          webhookUrl: 'http://localhost:3001/v1/webhooks/shipping/fake',
+          stepDelayMs: 20_000,
+          webhookSecret: derivedSecret(DEVELOPMENT_AUTH_SECRET, 'biddy:fake-shipping-webhook'),
+        },
+        furgonetka: undefined,
       },
       sentry: { dsn: undefined, environment: 'development', tracesSampleRate: 0 },
     });
@@ -309,6 +340,7 @@ describe('loadConfig: płatności i środowisko wdrożenia (F-23)', () => {
     CORS_ORIGINS: 'https://staging.biddy.pl',
     DEPLOYMENT_ENV: 'staging',
     PAYMENTS_DEFAULT_PROVIDER: undefined,
+    ...NO_FURGONETKA,
   };
 
   it('poza produkcją domyślnie FakeGateway z webhookiem na lokalne API', () => {
@@ -341,6 +373,7 @@ describe('loadConfig: płatności i środowisko wdrożenia (F-23)', () => {
         ...minimal,
         DEPLOYMENT_ENV: 'production',
         PAYMENTS_DEFAULT_PROVIDER: 'fake',
+        ...FURGONETKA,
       }),
     ).toEqual(['PAYMENTS_DEFAULT_PROVIDER']);
   });
@@ -372,14 +405,19 @@ describe('loadConfig: płatności i środowisko wdrożenia (F-23)', () => {
   it('worker na stagingu bez API_PUBLIC_URL wymaga PAYMENTS_FAKE_WEBHOOK_URL', () => {
     const worker = { ...staging, API_PUBLIC_URL: undefined };
     const issues = issuesFor(worker, 'worker');
-    expect(issues.map((issue) => issue.variable)).toEqual(['PAYMENTS_FAKE_WEBHOOK_URL']);
+    expect(issues.map((issue) => issue.variable)).toEqual([
+      'PAYMENTS_FAKE_WEBHOOK_URL',
+      'SHIPPING_FAKE_WEBHOOK_URL',
+    ]);
     expect(issues[0]?.message).toContain('webhooki FakeGateway');
+    expect(issues[1]?.message).toContain('webhooki FakeShipping');
 
     const config = loadConfig(
       {
         ...worker,
         PAYMENTS_FAKE_WEBHOOK_URL: 'http://staging-api:3001/v1/webhooks/payments/fake',
         PAYMENTS_FAKE_WEBHOOK_DELAY_MS: '500',
+        SHIPPING_FAKE_WEBHOOK_URL: 'http://staging-api:3001/v1/webhooks/shipping/fake',
       },
       'worker',
     );
@@ -415,6 +453,82 @@ describe('loadConfig: płatności i środowisko wdrożenia (F-23)', () => {
       'ujemne opóźnienie',
       { PAYMENTS_FAKE_WEBHOOK_DELAY_MS: '-1' },
       'PAYMENTS_FAKE_WEBHOOK_DELAY_MS',
+    ],
+  ])('odrzuca: %s', (_label, env, variable) => {
+    expect(variablesWithIssues({ ...minimal, ...env })).toEqual([variable]);
+  });
+});
+
+describe('loadConfig: dostawy (F-24)', () => {
+  it('poza produkcją domyślnie FakeShipping z automatem co 20 s i webhookiem na lokalne API', () => {
+    const config = loadConfig({ ...minimal, NODE_ENV: 'test', API_PORT: '4000' });
+    expect(config.shipping).toEqual({
+      defaultProvider: 'fake',
+      fake: {
+        enabled: true,
+        webhookUrl: 'http://localhost:4000/v1/webhooks/shipping/fake',
+        stepDelayMs: 20_000,
+        webhookSecret: derivedSecret(DEVELOPMENT_AUTH_SECRET, 'biddy:fake-shipping-webhook'),
+      },
+      furgonetka: undefined,
+    });
+  });
+
+  it.each<ProcessRole>(['api', 'worker'])(
+    'na produkcji dostawca jest wymagany, a fake odrzucony (%s)',
+    (role) => {
+      const base = { ...production, CORS_ORIGINS: 'https://biddy.pl' };
+      const missing = issuesFor({ ...base, SHIPPING_DEFAULT_PROVIDER: undefined }, role);
+      expect(missing.map((issue) => issue.variable)).toEqual(['SHIPPING_DEFAULT_PROVIDER']);
+      expect(missing[0]?.message).toContain('brak zmiennej');
+
+      const fake = issuesFor({ ...base, SHIPPING_DEFAULT_PROVIDER: 'fake' }, role);
+      expect(fake.map((issue) => issue.variable)).toEqual(['SHIPPING_DEFAULT_PROVIDER']);
+      expect(fake[0]?.message).toContain('nie może działać na produkcji');
+    },
+  );
+
+  it('produkcja z Furgonetką: adres API produkcyjny, FakeShipping wyłączony', () => {
+    const config = loadConfig({ ...production, CORS_ORIGINS: 'https://biddy.pl' });
+    expect(config.shipping.defaultProvider).toBe('furgonetka');
+    expect(config.shipping.fake.enabled).toBe(false);
+    expect(config.shipping.furgonetka).toEqual({
+      apiUrl: 'https://api.furgonetka.pl',
+      clientId: 'furgonetka-client',
+      clientSecret: 'furgonetka-secret',
+      username: 'sklep@biddy.pl',
+      password: 'haslo-konta',
+      webhookToken: 'webhook-token',
+    });
+  });
+
+  it('zmienne Furgonetki idą w komplecie; poza produkcją domyślnie sandbox', () => {
+    expect(
+      variablesWithIssues({ ...minimal, FURGONETKA_CLIENT_ID: 'id', FURGONETKA_PASSWORD: 'x' }),
+    ).toEqual(['FURGONETKA_CLIENT_SECRET', 'FURGONETKA_USERNAME', 'FURGONETKA_WEBHOOK_TOKEN']);
+    expect(variablesWithIssues({ ...minimal, SHIPPING_DEFAULT_PROVIDER: 'furgonetka' })).toEqual([
+      'FURGONETKA_CLIENT_ID',
+      'FURGONETKA_CLIENT_SECRET',
+      'FURGONETKA_USERNAME',
+      'FURGONETKA_PASSWORD',
+      'FURGONETKA_WEBHOOK_TOKEN',
+    ]);
+    const config = loadConfig({ ...minimal, ...FURGONETKA });
+    expect(config.shipping.furgonetka?.apiUrl).toBe('https://api.sandbox.furgonetka.pl');
+    expect(config.shipping.fake.enabled).toBe(true);
+  });
+
+  it('sekret webhooków FakeShipping różni się od sekretu FakeGateway', () => {
+    const config = loadConfig(minimal);
+    expect(config.shipping.fake.webhookSecret).not.toBe(config.payments.fake.webhookSecret);
+  });
+
+  it.each([
+    ['nieznany dostawca', { SHIPPING_DEFAULT_PROVIDER: 'inpost' }, 'SHIPPING_DEFAULT_PROVIDER'],
+    [
+      'ujemny odstęp automatu',
+      { SHIPPING_FAKE_STEP_DELAY_MS: '-1' },
+      'SHIPPING_FAKE_STEP_DELAY_MS',
     ],
   ])('odrzuca: %s', (_label, env, variable) => {
     expect(variablesWithIssues({ ...minimal, ...env })).toEqual([variable]);
@@ -491,6 +605,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
         'TURNSTILE_SITE_KEY',
         'WEB_URL',
         'PAYMENTS_DEFAULT_PROVIDER',
+        'SHIPPING_DEFAULT_PROVIDER',
       ].sort(),
     );
     expect(issuesFor(missing, 'worker').map((issue) => issue.variable)).toEqual([
@@ -506,6 +621,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
       'MEILI_API_KEY',
       'WEB_REVALIDATE_SECRET',
       'PAYMENTS_DEFAULT_PROVIDER',
+      'SHIPPING_DEFAULT_PROVIDER',
     ]);
   });
 

@@ -11,6 +11,7 @@
  */
 export { IdentityModule } from './identity.module.js';
 export { AddressService, MAX_ADDRESSES } from './addresses/address.service.js';
+export { PHONE_NUMBER_HINT, normalizePhoneNumber } from './phone/phone-number.js';
 export { type BuyerStanding, BuyerStandingService } from './buyer/buyer-standing.service.js';
 export { FollowService, type NotificationContact } from './follows/follow.service.js';
 export { ProfileService, type PublicProfile } from './profile/profile.service.js';

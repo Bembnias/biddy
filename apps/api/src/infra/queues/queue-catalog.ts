@@ -69,6 +69,11 @@ export const QUEUE_DEFINITIONS = {
       'Płatności: polling zapasowy płatności w PENDING co minutę i symulator FakeGateway (rozliczenie z opóźnieniem, webhooki HTTP, F-23)',
     concurrency: 5,
   },
+  shipping: {
+    description:
+      'Przesyłki: tworzenie u dostawcy po „Nadaj” z etykietą, synchronizacja trackingu po webhooku, polling zapasowy co 10 min i automat FakeShipping (F-24)',
+    concurrency: 5,
+  },
   emails: {
     description:
       'Wysyłka e-maili (weryfikacja adresu, reset hasła). Treść zawiera linki z tokenami, więc job znika po wysłaniu',

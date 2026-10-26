@@ -105,7 +105,7 @@ describe('watchRow i saleRow', () => {
     expect(watchRow({ ...AUCTION, status: 'ENDED_SOLD' }).action).toEqual({ kind: 'unwatch' });
   });
 
-  it('sprzedana: czeka na płatność, opłacona z nieaktywnym „Nadaj paczkę”', () => {
+  it('sprzedana: czeka na płatność, opłacona z „Nadaj paczkę” prowadzącym do strony nadania (F-24)', () => {
     const sale = (status: string): AuctionSummaryDto => ({
       id: AUCTION.id,
       publicId: AUCTION.publicId,
@@ -131,9 +131,10 @@ describe('watchRow i saleRow', () => {
       action: { kind: 'none' },
     });
     expect(saleRow(sale('PAID'), date).action).toEqual({
-      kind: 'disabled',
+      kind: 'link',
       label: 'ship',
-      hint: 'shipHint',
+      href: '/zamowienia/p7q2m4nx/nadaj',
+      primary: true,
     });
   });
 });

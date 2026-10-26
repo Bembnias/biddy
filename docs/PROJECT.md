@@ -935,6 +935,20 @@ Reklamacje (zaginięcie, uszkodzenie) składa **Biddy** jako zleceniodawca. Pane
 - Limity odpowiedzialności przewoźników, przebieg i terminy reklamacji, opcje ubezpieczenia.
 - Dostępność webhooków trackingu dla każdego przewoźnika, sandbox, limity API.
 - Stawki per przewoźnik i gabaryt oraz warunki ich renegocjacji przy wolumenie.
+- (F-24) Jakie stany trackingu przychodzą przy zwrocie nieodebranej paczki (czy po `returned` jest `delivered` do nadawcy)? Czy API zwraca kod nadania bez etykiety (paczkomat, Orlen Paczka)? Jak zamawiać kuriera po paczkę (`pickup-commands`)?
+
+### 8.6 Moduł dostaw (adapter, F-24)
+
+Domena rozmawia z dostawcą przesyłek wyłącznie przez port `ShippingProvider` (`modules/shipping/ports/`). Adapter wybiera rejestr po polu `provider` przesyłki, a dla nowych przesyłek po `SHIPPING_DEFAULT_PROVIDER`. Pełny opis: [F-24](features/F-24-dostawy.md).
+
+- **Adaptery:**
+  - `FurgonetkaProvider` (MVP): komendy `create-package-command` i `order-commands` z UUID wyprowadzonym z naszego klucza, etykieta, tracking v2, punkty, suma kontrolna webhooka; OAuth z jednorazowym refresh tokenem w bazie (zaszyfrowany, odświeżany pod blokadą);
+  - `FakeShippingProvider` (poza produkcją): stan w `fake_shipping_*`, automat statusów i webhooki jako joby BullMQ, scenariusze (doręczona, nieodebrana, zagubiona, ręcznie), panel `/dev/fake-shipping`;
+  - InPost ShipX (v1) dojdzie jako kolejny adapter tego samego portu.
+- **Cena dla kupującego** pochodzi z cennika Biddy (`shipping_rates`), a nie z wyceny dostawcy na żywo. Koszt u dostawcy zapisujemy w przesyłce (`cost`), więc marżę na dostawie da się policzyć.
+- **Wybór dostawy to przesyłka `PENDING`**, a „Nadaj” tworzy ją u dostawcy (§8.3). Jedna aktywna przesyłka na zamówienie i kierunek (`OUTBOUND`, `RETURN`).
+- **Tracking:** webhook jest tylko wskazówką; stan zawsze pobieramy z API dostawcy. Zdarzenia zapisujemy unikalnie po (przesyłka, status dostawcy, czas), a każda zmiana statusu to event `ShipmentStatusChanged` w kolejności chronologicznej. Przy `RETURNING` event niesie powód: `NOT_COLLECTED`, gdy paczka czekała na kupującego (§7.4).
+- **Statusy Furgonetki:** jeden stan zwrotu (`returned`) mapujemy na `RETURNING`, a późniejsze `delivered` na `RETURNED` (do potwierdzenia na sandboksie, §8.5).
 
 ---
 
@@ -1274,9 +1288,10 @@ erDiagram
 | `ledger_transactions` | id, type (szablon księgowania albo `REVERSAL`), idempotency_key (unikalny), currency, order_id, payout_id, reverses_transaction_id (storno, najwyżej jedno), payload (jsonb: dane wejściowe), created_at |
 | `ledger_entries` | id, transaction_id, account_id, amount (+/−, ≠ 0). Niemodyfikowalne; wpisy transakcji sumują się do 0 (trigger przy zatwierdzeniu) |
 | `payouts` | id, seller_id, provider, amount, status, provider_payout_id, idempotency_key, requested_at, completed_at |
-| `shipments` | id, order_id, direction (`OUTBOUND`/`RETURN`), provider, carrier, service, package_size, pickup_point_id, sender (jsonb), recipient (jsonb), tracking_number, label_key, dropoff_code, status, cost, created_at |
-| `shipment_events` | id, shipment_id, raw_status, status, occurred_at, raw (jsonb) |
-| `carrier_claims` | id, shipment_id, type (`LOST`/`DAMAGED`), status, claimed_amount, recovered_amount, submitted_at, resolved_at |
+| `shipping_rates` | id, carrier_id, package_size, currency, price, valid_from, valid_to (cennik dostaw Biddy dla kupującego; okresy bez nakładania per usługa, gabaryt i waluta; F-24) |
+| `shipments` | id, order_id (null tylko dla przesyłki testowej FakeShipping), direction (`OUTBOUND`/`RETURN`), provider, carrier_id, package_size, parcel (jsonb), pickup_point (jsonb: id, nazwa, adres), recipient (jsonb), sender (jsonb), dispatch_method (`DROP_OFF`/`COURIER_PICKUP`), declared_value, reference, currency, price (cena dla kupującego), cost (koszt u dostawcy), status (§8.3 + `PENDING`/`REQUESTED` przed utworzeniem u dostawcy), status_changed_at, provider_shipment_id, tracking_number, dropoff_code, label_key, dispatch_attempts, last_error, requested_at, delivered_at, returned_at, cancelled_at, polled_at, created_at. Unikalne (provider, provider_shipment_id) i (order_id, direction) bez anulowanych (moduł `shipping`, F-24) |
+| `shipment_events` | id, shipment_id, raw_status, status, description, occurred_at, recorded_at. Unikalne (shipment_id, raw_status, occurred_at): webhook i polling nie dublują zdarzeń |
+| `carrier_claims` | id, shipment_id (unikalny), type (`LOST`/`DAMAGED`), status (`OPEN`/`SUBMITTED`/`ACCEPTED`/`REJECTED`), currency, claimed_amount, recovered_amount, provider_claim_ref, note, submitted_at, resolved_at |
 | `disputes` | id, order_id, opened_by, reason, status (§7.5), resolution, refund_amount, deadline_at, decided_by, decision_reason, created_at |
 | `dispute_messages` / `dispute_evidence` | wiadomości i załączniki w sporze |
 
@@ -1290,6 +1305,8 @@ erDiagram
 | `reports` | id, reporter_id, target_type, target_id, reason, status, decision, statement_of_reasons, created_at (DSA *notice & action*) |
 | `outbox` | id, type, payload, created_at, processed_at, attempts |
 | `processed_webhooks` | provider, event_id (PK z provider), event_type, outcome (`HANDLED`/`IGNORED`: bez obsługi w tej wersji), processed_at (idempotencja webhooków, F-23) |
+| `fake_shipping_*` | stan FakeShipping (F-24): `parcels` (klucz idempotencji, odcisk żądania, scenariusz), `tracking` (statusy w notacji symulatora), `webhooks` (stan dostarczenia); na produkcji puste |
+| `furgonetka_tokens` | jeden wiersz: token dostępu i refresh token Furgonetki (zaszyfrowane AES-256-GCM), expires_at (F-24) |
 | `fake_gateway_*` | stan FakeGateway (F-23): `sellers` (status KYC, saldo), `payments`, `refunds`, `payouts` (klucze idempotencji i odcisk żądania), `events` (webhooki w notacji symulatora ze stanem dostarczenia); na produkcji puste |
 | `audit_log` | id, actor_id, action, target, diff, ip, created_at |
 
@@ -1301,7 +1318,7 @@ erDiagram
 - unikalny `bids(bidder_id, idempotency_key)`,
 - unikalny częściowy `order_items(auction_id) WHERE is_active` (jedno aktywne zamówienie na aukcję; anulowanie zamówienia ustawia `is_active = false` w tej samej transakcji),
 - `strikes(user_id, created_at)` dla reguły „3 w 90 dni”,
-- `shipments(status)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`.
+- `shipments(status, polled_at)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`.
 
 ---
 
@@ -1345,7 +1362,7 @@ GET    /me/bids?status=            (Moje Biddy: trwające, wygrane, przegrane; F
 GET    /shipping/carriers          (przewoźnicy i gabaryty, F-14)
 GET    /auctions                   (wyszukiwanie w Meilisearch: filtry, fasety, sortowanie; F-19)
 GET    /sitemap/auctions           (aktywne aukcje do sitemap, F-19)
-GET    /auctions/:id               (widok publiczny; :id = UUID albo publicId, F-18)
+GET    /auctions/:id               (widok publiczny; :id = UUID albo publicId, F-18; ceny dostaw i „dostawa od”, F-24)
 GET    /auctions/:id/bids          (historia, zanonimizowana)    GET /me/bids/:id (mój stan w aukcji, F-18)
 POST   /auctions/:id/bids          { maxAmount }            + nagłówek Idempotency-Key
 POST   /auctions/:id/buy-now       {}                       + nagłówek Idempotency-Key
@@ -1355,16 +1372,17 @@ PUT    /me/watchlist/:auctionId    DELETE /me/watchlist/:auctionId
 # Zamówienia
 GET    /me/orders?role=buyer|seller
 GET    /orders/:id
-GET    /orders/:id/shipping-options
+GET    /orders/:id/shipping-options   (kupujący; ceny z cennika Biddy, F-24)
 POST   /orders/:id/checkout        { carrier, service, pickupPointId | addressId, paymentMethod, blikCode? }
-POST   /orders/:id/shipment        (sprzedający: „Nadaj” — dane nadawcy, sposób nadania → etykieta / kod)
-GET    /orders/:id/label
+GET    /orders/:id/shipment        (obie strony: zamówienie i przesyłka; kod nadania i nadawca tylko dla sprzedającego, F-24)
+POST   /orders/:id/shipment        (sprzedający: „Nadaj” — dane nadawcy, sposób nadania → 202, worker tworzy przesyłkę, F-24)
+GET    /orders/:id/label           (sprzedający: etykieta PDF, F-24)
 POST   /orders/:id/confirm-receipt
 POST   /orders/:id/disputes        (w oknie 36 h)
 POST   /orders/:id/not-received    (po 14 dniach bez statusu końcowego → ścieżka LOST)
 POST   /orders/:id/second-chance   (sprzedający, po CANCELLED_UNPAID)
 POST   /second-chance-offers/:id/accept | /decline
-GET    /shipping/points?carrier=&lat=&lng=
+GET    /shipping/points?carrier=&lat=&lng= | &q=   (sesja; punkty odbioru u dostawcy, F-24)
 
 # Spory, wiadomości, oceny, zgłoszenia
 GET|POST /disputes/:id/messages    POST /disputes/:id/evidence   POST /disputes/:id/respond
@@ -1374,12 +1392,17 @@ POST   /reports
 
 # Webhooki (weryfikacja podpisu + idempotencja)
 POST   /webhooks/payments/:provider       (surowe body, poza OpenAPI; F-23)
-POST   /webhooks/shipping/:provider
+POST   /webhooks/shipping/:provider      (surowe body, poza OpenAPI; wskazówka → synchronizacja trackingu, F-24)
 
 # FakeGateway (F-23, poza produkcją; inaczej 404)
 GET    /dev/fake-gateway/payments/:id     POST /dev/fake-gateway/payments/:id/complete   (strona testowa, bez sesji)
 GET    /dev/fake-gateway                  (panel, sesja)   POST /dev/fake-gateway/payments/:id/chargeback
 POST   /dev/fake-gateway/payouts/:id/fail   POST /dev/fake-gateway/sellers/:id/status   POST /dev/fake-gateway/events/:id/redeliver
+
+# FakeShipping (F-24, poza produkcją; inaczej 404; sesja)
+GET    /dev/fake-shipping                 POST /dev/fake-shipping/shipments   (przesyłka testowa bez zamówienia)
+POST   /dev/fake-shipping/shipments/:id/dispatch   GET /dev/fake-shipping/shipments/:id/label   POST /dev/fake-shipping/shipments/:id/sync
+POST   /dev/fake-shipping/parcels/:id/advance      POST /dev/fake-shipping/parcels/:id/scenario
 
 # Admin (/admin/*, osobna sesja i RBAC) — m.in.:
 POST   /admin/bids/:id/cancel      (unieważnienie oferty + replay, §15.6)
@@ -1436,8 +1459,8 @@ interface UserWonEvent {
 ### 14.3 Eventy domenowe (outbox)
 
 - **Aukcje:** `AuctionPublished`, `AuctionSubmittedForReview`, `AuctionUpdated` (zmiana przed pierwszą ofertą), `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
-- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`.
-- **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged` (F-23). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
+- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`. `ShipmentCreated` i `ShipmentStatusChanged` (F-24) publikuje moduł `shipping`; `ShipmentStatusChanged` niesie czas u przewoźnika, czas wykrycia i przy `RETURNING` powód zwrotu. Kontrakt `OrderPaid` (z `shipBy`) zdefiniował F-24 dla powiadomienia „nadaj paczkę”, a publikuje go F-26.
+- **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
 - **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `ReviewPublished`, `ReportCreated`.
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
@@ -1637,7 +1660,7 @@ Odpowiedzi nie blokują Etapów 0–1. Do czasu ich otrzymania obowiązują decy
 | `staging` | Integracje w trybie testowym (sandbox płatności, sandbox kurierów) | Syntetyczne |
 | `production` | — | Produkcyjne |
 
-API i worker dostają środowisko w `DEPLOYMENT_ENV`, bo staging działa z `NODE_ENV=production`. Bez tej zmiennej `NODE_ENV=production` oznacza produkcję (bezpieczna wartość domyślna). Od niej zależy m.in. blokada FakeGateway (§7.8).
+API i worker dostają środowisko w `DEPLOYMENT_ENV`, bo staging działa z `NODE_ENV=production`. Bez tej zmiennej `NODE_ENV=production` oznacza produkcję (bezpieczna wartość domyślna). Od niej zależy m.in. blokada FakeGateway (§7.8) i FakeShipping (§8.6). Staging działa na obu adapterach testowych.
 
 ### 18.2 CI/CD (GitHub Actions)
 
@@ -1925,6 +1948,11 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 93 | FakeGateway jako pełny adapter: stan symulowanego operatora w Postgresie (`fake_gateway_*`), rozliczenie i webhooki jako joby BullMQ wysyłane HTTP na nasz endpoint z podpisem HMAC (sekret wyprowadzony z `BETTER_AUTH_SECRET`). Do tego magiczne kody BLIK i adresy e-mail (KYC), strona testowa i panel w web pod `/dev/*`. Blokada na produkcji: konfiguracja, rejestr adapterów i 404 tras deweloperskich | Przyjęta | §7.8 |
 | 94 | Zdarzenie operatora: wpis `processed_webhooks` i obsługa w jednej transakcji ze stanem płatności, ledgerem i outboxem. Stan zamówienia zmienia konsument `PaymentSucceeded`/`PaymentFailed` (F-25, F-26), bo `payments` nie zależy od `orders`. Płatność bez odpowiedzi operatora jest po 15 min `FAILED` (`PROVIDER_ERROR`), a późną wpłatę przyjmujemy (`FAILED → SUCCEEDED`). Zdarzenia bez obsługi (zwroty, wypłaty, chargebacki do F-28) zapisujemy jako `IGNORED` | Przyjęta | §7.8, §14.3 |
 | 95 | Testy kontraktowe portu w `apps/api/test/support/payment-gateway-contract.ts`, a nie w `src/`: zestaw importuje Vitest, a build kompiluje `src/`. FakeGateway przechodzi je w testach integracyjnych na każdym PR | Przyjęta | §7.8 |
+| 96 | Wybór dostawy jest przesyłką `PENDING` w module `shipping` (dane odbiorcy zostają w tym module), a cena dla kupującego pochodzi ze stałego cennika Biddy (`shipping_rates`), nie z wyceny dostawcy na żywo; koszt u dostawcy zapisujemy w przesyłce. Przesyłkę u dostawcy tworzy worker po „Nadaj”, z kluczem idempotencji z numerem próby (poprawione dane po odrzuceniu to nowa próba) | Przyjęta | §8.3, §8.6 |
+| 97 | Webhook dostawcy przesyłek jest tylko wskazówką: stan zawsze pobieramy z API dostawcy (Furgonetka podpisuje webhooki wyłącznie sumą MD5 z tokenem), zdarzenia trackingu zapisujemy unikalnie, a każda zmiana statusu to osobny event w kolejności chronologicznej; polling zapasowy co 10 min dla przesyłek niesprawdzanych od 2 h | Przyjęta | §8.3, §8.6 |
+| 98 | Zwrot do nadawcy ma powód `NOT_COLLECTED`, gdy paczka wcześniej czekała na kupującego (w punkcie albo u kuriera), inaczej `OTHER`; Furgonetka ma jeden stan zwrotu, więc `returned` to „zwrot w drodze”, a późniejsze `delivered` to `RETURNED` | Tymczasowa (do potwierdzenia na sandboksie Furgonetki) | §7.4, §8.5 |
+| 99 | Adapter Furgonetki w F-24 obsługuje tylko nadanie w punkcie (`DROP_OFF`) i daje etykietę PDF; zamówienie kuriera po paczkę i kod nadania bez etykiety po odpowiedziach Furgonetki. Token OAuth (logowanie hasłem raz na instalację, jednorazowy refresh token) w bazie, zaszyfrowany kluczem z `BETTER_AUTH_SECRET`, odświeżany pod blokadą doradczą | Tymczasowa | §8.1, §8.5 |
+| 100 | Kontrakt eventu `OrderPaid` (z terminem nadania `shipBy`) i powiadomienie sprzedającego `ORDER_PAID` (e-mail transakcyjny) powstały w F-24, zanim F-26 zacznie publikować event; przesyłka testowa FakeShipping może nie mieć zamówienia (`order_id` null tylko dla `provider = 'fake'`) | Przyjęta | §14.3, §8.6 |
 
 ---
 

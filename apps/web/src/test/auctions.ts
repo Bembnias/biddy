@@ -36,7 +36,10 @@ export function publicAuction(
       },
     ],
     packageSize: 'M',
-    carriers: [{ id: 'inpost-paczkomat', name: 'InPost Paczkomat 24/7', kind: 'LOCKER' }],
+    carriers: [
+      { id: 'inpost-paczkomat', name: 'InPost Paczkomat 24/7', kind: 'LOCKER', price: 1_399 },
+    ],
+    shippingFrom: 1_399,
     seller: {
       id: SELLER_ID,
       name: 'Sprzedawca Testowy',

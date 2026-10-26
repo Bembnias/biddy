@@ -9,6 +9,7 @@ export const NOTIFICATION_TYPES = [
   'UNSOLD',
   'AUCTION_CANCELLED',
   'FOLLOWED_SELLER_NEW_AUCTION',
+  'ORDER_PAID',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -19,8 +20,9 @@ export const NOTIFICATION_CHANNELS = ['IN_APP', 'EMAIL'] as const;
 export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 /**
- * E-mail per typ: domyślnie włączony i czy użytkownik może go wyłączyć. Wygrana i sprzedaż to
- * e-maile transakcyjne (termin płatności, wysyłka), więc wychodzą zawsze.
+ * E-mail per typ: domyślnie włączony i czy użytkownik może go wyłączyć. Wygrana, sprzedaż
+ * i opłacone zamówienie (F-24: „nadaj paczkę”) to e-maile transakcyjne (termin płatności,
+ * wysyłka), więc wychodzą zawsze.
  */
 export const NOTIFICATION_EMAIL: Readonly<
   Record<NotificationType, { readonly enabledByDefault: boolean; readonly configurable: boolean }>
@@ -32,6 +34,7 @@ export const NOTIFICATION_EMAIL: Readonly<
   UNSOLD: { enabledByDefault: true, configurable: true },
   AUCTION_CANCELLED: { enabledByDefault: true, configurable: true },
   FOLLOWED_SELLER_NEW_AUCTION: { enabledByDefault: false, configurable: true },
+  ORDER_PAID: { enabledByDefault: true, configurable: false },
 };
 
 /** E-mail o przebiciu w tej samej aukcji najwyżej raz na ten czas. */

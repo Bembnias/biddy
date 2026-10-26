@@ -14,6 +14,12 @@ const production = loadConfig({
   DATABASE_URL,
   DEPLOYMENT_ENV: 'production',
   PAYMENTS_DEFAULT_PROVIDER: 'payu',
+  SHIPPING_DEFAULT_PROVIDER: 'furgonetka',
+  FURGONETKA_CLIENT_ID: 'id',
+  FURGONETKA_CLIENT_SECRET: 'secret',
+  FURGONETKA_USERNAME: 'konto',
+  FURGONETKA_PASSWORD: 'haslo',
+  FURGONETKA_WEBHOOK_TOKEN: 'token',
 });
 
 describe('FakeGateway wyłączony (DEPLOYMENT_ENV=production)', () => {

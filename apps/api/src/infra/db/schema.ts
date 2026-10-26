@@ -17,6 +17,7 @@ export * from '../../modules/payments/db/payments.schema.js';
 export * from '../../modules/payments/db/fake-gateway.schema.js';
 export * from '../../modules/ledger/db/ledger.schema.js';
 export * from '../../modules/shipping/db/shipping.schema.js';
+export * from '../../modules/shipping/db/fake-shipping.schema.js';
 export * from '../../modules/auctions/db/auctions.schema.js';
 export * from '../../modules/orders/db/orders.schema.js';
 export * from '../../modules/notifications/db/notifications.schema.js';

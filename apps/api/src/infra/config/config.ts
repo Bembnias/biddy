@@ -12,6 +12,10 @@ const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'
 /** Środowiska wdrożenia (PROJECT.md §18.1). Staging działa z NODE_ENV=production. */
 export const DEPLOYMENT_ENVIRONMENTS = ['local', 'preview', 'staging', 'production'] as const;
 
+/** Dostawcy przesyłek z adapterem (F-24): `fake` tylko poza produkcją. */
+export const SHIPPING_PROVIDER_NAMES = ['fake', 'furgonetka'] as const;
+export type ShippingProviderName = (typeof SHIPPING_PROVIDER_NAMES)[number];
+
 function text() {
   return z.string({
     error: (issue) => (issue.input === undefined ? MISSING : 'oczekiwano tekstu'),
@@ -277,6 +281,23 @@ export const envSchema = z.object({
   ).optional(),
   // Opóźnienie rozliczenia płatności i webhooka FakeGateway (symulacja potwierdzenia w banku).
   PAYMENTS_FAKE_WEBHOOK_DELAY_MS: integer(0, 600_000).optional(),
+  // Dostawy (F-24): dostawca nowych przesyłek (adapter w ShippingProviderRegistry). Poza
+  // produkcją domyślnie FakeShipping; na produkcji wymagany i różny od `fake`.
+  SHIPPING_DEFAULT_PROVIDER: oneOf(SHIPPING_PROVIDER_NAMES).optional(),
+  // Dokąd worker wysyła webhooki FakeShipping (domyślnie publiczny adres API).
+  SHIPPING_FAKE_WEBHOOK_URL: url(
+    ['https:', 'http:'],
+    'http://staging-api:3001/v1/webhooks/shipping/fake',
+  ).optional(),
+  // Odstęp między statusami automatu FakeShipping; 0 wyłącza automat (statusy tylko z panelu).
+  SHIPPING_FAKE_STEP_DELAY_MS: integer(0, 3_600_000).optional(),
+  // Furgonetka (agregator kurierów, §8.1): wszystkie zmienne razem albo żadna (adapter wyłączony).
+  FURGONETKA_API_URL: url(['https:', 'http:'], 'https://api.furgonetka.pl').optional(),
+  FURGONETKA_CLIENT_ID: text().optional(),
+  FURGONETKA_CLIENT_SECRET: text().optional(),
+  FURGONETKA_USERNAME: text().optional(),
+  FURGONETKA_PASSWORD: text().optional(),
+  FURGONETKA_WEBHOOK_TOKEN: text().optional(),
 });
 
 /** Nazwy wszystkich zmiennych obsługiwanych przez schemat. */
@@ -326,6 +347,25 @@ export const FAKE_PAYMENTS_WEBHOOK_PATH = '/v1/webhooks/payments/fake';
 /** Domyślne opóźnienie rozliczenia i webhooka FakeGateway. */
 export const DEFAULT_FAKE_WEBHOOK_DELAY_MS = 2_000;
 
+/** Ścieżka webhooków FakeShipping w API (F-24). */
+export const FAKE_SHIPPING_WEBHOOK_PATH = '/v1/webhooks/shipping/fake';
+
+/** Domyślny odstęp statusów automatu FakeShipping: cały cykl dostawy w około 2 minuty. */
+export const DEFAULT_FAKE_SHIPPING_STEP_DELAY_MS = 20_000;
+
+/** API Furgonetki: sandbox poza produkcją (osobne konta i klucze), produkcja na produkcji. */
+export const FURGONETKA_SANDBOX_API_URL = 'https://api.sandbox.furgonetka.pl';
+export const FURGONETKA_PRODUCTION_API_URL = 'https://api.furgonetka.pl';
+
+/** Zmienne Furgonetki: podaje się je razem (adapter włączony) albo wcale. */
+const FURGONETKA_VARIABLES = [
+  'FURGONETKA_CLIENT_ID',
+  'FURGONETKA_CLIENT_SECRET',
+  'FURGONETKA_USERNAME',
+  'FURGONETKA_PASSWORD',
+  'FURGONETKA_WEBHOOK_TOKEN',
+] as const;
+
 /** Nadawca e-maili lokalnie (jak MAIL_FROM w .env.example). */
 export const DEFAULT_MAIL_FROM = 'Biddy <no-reply@biddy.local>';
 
@@ -359,6 +399,18 @@ export type MailTransportConfig =
       readonly user: string | undefined;
       readonly password: string | undefined;
     };
+
+/** Dostęp do API Furgonetki (F-24): aplikacja OAuth, konto i token webhooków. */
+export interface FurgonetkaConfig {
+  readonly apiUrl: string;
+  readonly clientId: string;
+  readonly clientSecret: string;
+  /** Konto do pierwszego logowania (grant `password`); potem refresh token z bazy. */
+  readonly username: string;
+  readonly password: string;
+  /** Token sumy kontrolnej webhooków z ustawień konta. */
+  readonly webhookToken: string;
+}
 
 /** Dostawca logowania OAuth z kluczami. */
 export interface OAuthProviderConfig {
@@ -458,6 +510,21 @@ export interface AppConfig {
       /** Sekret podpisu webhooków, wyprowadzony z BETTER_AUTH_SECRET. */
       readonly webhookSecret: string;
     };
+  };
+  readonly shipping: {
+    /** Dostawca nowych przesyłek; ShippingProviderRegistry musi mieć dla niego adapter. */
+    readonly defaultProvider: ShippingProviderName;
+    /** FakeShipping (F-24): adapter testowy z automatem statusów, wyłączony na produkcji. */
+    readonly fake: {
+      readonly enabled: boolean;
+      /** Adres endpointu webhooków API, na który worker wysyła zmiany statusów. */
+      readonly webhookUrl: string;
+      /** Odstęp automatu; 0 = bez automatu. */
+      readonly stepDelayMs: number;
+      readonly webhookSecret: string;
+    };
+    /** Furgonetka (§8.1); undefined = adapter wyłączony. */
+    readonly furgonetka: FurgonetkaConfig | undefined;
   };
   readonly sentry: {
     readonly dsn: string | undefined;
@@ -664,6 +731,59 @@ function paymentIssues(input: Readonly<Record<string, string>>, role: ProcessRol
   return [];
 }
 
+/**
+ * Dostawy (F-24): na produkcji dostawca jest wymagany, a FakeShipping zablokowany; zmienne
+ * Furgonetki idą w komplecie, a wybrana Furgonetka wymaga kompletu. Worker na stagingu musi
+ * wiedzieć, dokąd wysyłać webhooki FakeShipping.
+ */
+function shippingIssues(input: Readonly<Record<string, string>>, role: ProcessRole): ConfigIssue[] {
+  const issues: ConfigIssue[] = [];
+  const deployment = deploymentOf(input);
+  const provider = input['SHIPPING_DEFAULT_PROVIDER'];
+  const furgonetkaGiven = FURGONETKA_VARIABLES.filter((name) => input[name] !== undefined);
+  if (
+    furgonetkaGiven.length > 0 ||
+    (provider === 'furgonetka' && furgonetkaGiven.length < FURGONETKA_VARIABLES.length)
+  ) {
+    for (const variable of FURGONETKA_VARIABLES) {
+      if (input[variable] === undefined) {
+        issues.push({
+          variable,
+          message: `${MISSING}; podaj wszystkie zmienne Furgonetki (${FURGONETKA_VARIABLES.join(', ')}) albo żadnej`,
+        });
+      }
+    }
+  }
+  if (deployment === 'production') {
+    if (provider === undefined) {
+      issues.push({
+        variable: 'SHIPPING_DEFAULT_PROVIDER',
+        message: `${MISSING}; na produkcji podaj dostawcę przesyłek, np. furgonetka (FakeShipping działa tylko poza produkcją)`,
+      });
+    } else if (provider === 'fake') {
+      issues.push({
+        variable: 'SHIPPING_DEFAULT_PROVIDER',
+        message:
+          'FakeShipping (fake) nie może działać na produkcji (DEPLOYMENT_ENV=production); podaj dostawcę, np. furgonetka, a na stagingu ustaw DEPLOYMENT_ENV=staging',
+      });
+    }
+    return issues;
+  }
+  if (
+    deployment !== undefined &&
+    input['NODE_ENV'] === 'production' &&
+    role === 'worker' &&
+    input['SHIPPING_FAKE_WEBHOOK_URL'] === undefined &&
+    input['API_PUBLIC_URL'] === undefined
+  ) {
+    issues.push({
+      variable: 'SHIPPING_FAKE_WEBHOOK_URL',
+      message: `${MISSING}; worker wysyła webhooki FakeShipping do API, np. http://staging-api:3001${FAKE_SHIPPING_WEBHOOK_PATH} (albo ustaw API_PUBLIC_URL)`,
+    });
+  }
+  return issues;
+}
+
 /** Klucze dostawcy OAuth podaje się parami: sam identyfikator albo sam sekret to błąd. */
 function oauthPairIssues(input: Readonly<Record<string, string>>): ConfigIssue[] {
   const issues: ConfigIssue[] = [];
@@ -705,6 +825,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     ...crossFieldIssues(input, role),
     ...oauthPairIssues(input),
     ...paymentIssues(input, role),
+    ...shippingIssues(input, role),
   ];
   if (!result.success || issues.length > 0) {
     throw new ConfigError(issues.sort(byVariableOrder));
@@ -816,6 +937,36 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
         webhookSecret: fakeWebhookSecret(authSecret),
       },
     },
+    shipping: {
+      // Na produkcji shippingIssues wymaga zmiennej, więc `fake` zostaje tylko poza nią.
+      defaultProvider: vars.SHIPPING_DEFAULT_PROVIDER ?? 'fake',
+      fake: {
+        enabled: deployment !== 'production',
+        webhookUrl: vars.SHIPPING_FAKE_WEBHOOK_URL ?? `${apiUrl}${FAKE_SHIPPING_WEBHOOK_PATH}`,
+        stepDelayMs: vars.SHIPPING_FAKE_STEP_DELAY_MS ?? DEFAULT_FAKE_SHIPPING_STEP_DELAY_MS,
+        webhookSecret: derivedSecret(authSecret, 'biddy:fake-shipping-webhook'),
+      },
+      furgonetka:
+        vars.FURGONETKA_CLIENT_ID === undefined ||
+        vars.FURGONETKA_CLIENT_SECRET === undefined ||
+        vars.FURGONETKA_USERNAME === undefined ||
+        vars.FURGONETKA_PASSWORD === undefined ||
+        vars.FURGONETKA_WEBHOOK_TOKEN === undefined
+          ? undefined
+          : {
+              apiUrl: (
+                vars.FURGONETKA_API_URL ??
+                (deployment === 'production'
+                  ? FURGONETKA_PRODUCTION_API_URL
+                  : FURGONETKA_SANDBOX_API_URL)
+              ).replace(/\/+$/, ''),
+              clientId: vars.FURGONETKA_CLIENT_ID,
+              clientSecret: vars.FURGONETKA_CLIENT_SECRET,
+              username: vars.FURGONETKA_USERNAME,
+              password: vars.FURGONETKA_PASSWORD,
+              webhookToken: vars.FURGONETKA_WEBHOOK_TOKEN,
+            },
+    },
     sentry: {
       dsn: vars.SENTRY_DSN,
       environment: vars.SENTRY_ENVIRONMENT ?? vars.NODE_ENV,
@@ -830,7 +981,16 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
  * kolejnego sekretu, a webhooka nie podrobi nikt, kto nie zna sekretu sesji.
  */
 export function fakeWebhookSecret(authSecret: string): string {
-  return createHmac('sha256', authSecret).update('biddy:fake-payments-webhook').digest('base64url');
+  return derivedSecret(authSecret, 'biddy:fake-payments-webhook');
+}
+
+/**
+ * Sekret do osobnego celu wyprowadzony z sekretu sesji (HMAC z etykietą), np. podpis webhooków
+ * FakeShipping albo klucz szyfrowania tokenów Furgonetki. Ta sama etykieta daje ten sam sekret
+ * w API i workerze.
+ */
+export function derivedSecret(authSecret: string, label: string): string {
+  return createHmac('sha256', authSecret).update(label).digest('base64url');
 }
 
 /** Ustawienia Sentry potrzebne w instrument.ts (przed załadowaniem reszty aplikacji). */

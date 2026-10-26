@@ -95,6 +95,19 @@ describe('apiFetch: odpowiedź', () => {
     });
   });
 
+  it('PDF (etykieta przesyłki): Blob z bajtami bez zmian', async () => {
+    const bytes = new Uint8Array([0x25, 0x50, 0x44, 0x46, 0xff, 0x00]);
+    configureApiClient({
+      baseUrl: 'https://api.biddy.pl',
+      fetch: vi.fn<typeof fetch>(() =>
+        Promise.resolve(new Response(bytes, { headers: { 'content-type': 'application/pdf' } })),
+      ),
+    });
+    const blob = await apiFetch<Blob>('/v1/orders/k3x9qa7m/label');
+    expect(blob).toBeInstanceOf(Blob);
+    expect(new Uint8Array(await blob.arrayBuffer())).toEqual(bytes);
+  });
+
   it('204: undefined', async () => {
     configureApiClient({ fetch: respond('', { status: 204 }) });
     await expect(apiFetch('/v1/me/watchlist/a1', { method: 'DELETE' })).resolves.toBeUndefined();

@@ -701,6 +701,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-24 · Dostawy · `L`
 
+> Pełny spec: [docs/features/F-24-dostawy.md](features/F-24-dostawy.md).
+
 **Cel:** kilka opcji dostawy z automatycznymi etykietami i śledzeniem.
 
 **Zakres:**

@@ -26,6 +26,8 @@ import type {
 
 import type {
   CarrierDto,
+  GetPickupPointsParams,
+  PickupPointDto,
   ProblemDetails
 } from '../model';
 
@@ -196,6 +198,169 @@ export function useGetCarriersSuspense<TData = Awaited<ReturnType<typeof getCarr
  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetCarriersSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetPickupPointsUrl = (params: GetPickupPointsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/shipping/points?${stringifiedParams}` : `/v1/shipping/points`
+}
+
+/**
+ * Paczkomaty i punkty blisko współrzędnych albo frazy (najwyżej 50). Kurier nie ma punktów (422).
+ * @summary Punkty odbioru usługi
+ */
+export const getPickupPoints = async (params: GetPickupPointsParams, options?: Parameters<typeof apiFetch>[1]): Promise<PickupPointDto[]> => {
+
+  return apiFetch<PickupPointDto[]>(getGetPickupPointsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPickupPointsQueryKey = (params?: GetPickupPointsParams,) => {
+    return [
+    `/v1/shipping/points`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPickupPointsQueryOptions = <TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(params: GetPickupPointsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPickupPointsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPickupPoints>>> = ({ signal }) => getPickupPoints(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPickupPointsQueryResult = NonNullable<Awaited<ReturnType<typeof getPickupPoints>>>
+export type GetPickupPointsQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetPickupPoints<TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+ params: GetPickupPointsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPickupPoints>>,
+          TError,
+          Awaited<ReturnType<typeof getPickupPoints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPickupPoints<TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+ params: GetPickupPointsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPickupPoints>>,
+          TError,
+          Awaited<ReturnType<typeof getPickupPoints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPickupPoints<TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+ params: GetPickupPointsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Punkty odbioru usługi
+ */
+
+export function useGetPickupPoints<TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+ params: GetPickupPointsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPickupPointsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetPickupPointsSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(params: GetPickupPointsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPickupPointsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPickupPoints>>> = ({ signal }) => getPickupPoints(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetPickupPointsSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getPickupPoints>>>
+export type GetPickupPointsSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetPickupPointsSuspense<TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+ params: GetPickupPointsParams, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPickupPointsSuspense<TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+ params: GetPickupPointsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPickupPointsSuspense<TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+ params: GetPickupPointsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Punkty odbioru usługi
+ */
+
+export function useGetPickupPointsSuspense<TData = Awaited<ReturnType<typeof getPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+ params: GetPickupPointsParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPickupPointsSuspenseQueryOptions(params,options)
 
   const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

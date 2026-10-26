@@ -107,9 +107,22 @@ function isJson(contentType: string | null): boolean {
   return mediaType === 'application/json' || mediaType.endsWith('+json');
 }
 
+/** Odpowiedzi binarne (np. etykieta PDF przesyłki, F-24): treść jako Blob, nie tekst. */
+function isBinary(contentType: string | null): boolean {
+  const mediaType = contentType?.split(';')[0]?.trim().toLowerCase() ?? '';
+  return (
+    mediaType === 'application/pdf' ||
+    mediaType === 'application/octet-stream' ||
+    mediaType.startsWith('image/')
+  );
+}
+
 async function readBody(response: Response): Promise<unknown> {
   if (response.status === 204 || response.status === 205 || response.status === 304) {
     return undefined;
+  }
+  if (response.ok && isBinary(response.headers.get('content-type'))) {
+    return response.blob();
   }
   const text = await response.text();
   if (text === '') {
@@ -144,7 +157,8 @@ async function requestHeaders(config: ApiClientConfig, init: RequestInit): Promi
 }
 
 /**
- * Wysyła żądanie do API i zwraca treść odpowiedzi (JSON). Odpowiedź z błędem (status spoza 2xx)
+ * Wysyła żądanie do API i zwraca treść odpowiedzi (JSON albo Blob dla PDF i obrazów). Odpowiedź
+ * z błędem (status spoza 2xx)
  * i brak odpowiedzi zamienia na {@link ApiError}. Wołają ją wygenerowane funkcje klienta.
  *
  * @param url ścieżka z kontraktu z parametrami zapytania, np. `/v1/time`

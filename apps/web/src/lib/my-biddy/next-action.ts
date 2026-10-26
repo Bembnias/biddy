@@ -1,9 +1,10 @@
 // Następna akcja w listach Moje Biddy (F-21): każda pozycja mówi, co zrobić dalej. Płatność (F-25)
-// i nadanie paczki (F-26) jeszcze nie działają, więc ich akcje są widoczne, ale nieaktywne.
+// jeszcze nie działa, więc jej akcja jest widoczna, ale nieaktywna; nadanie paczki prowadzi do
+// strony nadania (F-24).
 import type { AuctionSummaryDto, MyBidsDto, MyWatchlistDto } from '@biddy/api-client';
 import { formatMoney, money } from '@biddy/shared';
 
-import { auctionUrl, searchUrl } from '@/lib/routes';
+import { auctionUrl, dispatchUrl, searchUrl } from '@/lib/routes';
 
 export type MyBidEntry = MyBidsDto['items'][number];
 export type WatchedAuction = MyWatchlistDto['items'][number];
@@ -30,14 +31,14 @@ export interface RowStatus {
 export type RowAction =
   | {
       readonly kind: 'link';
-      readonly label: 'view' | 'rebid' | 'similar' | 'bid';
+      readonly label: 'view' | 'rebid' | 'similar' | 'bid' | 'ship';
       readonly href: string;
       readonly primary: boolean;
     }
   | {
       readonly kind: 'disabled';
-      readonly label: 'pay' | 'ship';
-      readonly hint: 'payHint' | 'shipHint';
+      readonly label: 'pay';
+      readonly hint: 'payHint';
     }
   | { readonly kind: 'unwatch' }
   | { readonly kind: 'none' };
@@ -152,7 +153,7 @@ export function saleRow(
   if (order.status === 'PAID') {
     return {
       status: { key: 'paid', values: { number: order.publicId }, tone: 'positive' },
-      action: { kind: 'disabled', label: 'ship', hint: 'shipHint' },
+      action: { kind: 'link', label: 'ship', href: dispatchUrl(order.publicId), primary: true },
     };
   }
   return {

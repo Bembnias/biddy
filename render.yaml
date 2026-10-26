@@ -15,12 +15,16 @@ envVarGroups:
     envVars:
       - key: NODE_ENV
         value: production
-      # Staging z FakeGateway (F-23); bez tej zmiennej NODE_ENV=production oznacza produkcję.
+      # Staging z FakeGateway (F-23) i FakeShipping (F-24); bez tej zmiennej NODE_ENV=production
+      # oznacza produkcję.
       - key: DEPLOYMENT_ENV
         value: staging
       # Worker wysyła webhooki FakeGateway na publiczny adres API.
       - key: PAYMENTS_FAKE_WEBHOOK_URL
         value: https://api.staging.biddy.pl/v1/webhooks/payments/fake
+      # Worker wysyła webhooki FakeShipping (automat statusów przesyłek, F-24).
+      - key: SHIPPING_FAKE_WEBHOOK_URL
+        value: https://api.staging.biddy.pl/v1/webhooks/shipping/fake
       - key: LOG_LEVEL
         value: info
       - key: SENTRY_ENVIRONMENT

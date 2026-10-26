@@ -22,6 +22,8 @@ export interface NotificationPayload {
   /** Do zapłaty z POK, bez dostawy (wygrana). */
   readonly total?: Money;
   readonly paymentDueAt?: string;
+  /** Termin nadania paczki (opłacone zamówienie, F-24). */
+  readonly shipBy?: string;
   readonly reason?: 'NO_BIDS' | 'RESERVE_NOT_MET';
   readonly cancelledBy?: 'SELLER' | 'MODERATOR';
   readonly sellerName?: string;
@@ -37,6 +39,11 @@ export interface NotificationContent {
 
 /** Moje aukcje w Moje Biddy (powiadomienie o braku sprzedaży, F-21). */
 const MY_AUCTIONS_PATH = '/moje-biddy/aukcje';
+
+/** Strona nadania paczki zamówienia (F-24). */
+export function dispatchPath(orderPublicId: string): string {
+  return `/zamowienia/${orderPublicId}/nadaj`;
+}
 
 const dateTime = new Intl.DateTimeFormat('pl-PL', {
   timeZone: 'Europe/Warsaw',
@@ -114,6 +121,16 @@ export function notificationContent(
         ],
         path,
         actionLabel: 'Zobacz aukcję',
+      };
+    case 'ORDER_PAID':
+      return {
+        title: `Opłacono: ${auction.title}`,
+        lines: [
+          `Kupujący zapłacił za ${title} (zamówienie nr ${payload.orderPublicId ?? ''}).`,
+          `Nadaj paczkę do ${date(payload.shipBy)}: podaj dane nadawcy, a dostaniesz kod nadania albo etykietę.`,
+        ],
+        path: dispatchPath(payload.orderPublicId ?? ''),
+        actionLabel: 'Nadaj paczkę',
       };
     case 'FOLLOWED_SELLER_NEW_AUCTION':
       return {

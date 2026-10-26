@@ -1,4 +1,5 @@
-// Źródła powiadomień (F-20): eventy modułów auctions i orders oraz job „kończy się za godzinę”.
+// Źródła powiadomień (F-20): eventy modułów auctions i orders (także OrderPaid, F-24) oraz job
+// „kończy się za godzinę”.
 // Konsument zapisuje powiadomienia w transakcji obsługi eventu z kluczem deduplikacji, więc
 // ponowne dostarczenie eventu niczego nie powtórzy.
 import { money as moneyOf } from '@biddy/shared';
@@ -20,7 +21,7 @@ import {
   UserOutbid,
 } from '../../auctions/index.js';
 import { FollowService, ProfileService } from '../../identity/index.js';
-import { OrderCreated } from '../../orders/index.js';
+import { OrderCreated, OrderPaid } from '../../orders/index.js';
 import type { AuctionRef } from './notification-content.js';
 import { NotificationService } from './notification.service.js';
 
@@ -137,6 +138,32 @@ export class NotificationSources {
         dedupeKey: `SOLD:${notice.id}`,
         auctionId: notice.id,
         payload: common,
+      },
+    ]);
+  }
+
+  /** Opłacone zamówienie (F-24): sprzedający ma nadać paczkę (event publikuje F-26). */
+  @OnDomainEvent(OrderPaid, { consumer: 'notifications.order-paid' })
+  async onOrderPaid(
+    event: DomainEventOf<typeof OrderPaid>,
+    { tx }: DomainEventContext,
+  ): Promise<void> {
+    const notice = await this.auctions.notice(event.payload.auctionId, tx);
+    if (notice === undefined) {
+      return;
+    }
+    await this.notifications.notify(tx, [
+      {
+        userId: event.payload.sellerId,
+        type: 'ORDER_PAID',
+        dedupeKey: `ORDER_PAID:${event.aggregateId}`,
+        auctionId: notice.id,
+        payload: {
+          auction: ref(notice),
+          orderPublicId: event.payload.publicId,
+          total: event.payload.total,
+          shipBy: event.payload.shipBy,
+        },
       },
     ]);
   }

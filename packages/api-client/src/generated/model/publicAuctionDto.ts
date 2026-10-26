@@ -45,7 +45,15 @@ export interface PublicAuctionDto {
   photos: PublicAuctionDtoPhotosItem[];
   /** @nullable */
   packageSize: PublicAuctionDtoPackageSize;
+  /** Akceptowane dostawy pasujące do gabarytu, z cenami z cennika Biddy */
   carriers: PublicAuctionDtoCarriersItem[];
+  /**
+     * Najtańsza dostawa („dostawa od”) w groszach; null bez opcji dostawy
+     * @minimum 0
+     * @maximum 9007199254740991
+     * @nullable
+     */
+  shippingFrom: number | null;
   seller: PublicAuctionDtoSeller;
   /**
      * @minimum -9007199254740991

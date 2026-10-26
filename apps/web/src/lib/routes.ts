@@ -35,7 +35,14 @@ export const routes = {
   privacy: '/polityka-prywatnosci',
   /** Panel deweloperski FakeGateway (F-23, poza produkcją). */
   fakeGateway: '/dev/fake-gateway',
+  /** Panel deweloperski FakeShipping (F-24, poza produkcją). */
+  fakeShipping: '/dev/fake-shipping',
 } as const;
+
+/** Strona nadania paczki zamówienia dla sprzedającego (F-24), np. `/zamowienia/k3x9qa7m/nadaj`. */
+export function dispatchUrl(orderPublicId: string): string {
+  return `/zamowienia/${encodeURIComponent(orderPublicId)}/nadaj`;
+}
 
 /** Testowa strona płatności FakeGateway (F-23): tu FakeGateway odsyła płatności z przekierowaniem. */
 export function fakePayUrl(paymentId: string): string {

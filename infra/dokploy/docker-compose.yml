@@ -21,11 +21,14 @@ x-api-image: &api-image
 # Wspólne dla API, workera i migracji (ten sam obraz, apps/api/Dockerfile).
 x-api-env: &api-env
   NODE_ENV: production
-  # Środowisko wdrożenia (F-23): staging działa z FakeGateway, a `production` go blokuje (wtedy
-  # trzeba podać PAYMENTS_DEFAULT_PROVIDER z prawdziwym operatorem, F-31).
+  # Środowisko wdrożenia (F-23): staging działa z FakeGateway i FakeShipping, a `production` je
+  # blokuje (wtedy trzeba podać PAYMENTS_DEFAULT_PROVIDER z prawdziwym operatorem, F-31,
+  # i SHIPPING_DEFAULT_PROVIDER=furgonetka ze zmiennymi FURGONETKA_*, F-24).
   DEPLOYMENT_ENV: ${BIDDY_ENV:-staging}
-  # Worker wysyła webhooki FakeGateway do API w sieci wewnętrznej stosu (bez TLS i internetu).
+  # Worker wysyła webhooki FakeGateway i FakeShipping do API w sieci wewnętrznej stosu (bez TLS
+  # i internetu).
   PAYMENTS_FAKE_WEBHOOK_URL: http://${BIDDY_ENV:-staging}-api:3001/v1/webhooks/payments/fake
+  SHIPPING_FAKE_WEBHOOK_URL: http://${BIDDY_ENV:-staging}-api:3001/v1/webhooks/shipping/fake
   LOG_LEVEL: ${LOG_LEVEL:-info}
   DATABASE_URL: ${DATABASE_URL:?podaj adres bazy Postgres z panelu Dokploy (adres wewnętrzny)}
   REDIS_QUEUE_URL: redis://${BIDDY_ENV:-staging}-redis-queue:6379

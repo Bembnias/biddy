@@ -150,6 +150,42 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Klucz już użyty',
     detail: 'Ten klucz Idempotency-Key został użyty w innym żądaniu. Wygeneruj nowy klucz.',
   },
+  SHIPPING_OPTION_UNAVAILABLE: {
+    status: 422,
+    title: 'Dostawa niedostępna',
+    detail: 'Ta dostawa nie pasuje do przedmiotu albo jest chwilowo niedostępna. Wybierz inną.',
+  },
+  PICKUP_POINT_REQUIRED: {
+    status: 422,
+    title: 'Wybierz punkt odbioru',
+    detail: 'Ta dostawa wymaga wybrania paczkomatu albo punktu odbioru.',
+  },
+  PICKUP_POINT_NOT_FOUND: {
+    status: 422,
+    title: 'Nie ma takiego punktu',
+    detail: 'Nie znaleziono wybranego punktu odbioru. Wybierz inny punkt.',
+  },
+  DELIVERY_ADDRESS_REQUIRED: {
+    status: 422,
+    title: 'Podaj adres dostawy',
+    detail: 'Dostawa kurierem wymaga adresu dostawy.',
+  },
+  DISPATCH_METHOD_UNAVAILABLE: {
+    status: 422,
+    title: 'Sposób nadania niedostępny',
+    detail: 'Ten sposób nadania nie jest dostępny dla wybranej dostawy.',
+  },
+  ORDER_NOT_AWAITING_SHIPMENT: {
+    status: 409,
+    title: 'Zamówienie nie czeka na nadanie',
+    detail:
+      'Tego zamówienia nie można teraz nadać: nie jest opłacone albo nie ma wybranej dostawy.',
+  },
+  SHIPMENT_ALREADY_DISPATCHED: {
+    status: 409,
+    title: 'Przesyłka już nadana',
+    detail: 'Przesyłka jest już nadawana albo nadana, więc dostawy nie można zmienić.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

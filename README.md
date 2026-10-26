@@ -484,6 +484,35 @@ Domena rozmawia z operatorem płatności wyłącznie przez port `PaymentGateway`
   - Staging ma `DEPLOYMENT_ENV=staging` i działa na FakeGateway.
 - **Testy kontraktowe:** `describeGatewayContract` w `apps/api/test/support/payment-gateway-contract.ts`; FakeGateway przechodzi go w `test/integration/payments-contract.int.test.ts`. Każdy nowy adapter (F-31) musi przejść ten sam zestaw.
 
+### Dostawy: port, FakeShipping i Furgonetka (F-24)
+
+Domena rozmawia z przewoźnikami wyłącznie przez port `ShippingProvider` ([PROJECT.md §8](docs/PROJECT.md#8-dostawa)). Adaptery to Furgonetka (MVP) i testowy FakeShipping. Spec: [F-24](docs/features/F-24-dostawy.md).
+
+- **Opcje i ceny:**
+  - `ShippingQuoteService.options` zwraca usługi zaakceptowane przez sprzedającego, pasujące do gabarytu (XL w limitach wagi, najdłuższego boku i obwodu) i z ceną w cenniku Biddy (`shipping_rates`);
+  - strona aukcji pokazuje ceny i „+ dostawa od”;
+  - kupujący pobiera opcje zamówienia przez `GET /v1/orders/:id/shipping-options`.
+- **Przesyłka:**
+  - `ShipmentService.prepare` zapisuje wybór kupującego (`PENDING`; woła go checkout F-25);
+  - „Nadaj” to `POST /v1/orders/:id/shipment` (sprzedający, zamówienie `PAID`);
+  - job `shipping.create` tworzy przesyłkę u dostawcy z kluczem `shipment:{id}:{próba}` i zapisuje etykietę PDF w prywatnym kubełku;
+  - sprzedający dostaje kod nadania albo etykietę (`GET /v1/orders/:id/label`);
+  - dane odrzucone przez przewoźnika wracają do formularza.
+- **Tracking:**
+  - webhook `POST /v1/webhooks/shipping/:provider` jest tylko wskazówką, a job `shipping.sync-tracking` pobiera historię z API dostawcy;
+  - polling zapasowy `shipping.poll-tracking` co 10 minut obejmuje przesyłki niesprawdzane od 2 godzin;
+  - każda zmiana statusu to event `ShipmentStatusChanged` (przy zwrocie z powodem `NOT_COLLECTED` albo `OTHER`), który konsumuje F-26.
+- **FakeShipping lokalnie** (`pnpm dev` + `pnpm dev:worker`): automat dodaje kolejny status co `SHIPPING_FAKE_STEP_DELAY_MS` (20 s) i wysyła podpisany webhook na API, więc cały cykl trwa około 2 minut.
+  - Punkty `…-NOPICKUP` i `…-LOST` prowadzą paczkę ścieżką nieodebranej albo zagubionej przesyłki.
+  - Telefon nadawcy `500 000 000`: przewoźnik odrzuca dane; `500 000 001`: przewoźnik niedostępny.
+- **Panel deweloperski:** `http://localhost:3000/dev/fake-shipping` (po zalogowaniu).
+  - Przesyłka testowa bez zamówienia z tym samym formularzem „Nadaj” co strona zamówienia.
+  - Następny albo dowolny status, zmiana scenariusza, synchronizacja bez webhooka, etykieta.
+- **Strona nadania:** `/zamowienia/{numer}/nadaj` (link z powiadomienia „Opłacono” i z „Moje Biddy → Sprzedane”).
+- **Furgonetka:** zmienne `FURGONETKA_*` (komplet albo żadna). Konto loguje się raz, a token z refresh tokenem leży zaszyfrowany w bazie. Bez danych dostępu adapter jest wyłączony, a sandbox ma własne testy kontraktowe (`FURGONETKA_SANDBOX_*`).
+- **Produkcja:** przy `DEPLOYMENT_ENV=production` `SHIPPING_DEFAULT_PROVIDER` jest wymagany i różny od `fake`, a trasy `/v1/dev/fake-shipping/*` odpowiadają 404.
+- **Testy kontraktowe:** `describeShippingProviderContract` w `apps/api/test/support/shipping-provider-contract.ts`; FakeShipping przechodzi go w `test/integration/shipping-contract.int.test.ts`.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):

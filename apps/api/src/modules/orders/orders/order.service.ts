@@ -1,11 +1,12 @@
 // Zamówienia (F-16): utworzenie zamówienia dla sprzedanej aukcji w transakcji jej zakończenia
 // (moduł auctions przekazuje `tx`), z POK według cennika z chwili zakończenia (F-13) i terminem
 // płatności 24 h (§6.8). Przejścia stanów, checkout i terminy: F-25, F-26.
-import { type CurrencyCode, money } from '@biddy/shared';
+import { type CurrencyCode, money, PUBLIC_ID_PATTERN } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { type Database, DRIZZLE, newPublicId, type Transaction } from '../../../infra/db/index.js';
+import { DomainError } from '../../../infra/http/index.js';
 import { Outbox } from '../../../infra/outbox/index.js';
 import { FeeScheduleService } from '../../payments/index.js';
 import { type Order, orderItems, orders } from '../db/orders.schema.js';
@@ -14,6 +15,18 @@ import type { OrderItemSnapshot } from './order-snapshot.js';
 
 /** Termin płatności zwycięzcy (§6.8). */
 export const PAYMENT_WINDOW_MS = 24 * 60 * 60 * 1_000;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+/** Strona zamówienia z perspektywy zalogowanego użytkownika. */
+export type OrderRole = 'BUYER' | 'SELLER';
+
+/** Zamówienie z pozycją (snapshot przedmiotu) i rolą oglądającego. */
+export interface ParticipantOrder {
+  readonly order: Order;
+  readonly role: OrderRole;
+  readonly snapshot: OrderItemSnapshot;
+}
 
 /** Sprzedana aukcja, z której powstaje zamówienie. */
 export interface AuctionSale {
@@ -58,6 +71,39 @@ export class OrderService {
       .innerJoin(orders, eq(orders.id, orderItems.orderId))
       .where(and(eq(orderItems.auctionId, auctionId), eq(orderItems.isActive, true)));
     return row?.order;
+  }
+
+  /**
+   * Zamówienie po UUID albo numerze (`publicId`) dla jego kupującego albo sprzedającego.
+   * Inni dostają 404, tak jak dla nieistniejącego zamówienia (bez ujawniania numerów).
+   */
+  async forParticipant(idOrPublicId: string, userId: string): Promise<ParticipantOrder> {
+    const condition = UUID.test(idOrPublicId)
+      ? eq(orders.id, idOrPublicId)
+      : PUBLIC_ID_PATTERN.test(idOrPublicId)
+        ? eq(orders.publicId, idOrPublicId)
+        : undefined;
+    const [row] =
+      condition === undefined
+        ? []
+        : await this.db
+            .select({ order: orders, snapshot: orderItems.itemSnapshot })
+            .from(orders)
+            .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+            .where(condition)
+            .limit(1);
+    const role: OrderRole | undefined =
+      row === undefined
+        ? undefined
+        : row.order.buyerId === userId
+          ? 'BUYER'
+          : row.order.sellerId === userId
+            ? 'SELLER'
+            : undefined;
+    if (row === undefined || role === undefined) {
+      throw new DomainError({ code: 'NOT_FOUND', detail: 'Nie znaleziono zamówienia.' });
+    }
+    return { order: row.order, role, snapshot: row.snapshot };
   }
 
   /**

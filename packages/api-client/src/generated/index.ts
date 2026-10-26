@@ -7,6 +7,7 @@ export * from './fee-schedules/fee-schedules';
 export * from './me/me';
 export * from './media/media';
 export * from './notifications/notifications';
+export * from './orders/orders';
 export * from './search/search';
 export * from './shipping/shipping';
 export * from './time/time';

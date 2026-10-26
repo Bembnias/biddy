@@ -11,4 +11,10 @@ export type PublicAuctionDtoCarriersItem = {
   id: string;
   name: string;
   kind: PublicAuctionDtoCarriersItemKind;
+  /**
+     * Cena dostawy dla kupującego w groszach (F-24)
+     * @minimum 0
+     * @maximum 9007199254740991
+     */
+  price: number;
 };

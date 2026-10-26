@@ -532,6 +532,13 @@ describe('start aplikacji', () => {
           DATABASE_URL: database.url,
           DEPLOYMENT_ENV: 'production',
           PAYMENTS_DEFAULT_PROVIDER: 'payu',
+          // Dostawy na produkcji wymagają Furgonetki (F-24); adapter nie łączy się przy starcie.
+          SHIPPING_DEFAULT_PROVIDER: 'furgonetka',
+          FURGONETKA_CLIENT_ID: 'id',
+          FURGONETKA_CLIENT_SECRET: 'secret',
+          FURGONETKA_USERNAME: 'konto',
+          FURGONETKA_PASSWORD: 'haslo',
+          FURGONETKA_WEBHOOK_TOKEN: 'token',
         }),
       ),
     ).rejects.toThrow(/PAYMENTS_DEFAULT_PROVIDER=payu: brak adaptera/);

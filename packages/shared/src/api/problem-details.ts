@@ -72,6 +72,20 @@ export const ERROR_CODES = {
   BUY_NOW_UNAVAILABLE: 'BUY_NOW_UNAVAILABLE',
   /** Ten sam Idempotency-Key użyty z innym żądaniem (F-15). */
   IDEMPOTENCY_KEY_REUSED: 'IDEMPOTENCY_KEY_REUSED',
+  /** Usługa dostawy nie pasuje do przedmiotu albo nie ma ceny w cenniku (F-24). */
+  SHIPPING_OPTION_UNAVAILABLE: 'SHIPPING_OPTION_UNAVAILABLE',
+  /** Paczkomat i punkt odbioru wymagają wskazania punktu (F-24). */
+  PICKUP_POINT_REQUIRED: 'PICKUP_POINT_REQUIRED',
+  /** Punktu odbioru nie ma u dostawcy (nieaktywny albo zły identyfikator, F-24). */
+  PICKUP_POINT_NOT_FOUND: 'PICKUP_POINT_NOT_FOUND',
+  /** Kurier wymaga adresu dostawy (F-24). */
+  DELIVERY_ADDRESS_REQUIRED: 'DELIVERY_ADDRESS_REQUIRED',
+  /** Sposób nadania niedostępny dla tej usługi albo dostawcy (F-24). */
+  DISPATCH_METHOD_UNAVAILABLE: 'DISPATCH_METHOD_UNAVAILABLE',
+  /** Zamówienie nie czeka na nadanie: nieopłacone albo bez wybranej dostawy (F-24). */
+  ORDER_NOT_AWAITING_SHIPMENT: 'ORDER_NOT_AWAITING_SHIPMENT',
+  /** Przesyłka jest już nadawana albo nadana, więc dostawy nie można zmienić (F-24). */
+  SHIPMENT_ALREADY_DISPATCHED: 'SHIPMENT_ALREADY_DISPATCHED',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

@@ -58,6 +58,10 @@ const HOUR_MS = 3_600_000;
 /** Kody błędów, po których stan aukcji na stronie jest nieaktualny. */
 const STALE_STATE_CODES = new Set(['BID_TOO_LOW', 'AUCTION_ENDED', 'BUY_NOW_UNAVAILABLE']);
 
+/** Najtańsza dostawa z cennika Biddy („+ dostawa od”, F-24); null bez opcji dostawy. */
+const shippingFromOf = (auction: PublicAuctionDto) =>
+  auction.shippingFrom === null ? null : money(auction.shippingFrom);
+
 const short = (amount: number) =>
   formatMoney(money(amount), { trailingZeroDisplay: 'stripIfInteger' });
 
@@ -537,7 +541,12 @@ function BidForm({
           {t('maxHint', { minimum: short(minimum) })}
         </p>
       </div>
-      <TotalPrice amount={money(preview)} kind="maxBid" initialFeeSchedule={feeSchedule} />
+      <TotalPrice
+        amount={money(preview)}
+        kind="maxBid"
+        initialFeeSchedule={feeSchedule}
+        shippingFrom={shippingFromOf(auction)}
+      />
       <Button type="submit" variant="cta" size="lg" className="w-full" disabled={sending}>
         <Gavel aria-hidden />
         {sending ? t('bidding') : t('bid')}
@@ -562,6 +571,7 @@ function BidForm({
             amount={money(confirming ?? preview)}
             kind="maxBid"
             initialFeeSchedule={feeSchedule}
+            shippingFrom={shippingFromOf(auction)}
             withDetails={false}
           />
           <p className="text-body-sm text-muted-foreground">{t('confirmShipping')}</p>
@@ -647,6 +657,7 @@ function BuyNow({
         amount={money(price)}
         kind="buyNow"
         initialFeeSchedule={feeSchedule}
+        shippingFrom={shippingFromOf(auction)}
         withDetails={false}
       />
       {error === undefined ? null : (
@@ -673,6 +684,7 @@ function BuyNow({
             amount={money(price)}
             kind="buyNow"
             initialFeeSchedule={feeSchedule}
+            shippingFrom={shippingFromOf(auction)}
             withDetails={false}
           />
           <p className="text-body-sm text-muted-foreground">{t('confirmShipping')}</p>

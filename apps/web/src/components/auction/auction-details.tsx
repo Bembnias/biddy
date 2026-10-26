@@ -1,4 +1,5 @@
 import type { PublicAuctionDto } from '@biddy/api-client';
+import { formatMoney, money } from '@biddy/shared';
 import { MapPin, Package, Truck } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 
@@ -17,8 +18,8 @@ const CARRIER_TILES: Record<
 };
 
 /**
- * Opis, parametry i dostawa przedmiotu (F-18, wygląd F-62); renderowane na serwerze, trafiają do
- * HTML.
+ * Opis, parametry i dostawa przedmiotu (F-18, wygląd F-62) z cenami dostaw z cennika Biddy
+ * (F-24); renderowane na serwerze, trafiają do HTML.
  */
 export async function AuctionDetails({ auction }: { readonly auction: PublicAuctionDto }) {
   const t = await getTranslations('auction.details');
@@ -92,11 +93,14 @@ export async function AuctionDetails({ auction }: { readonly auction: PublicAuct
                         <IconTile tone={tone}>
                           <Icon />
                         </IconTile>
-                        <span className="min-w-0">
+                        <span className="min-w-0 flex-1">
                           <span className="block text-title break-words">{carrier.name}</span>
                           <span className="block text-body-sm text-muted-foreground">
                             {shipping(`kinds.${carrier.kind}`)}
                           </span>
+                        </span>
+                        <span className="shrink-0 text-title tabular-nums">
+                          {formatMoney(money(carrier.price, auction.currency))}
                         </span>
                       </li>
                     );

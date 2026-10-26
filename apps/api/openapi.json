@@ -2236,6 +2236,229 @@
         ]
       }
     },
+    "/v1/orders/{id}/shipping-options": {
+      "get": {
+        "description": "Usługi zaakceptowane przez sprzedającego, pasujące do gabarytu i z ceną w cenniku Biddy.",
+        "operationId": "getShippingOptions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opcje dostawy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ShippingOptionDto"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Opcje dostawy zamówienia (kupujący)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/v1/orders/{id}/shipment": {
+      "get": {
+        "description": "Dla kupującego i sprzedającego; dane nadawcy, kod nadania i etykieta tylko dla sprzedającego.",
+        "operationId": "getOrderShipment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zamówienie z przesyłką",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderShipmentDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Przesyłka zamówienia",
+        "tags": [
+          "orders"
+        ]
+      },
+      "post": {
+        "description": "Dane nadawcy i sposób nadania; worker tworzy przesyłkę u przewoźnika (kod nadania albo etykieta). Wymaga zamówienia opłaconego z wybraną dostawą; ponowne kliknięcie zwraca bieżący stan.",
+        "operationId": "dispatchOrderShipment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DispatchShipmentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Przesyłka w przygotowaniu",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderShipmentDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "„Nadaj” (sprzedający)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/v1/orders/{id}/label": {
+      "get": {
+        "operationId": "getOrderLabel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Etykieta",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Etykieta PDF przesyłki (sprzedający)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
     "/v1/fee-schedules/current": {
       "get": {
         "description": "Opłata stała, progi krańcowe i stawka VAT. Kwoty w groszach, stawki w punktach bazowych (700 = 7%).",
@@ -2665,6 +2888,484 @@
         "summary": "Przewoźnicy i obsługiwane gabaryty",
         "tags": [
           "shipping"
+        ]
+      }
+    },
+    "/v1/shipping/points": {
+      "get": {
+        "description": "Paczkomaty i punkty blisko współrzędnych albo frazy (najwyżej 50). Kurier nie ma punktów (422).",
+        "operationId": "getPickupPoints",
+        "parameters": [
+          {
+            "name": "carrier",
+            "required": true,
+            "in": "query",
+            "description": "Usługa, np. inpost-paczkomat",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 60,
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": -90,
+              "maximum": 90,
+              "type": "number"
+            }
+          },
+          {
+            "name": "lng",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": -180,
+              "maximum": 180,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Miasto, adres albo kod punktu",
+            "schema": {
+              "minLength": 2,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Punkty odbioru",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PickupPointDto"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Punkty odbioru usługi",
+        "tags": [
+          "shipping"
+        ]
+      }
+    },
+    "/v1/dev/fake-shipping": {
+      "get": {
+        "description": "Najnowsze przesyłki FakeShipping ze stanem w Biddy i u dostawcy.",
+        "operationId": "getFakeShippingOverview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Stan FakeShipping",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FakeShippingOverviewDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Panel FakeShipping",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-shipping/shipments": {
+      "post": {
+        "description": "Przesyłka bez zamówienia z odbiorcą testowym; potem „Nadaj” jak dla zamówienia. Cena z cennika Biddy.",
+        "operationId": "createTestShipment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTestShipmentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Przesyłka czeka na nadanie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nowa przesyłka testowa FakeShipping",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-shipping/shipments/{id}/dispatch": {
+      "post": {
+        "description": "Jak POST /orders/:id/shipment dla zamówienia: worker tworzy przesyłkę.",
+        "operationId": "dispatchTestShipment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DispatchShipmentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Przesyłka w przygotowaniu",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "„Nadaj” przesyłkę testową FakeShipping",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-shipping/shipments/{id}/label": {
+      "get": {
+        "operationId": "getTestShipmentLabel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Etykieta",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Etykieta PDF przesyłki FakeShipping",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-shipping/shipments/{id}/sync": {
+      "post": {
+        "description": "Pobiera tracking od dostawcy bez webhooka (jak polling zapasowy).",
+        "operationId": "syncShipment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Przesyłka po synchronizacji",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Synchronizuj tracking przesyłki FakeShipping",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-shipping/parcels/{id}/advance": {
+      "post": {
+        "description": "Dodaje status u dostawcy i (domyślnie) wysyła webhook. Koniec scenariusza: 409.",
+        "operationId": "advanceParcel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceParcelBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Przesyłka u FakeShipping",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FakeParcelDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Następny albo wskazany status przesyłki FakeShipping",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
+    "/v1/dev/fake-shipping/parcels/{id}/scenario": {
+      "post": {
+        "operationId": "setParcelScenario",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParcelScenarioBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Przesyłka u FakeShipping",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FakeParcelDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zmień scenariusz automatu przesyłki FakeShipping",
+        "tags": [
+          "dev"
         ]
       }
     },
@@ -5298,15 +5999,30 @@
                     "PICKUP_POINT",
                     "COURIER"
                   ]
+                },
+                "price": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Cena dostawy dla kupującego w groszach (F-24)"
                 }
               },
               "required": [
                 "id",
                 "name",
-                "kind"
+                "kind",
+                "price"
               ],
               "additionalProperties": false
-            }
+            },
+            "description": "Akceptowane dostawy pasujące do gabarytu, z cenami z cennika Biddy"
+          },
+          "shippingFrom": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Najtańsza dostawa („dostawa od”) w groszach; null bez opcji dostawy",
+            "nullable": true
           },
           "seller": {
             "type": "object",
@@ -5451,6 +6167,7 @@
           "photos",
           "packageSize",
           "carriers",
+          "shippingFrom",
           "seller",
           "startPrice",
           "currentPrice",
@@ -5885,6 +6602,493 @@
           "items"
         ],
         "additionalProperties": false
+      },
+      "ShippingOptionDto": {
+        "type": "object",
+        "properties": {
+          "carrierId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "LOCKER",
+              "PICKUP_POINT",
+              "COURIER"
+            ]
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Cena dostawy dla kupującego w groszach (cennik Biddy)"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "requiresPickupPoint": {
+            "type": "boolean",
+            "description": "Paczkomat i punkt: wybór punktu; kurier: adres"
+          }
+        },
+        "required": [
+          "carrierId",
+          "name",
+          "kind",
+          "price",
+          "currency",
+          "requiresPickupPoint"
+        ],
+        "additionalProperties": false
+      },
+      "OrderShipmentDto": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "publicId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "AWAITING_PAYMENT",
+                  "PAID",
+                  "SHIPPED",
+                  "DELIVERED",
+                  "COMPLETED",
+                  "DISPUTED",
+                  "NOT_PICKED_UP",
+                  "LOST",
+                  "REFUNDED",
+                  "PARTIALLY_REFUNDED",
+                  "CANCELLED_UNPAID",
+                  "CANCELLED_NOT_SHIPPED"
+                ]
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "BUYER",
+                  "SELLER"
+                ],
+                "description": "Kim jest zalogowana osoba w zamówieniu"
+              },
+              "title": {
+                "type": "string",
+                "description": "Tytuł przedmiotu ze snapshotu"
+              }
+            },
+            "required": [
+              "id",
+              "publicId",
+              "status",
+              "role",
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "shipment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "OUTBOUND",
+                  "RETURN"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "REQUESTED",
+                  "CREATED",
+                  "DROPPED_OFF",
+                  "IN_TRANSIT",
+                  "OUT_FOR_DELIVERY",
+                  "READY_FOR_PICKUP",
+                  "DELIVERED",
+                  "EXCEPTION",
+                  "RETURNING",
+                  "RETURNED",
+                  "CANCELLED"
+                ]
+              },
+              "carrier": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "LOCKER",
+                      "PICKUP_POINT",
+                      "COURIER"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              "packageSize": {
+                "type": "string",
+                "enum": [
+                  "S",
+                  "M",
+                  "L",
+                  "XL"
+                ]
+              },
+              "pickupPoint": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "address": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "address"
+                ],
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "recipient": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Miejscowość (kurier); null dla punktu odbioru",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "name",
+                  "city"
+                ],
+                "additionalProperties": false
+              },
+              "sender": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 100,
+                    "description": "Imię i nazwisko albo nazwa firmy"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "description": "Polski numer komórkowy (dla przewoźnika)"
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "nullable": true
+                  },
+                  "address": {
+                    "type": "object",
+                    "properties": {
+                      "street": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 100,
+                        "description": "Ulica z numerem domu i lokalu"
+                      },
+                      "postalCode": {
+                        "type": "string",
+                        "maxLength": 10,
+                        "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+                      },
+                      "city": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 60
+                      }
+                    },
+                    "required": [
+                      "street",
+                      "postalCode",
+                      "city"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "name",
+                  "phone",
+                  "address"
+                ],
+                "additionalProperties": false,
+                "description": "Dane nadawcy (tylko sprzedający); null przed „Nadaj”",
+                "nullable": true
+              },
+              "dispatchMethod": {
+                "type": "string",
+                "enum": [
+                  "DROP_OFF",
+                  "COURIER_PICKUP",
+                  null
+                ],
+                "nullable": true
+              },
+              "dispatchMethods": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "DROP_OFF",
+                    "COURIER_PICKUP"
+                  ]
+                },
+                "description": "Sposoby nadania dostępne dla tej przesyłki"
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "PLN"
+                ]
+              },
+              "price": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Cena dostawy zapłacona przez kupującego"
+              },
+              "trackingNumber": {
+                "type": "string",
+                "minLength": 1,
+                "nullable": true
+              },
+              "dropoffCode": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Kod nadania w paczkomacie lub punkcie (tylko sprzedający)",
+                "nullable": true
+              },
+              "labelAvailable": {
+                "type": "boolean",
+                "description": "Etykieta PDF gotowa do pobrania"
+              },
+              "lastError": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Ostatni błąd utworzenia u przewoźnika (tylko sprzedający)",
+                "nullable": true
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "REQUESTED",
+                        "CREATED",
+                        "DROPPED_OFF",
+                        "IN_TRANSIT",
+                        "OUT_FOR_DELIVERY",
+                        "READY_FOR_PICKUP",
+                        "DELIVERED",
+                        "EXCEPTION",
+                        "RETURNING",
+                        "RETURNED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Opis przewoźnika",
+                      "nullable": true
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "description",
+                    "occurredAt"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "requestedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "deliveredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "id",
+              "direction",
+              "status",
+              "carrier",
+              "packageSize",
+              "pickupPoint",
+              "recipient",
+              "sender",
+              "dispatchMethod",
+              "dispatchMethods",
+              "currency",
+              "price",
+              "trackingNumber",
+              "dropoffCode",
+              "labelAvailable",
+              "lastError",
+              "events",
+              "requestedAt",
+              "deliveredAt",
+              "createdAt"
+            ],
+            "additionalProperties": false,
+            "description": "Przesyłka; null przed wyborem dostawy",
+            "nullable": true
+          }
+        },
+        "required": [
+          "order",
+          "shipment"
+        ],
+        "additionalProperties": false
+      },
+      "DispatchShipmentBody": {
+        "type": "object",
+        "properties": {
+          "sender": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 100,
+                "description": "Imię i nazwisko albo nazwa firmy"
+              },
+              "phone": {
+                "type": "string",
+                "maxLength": 32,
+                "description": "Polski numer komórkowy (dla przewoźnika)"
+              },
+              "email": {
+                "type": "string",
+                "maxLength": 254,
+                "format": "email",
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "nullable": true
+              },
+              "address": {
+                "type": "object",
+                "properties": {
+                  "street": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Ulica z numerem domu i lokalu"
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "maxLength": 10,
+                    "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60
+                  }
+                },
+                "required": [
+                  "street",
+                  "postalCode",
+                  "city"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "phone",
+              "address"
+            ],
+            "description": "Nadawca: imię i nazwisko, telefon, adres (dane na etykiecie)"
+          },
+          "dispatchMethod": {
+            "type": "string",
+            "enum": [
+              "DROP_OFF",
+              "COURIER_PICKUP"
+            ],
+            "description": "Nadanie w punkcie albo odbiór przez kuriera"
+          }
+        },
+        "required": [
+          "sender",
+          "dispatchMethod"
+        ]
       },
       "FeeScheduleDto": {
         "type": "object",
@@ -6521,6 +7725,1023 @@
         ],
         "additionalProperties": false
       },
+      "PickupPointDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Identyfikator punktu u dostawcy (kod paczkomatu)"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "description": "Adres jednym tekstem"
+          },
+          "location": {
+            "type": "object",
+            "properties": {
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "lat",
+              "lng"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "distanceMeters": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "openingHours": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Np. „24/7” albo „pn–pt 8:00–20:00”",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "address",
+          "location",
+          "distanceMeters",
+          "openingHours"
+        ],
+        "additionalProperties": false
+      },
+      "FakeShippingOverviewDto": {
+        "type": "object",
+        "properties": {
+          "shipments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "shipment": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "OUTBOUND",
+                        "RETURN"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "REQUESTED",
+                        "CREATED",
+                        "DROPPED_OFF",
+                        "IN_TRANSIT",
+                        "OUT_FOR_DELIVERY",
+                        "READY_FOR_PICKUP",
+                        "DELIVERED",
+                        "EXCEPTION",
+                        "RETURNING",
+                        "RETURNED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "carrier": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "LOCKER",
+                            "PICKUP_POINT",
+                            "COURIER"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "kind"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "packageSize": {
+                      "type": "string",
+                      "enum": [
+                        "S",
+                        "M",
+                        "L",
+                        "XL"
+                      ]
+                    },
+                    "pickupPoint": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "address": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "address"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "recipient": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "city": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Miejscowość (kurier); null dla punktu odbioru",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "city"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "sender": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 3,
+                          "maxLength": 100,
+                          "description": "Imię i nazwisko albo nazwa firmy"
+                        },
+                        "phone": {
+                          "type": "string",
+                          "maxLength": 32,
+                          "description": "Polski numer komórkowy (dla przewoźnika)"
+                        },
+                        "email": {
+                          "type": "string",
+                          "maxLength": 254,
+                          "format": "email",
+                          "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                          "nullable": true
+                        },
+                        "address": {
+                          "type": "object",
+                          "properties": {
+                            "street": {
+                              "type": "string",
+                              "minLength": 2,
+                              "maxLength": 100,
+                              "description": "Ulica z numerem domu i lokalu"
+                            },
+                            "postalCode": {
+                              "type": "string",
+                              "maxLength": 10,
+                              "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+                            },
+                            "city": {
+                              "type": "string",
+                              "minLength": 2,
+                              "maxLength": 60
+                            }
+                          },
+                          "required": [
+                            "street",
+                            "postalCode",
+                            "city"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "phone",
+                        "address"
+                      ],
+                      "additionalProperties": false,
+                      "description": "Dane nadawcy (tylko sprzedający); null przed „Nadaj”",
+                      "nullable": true
+                    },
+                    "dispatchMethod": {
+                      "type": "string",
+                      "enum": [
+                        "DROP_OFF",
+                        "COURIER_PICKUP",
+                        null
+                      ],
+                      "nullable": true
+                    },
+                    "dispatchMethods": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "DROP_OFF",
+                          "COURIER_PICKUP"
+                        ]
+                      },
+                      "description": "Sposoby nadania dostępne dla tej przesyłki"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "enum": [
+                        "PLN"
+                      ]
+                    },
+                    "price": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Cena dostawy zapłacona przez kupującego"
+                    },
+                    "trackingNumber": {
+                      "type": "string",
+                      "minLength": 1,
+                      "nullable": true
+                    },
+                    "dropoffCode": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Kod nadania w paczkomacie lub punkcie (tylko sprzedający)",
+                      "nullable": true
+                    },
+                    "labelAvailable": {
+                      "type": "boolean",
+                      "description": "Etykieta PDF gotowa do pobrania"
+                    },
+                    "lastError": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Ostatni błąd utworzenia u przewoźnika (tylko sprzedający)",
+                      "nullable": true
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "REQUESTED",
+                              "CREATED",
+                              "DROPPED_OFF",
+                              "IN_TRANSIT",
+                              "OUT_FOR_DELIVERY",
+                              "READY_FOR_PICKUP",
+                              "DELIVERED",
+                              "EXCEPTION",
+                              "RETURNING",
+                              "RETURNED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "description": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Opis przewoźnika",
+                            "nullable": true
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "description",
+                          "occurredAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "requestedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "deliveredAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "direction",
+                    "status",
+                    "carrier",
+                    "packageSize",
+                    "pickupPoint",
+                    "recipient",
+                    "sender",
+                    "dispatchMethod",
+                    "dispatchMethods",
+                    "currency",
+                    "price",
+                    "trackingNumber",
+                    "dropoffCode",
+                    "labelAvailable",
+                    "lastError",
+                    "events",
+                    "requestedAt",
+                    "deliveredAt",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                },
+                "orderId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Zamówienie; null dla przesyłki testowej",
+                  "nullable": true
+                },
+                "parcel": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "ID przesyłki u FakeShipping"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "confirmed",
+                        "posted",
+                        "in_transit",
+                        "out_for_delivery",
+                        "awaiting_pickup",
+                        "delivered",
+                        "exception",
+                        "return_expired",
+                        "returning",
+                        "returned",
+                        "cancelled"
+                      ],
+                      "description": "Status w notacji FakeShipping"
+                    },
+                    "scenario": {
+                      "type": "string",
+                      "enum": [
+                        "DELIVERED",
+                        "NOT_PICKED_UP",
+                        "LOST",
+                        "MANUAL"
+                      ]
+                    },
+                    "tracking": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "confirmed",
+                              "posted",
+                              "in_transit",
+                              "out_for_delivery",
+                              "awaiting_pickup",
+                              "delivered",
+                              "exception",
+                              "return_expired",
+                              "returning",
+                              "returned",
+                              "cancelled"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "description",
+                          "occurredAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "webhooks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "attempts": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "lastError": {
+                            "type": "string",
+                            "minLength": 1,
+                            "nullable": true
+                          },
+                          "deliveredAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                            "nullable": true
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "attempts",
+                          "lastError",
+                          "deliveredAt",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "scenario",
+                    "tracking",
+                    "webhooks"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Stan u FakeShipping; null przed „Nadaj”",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "shipment",
+                "orderId",
+                "parcel"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "shipments"
+        ],
+        "additionalProperties": false
+      },
+      "CreateTestShipmentBody": {
+        "type": "object",
+        "properties": {
+          "carrierId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60,
+            "description": "Usługa, np. inpost-paczkomat"
+          },
+          "packageSize": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "XL"
+            ]
+          },
+          "pickupPointId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Punkt odbioru (paczkomat, punkt); …-NOPICKUP i …-LOST ustawiają scenariusz",
+            "nullable": true
+          }
+        },
+        "required": [
+          "carrierId",
+          "packageSize"
+        ]
+      },
+      "ShipmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "RETURN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "REQUESTED",
+              "CREATED",
+              "DROPPED_OFF",
+              "IN_TRANSIT",
+              "OUT_FOR_DELIVERY",
+              "READY_FOR_PICKUP",
+              "DELIVERED",
+              "EXCEPTION",
+              "RETURNING",
+              "RETURNED",
+              "CANCELLED"
+            ]
+          },
+          "carrier": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "LOCKER",
+                  "PICKUP_POINT",
+                  "COURIER"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind"
+            ],
+            "additionalProperties": false
+          },
+          "packageSize": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "XL"
+            ]
+          },
+          "pickupPoint": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "address": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "address"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "recipient": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "city": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Miejscowość (kurier); null dla punktu odbioru",
+                "nullable": true
+              }
+            },
+            "required": [
+              "name",
+              "city"
+            ],
+            "additionalProperties": false
+          },
+          "sender": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 100,
+                "description": "Imię i nazwisko albo nazwa firmy"
+              },
+              "phone": {
+                "type": "string",
+                "maxLength": 32,
+                "description": "Polski numer komórkowy (dla przewoźnika)"
+              },
+              "email": {
+                "type": "string",
+                "maxLength": 254,
+                "format": "email",
+                "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                "nullable": true
+              },
+              "address": {
+                "type": "object",
+                "properties": {
+                  "street": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "description": "Ulica z numerem domu i lokalu"
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "maxLength": 10,
+                    "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60
+                  }
+                },
+                "required": [
+                  "street",
+                  "postalCode",
+                  "city"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "name",
+              "phone",
+              "address"
+            ],
+            "additionalProperties": false,
+            "description": "Dane nadawcy (tylko sprzedający); null przed „Nadaj”",
+            "nullable": true
+          },
+          "dispatchMethod": {
+            "type": "string",
+            "enum": [
+              "DROP_OFF",
+              "COURIER_PICKUP",
+              null
+            ],
+            "nullable": true
+          },
+          "dispatchMethods": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "DROP_OFF",
+                "COURIER_PICKUP"
+              ]
+            },
+            "description": "Sposoby nadania dostępne dla tej przesyłki"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "price": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Cena dostawy zapłacona przez kupującego"
+          },
+          "trackingNumber": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "dropoffCode": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Kod nadania w paczkomacie lub punkcie (tylko sprzedający)",
+            "nullable": true
+          },
+          "labelAvailable": {
+            "type": "boolean",
+            "description": "Etykieta PDF gotowa do pobrania"
+          },
+          "lastError": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Ostatni błąd utworzenia u przewoźnika (tylko sprzedający)",
+            "nullable": true
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PENDING",
+                    "REQUESTED",
+                    "CREATED",
+                    "DROPPED_OFF",
+                    "IN_TRANSIT",
+                    "OUT_FOR_DELIVERY",
+                    "READY_FOR_PICKUP",
+                    "DELIVERED",
+                    "EXCEPTION",
+                    "RETURNING",
+                    "RETURNED",
+                    "CANCELLED"
+                  ]
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Opis przewoźnika",
+                  "nullable": true
+                },
+                "occurredAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "status",
+                "description",
+                "occurredAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "direction",
+          "status",
+          "carrier",
+          "packageSize",
+          "pickupPoint",
+          "recipient",
+          "sender",
+          "dispatchMethod",
+          "dispatchMethods",
+          "currency",
+          "price",
+          "trackingNumber",
+          "dropoffCode",
+          "labelAvailable",
+          "lastError",
+          "events",
+          "requestedAt",
+          "deliveredAt",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "AdvanceParcelBody": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "description": "Wskazany status; bez niego następny według scenariusza",
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "posted",
+              "in_transit",
+              "out_for_delivery",
+              "awaiting_pickup",
+              "delivered",
+              "exception",
+              "return_expired",
+              "returning",
+              "returned",
+              "cancelled"
+            ]
+          },
+          "deliverWebhook": {
+            "default": true,
+            "description": "false: bez webhooka (zaginiony webhook, test synchronizacji)",
+            "type": "boolean"
+          }
+        }
+      },
+      "FakeParcelDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID przesyłki u FakeShipping"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "posted",
+              "in_transit",
+              "out_for_delivery",
+              "awaiting_pickup",
+              "delivered",
+              "exception",
+              "return_expired",
+              "returning",
+              "returned",
+              "cancelled"
+            ],
+            "description": "Status w notacji FakeShipping"
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "DELIVERED",
+              "NOT_PICKED_UP",
+              "LOST",
+              "MANUAL"
+            ]
+          },
+          "tracking": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "confirmed",
+                    "posted",
+                    "in_transit",
+                    "out_for_delivery",
+                    "awaiting_pickup",
+                    "delivered",
+                    "exception",
+                    "return_expired",
+                    "returning",
+                    "returned",
+                    "cancelled"
+                  ]
+                },
+                "description": {
+                  "type": "string"
+                },
+                "occurredAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "status",
+                "description",
+                "occurredAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "webhooks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "attempts": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "lastError": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "deliveredAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "attempts",
+                "lastError",
+                "deliveredAt",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "scenario",
+          "tracking",
+          "webhooks"
+        ],
+        "additionalProperties": false
+      },
+      "ParcelScenarioBody": {
+        "type": "object",
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "DELIVERED",
+              "NOT_PICKED_UP",
+              "LOST",
+              "MANUAL"
+            ]
+          }
+        },
+        "required": [
+          "scenario"
+        ]
+      },
       "NotificationListDto": {
         "type": "object",
         "properties": {
@@ -6543,7 +8764,8 @@
                     "SOLD",
                     "UNSOLD",
                     "AUCTION_CANCELLED",
-                    "FOLLOWED_SELLER_NEW_AUCTION"
+                    "FOLLOWED_SELLER_NEW_AUCTION",
+                    "ORDER_PAID"
                   ]
                 },
                 "title": {
@@ -6652,7 +8874,8 @@
                     "SOLD",
                     "UNSOLD",
                     "AUCTION_CANCELLED",
-                    "FOLLOWED_SELLER_NEW_AUCTION"
+                    "FOLLOWED_SELLER_NEW_AUCTION",
+                    "ORDER_PAID"
                   ]
                 },
                 "channel": {
@@ -6704,7 +8927,8 @@
                     "SOLD",
                     "UNSOLD",
                     "AUCTION_CANCELLED",
-                    "FOLLOWED_SELLER_NEW_AUCTION"
+                    "FOLLOWED_SELLER_NEW_AUCTION",
+                    "ORDER_PAID"
                   ]
                 },
                 "channel": {
@@ -6744,6 +8968,7 @@
               "UNSOLD",
               "AUCTION_CANCELLED",
               "FOLLOWED_SELLER_NEW_AUCTION",
+              "ORDER_PAID",
               "ALL"
             ],
             "description": "Typ powiadomień albo ALL (wszystkie)"
@@ -6759,7 +8984,8 @@
                 "SOLD",
                 "UNSOLD",
                 "AUCTION_CANCELLED",
-                "FOLLOWED_SELLER_NEW_AUCTION"
+                "FOLLOWED_SELLER_NEW_AUCTION",
+                "ORDER_PAID"
               ]
             },
             "description": "Typy e-maili, które wyłączamy"

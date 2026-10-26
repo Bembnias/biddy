@@ -6,7 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { FAKE_PAYMENTS_WEBHOOK_PATH, loadConfig } from '../../src/infra/config/index.js';
+import {
+  FAKE_PAYMENTS_WEBHOOK_PATH,
+  FAKE_SHIPPING_WEBHOOK_PATH,
+  loadConfig,
+} from '../../src/infra/config/index.js';
 
 const root = (file: string) => fileURLToPath(new URL(`../../../../${file}`, import.meta.url));
 const read = (file: string) => readFileSync(root(file), 'utf8');
@@ -110,6 +114,8 @@ describe('render.yaml', () => {
     const webhook = /- key: PAYMENTS_FAKE_WEBHOOK_URL\n {8}value: (.+)\n/.exec(blueprint)?.[1];
     const apiUrl = /- key: API_PUBLIC_URL\n {8}value: (.+)\n/.exec(blueprint)?.[1];
     expect(webhook).toBe(`${apiUrl ?? ''}${FAKE_PAYMENTS_WEBHOOK_PATH}`);
+    const shipping = /- key: SHIPPING_FAKE_WEBHOOK_URL\n {8}value: (.+)\n/.exec(blueprint)?.[1];
+    expect(shipping).toBe(`${apiUrl ?? ''}${FAKE_SHIPPING_WEBHOOK_PATH}`);
   });
 
   it('Redis kolejek ma noeviction (inaczej worker nie wystartuje)', () => {
@@ -252,14 +258,17 @@ describe('infra/dokploy (stos na serwerze z Dokploy)', () => {
     expect(loadConfig(sharedEnv, 'worker').env).toBe('production');
   });
 
-  it('staging z szablonu działa z FakeGateway; BIDDY_ENV=production go blokuje (F-23)', () => {
+  it('staging z szablonu działa z FakeGateway i FakeShipping; BIDDY_ENV=production je blokuje (F-23, F-24)', () => {
     const worker = loadConfig(sharedEnv, 'worker');
     expect(worker.deployment).toBe('staging');
     expect(worker.payments.defaultProvider).toBe('fake');
     expect(worker.payments.fake.enabled).toBe(true);
+    expect(worker.shipping.defaultProvider).toBe('fake');
+    expect(worker.shipping.fake.enabled).toBe(true);
     expect(sharedEnv['DEPLOYMENT_ENV']).toBe(stackVariables['BIDDY_ENV']);
     const production = { ...apiEnv, DEPLOYMENT_ENV: 'production' };
     expect(() => loadConfig(production, 'api')).toThrow(/PAYMENTS_DEFAULT_PROVIDER/);
+    expect(() => loadConfig(production, 'api')).toThrow(/SHIPPING_DEFAULT_PROVIDER/);
   });
 
   it('adresy Redisa, Meilisearch i API wskazują aliasy usług z tego stosu', () => {
@@ -272,6 +281,7 @@ describe('infra/dokploy (stos na serwerze z Dokploy)', () => {
       sharedEnv['MEILI_URL'],
       webEnv['API_INTERNAL_URL'],
       sharedEnv['PAYMENTS_FAKE_WEBHOOK_URL'],
+      sharedEnv['SHIPPING_FAKE_WEBHOOK_URL'],
     ];
     for (const url of urls) {
       expect(aliases, url).toContain(new URL(url ?? '').hostname);
@@ -281,6 +291,9 @@ describe('infra/dokploy (stos na serwerze z Dokploy)', () => {
     const webhook = new URL(sharedEnv['PAYMENTS_FAKE_WEBHOOK_URL'] ?? '');
     expect(webhook.port).toBe(apiEnv['API_PORT']);
     expect(webhook.pathname).toBe(FAKE_PAYMENTS_WEBHOOK_PATH);
+    const shipping = new URL(sharedEnv['SHIPPING_FAKE_WEBHOOK_URL'] ?? '');
+    expect(shipping.port).toBe(apiEnv['API_PORT']);
+    expect(shipping.pathname).toBe(FAKE_SHIPPING_WEBHOOK_PATH);
   });
 
   it('migracje i worker wskazują istniejące pliki, a API startuje dopiero po migracjach', () => {

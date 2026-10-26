@@ -1,5 +1,5 @@
 // Publiczny widok aukcji i stan licytacji użytkownika (F-18): dane strony aukcji z kilku modułów
-// (przedmiot i kategoria, zdjęcia, przewoźnicy, profil sprzedawcy, zamówienie zwycięzcy) przez
+// (przedmiot i kategoria, zdjęcia, opcje dostawy z cenami, profil sprzedawcy, zamówienie zwycięzcy) przez
 // ich publiczne API. Widok publiczny nie zawiera maksimów, ceny minimalnej ani identyfikatorów
 // licytujących (lider zanonimizowany).
 import { anonymizeName, type DescribedAttribute, PUBLIC_ID_PATTERN } from '@biddy/shared';
@@ -18,7 +18,7 @@ import {
 import { ProfileService, type PublicProfile } from '../../identity/index.js';
 import { type MediaDescription, MediaService } from '../../media/index.js';
 import { type Order, OrderService } from '../../orders/index.js';
-import { type Carrier, CarrierService } from '../../shipping/index.js';
+import { type ShippingOption, ShippingQuoteService } from '../../shipping/index.js';
 import {
   type Auction,
   type AuctionStatus,
@@ -46,8 +46,11 @@ export interface PublicAuctionView {
   readonly photos: readonly (MediaDescription & { readonly urls: Record<string, string> })[];
   readonly category: readonly CategoryCrumb[];
   readonly attributes: readonly DescribedAttribute[];
-  /** Akceptowani przewoźnicy w kolejności wyświetlania. */
-  readonly carriers: readonly Carrier[];
+  /**
+   * Opcje dostawy z cenami z cennika Biddy (F-24): akceptowani przewoźnicy, którzy pasują do
+   * gabarytu i mają cenę, w kolejności wyświetlania.
+   */
+  readonly carriers: readonly ShippingOption[];
   readonly seller: PublicProfile;
   /** Zanonimizowany lider albo null. */
   readonly leaderName: string | null;
@@ -88,7 +91,7 @@ export class AuctionViewService {
     @Inject(ItemService) private readonly items: ItemService,
     @Inject(CategoryService) private readonly categories: CategoryService,
     @Inject(MediaService) private readonly media: MediaService,
-    @Inject(CarrierService) private readonly carriers: CarrierService,
+    @Inject(ShippingQuoteService) private readonly shipping: ShippingQuoteService,
     @Inject(ProfileService) private readonly profiles: ProfileService,
     @Inject(OrderService) private readonly orders: OrderService,
   ) {}
@@ -107,12 +110,22 @@ export class AuctionViewService {
       item.categoryId === null
         ? []
         : this.categories.describeAttributes(item.categoryId, item.attributes),
-      this.carriers.list(),
+      this.shipping.options(
+        {
+          packageSize: item.packageSize,
+          weightGrams: item.weightGrams,
+          dimensionsCm:
+            item.lengthCm === null || item.widthCm === null || item.heightCm === null
+              ? null
+              : { length: item.lengthCm, width: item.widthCm, height: item.heightCm },
+          allowedCarriers: item.allowedCarriers,
+        },
+        auction.currency,
+      ),
       auction.leaderId === null
         ? new Map<string, string>()
         : this.profiles.displayNames([auction.leaderId]),
     ]);
-    const allowed = new Set(item.allowedCarriers);
     return {
       auction,
       item,
@@ -121,7 +134,7 @@ export class AuctionViewService {
       ),
       category,
       attributes,
-      carriers: carriers.filter((carrier) => allowed.has(carrier.id)),
+      carriers,
       seller,
       leaderName:
         auction.leaderId === null ? null : anonymizeName(names.get(auction.leaderId) ?? ''),

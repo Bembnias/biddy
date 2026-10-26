@@ -42,7 +42,21 @@ export class PublicAuctionDto extends createZodDto(
       }),
     ),
     packageSize: z.enum(PACKAGE_SIZES).nullable(),
-    carriers: z.array(z.object({ id: z.string(), name: z.string(), kind: z.enum(CARRIER_KINDS) })),
+    carriers: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          kind: z.enum(CARRIER_KINDS),
+          price: z.int().min(0).describe('Cena dostawy dla kupującego w groszach (F-24)'),
+        }),
+      )
+      .describe('Akceptowane dostawy pasujące do gabarytu, z cenami z cennika Biddy'),
+    shippingFrom: z
+      .int()
+      .min(0)
+      .nullable()
+      .describe('Najtańsza dostawa („dostawa od”) w groszach; null bez opcji dostawy'),
     seller: z.object({
       id: z.uuid(),
       name: z.string(),
@@ -158,7 +172,14 @@ function toPublicDto(view: PublicAuctionView): PublicAuctionDto {
       },
     })),
     packageSize: item.packageSize,
-    carriers: view.carriers.map(({ id, name, kind }) => ({ id, name, kind })),
+    carriers: view.carriers.map((option) => ({
+      id: option.carrierId,
+      name: option.name,
+      kind: option.kind,
+      price: option.price,
+    })),
+    shippingFrom:
+      view.carriers.length === 0 ? null : Math.min(...view.carriers.map((option) => option.price)),
     seller: {
       id: seller.id,
       name: seller.name,

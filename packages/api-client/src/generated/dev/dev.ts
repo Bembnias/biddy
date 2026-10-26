@@ -29,13 +29,20 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdvanceParcelBody,
   CompleteFakePaymentBody,
+  CreateTestShipmentBody,
+  DispatchShipmentBody,
   FakeChargebackBody,
   FakeGatewayOverviewDto,
+  FakeParcelDto,
   FakePaymentDto,
   FakeSellerDto,
   FakeSellerStatusBody,
-  ProblemDetails
+  FakeShippingOverviewDto,
+  ParcelScenarioBody,
+  ProblemDetails,
+  ShipmentDto
 } from '../model';
 
 import { apiFetch } from '../../fetcher';
@@ -784,4 +791,743 @@ export const useRedeliverFakeEvent = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getRedeliverFakeEventMutationOptions(options), queryClient);
+    }
+    export const getGetFakeShippingOverviewUrl = () => {
+
+
+
+
+  return `/v1/dev/fake-shipping`
+}
+
+/**
+ * Najnowsze przesyłki FakeShipping ze stanem w Biddy i u dostawcy.
+ * @summary Panel FakeShipping
+ */
+export const getFakeShippingOverview = async ( options?: Parameters<typeof apiFetch>[1]): Promise<FakeShippingOverviewDto> => {
+
+  return apiFetch<FakeShippingOverviewDto>(getGetFakeShippingOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFakeShippingOverviewQueryKey = () => {
+    return [
+    `/v1/dev/fake-shipping`
+    ] as const;
+    }
+
+
+export const getGetFakeShippingOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFakeShippingOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFakeShippingOverview>>> = ({ signal }) => getFakeShippingOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetFakeShippingOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getFakeShippingOverview>>>
+export type GetFakeShippingOverviewQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetFakeShippingOverview<TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFakeShippingOverview>>,
+          TError,
+          Awaited<ReturnType<typeof getFakeShippingOverview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFakeShippingOverview<TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFakeShippingOverview>>,
+          TError,
+          Awaited<ReturnType<typeof getFakeShippingOverview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFakeShippingOverview<TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Panel FakeShipping
+ */
+
+export function useGetFakeShippingOverview<TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetFakeShippingOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetFakeShippingOverviewSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFakeShippingOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFakeShippingOverview>>> = ({ signal }) => getFakeShippingOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetFakeShippingOverviewSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getFakeShippingOverview>>>
+export type GetFakeShippingOverviewSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetFakeShippingOverviewSuspense<TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFakeShippingOverviewSuspense<TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFakeShippingOverviewSuspense<TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Panel FakeShipping
+ */
+
+export function useGetFakeShippingOverviewSuspense<TData = Awaited<ReturnType<typeof getFakeShippingOverview>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getFakeShippingOverview>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetFakeShippingOverviewSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getCreateTestShipmentUrl = () => {
+
+
+
+
+  return `/v1/dev/fake-shipping/shipments`
+}
+
+/**
+ * Przesyłka bez zamówienia z odbiorcą testowym; potem „Nadaj” jak dla zamówienia. Cena z cennika Biddy.
+ * @summary Nowa przesyłka testowa FakeShipping
+ */
+export const createTestShipment = async (createTestShipmentBody: CreateTestShipmentBody, options?: Parameters<typeof apiFetch>[1]): Promise<ShipmentDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<ShipmentDto>(getCreateTestShipmentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createTestShipmentBody)
+  }
+);}
+
+
+
+
+
+export const getCreateTestShipmentMutationKey = () => ['createTestShipment'] as const;
+
+export const getCreateTestShipmentMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTestShipment>>, TError,CreateTestShipmentMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTestShipment>>, TError,CreateTestShipmentMutationVariables, TContext> => {
+
+const mutationKey = getCreateTestShipmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTestShipment>>, CreateTestShipmentMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createTestShipment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateTestShipmentMutationResult = NonNullable<Awaited<ReturnType<typeof createTestShipment>>>
+    export type CreateTestShipmentMutationBody = BodyType<CreateTestShipmentBody>
+    export type CreateTestShipmentMutationError = ErrorType<ProblemDetails>
+    export type CreateTestShipmentMutationVariables = {data: BodyType<CreateTestShipmentBody>}
+
+    /**
+ * @summary Nowa przesyłka testowa FakeShipping
+ */
+export const useCreateTestShipment = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTestShipment>>, TError,CreateTestShipmentMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createTestShipment>>,
+        TError,
+        CreateTestShipmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateTestShipmentMutationOptions(options), queryClient);
+    }
+    export const getDispatchTestShipmentUrl = (id: string,) => {
+
+
+
+
+  return `/v1/dev/fake-shipping/shipments/${id}/dispatch`
+}
+
+/**
+ * Jak POST /orders/:id/shipment dla zamówienia: worker tworzy przesyłkę.
+ * @summary „Nadaj” przesyłkę testową FakeShipping
+ */
+export const dispatchTestShipment = async (id: string,
+    dispatchShipmentBody: DispatchShipmentBody, options?: Parameters<typeof apiFetch>[1]): Promise<ShipmentDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<ShipmentDto>(getDispatchTestShipmentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(dispatchShipmentBody)
+  }
+);}
+
+
+
+
+
+export const getDispatchTestShipmentMutationKey = () => ['dispatchTestShipment'] as const;
+
+export const getDispatchTestShipmentMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dispatchTestShipment>>, TError,DispatchTestShipmentMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof dispatchTestShipment>>, TError,DispatchTestShipmentMutationVariables, TContext> => {
+
+const mutationKey = getDispatchTestShipmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof dispatchTestShipment>>, DispatchTestShipmentMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  dispatchTestShipment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DispatchTestShipmentMutationResult = NonNullable<Awaited<ReturnType<typeof dispatchTestShipment>>>
+    export type DispatchTestShipmentMutationBody = BodyType<DispatchShipmentBody>
+    export type DispatchTestShipmentMutationError = ErrorType<ProblemDetails>
+    export type DispatchTestShipmentMutationVariables = {id: string;data: BodyType<DispatchShipmentBody>}
+
+    /**
+ * @summary „Nadaj” przesyłkę testową FakeShipping
+ */
+export const useDispatchTestShipment = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dispatchTestShipment>>, TError,DispatchTestShipmentMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof dispatchTestShipment>>,
+        TError,
+        DispatchTestShipmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDispatchTestShipmentMutationOptions(options), queryClient);
+    }
+    export const getGetTestShipmentLabelUrl = (id: string,) => {
+
+
+
+
+  return `/v1/dev/fake-shipping/shipments/${id}/label`
+}
+
+/**
+ * @summary Etykieta PDF przesyłki FakeShipping
+ */
+export const getTestShipmentLabel = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<Blob> => {
+
+  return apiFetch<Blob>(getGetTestShipmentLabelUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTestShipmentLabelQueryKey = (id: string,) => {
+    return [
+    `/v1/dev/fake-shipping/shipments/${id}/label`
+    ] as const;
+    }
+
+
+export const getGetTestShipmentLabelQueryOptions = <TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTestShipmentLabelQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTestShipmentLabel>>> = ({ signal }) => getTestShipmentLabel(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetTestShipmentLabelQueryResult = NonNullable<Awaited<ReturnType<typeof getTestShipmentLabel>>>
+export type GetTestShipmentLabelQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetTestShipmentLabel<TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestShipmentLabel>>,
+          TError,
+          Awaited<ReturnType<typeof getTestShipmentLabel>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTestShipmentLabel<TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTestShipmentLabel>>,
+          TError,
+          Awaited<ReturnType<typeof getTestShipmentLabel>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTestShipmentLabel<TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Etykieta PDF przesyłki FakeShipping
+ */
+
+export function useGetTestShipmentLabel<TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetTestShipmentLabelQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetTestShipmentLabelSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTestShipmentLabelQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTestShipmentLabel>>> = ({ signal }) => getTestShipmentLabel(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetTestShipmentLabelSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getTestShipmentLabel>>>
+export type GetTestShipmentLabelSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetTestShipmentLabelSuspense<TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTestShipmentLabelSuspense<TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTestShipmentLabelSuspense<TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Etykieta PDF przesyłki FakeShipping
+ */
+
+export function useGetTestShipmentLabelSuspense<TData = Awaited<ReturnType<typeof getTestShipmentLabel>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getTestShipmentLabel>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetTestShipmentLabelSuspenseQueryOptions(id,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getSyncShipmentUrl = (id: string,) => {
+
+
+
+
+  return `/v1/dev/fake-shipping/shipments/${id}/sync`
+}
+
+/**
+ * Pobiera tracking od dostawcy bez webhooka (jak polling zapasowy).
+ * @summary Synchronizuj tracking przesyłki FakeShipping
+ */
+export const syncShipment = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<ShipmentDto> => {
+
+  return apiFetch<ShipmentDto>(getSyncShipmentUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncShipmentMutationKey = () => ['syncShipment'] as const;
+
+export const getSyncShipmentMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncShipment>>, TError,SyncShipmentMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncShipment>>, TError,SyncShipmentMutationVariables, TContext> => {
+
+const mutationKey = getSyncShipmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncShipment>>, SyncShipmentMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  syncShipment(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncShipmentMutationResult = NonNullable<Awaited<ReturnType<typeof syncShipment>>>
+
+    export type SyncShipmentMutationError = ErrorType<ProblemDetails>
+    export type SyncShipmentMutationVariables = {id: string}
+
+    /**
+ * @summary Synchronizuj tracking przesyłki FakeShipping
+ */
+export const useSyncShipment = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncShipment>>, TError,SyncShipmentMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof syncShipment>>,
+        TError,
+        SyncShipmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSyncShipmentMutationOptions(options), queryClient);
+    }
+    export const getAdvanceParcelUrl = (id: string,) => {
+
+
+
+
+  return `/v1/dev/fake-shipping/parcels/${id}/advance`
+}
+
+/**
+ * Dodaje status u dostawcy i (domyślnie) wysyła webhook. Koniec scenariusza: 409.
+ * @summary Następny albo wskazany status przesyłki FakeShipping
+ */
+export const advanceParcel = async (id: string,
+    advanceParcelBody: AdvanceParcelBody, options?: Parameters<typeof apiFetch>[1]): Promise<FakeParcelDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<FakeParcelDto>(getAdvanceParcelUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(advanceParcelBody)
+  }
+);}
+
+
+
+
+
+export const getAdvanceParcelMutationKey = () => ['advanceParcel'] as const;
+
+export const getAdvanceParcelMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof advanceParcel>>, TError,AdvanceParcelMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof advanceParcel>>, TError,AdvanceParcelMutationVariables, TContext> => {
+
+const mutationKey = getAdvanceParcelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof advanceParcel>>, AdvanceParcelMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  advanceParcel(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdvanceParcelMutationResult = NonNullable<Awaited<ReturnType<typeof advanceParcel>>>
+    export type AdvanceParcelMutationBody = BodyType<AdvanceParcelBody>
+    export type AdvanceParcelMutationError = ErrorType<ProblemDetails>
+    export type AdvanceParcelMutationVariables = {id: string;data: BodyType<AdvanceParcelBody>}
+
+    /**
+ * @summary Następny albo wskazany status przesyłki FakeShipping
+ */
+export const useAdvanceParcel = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof advanceParcel>>, TError,AdvanceParcelMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof advanceParcel>>,
+        TError,
+        AdvanceParcelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAdvanceParcelMutationOptions(options), queryClient);
+    }
+    export const getSetParcelScenarioUrl = (id: string,) => {
+
+
+
+
+  return `/v1/dev/fake-shipping/parcels/${id}/scenario`
+}
+
+/**
+ * @summary Zmień scenariusz automatu przesyłki FakeShipping
+ */
+export const setParcelScenario = async (id: string,
+    parcelScenarioBody: ParcelScenarioBody, options?: Parameters<typeof apiFetch>[1]): Promise<FakeParcelDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<FakeParcelDto>(getSetParcelScenarioUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(parcelScenarioBody)
+  }
+);}
+
+
+
+
+
+export const getSetParcelScenarioMutationKey = () => ['setParcelScenario'] as const;
+
+export const getSetParcelScenarioMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setParcelScenario>>, TError,SetParcelScenarioMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setParcelScenario>>, TError,SetParcelScenarioMutationVariables, TContext> => {
+
+const mutationKey = getSetParcelScenarioMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setParcelScenario>>, SetParcelScenarioMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setParcelScenario(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetParcelScenarioMutationResult = NonNullable<Awaited<ReturnType<typeof setParcelScenario>>>
+    export type SetParcelScenarioMutationBody = BodyType<ParcelScenarioBody>
+    export type SetParcelScenarioMutationError = ErrorType<ProblemDetails>
+    export type SetParcelScenarioMutationVariables = {id: string;data: BodyType<ParcelScenarioBody>}
+
+    /**
+ * @summary Zmień scenariusz automatu przesyłki FakeShipping
+ */
+export const useSetParcelScenario = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setParcelScenario>>, TError,SetParcelScenarioMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setParcelScenario>>,
+        TError,
+        SetParcelScenarioMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetParcelScenarioMutationOptions(options), queryClient);
     }
