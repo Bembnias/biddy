@@ -8,7 +8,13 @@ import { getTranslations } from 'next-intl/server';
 import { SearchView } from '@/components/search/search-view';
 import type { SearchParams } from '@/lib/page-params';
 import { categoryUrl, routes } from '@/lib/routes';
-import { categoryByPath, categoryTrail, loadCategories, runSearch } from '@/lib/search/load';
+import {
+  categoryByPath,
+  categoryTrail,
+  countEndingSoon,
+  loadCategories,
+  runSearch,
+} from '@/lib/search/load';
 import { filterCount, parseSearchState } from '@/lib/search/search-params';
 
 interface PageProps {
@@ -47,7 +53,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const categories = await loadCategories();
   const trail = categoryTrail(categories, category);
   const state = { ...parseSearchState(await searchParams), category: '' };
-  const { result, droppedAttributes } = await runSearch(state, category.id);
+  const [{ result, droppedAttributes }, endingSoon] = await Promise.all([
+    runSearch(state, category.id),
+    countEndingSoon(state, category.id),
+  ]);
   const t = await getTranslations('search');
   return (
     <SearchView
@@ -63,6 +72,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       parent={trail.at(-2)}
       categoryInQuery={false}
       droppedAttributes={droppedAttributes}
+      endingSoon={endingSoon}
       breadcrumbs={
         <nav aria-label={t('breadcrumbs')} className="mb-5 text-body-sm text-muted-foreground">
           <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1">

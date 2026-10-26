@@ -27,6 +27,8 @@ export interface AuctionSearchParams {
   readonly priceMax?: number | undefined;
   readonly attributes?: readonly string[] | undefined;
   readonly sellerId?: string | undefined;
+  /** Koniec aukcji przed tym czasem (ms). */
+  readonly endsBefore?: number | undefined;
   readonly sort?: SearchSort | undefined;
   readonly page: number;
   readonly pageSize: number;
@@ -138,6 +140,7 @@ export class AuctionSearchService {
           priceMax: params.priceMax,
           attributes,
           sellerId: params.sellerId,
+          endsBefore: params.endsBefore,
           now,
         }),
         sort: sortRules(sort),

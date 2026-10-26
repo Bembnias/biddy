@@ -32,6 +32,7 @@ const BASE = {
   priceMax: undefined,
   attributes: [],
   sellerId: undefined,
+  endsBefore: undefined,
   now: 1_000,
 } as const;
 
@@ -106,6 +107,12 @@ describe('buildFilter', () => {
         'attributes.zPudelkiem = "true"',
         'attributes.rozmiarEu >= 40',
       ].join(' AND '),
+    );
+  });
+
+  it('koniec przed wskazaną chwilą (F-63)', () => {
+    expect(buildFilter({ ...BASE, endsBefore: 3_601_000 })).toBe(
+      'status = "ACTIVE" AND endsAtTs > 1000 AND endsAtTs < 3601000',
     );
   });
 

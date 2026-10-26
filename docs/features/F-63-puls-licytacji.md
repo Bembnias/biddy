@@ -1,6 +1,6 @@
 # F-63 · Puls licytacji: nowy UI/UX web
 
-**Status:** W trakcie (etap 1 gotowy; decyzje D1–D5 przyjęte 2026-10-26)
+**Status:** W trakcie (etapy 1–2 gotowe; decyzje D1–D5 przyjęte 2026-10-26)
 **Rozmiar:** L · **Właściciel:** Mateusz Bienias · **Zależności:** F-62 (design system), F-17 (realtime), F-18 (strona aukcji), F-19 (wyszukiwarka), F-21 (Moje Biddy), F-24 (nadanie paczki)
 
 ## Kontekst i cel
@@ -106,7 +106,14 @@ Według płótna i zasad z F-62. Dodatkowo:
   - licznik oglądających (D1): `auction:view`/`auction:unview`, obecność w Redisie, `auction.viewers` z throttlingiem;
   - animacje w `globals.css` (`enter`, `toast-in`, `sheet-in`, `confetti`, `flash`) i globalna reguła `prefers-reduced-motion`;
   - poprawka po F-24: atrapa aukcji w e2e dostała ceny dostaw (`carriers[].price`, `shippingFrom`), bez których strona aukcji nie renderowała się w e2e.
-- [ ] **Etap 2, przeglądanie.**
+- [x] **Etap 2, przeglądanie:**
+  - API: `endsBefore` w `GET /v1/auctions` (`endsAtTs < …` w filtrze Meilisearch), klient API wygenerowany ponownie;
+  - `AuctionCard` jedna dla wszystkich list: licznik w tonie (spokojny, fioletowy, czerwony z LIVE w ostatniej godzinie), „Gorąca”, stan przedmiotu, liczba ofert, Kup teraz; wariant ciemny z licznikiem pod ceną i paskiem ostatniej godziny. Sygnały liczy przeglądarka (jeden wspólny zegar sekundowy dla wszystkich liczników na stronie), HTML z cache pokazuje datę końca;
+  - strona główna: hero z aukcją kończącą się najwcześniej (`HomeShowcase`: cena i licznik na żywo z realtime, trzy ostatnie oferty, „podbija do”, „Gorąca aukcja”; od 1024 px), ciemny pas „Kończą się wkrótce” (D3; na telefonie przewijany rząd kart), kafelki kolekcji, „Nowe aukcje”, „Jak działa licytacja”, kategorie z ikonami, „Dlaczego Biddy”;
+  - wyszukiwarka i kategoria: pigułki sortowania jako linki (bez JavaScriptu), pasek „N aukcji kończy się w ciągu godziny” (link do sortowania po końcu; liczba z `total` przy `pageSize=1`, koniec okna zaokrąglony w dół do minuty, cache 60 s), chipy wybranych filtrów z linkiem usunięcia, panel filtrów (na telefonie przycisk „Filtry”, od 1024 px karta obok wyników), paginacja i opis kolejności w nowym układzie, pusty stan z płótna;
+  - profil sprzedawcy: okładka, karta profilu z awatarem 112 px, chipy (weryfikacja telefonu, członek od), liczba aktywnych aukcji, siatka aukcji; oceny bez zmian do F-30;
+  - nagłówek półprzezroczysty, granatowa stopka; dolny pasek nawigacji (D4) poniżej 768 px (punkt `md`; płótno: 760 px) z Moje Biddy i „Wystaw”, które znikają wtedy z nagłówka; ukryty na stronie aukcji (pasek licytacji);
+  - odstępstwa od płótna: piąta pozycja paska to „Konto” (D4), a nie „Obserwowane”; bez kropki przy Moje Biddy i bez serduszka „Obserwuj” na karcie (wymagałyby nowych danych na listach); bez szkieletów ładowania: wyszukiwarka renderuje się na serwerze z cache, a `loading.tsx` przy streamingu psuje wyszukiwanie bez JavaScriptu i status 404 strony kategorii i profilu.
 - [ ] **Etap 3, Moje Biddy, konto i powiadomienia.**
 - [ ] **Etap 4, logowanie, wystawianie i wysyłka.**
 
@@ -164,14 +171,14 @@ Propozycje z płótna, które wykraczają poza obecny produkt albo design system
 
 ## Kryteria akceptacji
 
-- [ ] Given aukcja z mniej niż 1 h do końca, Then karta i strona aukcji pokazują LIVE, a licznik jest czerwony i w segmentach.
+- [x] Given aukcja z mniej niż 1 h do końca, Then karta i strona aukcji pokazują LIVE, a licznik jest czerwony i w segmentach (na karcie zwarty czerwony licznik mm:ss).
 - [x] Given osoba licytująca na stronie aukcji, When ktoś przebije jej ofertę, Then w ciągu 1 s widzi pasek „Przebito Cię” i toast z „Zalicytuj ponownie”, a czytnik ekranu dostaje jeden komunikat (nie dwa).
 - [x] Given osoba zalogowana na innej stronie, When ktoś przebije jej ofertę albo wygra ona aukcję, Then widzi toast z linkiem do aukcji.
 - [x] Given „Zalicytuj ponownie”, When zostanie użyte, Then fokus trafia do pola kwoty z wpisaną minimalną ofertą.
 - [x] Given minimalna oferta 325 zł (cena 320 zł, krok 5 zł), Then szybkie kwoty to 325, 350 i 400 zł.
 - [x] Given wygrana, Then strona aukcji pokazuje panel wygranej z ceną końcową i następnym krokiem, bez przycisku płatności przed F-25.
 - [x] Given `prefers-reduced-motion: reduce`, Then żaden element nie animuje się ani nie pulsuje, a zmiany ceny i stanu są nadal widoczne.
-- [ ] Given wyszukiwarka, Then pasek pokazuje liczbę aukcji kończących się w ciągu godziny i prowadzi do sortowania po końcu.
+- [x] Given wyszukiwarka, Then pasek pokazuje liczbę aukcji kończących się w ciągu godziny i prowadzi do sortowania po końcu.
 - [ ] Given Moje Biddy: licytuję, Then aukcje z przebitą ofertą są wyróżnione i mają akcję przebicia.
 - [ ] Given lista szkiców, Then każdy szkic pokazuje postęp w krokach kreatora.
 - [ ] Given kod SMS, Then autouzupełnianie `one-time-code` i wklejenie całego kodu działają jak przed zmianą.

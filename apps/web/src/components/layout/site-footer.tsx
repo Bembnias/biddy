@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 
 import { routes } from '@/lib/routes';
 
+import { BottomNavSpacer } from './bottom-nav';
 import { Logo } from './logo';
 
 interface FooterGroup {
@@ -38,15 +39,16 @@ export function SiteFooter({ year = new Date().getFullYear() }: { readonly year?
     },
   ];
   return (
-    <footer aria-label={t('label')} className="border-t border-border bg-canvas">
+    // Granatowa stopka (F-63) domyka stronę jak ciemny pas „Kończą się wkrótce”.
+    <footer aria-label={t('label')} className="bg-primary text-ink-300">
       <div className="mx-auto grid max-w-page gap-8 px-4 py-12 sm:grid-cols-2 md:px-10 lg:grid-cols-4">
         <div className="flex flex-col items-start gap-3">
           <Logo />
-          <p className="max-w-[32ch] text-body-sm text-foreground-secondary">{t('tagline')}</p>
+          <p className="max-w-[32ch] text-body-sm">{t('tagline')}</p>
         </div>
         {groups.map((group) => (
           <nav key={group.title} aria-label={group.title}>
-            <h2 className="text-overline text-muted-foreground uppercase">{group.title}</h2>
+            <h2 className="text-label font-bold text-primary-foreground">{group.title}</h2>
             <ul className="mt-4 space-y-2.5">
               {group.links.map((link) => (
                 <li key={link.href}>
@@ -54,7 +56,7 @@ export function SiteFooter({ year = new Date().getFullYear() }: { readonly year?
                   <Link
                     href={link.href}
                     prefetch={false}
-                    className="rounded-xs text-body-sm text-foreground-secondary underline-offset-3 outline-none hover:text-foreground hover:underline focus-visible:shadow-focus-ring"
+                    className="rounded-xs text-body-sm text-ink-300 underline-offset-3 outline-none hover:text-primary-foreground hover:underline focus-visible:shadow-focus-ring"
                   >
                     {link.label}
                   </Link>
@@ -64,9 +66,12 @@ export function SiteFooter({ year = new Date().getFullYear() }: { readonly year?
           </nav>
         ))}
       </div>
-      <p className="mx-auto max-w-page border-t border-border px-4 py-6 text-caption text-muted-foreground md:px-10">
-        {t('copyright', { year })}
-      </p>
+      <div className="mx-auto max-w-page px-4 md:px-10">
+        <p className="border-t border-ink-800 py-6 text-caption text-ink-400">
+          {t('copyright', { year })}
+        </p>
+      </div>
+      <BottomNavSpacer />
     </footer>
   );
 }

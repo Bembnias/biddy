@@ -122,10 +122,23 @@ export function useBidder(publicId: string) {
   return { user, bidding: bidding.data };
 }
 
+const secondListeners = new Set<() => void>();
+let secondTimer: ReturnType<typeof setInterval> | undefined;
+
+/** Jeden zegar co sekundę dla wszystkich liczników na stronie (np. 24 karty w wynikach). */
 function subscribeSeconds(callback: () => void): () => void {
-  const timer = setInterval(callback, 1_000);
+  secondListeners.add(callback);
+  secondTimer ??= setInterval(() => {
+    for (const listener of secondListeners) {
+      listener();
+    }
+  }, 1_000);
   return () => {
-    clearInterval(timer);
+    secondListeners.delete(callback);
+    if (secondListeners.size === 0) {
+      clearInterval(secondTimer);
+      secondTimer = undefined;
+    }
   };
 }
 

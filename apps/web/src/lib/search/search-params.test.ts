@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  activeFilters,
   filterCount,
   pageWindow,
   parseSearchState,
@@ -112,5 +113,38 @@ describe('pageWindow', () => {
     expect(pageWindow(1, 3)).toEqual([1, 2, 3]);
     expect(pageWindow(5, 10)).toEqual([1, null, 4, 5, 6, null, 10]);
     expect(pageWindow(10, 10)).toEqual([1, null, 9, 10]);
+  });
+});
+
+describe('activeFilters (chipy nad wynikami, F-63)', () => {
+  it('stan i cena jako jeden chip, atrybuty osobno; usunięcie wraca na pierwszą stronę', () => {
+    const state = parseSearchState({
+      q: 'nike',
+      stan: ['LIKE_NEW', 'VERY_GOOD'],
+      cena_do: '500',
+      'a.kolor': ['czarny', 'bialy'],
+      'a.rozmiarEu.od': '42',
+      sort: 'koniec',
+      strona: '2',
+    });
+    const filters = activeFilters(state);
+    expect(filters.map(({ without: _without, ...filter }) => filter)).toEqual([
+      { kind: 'condition', values: ['LIKE_NEW', 'VERY_GOOD'] },
+      { kind: 'price', from: '', to: '500' },
+      { kind: 'values', key: 'kolor', values: ['czarny', 'bialy'] },
+      { kind: 'range', key: 'rozmiarEu', from: '42', to: '' },
+    ]);
+    expect(filters.map((filter) => searchHref('/szukaj', filter.without))).toEqual([
+      '/szukaj?q=nike&cena_do=500&a.kolor=czarny&a.kolor=bialy&a.rozmiarEu.od=42&sort=koniec',
+      '/szukaj?q=nike&stan=LIKE_NEW&stan=VERY_GOOD&a.kolor=czarny&a.kolor=bialy&a.rozmiarEu.od=42&sort=koniec',
+      '/szukaj?q=nike&stan=LIKE_NEW&stan=VERY_GOOD&cena_do=500&a.rozmiarEu.od=42&sort=koniec',
+      '/szukaj?q=nike&stan=LIKE_NEW&stan=VERY_GOOD&cena_do=500&a.kolor=czarny&a.kolor=bialy&sort=koniec',
+    ]);
+  });
+
+  it('bez filtrów: brak chipów (zapytanie, kategoria i sortowanie to nie filtry)', () => {
+    expect(activeFilters(parseSearchState({ q: 'nike', kategoria: 'moda', sort: 'nowe' }))).toEqual(
+      [],
+    );
   });
 });

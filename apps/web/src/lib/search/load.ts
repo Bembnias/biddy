@@ -55,6 +55,33 @@ export async function searchCached(
   }
 }
 
+/** Okno paska „kończy się w ciągu godziny” nad wynikami (F-63). */
+export const ENDING_SOON_MS = 60 * 60 * 1000;
+
+/**
+ * Liczba aukcji z wyników (te same filtry), które kończą się w ciągu godziny: `total` przy
+ * `pageSize=1`. Koniec okna zaokrąglamy w dół do minuty, więc przez minutę adres zapytania jest
+ * ten sam i działa cache (60 s). Błąd wyszukiwarki: 0 (paska nie ma).
+ */
+export async function countEndingSoon(
+  state: SearchState,
+  categoryId: string | undefined,
+  now: number = Date.now(),
+): Promise<number> {
+  const minute = Math.floor(now / 60_000) * 60_000;
+  const { sort: _sort, ...params } = toApiParams(state, { categoryId });
+  const result = await searchCached(
+    {
+      ...params,
+      endsBefore: new Date(minute + ENDING_SOON_MS).toISOString(),
+      page: 1,
+      pageSize: 1,
+    },
+    60,
+  );
+  return result?.total ?? 0;
+}
+
 export interface SearchOutcome {
   /** Wyniki albo null, gdy wyszukiwarka nie odpowiada. */
   readonly result: AuctionSearchDto | null;

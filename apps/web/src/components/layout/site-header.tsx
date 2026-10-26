@@ -13,20 +13,20 @@ import { UserMenu } from './user-menu';
 
 /**
  * Nagłówek (F-62): logo, wyszukiwarka w pigułce, Moje Biddy, powiadomienia, konto i „Wystaw
- * przedmiot” w granacie (gradient należy do treści strony, nie do nagłówka). Przyklejony do góry.
- * Na wąskich ekranach (< 768 px) wyszukiwarka przechodzi do drugiego wiersza, a akcje są ikonami
- * z etykietami dla czytników.
+ * przedmiot” w granacie (gradient należy do treści strony, nie do nagłówka). Przyklejony do góry,
+ * półprzezroczysty. Na telefonie (< 768 px) wyszukiwarka przechodzi do drugiego wiersza, a Moje
+ * Biddy i „Wystaw” są w dolnym pasku nawigacji (F-63, D4); zostają powiadomienia i konto.
  */
 export function SiteHeader() {
   const t = useTranslations('layout');
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-page flex-wrap items-center gap-x-3 gap-y-3 px-4 py-3 md:h-16 md:flex-nowrap md:gap-x-6 md:px-10 md:py-0">
         <Logo />
         <SearchForm className="order-last w-full md:order-none md:max-w-md md:flex-1" />
         <nav aria-label={t('mainNavigation')} className="ml-auto">
           <ul className="flex items-center gap-1 md:gap-2">
-            <li>
+            <li className="max-md:hidden">
               <MyBiddyLink />
             </li>
             <li>
@@ -35,11 +35,11 @@ export function SiteHeader() {
             <li>
               <UserMenu />
             </li>
-            <li className="md:ml-2">
-              <Button asChild className="max-sm:size-10 max-sm:rounded-full max-sm:px-0">
+            <li className="ml-2 max-md:hidden">
+              <Button asChild>
                 <Link href={routes.sell}>
                   <Plus aria-hidden />
-                  <span className="max-sm:sr-only">{t('sell')}</span>
+                  {t('sell')}
                 </Link>
               </Button>
             </li>

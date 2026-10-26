@@ -326,6 +326,8 @@ test('telefon (F-63): pasek licytacji przy dole ekranu i dolny arkusz z szybkimi
 
   const bar = page.locator('#mobile-bid-bar');
   await expect(bar.getByRole('button', { name: 'Licytuj' })).toBeInViewport();
+  // Dolny pasek nawigacji (D4) nie występuje razem z paskiem licytacji.
+  await expect(page.getByRole('navigation', { name: 'Szybka nawigacja' })).toHaveCount(0);
   await bar.getByRole('button', { name: 'Licytuj' }).click();
   const sheet = page.getByRole('dialog', { name: 'Twoje maksimum' });
   await expect(sheet.getByRole('group', { name: 'Szybkie kwoty' })).toBeVisible();

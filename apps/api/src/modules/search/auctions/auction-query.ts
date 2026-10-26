@@ -33,6 +33,8 @@ export interface AuctionQuery {
   readonly priceMax: number | undefined;
   readonly attributes: readonly AttributeFilter[];
   readonly sellerId: string | undefined;
+  /** Tylko aukcje kończące się przed tym czasem (ms), np. „w ciągu godziny” (F-63). */
+  readonly endsBefore: number | undefined;
   /** Czas serwera (ms): aukcje po końcu nie trafiają do wyników, zanim job je usunie. */
   readonly now: number;
 }
@@ -129,6 +131,9 @@ export function quote(value: string): string {
 /** Wyrażenie filtra: zawsze tylko aktywne aukcje przed końcem. */
 export function buildFilter(query: AuctionQuery): string {
   const parts = ['status = "ACTIVE"', `endsAtTs > ${String(query.now)}`];
+  if (query.endsBefore !== undefined) {
+    parts.push(`endsAtTs < ${String(query.endsBefore)}`);
+  }
   if (query.categoryId !== undefined) {
     parts.push(`categoryIds = ${quote(query.categoryId)}`);
   }

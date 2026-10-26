@@ -8,6 +8,7 @@ import { mockBrowserApi } from './support';
 
 const PAGES = [
   { name: 'strona główna', path: '/' },
+  { name: 'strona kategorii', path: '/kategoria/moda' },
   { name: 'strona 404', path: '/nie-ma-takiej-strony' },
 ] as const;
 
@@ -37,7 +38,18 @@ for (const { name, path } of PAGES) {
       }));
       expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
       await expect(page.getByRole('searchbox', { name: 'Szukaj na Biddy' })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Wystaw przedmiot' }).first()).toBeVisible();
+      // Poniżej 768 px „Wystaw” jest w dolnym pasku nawigacji (F-63, D4), wyżej w nagłówku.
+      const bottomNav = page.getByRole('navigation', { name: 'Szybka nawigacja' });
+      if (width < 768) {
+        await expect(bottomNav.getByRole('link', { name: 'Wystaw' })).toBeVisible();
+      } else {
+        await expect(bottomNav).toBeHidden();
+        await expect(
+          page
+            .getByRole('navigation', { name: 'Nawigacja główna' })
+            .getByRole('link', { name: 'Wystaw przedmiot' }),
+        ).toBeVisible();
+      }
       await expect(page.getByRole('contentinfo', { name: 'Stopka' })).toBeVisible();
     });
   }

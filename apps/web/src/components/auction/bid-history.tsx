@@ -28,7 +28,7 @@ const AVATAR_TONES = [
   'bg-green-100 text-green-800',
 ] as const;
 
-function avatarTone(name: string): string {
+export function avatarTone(name: string): string {
   let hash = 0;
   for (const char of name) {
     hash = (hash * 31 + (char.codePointAt(0) ?? 0)) % 997;
@@ -37,7 +37,7 @@ function avatarTone(name: string): string {
 }
 
 /** Inicjały z zanonimizowanej nazwy („k***a” → „KA”). */
-function initials(name: string): string {
+export function initials(name: string): string {
   const letters = [...name].filter((char) => /\p{L}|\p{N}/u.test(char));
   return `${letters[0] ?? ''}${letters.length > 1 ? (letters.at(-1) ?? '') : ''}`.toUpperCase();
 }

@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { SearchView } from '@/components/search/search-view';
 import type { SearchParams } from '@/lib/page-params';
 import { routes } from '@/lib/routes';
-import { categoryByPath, loadCategories, runSearch } from '@/lib/search/load';
+import { categoryByPath, countEndingSoon, loadCategories, runSearch } from '@/lib/search/load';
 import { parseSearchState } from '@/lib/search/search-params';
 
 interface PageProps {
@@ -29,7 +29,10 @@ export default async function SearchPage({ searchParams }: PageProps) {
     state.category === '' ? undefined : categoryByPath(categories, state.category.split('/'));
   const parent =
     category === undefined ? undefined : categoryByPath(categories, category.path.slice(0, -1));
-  const { result, droppedAttributes } = await runSearch(state, category?.id);
+  const [{ result, droppedAttributes }, endingSoon] = await Promise.all([
+    runSearch(state, category?.id),
+    countEndingSoon(state, category?.id),
+  ]);
   const t = await getTranslations('search');
   const heading =
     state.q === ''
@@ -47,6 +50,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
       parent={parent}
       categoryInQuery
       droppedAttributes={droppedAttributes}
+      endingSoon={endingSoon}
     />
   );
 }

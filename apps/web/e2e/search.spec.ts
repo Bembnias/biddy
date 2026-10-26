@@ -57,6 +57,37 @@ test('strona główna: kończące się, nowe aukcje i kategorie', async ({ page,
   await expectNoAxeViolations(page);
 });
 
+test('telefon (F-63): dolny pasek nawigacji, kończące się w rzędzie bez poziomego przewijania', async ({
+  page,
+  request,
+}) => {
+  test.slow();
+  await warmUp(request, '/', '/a/zegarek-casio-vintage-k3x9qa', 80_000);
+  await mockBrowserApi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const navigation = page.getByRole('navigation', { name: 'Szybka nawigacja' });
+  await expect(navigation.getByRole('link', { name: 'Start' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(navigation.getByRole('link', { name: 'Moje Biddy' })).toHaveAttribute(
+    'href',
+    '/moje-biddy',
+  );
+  await expect(
+    page.getByRole('region', { name: 'Kończą się wkrótce' }).getByRole('listitem'),
+  ).toHaveCount(2);
+  // W nagłówku zostają powiadomienia i konto; Moje Biddy i „Wystaw” są w pasku na dole.
+  await expect(
+    page.getByRole('navigation', { name: 'Nawigacja główna' }).getByRole('link', {
+      name: 'Wystaw przedmiot',
+    }),
+  ).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await expectNoAxeViolations(page);
+});
+
 test.describe('bez JavaScriptu', () => {
   test.use({ javaScriptEnabled: false });
 
@@ -88,21 +119,35 @@ test.describe('bez JavaScriptu', () => {
     await expect(page.getByText('60 aukcji')).toBeVisible();
     await expect(page.getByRole('link', { name: /Zegarek Atlantic/u })).toBeVisible();
 
-    // Filtry: natywny formularz GET (bez JavaScriptu).
+    // Sortowanie: pigułki to linki (F-63), bieżące oznaczone aria-current.
+    const sorting = page.getByRole('group', { name: 'Sortuj:' });
+    await expect(sorting.getByRole('link', { name: 'Trafność' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    await sorting.getByRole('link', { name: 'Cena: od najniższej' }).click();
+    await expect(page).toHaveURL(new RegExp(`/szukaj\\?q=${q}&sort=cena_rosnaco$`, 'u'));
+
+    // Filtry: natywny formularz GET (bez JavaScriptu); sortowanie zostaje.
     await page.getByText(/^Filtry/u).click();
     await page.getByLabel('Nowy').check();
     await page.getByLabel('Cena (zł) od').fill('25');
-    await page.getByLabel('Sortuj').selectOption('cena_rosnaco');
     await page.getByRole('button', { name: 'Pokaż wyniki' }).click();
     await expect(page).toHaveURL(
       new RegExp(`/szukaj\\?q=${q}&sort=cena_rosnaco&stan=NEW&cena_od=25&cena_do=$`, 'u'),
     );
     const sent = (await ssrSearchRequests()).filter(
-      (params) => params.get('q') === q && params.has('condition'),
+      (params) => params.get('q') === q && params.has('condition') && !params.has('endsBefore'),
     );
     expect(sent.at(-1)?.toString()).toBe(
       `q=${q}&condition=NEW&priceMin=2500&sort=price_asc&page=1&pageSize=24`,
     );
+
+    // Chipy wybranych filtrów (F-63): usunięcie to zwykły link.
+    const chips = page.getByRole('list', { name: 'Wybrane filtry' });
+    await expect(chips.getByRole('listitem')).toHaveText(['Nowy', 'od 25 zł', 'Wyczyść filtry']);
+    await chips.getByRole('link', { name: 'Usuń filtr: od 25 zł' }).click();
+    await expect(page).toHaveURL(new RegExp(`/szukaj\\?q=${q}&stan=NEW&sort=cena_rosnaco$`, 'u'));
 
     // Paginacja i link do kategorii z liczbą aukcji.
     const pagination = page.getByRole('navigation', { name: 'Strony wyników' });
@@ -137,6 +182,10 @@ test('strona kategorii: okruszki, podkategorie, atrybuty kategorii i adres kanon
   await expect(page.getByRole('group', { name: 'Kolor' }).getByLabel(/Biały/u)).toBeVisible();
   await expect(page.getByRole('link', { name: /Nike Air Max 90/u })).toBeVisible();
   await expect(page.getByText('Jak ustalamy kolejność wyników?')).toBeVisible();
+  // Pasek „kończy się w ciągu godziny” (F-63) prowadzi do sortowania po końcu.
+  await expect(
+    page.getByRole('link', { name: /2 aukcje kończą się w ciągu godziny/u }),
+  ).toHaveAttribute('href', '/kategoria/moda?sort=koniec#wyniki');
   await expectNoAxeViolations(page);
 
   const html = await (await request.get('/kategoria/moda')).text();
@@ -147,9 +196,8 @@ test('strona kategorii: okruszki, podkategorie, atrybuty kategorii i adres kanon
 test('brak wyników, niedostępna wyszukiwarka i opis kolejności wyników', async ({ page }) => {
   await mockBrowserApi(page);
   await page.goto(`/szukaj?q=${uniqueQuery('nic')}`);
-  await expect(
-    page.getByText('Nic nie znaleźliśmy. Sprawdź pisownię albo usuń część filtrów.'),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nic nie znaleźliśmy' })).toBeVisible();
+  await expect(page.getByText('Sprawdź pisownię albo usuń część filtrów.')).toBeVisible();
   await page.getByText('Jak ustalamy kolejność wyników?').click();
   await expect(page.getByText(/Nie sprzedajemy pozycji w wynikach/u)).toBeVisible();
 

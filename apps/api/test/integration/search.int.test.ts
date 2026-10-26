@@ -246,6 +246,13 @@ describe('indeksowanie i wyszukiwanie', () => {
     expect(ids(await search('priceMin=6000&priceMax=10000'))).toEqual([boots.id]);
     expect(ids(await search(`seller=${seller.id}&q=pegasus`))).toEqual([console.id]);
 
+    // Pasek „kończy się w ciągu godziny” (F-63): liczba z `total` przy pageSize=1.
+    const inHour = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    expect((await search(`endsBefore=${inHour}&pageSize=1`)).total).toBe(0);
+    const inMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    expect((await search(`endsBefore=${encodeURIComponent(inMonth)}&pageSize=1`)).total).toBe(3);
+    expect((await call('GET', '/v1/auctions?endsBefore=jutro')).statusCode).toBe(400);
+
     const cheapest = await search('sort=price_asc');
     expect(cheapest.items.map((item) => item.price)).toEqual([5_000, 9_000, 15_000]);
     const newest = await search('sort=newest');

@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 
+import { BottomNav } from '@/components/layout/bottom-nav';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SkipLink } from '@/components/layout/skip-link';
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
               {children}
             </main>
             <SiteFooter />
+            <BottomNav />
           </AppProviders>
         </NextIntlClientProvider>
       </body>

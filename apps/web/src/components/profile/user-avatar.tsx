@@ -8,9 +8,9 @@ const COLORS = [
   'bg-green-100 text-green-800',
 ] as const;
 
-const SIZES = { xs: 'size-7', md: 'size-10', lg: 'size-20' } as const;
-const PIXELS = { xs: 28, md: 40, lg: 80 } as const;
-const TEXT = { xs: 'text-badge', md: 'text-base', lg: 'text-2xl' } as const;
+const SIZES = { xs: 'size-7', md: 'size-10', lg: 'size-20', xl: 'size-28' } as const;
+const PIXELS = { xs: 28, md: 40, lg: 80, xl: 112 } as const;
+const TEXT = { xs: 'text-badge', md: 'text-base', lg: 'text-2xl', xl: 'text-4xl' } as const;
 
 /** Inicjały z dwóch pierwszych słów imienia, np. „Kasia Kupująca” → „KK”. */
 export function initialsOf(name: string): string {
@@ -41,13 +41,15 @@ export function UserAvatar({
   label,
   imageUrl,
   size = 'md',
+  className,
 }: {
   readonly userId: string;
   readonly name: string;
   readonly label: string;
   readonly imageUrl?: string | null;
-  /** `xs` 28 px (nagłówek, historia ofert), `md` 40 px, `lg` 80 px (profil). */
-  readonly size?: 'xs' | 'md' | 'lg';
+  /** `xs` 28 px (nagłówek, historia ofert), `md` 40 px, `lg` 80 px, `xl` 112 px (profil publiczny). */
+  readonly size?: 'xs' | 'md' | 'lg' | 'xl';
+  readonly className?: string;
 }) {
   const dimensions = SIZES[size];
   // Pusta etykieta: avatar jest dekoracją obok tekstu, który już nazywa osobę.
@@ -62,7 +64,7 @@ export function UserAvatar({
         alt={label}
         width={pixels}
         height={pixels}
-        className={cn('shrink-0 rounded-full object-cover', dimensions)}
+        className={cn('shrink-0 rounded-full object-cover', dimensions, className)}
       />
     );
   }
@@ -76,6 +78,7 @@ export function UserAvatar({
         dimensions,
         TEXT[size],
         avatarColor(userId),
+        className,
       )}
     >
       <span aria-hidden>{initialsOf(name)}</span>

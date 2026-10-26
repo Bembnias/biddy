@@ -236,6 +236,11 @@ function searchResponse(params: URLSearchParams): { status: number; body: unknow
       ),
     };
   }
+  if (params.has('endsBefore')) {
+    // Pasek „kończy się w ciągu godziny” (F-63): stała liczba w kategorii „Moda”, poza nią brak.
+    const total = q === '' && params.get('category') === CATEGORIES[0].id ? 2 : 0;
+    return { status: 200, body: searchResult([], {}, { total }) };
+  }
   const forQuery = searchByQuery.get(q);
   if (q !== '' && forQuery !== undefined) {
     return { status: 200, body: forQuery };

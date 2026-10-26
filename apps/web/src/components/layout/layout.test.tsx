@@ -1,13 +1,21 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mockApi } from '@/test/api';
 
 import { AppWrapper, IntlWrapper } from '@/test/providers';
 
+import { BottomNav } from './bottom-nav';
 import { SiteFooter } from './site-footer';
 import { SiteHeader } from './site-header';
 import { SkipLink } from './skip-link';
+
+const pathname = { current: '/' };
+vi.mock('next/navigation', () => ({ usePathname: () => pathname.current }));
+
+beforeEach(() => {
+  pathname.current = '/';
+});
 
 describe('nagłówek', () => {
   it('logo prowadzi na stronę główną, akcje mają etykiety także jako ikony', () => {
@@ -77,5 +85,41 @@ describe('stopka', () => {
       '/regulamin',
     );
     expect(within(footer).getByText(/© 2027 Biddy/)).toBeDefined();
+  });
+});
+
+describe('dolny pasek nawigacji na telefonie (F-63, D4)', () => {
+  it('pięć skrótów, bieżąca strona oznaczona aria-current', () => {
+    pathname.current = '/kategoria/moda';
+    render(<BottomNav />, { wrapper: IntlWrapper });
+
+    const navigation = screen.getByRole('navigation', { name: 'Szybka nawigacja' });
+    const links = within(navigation).getAllByRole('link');
+    expect(links.map((link) => [link.textContent, link.getAttribute('href')])).toEqual([
+      ['Start', '/'],
+      ['Szukaj', '/szukaj'],
+      ['Wystaw', '/wystaw'],
+      ['Moje Biddy', '/moje-biddy'],
+      ['Konto', '/konto'],
+    ]);
+    expect(
+      within(navigation).getByRole('link', { name: 'Szukaj' }).getAttribute('aria-current'),
+    ).toBe('page');
+    expect(
+      within(navigation).getByRole('link', { name: 'Start' }).getAttribute('aria-current'),
+    ).toBeNull();
+  });
+
+  it('na stronie aukcji go nie ma (pasek licytacji), stopka nie rezerwuje na niego miejsca', () => {
+    pathname.current = '/a/zegarek-casio-k3x9qa7m';
+    const { container } = render(
+      <>
+        <BottomNav />
+        <SiteFooter year={2027} />
+      </>,
+      { wrapper: IntlWrapper },
+    );
+    expect(screen.queryByRole('navigation', { name: 'Szybka nawigacja' })).toBeNull();
+    expect(container.querySelector('footer > div.h-16')).toBeNull();
   });
 });

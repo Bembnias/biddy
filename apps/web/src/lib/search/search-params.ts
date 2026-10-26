@@ -216,6 +216,50 @@ export function withoutFilters(state: SearchState): SearchState {
   };
 }
 
+/** Wybrany filtr jako chip nad wynikami (F-63) i stan bez niego (link „Usuń filtr”). */
+export type ActiveFilter = { readonly without: SearchState } & (
+  | { readonly kind: 'condition'; readonly values: readonly ItemCondition[] }
+  | { readonly kind: 'price'; readonly from: string; readonly to: string }
+  | { readonly kind: 'values'; readonly key: string; readonly values: readonly string[] }
+  | { readonly kind: 'range'; readonly key: string; readonly from: string; readonly to: string }
+);
+
+/** Wybrane filtry: stan jako jeden chip, cena jako jeden, każdy atrybut osobno. */
+export function activeFilters(state: SearchState): ActiveFilter[] {
+  const without = (changes: Partial<SearchState>): SearchState => ({
+    ...state,
+    ...changes,
+    page: 1,
+  });
+  const filters: ActiveFilter[] = [];
+  if (state.conditions.length > 0) {
+    filters.push({
+      kind: 'condition',
+      values: state.conditions,
+      without: without({ conditions: [] }),
+    });
+  }
+  if (state.priceFrom !== '' || state.priceTo !== '') {
+    filters.push({
+      kind: 'price',
+      from: state.priceFrom,
+      to: state.priceTo,
+      without: without({ priceFrom: '', priceTo: '' }),
+    });
+  }
+  for (const [key, values] of Object.entries(state.values)) {
+    if (values.length > 0) {
+      const { [key]: _removed, ...rest } = state.values;
+      filters.push({ kind: 'values', key, values, without: without({ values: rest }) });
+    }
+  }
+  for (const [key, range] of Object.entries(state.ranges)) {
+    const { [key]: _removed, ...rest } = state.ranges;
+    filters.push({ kind: 'range', key, ...range, without: without({ ranges: rest }) });
+  }
+  return filters;
+}
+
 /** Nazwa pola formularza dla atrybutu. */
 export function attributeField(key: string, bound?: 'od' | 'do'): string {
   return bound === undefined ? `${ATTRIBUTE_PREFIX}${key}` : `${ATTRIBUTE_PREFIX}${key}.${bound}`;

@@ -33,6 +33,10 @@ class SearchAuctionsQuery extends createZodDto(
         'Filtr atrybutu kategorii: klucz:wartość (opcja, true/false) albo klucz:od..do (liczba); parametr można powtórzyć',
       ),
     seller: z.uuid().optional().describe('Aukcje jednego sprzedawcy'),
+    endsBefore: z.iso
+      .datetime({ offset: true })
+      .optional()
+      .describe('Tylko aukcje kończące się przed tą chwilą, np. w ciągu godziny'),
     sort: z
       .enum(SEARCH_SORTS)
       .optional()
@@ -182,6 +186,7 @@ export class SearchController {
         priceMax: query.priceMax,
         attributes: query.attr,
         sellerId: query.seller,
+        endsBefore: query.endsBefore === undefined ? undefined : Date.parse(query.endsBefore),
         sort: query.sort,
         page: query.page ?? 1,
         pageSize: query.pageSize ?? 24,

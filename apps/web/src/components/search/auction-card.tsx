@@ -1,47 +1,63 @@
 import type { AuctionSearchDto } from '@biddy/api-client';
-import { formatMoney, money } from '@biddy/shared';
-import { Clock, ImageOff } from 'lucide-react';
+import { ImageOff, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 
+import { shortMoney } from '@/lib/auction/auction-state';
 import { auctionUrl } from '@/lib/routes';
+import { cn } from '@/lib/utils';
+
+import { CardHotBadge, CardHourBar, CardTimeBadge, CardTimer } from './card-signals';
 
 export type AuctionCardData = AuctionSearchDto['items'][number];
 
-const short = (amount: number) =>
-  formatMoney(money(amount), { trailingZeroDisplay: 'stripIfInteger' });
-
 /**
- * Karta aukcji (F-19, wygląd F-62): kwadratowe zdjęcie z datą końca, tytuł, cena, liczba ofert
- * i Kup teraz. Cała karta jest linkiem. Koniec jako data i godzina, nie licznik: HTML z cache nie
- * może się „cofać”.
+ * Karta aukcji (F-19, „Puls licytacji” F-63): kwadratowe zdjęcie z licznikiem w tonie (LIVE
+ * w ostatniej godzinie) i „Gorąca”, tytuł, stan, cena z liczbą ofert i Kup teraz. Cała karta jest
+ * linkiem. Licznik liczy przeglądarka; HTML z cache pokazuje datę końca, bo nie może się „cofać”.
+ * Wariant `dark` to karta z ciemnego pasa „Kończą się wkrótce” (D3) z licznikiem pod ceną.
  */
 export async function AuctionCard({
   auction,
   priority = false,
+  variant = 'default',
 }: {
   readonly auction: AuctionCardData;
   /** Pierwsze karty nad zgięciem strony (LCP): bez leniwego ładowania. */
   readonly priority?: boolean;
+  readonly variant?: 'default' | 'dark';
 }) {
   const t = await getTranslations('search.card');
   const format = await getFormatter();
-  const endsAt = format.dateTime(new Date(auction.endsAt), {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
+  const dark = variant === 'dark';
+  const endsAtLabel = t('endsAt', {
+    date: format.dateTime(new Date(auction.endsAt), {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
   });
   return (
     <Link
       href={auctionUrl(auction)}
-      className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card outline-none transition-[box-shadow,translate,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md focus-visible:shadow-focus-ring motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+      className={cn(
+        'group relative flex h-full flex-col gap-3 outline-none transition-transform duration-200 ease-out hover:-translate-y-0.5 focus-visible:shadow-focus-ring motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+        dark
+          ? 'rounded-2xl border border-ink-800 bg-ink-900 p-3 pb-4 text-primary-foreground'
+          : 'rounded-xl',
+      )}
     >
-      <div>
+      <div
+        className={cn(
+          'overflow-hidden bg-muted transition-shadow duration-200 ease-out group-hover:shadow-lg motion-reduce:transition-none',
+          dark ? 'rounded-lg bg-ink-800' : 'rounded-xl',
+        )}
+      >
         {auction.coverUrl === null ? (
-          <div className="flex aspect-square items-center justify-center bg-muted text-muted-foreground">
+          <div className="flex aspect-square flex-col items-center justify-center gap-2 text-body-sm text-muted-foreground">
             <ImageOff aria-hidden className="size-8" />
-            <span className="sr-only">{t('noPhoto')}</span>
+            {t('noPhoto')}
           </div>
         ) : (
           // Gotowe warianty WebP z CDN (F-12); optymalizacja Next.js tylko by je przeliczała.
@@ -57,40 +73,80 @@ export async function AuctionCard({
             alt=""
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
-            className="aspect-square w-full bg-muted object-cover"
+            className="aspect-square w-full object-cover"
           />
         )}
       </div>
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <h3 className="line-clamp-2 text-label break-words text-foreground group-hover:underline group-hover:underline-offset-3">
+      <div className={cn('flex flex-1 flex-col gap-0.5', dark ? 'px-1' : 'px-0.5')}>
+        <h3
+          className={cn(
+            'line-clamp-2 text-body font-bold break-words group-hover:underline group-hover:underline-offset-3',
+            dark ? 'text-primary-foreground' : 'text-foreground',
+          )}
+        >
           {auction.title}
         </h3>
-        <p className="mt-auto pt-1.5">
-          <span className="sr-only">
-            {auction.currentPrice === null ? t('startPrice') : t('currentPrice')}:{' '}
-          </span>
-          <span className="text-price tabular-nums">{short(auction.price)}</span>
-        </p>
-        <p className="text-caption text-muted-foreground">
-          {t('bids', { count: auction.bidCount })}
-          {auction.buyNowPrice === null ? null : (
-            <>
-              {' · '}
-              <span className="font-semibold text-accent-foreground">
-                {t('buyNow', { price: short(auction.buyNowPrice) })}
+        {auction.condition === null ? null : (
+          <p className={cn('text-body-sm', dark ? 'text-ink-300' : 'text-muted-foreground')}>
+            {t(`conditions.${auction.condition}`)}
+          </p>
+        )}
+        <div className="mt-auto flex items-end justify-between gap-2 pt-1.5">
+          <p className="flex min-w-0 flex-col">
+            <span className="sr-only">
+              {auction.currentPrice === null ? t('startPrice') : t('currentPrice')}:{' '}
+            </span>
+            <span className="text-price-lg tabular-nums">{shortMoney(auction.price)}</span>
+            {dark ? (
+              <span className="text-body-sm text-ink-300">
+                {t('bids', { count: auction.bidCount })}
               </span>
-            </>
+            ) : null}
+          </p>
+          {dark ? (
+            <CardTimer endsAt={auction.endsAt} />
+          ) : (
+            <span className="pb-1 text-body-sm font-semibold whitespace-nowrap text-foreground-secondary">
+              {t('bids', { count: auction.bidCount })}
+            </span>
           )}
-        </p>
+        </div>
+        {auction.buyNowPrice === null ? null : (
+          <p
+            className={cn(
+              'inline-flex items-center gap-1.5 text-body-sm font-bold',
+              dark ? 'text-green-300' : 'text-success',
+            )}
+          >
+            <ShoppingBag aria-hidden className="size-4 shrink-0" />
+            {t('buyNow', { price: shortMoney(auction.buyNowPrice) })}
+          </p>
+        )}
+        {dark ? (
+          <div className="pt-2.5">
+            <CardHourBar endsAt={auction.endsAt} />
+          </div>
+        ) : null}
       </div>
       {/* Na zdjęciu, ale w kodzie po tytule: czytnik ekranu zaczyna od nazwy przedmiotu. */}
-      <p className="absolute top-2 left-2 inline-flex h-6 items-center gap-1 rounded-full bg-card px-2 text-caption font-semibold text-foreground shadow-sm">
-        <Clock aria-hidden className="size-3.5" />
-        {t('endsAt', { date: endsAt })}
-      </p>
+      <div
+        className={cn(
+          'pointer-events-none absolute flex aspect-square flex-col justify-between p-2.5',
+          dark ? 'inset-x-3 top-3' : 'inset-x-0 top-0',
+        )}
+      >
+        <span className="flex">
+          <CardTimeBadge endsAt={auction.endsAt} endsAtLabel={endsAtLabel} liveOnly={dark} />
+        </span>
+        <span className="flex">
+          <CardHotBadge endsAt={auction.endsAt} bidCount={auction.bidCount} />
+        </span>
+      </div>
     </Link>
   );
 }
+
+const GRID = 'grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-8 xl:grid-cols-4';
 
 /** Siatka kart: 2 kolumny na telefonie, 3 na tablecie, 4 na szerokim ekranie. */
 export function AuctionGrid({
@@ -104,10 +160,7 @@ export function AuctionGrid({
   readonly priorityCount?: number;
 }) {
   return (
-    <ul
-      aria-label={label}
-      className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4"
-    >
+    <ul aria-label={label} className={GRID}>
       {auctions.map((auction, index) => (
         <li key={auction.id}>
           <AuctionCard auction={auction} priority={index < priorityCount} />
