@@ -8,22 +8,26 @@ import { MailCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
 import { track } from '@/analytics/posthog';
 import { Button } from '@/components/ui/button';
+import { IconTile } from '@/components/ui/icon-tile';
 import { signUpWithEmail } from '@/lib/auth/auth-api';
-import { signUpSchema } from '@/lib/auth/schemas';
+import { PASSWORD_MIN_LENGTH, signUpSchema } from '@/lib/auth/schemas';
 import { routes, withNext } from '@/lib/routes';
 
 import { ConsentCheckboxes } from './consent-checkboxes';
-import { AuthForm, FormAlert, TextField, useErrorMessage } from './form-parts';
+import { AuthForm, FormAlert, PasswordField, TextField, useErrorMessage } from './form-parts';
 import { SocialButtons } from './social-buttons';
 import { TurnstileField } from './turnstile-field';
 import { useValidationMessages } from './use-validation';
 
-/** Rejestracja e-mailem: regulamin, 18+, Turnstile; po sukcesie „Sprawdź skrzynkę”. */
+/**
+ * Rejestracja e-mailem: regulamin, 18+, Turnstile; po sukcesie „Sprawdź skrzynkę”. Reguła
+ * długości hasła sprawdza się na bieżąco (F-63).
+ */
 type FormValues = z.output<ReturnType<typeof signUpSchema>>;
 
 export function SignUpForm({ next }: { readonly next: string }) {
@@ -46,6 +50,7 @@ export function SignUpForm({ next }: { readonly next: string }) {
     },
   });
   const { errors, isSubmitting } = form.formState;
+  const password = useWatch({ control: form.control, name: 'password' });
 
   const submit = async (values: FormValues) => {
     setError(undefined);
@@ -66,13 +71,15 @@ export function SignUpForm({ next }: { readonly next: string }) {
 
   if (registeredEmail !== undefined) {
     return (
-      <div role="status" className="space-y-4">
-        <MailCheck aria-hidden className="size-10 text-brand-strong" />
-        <h2 className="text-h3">{t('signUp.checkInboxTitle')}</h2>
+      <div role="status" className="flex flex-col items-center gap-4 text-center">
+        <IconTile tone="info" size="lg" className="size-18 rounded-full [&>svg]:size-8">
+          <MailCheck />
+        </IconTile>
+        <h2 className="text-h2">{t('signUp.checkInboxTitle')}</h2>
         <p className="text-body text-foreground-secondary">
           {t('signUp.checkInboxText', { email: registeredEmail })}
         </p>
-        <Button asChild size="lg">
+        <Button asChild size="lg" className="w-full">
           <Link href={next}>{t('signUp.goToAccount')}</Link>
         </Button>
       </div>
@@ -81,8 +88,8 @@ export function SignUpForm({ next }: { readonly next: string }) {
 
   return (
     <div className="space-y-6">
-      <SocialButtons next={next} />
-      <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
+      <SocialButtons next={next} compact />
+      <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-5">
         {error === undefined ? null : <FormAlert>{error}</FormAlert>}
         <TextField
           label={t('fields.name')}
@@ -98,11 +105,13 @@ export function SignUpForm({ next }: { readonly next: string }) {
           error={errors.email?.message}
           {...form.register('email')}
         />
-        <TextField
+        <PasswordField
           label={t('fields.password')}
-          hint={t('fields.passwordHint')}
-          type="password"
           autoComplete="new-password"
+          rule={{
+            text: t('fields.passwordHint'),
+            met: [...password].length >= PASSWORD_MIN_LENGTH,
+          }}
           error={errors.password?.message}
           {...form.register('password')}
         />

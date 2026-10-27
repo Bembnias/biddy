@@ -5,22 +5,23 @@ import type { ListingDto, ListingPatchDto } from '@biddy/api-client';
 import {
   type ListingInput,
   type ListingIssue,
+  listingStepOfPath,
   MoneyParseError,
   parseMoney,
   toDecimalString,
 } from '@biddy/shared';
 
-/** Kroki kreatora: identyfikator w adresie (`?krok=`) i pola, których błędy pokazuje krok. */
+/**
+ * Kroki kreatora: identyfikator w adresie (`?krok=`). Kolejność i pola kroków 1–5 są w
+ * `LISTING_STEP_FIELDS` z @biddy/shared (te same w API przy postępie szkicu, F-63).
+ */
 export const LISTING_STEPS = [
-  { id: 'zdjecia', fields: ['mediaIds'] },
-  { id: 'kategoria', fields: ['categoryId', 'attributes', 'brand'] },
-  { id: 'opis', fields: ['title', 'description', 'condition'] },
-  {
-    id: 'dostawa',
-    fields: ['packageSize', 'weightKg', 'lengthCm', 'widthCm', 'heightCm', 'allowedCarriers'],
-  },
-  { id: 'cena', fields: ['startPrice', 'durationDays', 'reservePrice', 'buyNowPrice'] },
-  { id: 'podglad', fields: ['kycNoticeAccepted'] },
+  { id: 'zdjecia' },
+  { id: 'kategoria' },
+  { id: 'opis' },
+  { id: 'dostawa' },
+  { id: 'cena' },
+  { id: 'podglad' },
 ] as const;
 
 export type ListingStepId = (typeof LISTING_STEPS)[number]['id'];
@@ -59,11 +60,9 @@ export function formPath(path: string): string {
 
 /** Krok, na którym jest pole (np. `attributes.rozmiarEu` → `kategoria`). */
 export function stepOfPath(path: string): ListingStepId {
-  const field = formPath(path).split('.')[0] ?? '';
-  return (
-    LISTING_STEPS.find((step) => (step.fields as readonly string[]).includes(field))?.id ??
-    'podglad'
-  );
+  // Pole wagi w formularzu jest w kilogramach, a w API i `validateListing` w gramach.
+  const field = path === 'weightKg' ? 'weightGrams' : path;
+  return LISTING_STEPS[listingStepOfPath(field) - 1]?.id ?? 'podglad';
 }
 
 /** Kwota w groszach do pola tekstowego: „20” albo „12,50”. */

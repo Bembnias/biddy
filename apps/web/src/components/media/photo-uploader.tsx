@@ -6,9 +6,9 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 
 import { track } from '@/analytics/posthog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ACCEPTED_IMAGE_TYPES, UploadError, uploadPhoto } from '@/lib/media/upload';
+import { cn } from '@/lib/utils';
 
 export const MAX_ITEM_PHOTOS = 20;
 
@@ -158,9 +158,9 @@ export function PhotoUploader({
   return (
     <section aria-labelledby={`${inputId}-title`} className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id={`${inputId}-title`} className="text-title">
+        <h3 id={`${inputId}-title`} className="text-title tabular-nums">
           {t('uploader.count', { count: entries.length, max })}
-        </h2>
+        </h3>
         <input
           ref={input}
           id={inputId}
@@ -196,9 +196,12 @@ export function PhotoUploader({
             return (
               <li
                 key={entry.key}
-                className="space-y-2 rounded-lg border border-border bg-card p-2 shadow-sm"
+                className={cn(
+                  'space-y-2 rounded-xl border border-border bg-card p-2 shadow-xs',
+                  index === 0 && entry.state === 'ready' && 'border-brand ring-2 ring-brand',
+                )}
               >
-                <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-md bg-muted text-center text-body-sm">
+                <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-muted text-center text-body-sm">
                   {entry.state === 'ready' && entry.media?.urls?.thumb !== undefined ? (
                     // Gotowa miniatura WebP z CDN.
                     // eslint-disable-next-line @next/next/no-img-element
@@ -233,9 +236,9 @@ export function PhotoUploader({
                     </span>
                   )}
                   {index === 0 && entry.state === 'ready' ? (
-                    <Badge tone="neutral" variant="solid" className="absolute top-2 left-2">
+                    <span className="absolute top-2 left-2 rounded-full bg-brand-strong px-2.5 py-0.5 text-caption font-extrabold text-primary-foreground">
                       {t('uploader.cover')}
-                    </Badge>
+                    </span>
                   ) : null}
                 </div>
                 <div className="flex justify-between gap-1">

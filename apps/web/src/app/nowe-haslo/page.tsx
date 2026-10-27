@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import { CircleX } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
-import { AuthCard } from '@/components/auth/form-parts';
+import { AuthCard } from '@/components/auth/auth-layout';
 import { ResetPasswordForm } from '@/components/auth/reset-password-form';
 import { Button } from '@/components/ui/button';
 import { type SearchParams, searchParam } from '@/lib/page-params';
@@ -24,17 +25,18 @@ export default async function ResetPasswordPage({
   const error = await searchParam(searchParams, 'error');
   if (token === undefined || error !== undefined) {
     return (
-      <AuthCard title={t('invalidLinkTitle')}>
-        <p className="text-body text-foreground-secondary">{t('invalidLinkText')}</p>
-        <Button asChild size="lg" className="mt-6">
+      <AuthCard
+        icon={<CircleX />}
+        tone="danger"
+        center
+        title={t('invalidLinkTitle')}
+        lead={t('invalidLinkText')}
+      >
+        <Button asChild size="lg" className="w-full">
           <Link href={routes.forgotPassword}>{t('requestNew')}</Link>
         </Button>
       </AuthCard>
     );
   }
-  return (
-    <AuthCard title={t('title')}>
-      <ResetPasswordForm token={token} />
-    </AuthCard>
-  );
+  return <ResetPasswordForm token={token} />;
 }

@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   type AttributeDefinition,
   auctionValue,
+  completedListingSteps,
   type ListingContext,
   type ListingInput,
+  listingStepOfPath,
   minimumBuyNowPrice,
   validateListing,
 } from '../index.js';
@@ -204,5 +206,38 @@ describe('ceny pomocnicze', () => {
     expect(minimumBuyNowPrice(100)).toBe(130);
     expect(minimumBuyNowPrice(105)).toBe(137); // 136,5 gr → 137 gr
     expect(minimumBuyNowPrice(10_000)).toBe(13_000);
+  });
+});
+
+describe('postęp szkicu (F-63)', () => {
+  const completed = (input: Partial<ListingInput>, context: Partial<ListingContext> = {}) =>
+    completedListingSteps(validateListing({ ...COMPLETE, ...input }, { ...CONTEXT, ...context }));
+
+  it('przypisuje ścieżki braków do kroków kreatora', () => {
+    expect(listingStepOfPath('mediaIds')).toBe(1);
+    expect(listingStepOfPath('attributes.rozmiarEu')).toBe(2);
+    expect(listingStepOfPath('condition')).toBe(3);
+    expect(listingStepOfPath('weightGrams')).toBe(4);
+    expect(listingStepOfPath('buyNowPrice')).toBe(5);
+    expect(listingStepOfPath('kycNoticeAccepted')).toBe(6);
+  });
+
+  it('pusty szkic nie ma ukończonych kroków', () => {
+    expect(completedListingSteps(validateListing(EMPTY, CONTEXT))).toBe(0);
+  });
+
+  it('liczy kroki do pierwszego braku, nawet gdy dalsze są uzupełnione', () => {
+    expect(completed({ title: null })).toBe(2);
+    expect(completed({ allowedCarriers: [] })).toBe(3);
+    expect(completed({ photoCount: 0, startPrice: null })).toBe(0);
+  });
+
+  it('cena ponad limit sprzedawcy zatrzymuje postęp na kroku ceny', () => {
+    expect(completed({ startPrice: 600_000 })).toBe(4);
+  });
+
+  it('komplet daje 5 kroków: zostaje podgląd i publikacja', () => {
+    expect(completed({})).toBe(5);
+    expect(completedListingSteps([{ path: 'kycNoticeAccepted', message: '' }])).toBe(5);
   });
 });

@@ -1,26 +1,41 @@
 'use client';
 
 import { isApiError } from '@biddy/api-client';
-import { BadgePercent, CircleAlert, Gavel, ShieldCheck } from 'lucide-react';
-import Image from 'next/image';
+import { Check, CircleAlert, CircleDashed, Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ComponentProps, type ReactNode, useId } from 'react';
+import { type ComponentProps, type ReactNode, useId, useState } from 'react';
 
-import logoWhite from '@/assets/brand/biddy-logo-white.png';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
-/** Pole tekstowe z etykietą, podpowiedzią i błędem powiązanymi przez aria-describedby. */
+/** Błąd pola: ikona i tekst (nie sam kolor), powiązany z polem przez aria-describedby. */
+function FieldErrorText({ id, children }: { readonly id: string; readonly children: string }) {
+  return (
+    <p id={id} className="flex items-start gap-1.5 text-body-sm font-semibold text-destructive">
+      <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+      {children}
+    </p>
+  );
+}
+
+/**
+ * Pole tekstowe z etykietą, podpowiedzią i błędem powiązanymi przez aria-describedby.
+ * `labelAction` stoi w wierszu etykiety po prawej (np. „Nie pamiętasz hasła?”).
+ */
 export function TextField({
   label,
   hint,
   error,
+  labelAction,
   ...inputProps
 }: ComponentProps<typeof Input> & {
   readonly label: string;
   readonly hint?: string;
   readonly error?: string | undefined;
+  readonly labelAction?: ReactNode;
 }) {
   const id = useId();
   const hintId = `${id}-hint`;
@@ -30,7 +45,7 @@ export function TextField({
     .join(' ');
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <FieldLabel htmlFor={id} label={label} action={labelAction} />
       <Input
         id={id}
         aria-invalid={error === undefined ? undefined : true}
@@ -42,12 +57,98 @@ export function TextField({
           {hint}
         </p>
       )}
-      {error === undefined ? null : (
-        <p id={errorId} className="flex items-start gap-1.5 text-body-sm text-destructive">
-          <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-          {error}
+      {error === undefined ? null : <FieldErrorText id={errorId}>{error}</FieldErrorText>}
+    </div>
+  );
+}
+
+function FieldLabel({
+  htmlFor,
+  label,
+  action,
+}: {
+  readonly htmlFor: string;
+  readonly label: string;
+  readonly action: ReactNode;
+}) {
+  return action === undefined ? (
+    <Label htmlFor={htmlFor}>{label}</Label>
+  ) : (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {action}
+    </div>
+  );
+}
+
+/**
+ * Hasło (F-63) z przyciskiem pokazania (`aria-pressed`). `rule` pokazuje regułę długości nowego
+ * hasła sprawdzaną na bieżąco: ikona i tekst, dla czytnika „spełnione” albo „jeszcze nie”.
+ */
+export function PasswordField({
+  label,
+  error,
+  labelAction,
+  rule,
+  className,
+  ...inputProps
+}: Omit<ComponentProps<typeof Input>, 'type'> & {
+  readonly label: string;
+  readonly error?: string | undefined;
+  readonly labelAction?: ReactNode;
+  readonly rule?: { readonly text: string; readonly met: boolean };
+}) {
+  const t = useTranslations('auth.fields');
+  const [visible, setVisible] = useState(false);
+  const id = useId();
+  const ruleId = `${id}-rule`;
+  const errorId = `${id}-error`;
+  const describedBy = [rule === undefined ? null : ruleId, error === undefined ? null : errorId]
+    .filter((value) => value !== null)
+    .join(' ');
+  const RuleIcon = rule?.met === true ? Check : CircleDashed;
+  return (
+    <div className="space-y-2">
+      <FieldLabel htmlFor={id} label={label} action={labelAction} />
+      <div className="relative">
+        <Input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          aria-invalid={error === undefined ? undefined : true}
+          aria-describedby={describedBy === '' ? undefined : describedBy}
+          className={cn('pr-13', className)}
+          {...inputProps}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute top-1 right-1 rounded-md text-foreground-secondary"
+          aria-label={t('showPassword')}
+          aria-pressed={visible}
+          onClick={() => {
+            setVisible((current) => !current);
+          }}
+        >
+          {visible ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
+        </Button>
+      </div>
+      {rule === undefined ? null : (
+        <p
+          id={ruleId}
+          className={cn(
+            'flex items-start gap-1.5 text-body-sm font-semibold',
+            rule.met ? 'text-success' : 'text-muted-foreground',
+          )}
+        >
+          <RuleIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <span className="sr-only">{rule.met ? t('ruleMet') : t('ruleNotMet')} </span>
+            {rule.text}
+          </span>
         </p>
       )}
+      {error === undefined ? null : <FieldErrorText id={errorId}>{error}</FieldErrorText>}
     </div>
   );
 }
@@ -77,66 +178,4 @@ export function useErrorMessage(): (error: unknown) => string {
   const t = useTranslations('auth');
   return (error) =>
     isApiError(error) && error.problem !== undefined ? error.problem.detail : t('genericError');
-}
-
-/**
- * Układ stron kont (F-62): na desktopie panel marki z lewej (logo, hasło, korzyści), formularz
- * z prawej; na telefonie sam formularz. Nagłówek h1 i opcjonalny opis nad formularzem.
- */
-export function AuthCard({
-  title,
-  lead,
-  children,
-}: {
-  readonly title: string;
-  readonly lead?: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <div className="grid lg:min-h-[calc(100dvh-4rem)] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <BrandPanel />
-      <div className="flex justify-center px-4 py-10 sm:py-16 lg:items-center">
-        <div className="w-full max-w-auth">
-          <h1 className="text-center text-h2 md:text-h1">{title}</h1>
-          {lead === undefined ? null : (
-            <p className="mt-2 text-center text-body text-foreground-secondary">{lead}</p>
-          )}
-          <div className="mt-8">{children}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const PANEL_POINTS = [
-  { key: 'protection', Icon: ShieldCheck },
-  { key: 'proxy', Icon: Gavel },
-  { key: 'zeroFee', Icon: BadgePercent },
-] as const;
-
-/**
- * Panel marki: gradient `panel-from` → `panel-to`. Duże hasło stoi na jaśniejszej górze (biały
- * tekst ≥ 24 px), drobniejszy tekst niżej, na ciemniejszej części gradientu.
- */
-function BrandPanel() {
-  const t = useTranslations('auth.panel');
-  return (
-    <aside className="hidden flex-col justify-between gap-12 bg-linear-to-b from-panel-from to-panel-to p-12 text-primary-foreground lg:flex xl:p-16">
-      <div>
-        <Image src={logoWhite} alt="" width={160} height={90} className="h-14 w-auto" />
-        <p className="mt-8 max-w-[20ch] text-h2">{t('tagline')}</p>
-      </div>
-      <ul className="space-y-5">
-        {PANEL_POINTS.map(({ key, Icon }) => (
-          <li key={key} className="flex items-start gap-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white/15">
-              <Icon aria-hidden className="size-5" />
-            </span>
-            <span className="max-w-[40ch] pt-2 text-body font-semibold">{t(key)}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="max-w-[44ch] text-body-sm">{t('footnote')}</p>
-    </aside>
-  );
 }

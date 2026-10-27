@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import { MailWarning } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
-import { AuthCard } from '@/components/auth/form-parts';
+import { AuthCard } from '@/components/auth/auth-layout';
 import { PhoneVerificationForm } from '@/components/auth/phone-verification-form';
 import { Button } from '@/components/ui/button';
 import { loadMeOrRedirect } from '@/lib/api/me';
@@ -17,7 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Weryfikacja numeru telefonu (F-08): renderowana na serwerze z sesją, bo wymaga konta
- * z potwierdzonym e-mailem i akceptacją regulaminu. Po sukcesie powrót pod `?next=`.
+ * z potwierdzonym e-mailem i akceptacją regulaminu. Po sukcesie powrót pod `?next=`. Postęp
+ * „E-mail, Telefon, Licytujesz” tylko przy pierwszej weryfikacji, nie przy zmianie numeru.
  */
 export default async function VerifyPhonePage({
   searchParams,
@@ -30,27 +32,26 @@ export default async function VerifyPhonePage({
 
   if (!me.emailVerified) {
     return (
-      <AuthCard title={t('emailFirstTitle')}>
-        <div className="space-y-4">
-          <p className="text-body text-foreground-secondary">{t('emailFirstText')}</p>
-          <Button asChild size="lg">
-            <Link href={routes.account}>{t('goToAccount')}</Link>
-          </Button>
-        </div>
+      <AuthCard
+        icon={<MailWarning />}
+        tone="warning"
+        title={t('emailFirstTitle')}
+        lead={t('emailFirstText')}
+      >
+        <Button asChild size="lg" className="w-full">
+          <Link href={routes.account}>{t('goToAccount')}</Link>
+        </Button>
       </AuthCard>
     );
   }
 
-  return (
-    <AuthCard title={me.phoneNumber === null ? t('title') : t('changeTitle')}>
-      <div className="space-y-6">
-        <p className="text-body text-foreground-secondary">
-          {me.phoneNumber === null
-            ? t('intro')
-            : t('current', { phone: formatPhoneNumber(me.phoneNumber) })}
-        </p>
-        <PhoneVerificationForm next={next} />
-      </div>
-    </AuthCard>
+  return me.phoneNumber === null ? (
+    <PhoneVerificationForm next={next} showProgress />
+  ) : (
+    <PhoneVerificationForm
+      next={next}
+      title={t('changeTitle')}
+      intro={t('current', { phone: formatPhoneNumber(me.phoneNumber) })}
+    />
   );
 }

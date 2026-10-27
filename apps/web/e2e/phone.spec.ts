@@ -35,7 +35,7 @@ test('weryfikacja telefonu: numer, zły i dobry kod, potem konto ze zweryfikowan
   await gotoHydrated(page, '/weryfikacja-telefonu?next=/konto');
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Zweryfikuj numer telefonu');
-  await page.getByRole('main').getByLabel('Numer telefonu').fill('500 600 700');
+  await page.getByRole('main').getByLabel('Numer telefonu', { exact: true }).fill('500 600 700');
   await page.getByRole('main').getByRole('button', { name: 'Wyślij kod' }).click();
 
   await expect(page.getByRole('main').getByRole('status')).toContainText('+48 500 600 700');
@@ -75,7 +75,7 @@ test('weryfikacja telefonu: brak naruszeń WCAG 2.1 A i AA na obu krokach', asyn
     expect(results.violations.map(({ id, nodes }) => `${id}: ${nodes.length}`)).toEqual([]);
   };
   await axe();
-  await page.getByRole('main').getByLabel('Numer telefonu').fill('500600700');
+  await page.getByRole('main').getByLabel('Numer telefonu', { exact: true }).fill('500600700');
   await page.getByRole('main').getByRole('button', { name: 'Wyślij kod' }).click();
   await expect(page.getByRole('main').getByLabel('Kod z SMS-a')).toBeVisible();
   await axe();
@@ -95,7 +95,7 @@ test('weryfikacja telefonu wymaga potwierdzonego e-maila i sesji', async ({
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Najpierw potwierdź adres e-mail',
   );
-  await expect(page.getByRole('main').getByLabel('Numer telefonu')).toHaveCount(0);
+  await expect(page.getByRole('main').getByLabel('Numer telefonu', { exact: true })).toHaveCount(0);
 });
 
 test('konto bez telefonu: „Zweryfikuj numer” prowadzi do weryfikacji z powrotem na konto', async ({
@@ -119,7 +119,7 @@ test('konto bez telefonu: „Zweryfikuj numer” prowadzi do weryfikacji z powro
   await page.getByRole('main').getByRole('link', { name: 'Zweryfikuj numer' }).click();
   await expect(page).toHaveURL(/\/weryfikacja-telefonu\?next=%2Fkonto$/);
 
-  await page.getByRole('main').getByLabel('Numer telefonu').fill('500 600 700');
+  await page.getByRole('main').getByLabel('Numer telefonu', { exact: true }).fill('500 600 700');
   await page.getByRole('main').getByRole('button', { name: 'Wyślij kod' }).click();
   await expect(page.getByRole('main').getByRole('alert')).toHaveText(
     'Kolejny SMS możesz wysłać za 42 s.',

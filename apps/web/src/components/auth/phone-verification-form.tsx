@@ -11,10 +11,11 @@ import {
 } from '@biddy/api-client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
+import { Check, Clock, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { type ComponentProps, type ReactNode, useEffect, useId, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import type { z } from 'zod';
 
 import { track } from '@/analytics/posthog';
@@ -27,7 +28,9 @@ import {
   polishPhoneDigits,
 } from '@/lib/auth/schemas';
 import { formatPhoneNumber } from '@/lib/phone';
+import { cn } from '@/lib/utils';
 
+import { AuthCard } from './auth-layout';
 import { AuthForm, FormAlert, TextField, useErrorMessage } from './form-parts';
 import { useValidationMessages } from './use-validation';
 
@@ -65,11 +68,122 @@ function useSecondsUntil(target: string | undefined): { seconds: number; sync: (
   };
 }
 
+/** Postęp pierwszej weryfikacji nad kartą (F-63): e-mail potwierdzony, teraz telefon. */
+function VerificationProgress() {
+  const t = useTranslations('auth.phone.progress');
+  const pill = 'inline-flex h-7.5 items-center gap-1.5 rounded-full px-3';
+  return (
+    <ol aria-label={t('label')} className="flex items-center justify-center gap-2 text-label">
+      <li className="flex items-center gap-2">
+        <span className={cn(pill, 'bg-success-soft text-success')}>
+          <Check aria-hidden className="size-3.5" />
+          <span className="sr-only">{t('done')} </span>
+          {t('email')}
+        </span>
+        <span aria-hidden className="h-0.5 w-5 bg-border-strong" />
+      </li>
+      <li aria-current="step" className="flex items-center gap-2">
+        <span className={cn(pill, 'bg-brand-strong text-primary-foreground')}>{t('phone')}</span>
+        <span aria-hidden className="h-0.5 w-5 bg-border-strong" />
+      </li>
+      <li>
+        <span className={cn(pill, 'border border-border-strong bg-card text-foreground-secondary')}>
+          {t('bid')}
+        </span>
+      </li>
+    </ol>
+  );
+}
+
 /**
- * Weryfikacja numeru telefonu (F-08): numer → SMS z kodem → potwierdzenie. Po sukcesie powrót
- * pod `next`. Ponowna wysyłka po odliczeniu (limit API: 60 s).
+ * Kod z SMS-a (F-63): wygląda jak sześć kafelków, ale to jedno pole `one-time-code`
+ * (przezroczyste, nad kafelkami), więc działają autouzupełnianie kodu z SMS-a i wklejanie.
+ * Kafelki są dekoracją; czytnik ekranu widzi zwykłe pole z etykietą.
  */
-export function PhoneVerificationForm({ next }: { readonly next: string }) {
+function CodeField({
+  label,
+  hint,
+  error,
+  value,
+  onBlur,
+  ...inputProps
+}: ComponentProps<'input'> & {
+  readonly label: string;
+  readonly hint: string;
+  readonly error: string | undefined;
+  readonly value: string;
+}) {
+  const id = useId();
+  const [focused, setFocused] = useState(false);
+  const digits = [...value];
+  const active = Math.min(digits.length, PHONE_CODE_LENGTH - 1);
+  return (
+    <div className="flex flex-col items-center gap-2.5">
+      <div className="relative">
+        <div aria-hidden className="flex gap-2">
+          {Array.from({ length: PHONE_CODE_LENGTH }, (_, index) => (
+            <span
+              key={index}
+              className={cn(
+                'grid h-13 w-11 place-items-center rounded-lg border bg-card text-h2 font-extrabold tabular-nums transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none sm:h-15 sm:w-13',
+                error === undefined ? 'border-input' : 'border-destructive',
+                focused && index === active && 'border-ring ring-3 ring-violet-100',
+              )}
+            >
+              {digits[index] ?? ''}
+            </span>
+          ))}
+        </div>
+        <input
+          id={id}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={PHONE_CODE_LENGTH}
+          aria-describedby={error === undefined ? `${id}-hint` : `${id}-hint ${id}-error`}
+          aria-invalid={error === undefined ? undefined : true}
+          className="absolute inset-0 size-full cursor-text appearance-none bg-transparent text-transparent caret-transparent outline-none selection:bg-transparent"
+          onFocus={() => {
+            setFocused(true);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
+          {...inputProps}
+        />
+      </div>
+      <p className="text-body-sm text-muted-foreground">
+        <label htmlFor={id} className="font-semibold text-foreground-secondary">
+          {label}
+        </label>
+        {', '}
+        <span id={`${id}-hint`}>{hint}</span>
+      </p>
+      {error === undefined ? null : (
+        <p id={`${id}-error`} className="text-body-sm font-semibold text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Weryfikacja numeru telefonu (F-08, układ F-63): numer → SMS z kodem → potwierdzenie, w karcie
+ * z postępem nad nią (`showProgress`, tylko pierwsza weryfikacja). Po sukcesie powrót pod
+ * `next`. Ponowna wysyłka po odliczeniu (limit API: 60 s).
+ */
+export function PhoneVerificationForm({
+  next,
+  title,
+  intro,
+  showProgress = false,
+}: {
+  readonly next: string;
+  readonly title?: string;
+  readonly intro?: string;
+  readonly showProgress?: boolean;
+}) {
   const t = useTranslations('auth.phone');
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -91,6 +205,7 @@ export function PhoneVerificationForm({ next }: { readonly next: string }) {
     resolver: zodResolver(phoneCodeSchema(messages)),
     defaultValues: { code: '' },
   });
+  const code = useWatch({ control: codeForm.control, name: 'code' });
 
   const sendCode = async (phoneNumber: string): Promise<boolean> => {
     setError(undefined);
@@ -146,11 +261,24 @@ export function PhoneVerificationForm({ next }: { readonly next: string }) {
     }
   };
 
+  const card = (lead: ReactNode, body: ReactNode) => (
+    <AuthCard
+      icon={<Smartphone />}
+      title={title ?? t('title')}
+      lead={lead}
+      above={showProgress ? <VerificationProgress /> : undefined}
+      below={t('footnote')}
+    >
+      {body}
+    </AuthCard>
+  );
+
   if (started === undefined) {
-    return (
+    return card(
+      intro ?? t('intro'),
       <AuthForm
         onSubmit={(event) => void numberForm.handleSubmit(submitNumber)(event)}
-        className="space-y-4"
+        className="space-y-5"
       >
         {error === undefined ? null : <FormAlert>{error}</FormAlert>}
         <TextField
@@ -166,28 +294,28 @@ export function PhoneVerificationForm({ next }: { readonly next: string }) {
         <Button type="submit" variant="cta" size="lg" className="w-full" disabled={start.isPending}>
           {start.isPending ? t('sending') : t('send')}
         </Button>
-      </AuthForm>
+      </AuthForm>,
     );
   }
 
   const phone = formatPhoneNumber(started.phoneNumber);
-  return (
-    <div className="space-y-4">
-      <p role="status" className="text-body text-foreground-secondary">
-        {resent ? t('resent', { phone }) : t('codeSent', { phone })}
-      </p>
+  const strong = (chunks: ReactNode) => (
+    <strong className="font-bold whitespace-nowrap text-foreground tabular-nums">{chunks}</strong>
+  );
+  return card(
+    <p role="status">
+      {resent ? t.rich('resent', { phone, strong }) : t.rich('codeSent', { phone, strong })}
+    </p>,
+    <div className="space-y-5">
       <AuthForm
         onSubmit={(event) => void codeForm.handleSubmit(submitCode)(event)}
-        className="space-y-4"
+        className="space-y-5"
       >
         {error === undefined ? null : <FormAlert>{error}</FormAlert>}
-        <TextField
+        <CodeField
           label={t('codeLabel')}
           hint={t('codeHint')}
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={PHONE_CODE_LENGTH}
-          className="text-center text-h3 tracking-widest tabular-nums"
+          value={code}
           error={codeForm.formState.errors.code?.message}
           {...codeForm.register('code')}
         />
@@ -201,14 +329,15 @@ export function PhoneVerificationForm({ next }: { readonly next: string }) {
           {confirm.isPending ? t('confirming') : t('confirm')}
         </Button>
       </AuthForm>
-      <div className="flex flex-wrap gap-x-4 gap-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border pt-4">
         <Button
           type="button"
           variant="link"
-          className="h-auto px-0"
+          className="h-auto px-0 tabular-nums no-underline disabled:text-muted-foreground disabled:opacity-100"
           disabled={secondsToResend > 0 || start.isPending}
           onClick={() => void resend()}
         >
+          <Clock aria-hidden className="size-4" />
           {secondsToResend > 0 ? t('resendIn', { seconds: secondsToResend }) : t('resend')}
         </Button>
         <Button
@@ -225,6 +354,6 @@ export function PhoneVerificationForm({ next }: { readonly next: string }) {
           {t('changeNumber')}
         </Button>
       </div>
-    </div>
+    </div>,
   );
 }

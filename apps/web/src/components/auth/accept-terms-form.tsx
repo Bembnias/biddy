@@ -3,6 +3,7 @@
 import { getGetSessionQueryKey, useAcceptTerms } from '@biddy/api-client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
+import { ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
@@ -10,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { consentSchema } from '@/lib/auth/schemas';
 
+import { AuthCard } from './auth-layout';
 import { ConsentCheckboxes } from './consent-checkboxes';
 import { AuthForm, FormAlert, useErrorMessage } from './form-parts';
 import { useValidationMessages } from './use-validation';
@@ -39,19 +41,26 @@ export function AcceptTermsForm({ next }: { readonly next: string }) {
   };
 
   return (
-    <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
-      <p className="text-body text-foreground-secondary">{t('text')}</p>
-      {accept.error === null ? null : <FormAlert>{errorMessage(accept.error)}</FormAlert>}
-      <ConsentCheckboxes
-        control={form.control}
-        errors={{
-          acceptTerms: errors.acceptTerms?.message,
-          adultDeclaration: errors.adultDeclaration?.message,
-        }}
-      />
-      <Button type="submit" variant="cta" size="lg" className="w-full" disabled={accept.isPending}>
-        {accept.isPending ? t('pending') : t('submit')}
-      </Button>
-    </AuthForm>
+    <AuthCard icon={<ShieldCheck />} title={t('title')} lead={t('text')}>
+      <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-5">
+        {accept.error === null ? null : <FormAlert>{errorMessage(accept.error)}</FormAlert>}
+        <ConsentCheckboxes
+          control={form.control}
+          errors={{
+            acceptTerms: errors.acceptTerms?.message,
+            adultDeclaration: errors.adultDeclaration?.message,
+          }}
+        />
+        <Button
+          type="submit"
+          variant="cta"
+          size="lg"
+          className="w-full"
+          disabled={accept.isPending}
+        >
+          {accept.isPending ? t('pending') : t('submit')}
+        </Button>
+      </AuthForm>
+    </AuthCard>
   );
 }

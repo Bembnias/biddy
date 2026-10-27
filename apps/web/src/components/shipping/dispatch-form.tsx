@@ -7,6 +7,7 @@ import {
   isApiError,
 } from '@biddy/api-client';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CircleCheck, Truck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useId, useState } from 'react';
@@ -16,7 +17,6 @@ import type { z } from 'zod';
 import { AuthForm, FormAlert, TextField, useErrorMessage } from '@/components/auth/form-parts';
 import { useValidationMessages } from '@/components/auth/use-validation';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { addressSchema } from '@/lib/auth/schemas';
 import { formatPhoneNumber } from '@/lib/phone';
 import { routes } from '@/lib/routes';
@@ -36,9 +36,9 @@ const API_FIELDS: Readonly<Record<string, FieldName>> = {
 };
 
 /**
- * Formularz „Nadaj” (F-24, PROJECT.md §8.3): dane nadawcy (na etykiecie, zobaczy je kupujący)
- * i sposób nadania. Wypełnia się domyślnym adresem nadania z konta (F-10). Wysyłkę robi
- * wywołujący (`onSubmit`): strona zamówienia albo panel FakeShipping.
+ * Formularz „Nadaj” (F-24, PROJECT.md §8.3, układ F-63): dane nadawcy (na etykiecie, zobaczy je
+ * kupujący) i sposób nadania w osobnych kartach. Wypełnia się domyślnym adresem nadania z konta
+ * (F-10). Wysyłkę robi wywołujący (`onSubmit`): strona zamówienia albo panel FakeShipping.
  */
 export function DispatchForm({
   methods,
@@ -92,76 +92,88 @@ export function DispatchForm({
   };
 
   return (
-    <AuthForm
-      onSubmit={(event) => void form.handleSubmit(submit)(event)}
-      className="space-y-5 rounded-xl border border-border bg-card p-5 sm:p-6"
-    >
-      <div className="space-y-1">
-        <h2 className="text-h3">{t('senderTitle')}</h2>
-        <p className="text-body-sm text-foreground-secondary">{t('senderLead')}</p>
-        <p className="text-body-sm text-muted-foreground">
-          {senderAddress === undefined ? (
-            <>
-              {t('senderDefaultMissing')}{' '}
-              <Link
-                href={routes.addresses}
-                className="text-link underline-offset-3 hover:underline"
-              >
-                {t('addresses')}
-              </Link>
-            </>
-          ) : (
-            t('senderDefault')
-          )}
-        </p>
-      </div>
+    <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-5">
       {error === undefined ? null : <FormAlert>{error}</FormAlert>}
-      <TextField
-        label={t('name')}
-        autoComplete="name"
-        error={errors.recipientName?.message}
-        {...form.register('recipientName')}
-      />
-      <TextField
-        label={t('street')}
-        hint={t('streetHint')}
-        autoComplete="street-address"
-        error={errors.street?.message}
-        {...form.register('street')}
-      />
-      <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
-        <TextField
-          label={t('postalCode')}
-          autoComplete="postal-code"
-          inputMode="numeric"
-          placeholder="00-000"
-          error={errors.postalCode?.message}
-          {...form.register('postalCode')}
-        />
-        <TextField
-          label={t('city')}
-          autoComplete="address-level2"
-          error={errors.city?.message}
-          {...form.register('city')}
-        />
-      </div>
-      <TextField
-        label={t('phone')}
-        hint={t('phoneHint')}
-        type="tel"
-        inputMode="tel"
-        autoComplete="tel-national"
-        error={errors.phone?.message}
-        {...form.register('phone')}
-      />
-      <fieldset className="space-y-2">
-        <legend className="mb-2 text-label">{t('method')}</legend>
+      <section
+        aria-labelledby={`${methodsId}-sender`}
+        className="space-y-5 rounded-2xl border border-border bg-card p-5 sm:p-7"
+      >
+        <div className="space-y-1">
+          <h2 id={`${methodsId}-sender`} className="text-h3">
+            {t('senderTitle')}
+          </h2>
+          <p className="text-body-sm text-foreground-secondary">{t('senderLead')}</p>
+        </div>
+        {senderAddress === undefined ? (
+          <p className="rounded-lg bg-canvas px-3.5 py-3 text-body-sm text-foreground-secondary">
+            {t('senderDefaultMissing')}{' '}
+            <Link
+              href={routes.addresses}
+              className="font-semibold text-link underline-offset-3 hover:underline"
+            >
+              {t('addresses')}
+            </Link>
+          </p>
+        ) : (
+          <p className="flex items-start gap-2.5 rounded-lg bg-success-soft px-3.5 py-3 text-body-sm font-semibold text-green-800">
+            <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0" />
+            {t('senderDefault')}
+          </p>
+        )}
+        <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
+          <div className="sm:col-span-2">
+            <TextField
+              label={t('name')}
+              autoComplete="name"
+              error={errors.recipientName?.message}
+              {...form.register('recipientName')}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <TextField
+              label={t('street')}
+              hint={t('streetHint')}
+              autoComplete="street-address"
+              error={errors.street?.message}
+              {...form.register('street')}
+            />
+          </div>
+          <TextField
+            label={t('postalCode')}
+            autoComplete="postal-code"
+            inputMode="numeric"
+            placeholder="00-000"
+            error={errors.postalCode?.message}
+            {...form.register('postalCode')}
+          />
+          <TextField
+            label={t('city')}
+            autoComplete="address-level2"
+            error={errors.city?.message}
+            {...form.register('city')}
+          />
+          <div className="sm:col-span-2">
+            <TextField
+              label={t('phone')}
+              hint={t('phoneHint')}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              error={errors.phone?.message}
+              {...form.register('phone')}
+            />
+          </div>
+        </div>
+      </section>
+      <fieldset className="min-w-0 space-y-3 rounded-2xl border border-border bg-card p-5 sm:p-7">
+        <legend className="float-left mb-4 w-full text-h3">{t('method')}</legend>
         {methods.map((option) => (
-          <div
+          <label
             key={option}
+            htmlFor={`${methodsId}-${option}`}
             className={cn(
-              'flex items-start gap-3 rounded-lg border border-border px-4 py-3 has-[:focus-visible]:shadow-focus-ring',
-              method === option && 'border-primary bg-info-soft',
+              'clear-left flex cursor-pointer items-start gap-3.5 rounded-xl border border-border-strong px-4 py-3.5 transition-[border-color,box-shadow,background-color] duration-150 has-[:focus-visible]:shadow-focus-ring motion-reduce:transition-none',
+              method === option && 'border-brand bg-violet-50 ring-1 ring-brand',
             )}
           >
             <input
@@ -173,26 +185,29 @@ export function DispatchForm({
               onChange={() => {
                 setMethod(option);
               }}
-              className="mt-1 accent-primary"
+              className="mt-0.5 size-5 shrink-0 accent-brand"
             />
-            <Label htmlFor={`${methodsId}-${option}`} className="block cursor-pointer">
-              <span className="block text-title">{t(`methods.${option}`)}</span>
-              <span className="block text-body-sm font-normal text-muted-foreground">
+            <span className="flex flex-col text-title">
+              {t(`methods.${option}`)}{' '}
+              <span className="text-body-sm text-muted-foreground">
                 {t(`methodHints.${option}`)}
               </span>
-            </Label>
-          </div>
+            </span>
+          </label>
         ))}
       </fieldset>
-      <Button
-        type="submit"
-        variant="cta"
-        size="lg"
-        className="w-full sm:w-auto"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? t('submitting') : t('submit')}
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          type="submit"
+          variant="cta"
+          size="lg"
+          className="w-full sm:w-auto sm:min-w-60"
+          disabled={isSubmitting}
+        >
+          <Truck aria-hidden />
+          {isSubmitting ? t('submitting') : t('submit')}
+        </Button>
+      </div>
     </AuthForm>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
-// Kreator aukcji (F-14): 6 kroków z krokiem w adresie (`?krok=`), autozapis szkicu, walidacja
-// kroku przy „Dalej” tymi samymi regułami co API (`validateListing`) i publikacja. Aukcja
-// opublikowana bez ofert przechodzi przez te same kroki, a zmiany zapisuje przycisk w podglądzie.
+// Kreator aukcji (F-14, układ F-63): 6 kroków z krokiem w adresie (`?krok=`), autozapis szkicu,
+// walidacja kroku przy „Dalej” tymi samymi regułami co API (`validateListing`) i publikacja.
+// Aukcja opublikowana bez ofert przechodzi przez te same kroki, a zmiany zapisuje przycisk
+// w podglądzie. Od 1024 px obok formularza podgląd karty z listą kroków (D5).
 import {
   type ListingDto,
   isApiError,
@@ -17,10 +18,11 @@ import {
   type ListingIssue,
   validateListing,
 } from '@biddy/shared';
+import { ArrowLeft, ArrowRight, Check, Send } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, type ReactNode, type Ref, useEffect, useRef, useState } from 'react';
 import { type FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { track } from '@/analytics/posthog';
@@ -40,8 +42,9 @@ import { useListingAutosave } from '@/lib/listing/use-listing-autosave';
 import { listingWizardUrl, routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
+import { ListingPreview } from './listing-preview';
 import { CategoryStep, DetailsStep, PhotosStep, PricingStep, ShippingStep } from './listing-steps';
-import { ReviewStep } from './review-step';
+import { type ReviewNotice, ReviewStep } from './review-step';
 
 /** Komunikat błędu z odpowiedzi API (Problem Details) albo ogólny. */
 function problemDetail(error: unknown, fallback: string): string {
@@ -68,6 +71,11 @@ export function ListingWizard({
 }) {
   const t = useTranslations('listing.wizard');
   const review = useTranslations('listing.review');
+  const photosText = useTranslations('listing.photos');
+  const categoryText = useTranslations('listing.category');
+  const detailsText = useTranslations('listing.details');
+  const shippingText = useTranslations('listing.shipping');
+  const pricingText = useTranslations('listing.pricing');
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -107,7 +115,7 @@ export function ListingWizard({
   const [serverIssues, setServerIssues] = useState<readonly ListingIssue[] | undefined>();
   const [kycAccepted, setKycAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [alert, setAlert] = useState<string>();
+  const [notice, setNotice] = useState<ReviewNotice>();
 
   const issuesNow = (): ListingIssue[] => {
     const { input, formatIssues } = convert(form.getValues());
@@ -185,7 +193,7 @@ export function ListingWizard({
 
   const submit = async () => {
     setBusy(true);
-    setAlert(undefined);
+    setNotice(undefined);
     setServerIssues(undefined);
     try {
       if (!draft) {
@@ -195,10 +203,10 @@ export function ListingWizard({
           const issues = problemIssues(autosave.error);
           setServerIssues(issues);
           showIssues(issues.filter((issue) => stepOfPath(issue.path) === 'podglad'));
-          setAlert(problemDetail(autosave.error, review('publishError')));
+          setNotice({ tone: 'error', text: problemDetail(autosave.error, review('publishError')) });
           return;
         }
-        setAlert(review('changesSaved'));
+        setNotice({ tone: 'success', text: review('changesSaved') });
         return;
       }
       if (limits.data !== undefined && !limits.data.kycNoticeAccepted && !kycAccepted) {
@@ -206,7 +214,7 @@ export function ListingWizard({
         return;
       }
       if (!(await autosave.flush())) {
-        setAlert(problemDetail(autosave.error, t('saveError')));
+        setNotice({ tone: 'error', text: problemDetail(autosave.error, t('saveError')) });
         return;
       }
       const published = await publishAuction(initial.id, {
@@ -229,22 +237,11 @@ export function ListingWizard({
         setServerIssues(issues);
         showIssues(issues.filter((issue) => issue.path === 'kycNoticeAccepted'));
       }
-      setAlert(problemDetail(error, review('publishError')));
+      setNotice({ tone: 'error', text: problemDetail(error, review('publishError')) });
     } finally {
       setBusy(false);
     }
   };
-
-  if (!initial.editable) {
-    return (
-      <div className="space-y-4">
-        <p>{t('notEditable')}</p>
-        <Button asChild variant="outline">
-          <Link href={routes.myAuctions}>{t('toMyAuctions')}</Link>
-        </Button>
-      </div>
-    );
-  }
 
   const saveText =
     autosave.state === 'saving'
@@ -254,169 +251,334 @@ export function ListingWizard({
         : autosave.state === 'error'
           ? t('saveError')
           : '';
+  const closeHref = draft ? routes.sell : routes.myAuctions;
+  const header = (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0 space-y-1">
+        {initial.editable ? (
+          <p aria-hidden className="text-overline text-violet-700 uppercase">
+            {t('stepShort', { current: index + 1, total: LISTING_STEPS.length })}
+          </p>
+        ) : null}
+        <h1 className="text-h2 md:text-h1">
+          {step === 'podglad' && initial.editable
+            ? review('title')
+            : draft
+              ? t('title')
+              : t('editTitle')}
+        </h1>
+      </div>
+      {initial.editable ? (
+        <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row-reverse sm:items-center sm:gap-3">
+          <Button asChild variant="ghost" className="-mr-3 sm:mr-0">
+            <Link
+              href={closeHref}
+              onClick={() => {
+                if (draft) {
+                  void autosave.flush();
+                }
+              }}
+            >
+              {t('close')}
+            </Link>
+          </Button>
+          <p role="status" className="text-body-sm text-muted-foreground">
+            {saveText}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  if (!initial.editable) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <div className="space-y-4 rounded-2xl border border-border bg-card p-5 sm:p-7">
+          <p>{t('notEditable')}</p>
+          <Button asChild variant="outline">
+            <Link href={routes.myAuctions}>{t('toMyAuctions')}</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const minPhotos =
     category?.isBrandSensitive === true
       ? LISTING_RULES.brandSensitivePhotosMin
       : LISTING_RULES.photosMin;
+  // Kroki bez braków: ✓ w pasku kroków i na liście obok podglądu.
+  const completed = contextReady
+    ? new Set(
+        LISTING_STEPS.filter(
+          (candidate) =>
+            candidate.id !== 'podglad' &&
+            !liveIssues.some((issue) => stepOfPath(issue.path) === candidate.id),
+        ).map((candidate) => candidate.id),
+      )
+    : undefined;
+  const canPublish = !draft || phoneVerified;
+
+  const card = (id: ListingStepId, title: string, content: ReactNode) => (
+    <section
+      hidden={step !== id}
+      aria-labelledby={`listing-step-${id}`}
+      className="space-y-6 rounded-2xl border border-border bg-card p-5 sm:p-7"
+    >
+      <StepHeading id={`listing-step-${id}`} ref={step === id ? heading : undefined}>
+        <span className="sr-only">
+          {t('stepShort', { current: index + 1, total: LISTING_STEPS.length })}:{' '}
+        </span>
+        {title}
+      </StepHeading>
+      {content}
+    </section>
+  );
 
   return (
     <FormProvider {...form}>
       <form
         noValidate
-        className="space-y-8"
+        className="space-y-7"
         onSubmit={(event) => {
           event.preventDefault();
         }}
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <nav aria-label={t('progress')}>
-            <ol className="flex flex-wrap gap-2">
-              {LISTING_STEPS.map((candidate, position) => (
-                <li key={candidate.id}>
-                  <Link
-                    href={stepHref(candidate.id)}
-                    scroll={false}
-                    aria-current={candidate.id === step ? 'step' : undefined}
-                    onClick={() => {
-                      if (draft) {
-                        void autosave.flush();
-                      }
-                    }}
-                    className={cn(
-                      'inline-flex h-9 items-center gap-2 rounded-full border pr-3.5 pl-1.5 text-label outline-none transition-colors duration-150 focus-visible:shadow-focus-ring motion-reduce:transition-none',
-                      candidate.id === step
-                        ? 'border-brand-strong bg-brand-strong text-primary-foreground shadow-sm'
-                        : 'border-border-strong bg-card text-foreground-secondary hover:border-input hover:text-foreground',
-                    )}
-                  >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        'grid size-6 place-items-center rounded-full text-caption font-bold tabular-nums',
-                        candidate.id === step
-                          ? 'bg-primary-foreground text-brand-strong'
-                          : position < index
-                            ? 'bg-success-soft text-success'
-                            : 'bg-muted text-foreground-secondary',
-                      )}
-                    >
-                      {position + 1}
-                    </span>
-                    {t(`steps.${candidate.id}`)}
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </nav>
-          <p role="status" className="text-body-sm text-muted-foreground">
-            {saveText}
-          </p>
-        </div>
-
-        <h2 ref={heading} tabIndex={-1} className="text-h2 outline-none">
-          {t('stepOf', {
-            current: index + 1,
-            total: LISTING_STEPS.length,
-            name: t(`steps.${step}`),
-          })}
-        </h2>
-        {stepAlert ? (
-          <p
-            role="alert"
-            className="rounded-lg bg-destructive-soft px-4 py-3 text-body-sm text-destructive"
-          >
-            {t('stepErrors')}
-          </p>
-        ) : null}
-
-        <section
-          hidden={step !== 'zdjecia'}
-          className="rounded-xl border border-border bg-card p-5 sm:p-6"
-        >
-          <PhotosStep listing={listing} minPhotos={minPhotos} />
-        </section>
-        <section
-          hidden={step !== 'kategoria'}
-          className="rounded-xl border border-border bg-card p-5 sm:p-6"
-        >
-          <CategoryStep schema={category} />
-        </section>
-        <section
-          hidden={step !== 'opis'}
-          className="rounded-xl border border-border bg-card p-5 sm:p-6"
-        >
-          <DetailsStep />
-        </section>
-        <section
-          hidden={step !== 'dostawa'}
-          className="rounded-xl border border-border bg-card p-5 sm:p-6"
-        >
-          <ShippingStep
-            carriers={carriers.data}
-            carriersError={carriers.isError}
-            onRetry={() => void carriers.refetch()}
-          />
-        </section>
-        <section
-          hidden={step !== 'cena'}
-          className="rounded-xl border border-border bg-card p-5 sm:p-6"
-        >
-          <PricingStep maxAuctionValue={limits.data?.maxAuctionValue} durationLocked={!draft} />
-        </section>
-        <section
-          hidden={step !== 'podglad'}
-          className="rounded-xl border border-border bg-card p-5 sm:p-6"
-        >
-          <ReviewStep
-            listing={listing}
-            issues={serverIssues ?? liveIssues}
-            schema={category}
-            carriers={carriers.data}
-            limits={limits.data}
-            phoneVerified={phoneVerified}
-            kycAccepted={kycAccepted}
-            onKycAcceptedChange={(accepted) => {
-              setKycAccepted(accepted);
-              form.clearErrors('kycNoticeAccepted' as FieldPath<ListingFormValues>);
-            }}
-            kycError={
-              (form.formState.errors as Record<string, { message?: string } | undefined>)[
-                'kycNoticeAccepted'
-              ]?.message
+        {header}
+        <StepBar
+          step={step}
+          completed={completed}
+          stepHref={stepHref}
+          onNavigate={() => {
+            if (draft) {
+              void autosave.flush();
             }
-            busy={busy}
-            alert={alert}
-            onSubmit={() => void submit()}
-            stepHref={stepHref}
-            returnTo={listingWizardUrl(initial.id, 'podglad')}
-          />
-        </section>
+          }}
+        />
 
-        <div className="flex justify-between gap-3 pt-2">
-          {index > 0 ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              onClick={() => {
-                const previous = LISTING_STEPS[index - 1];
-                if (previous !== undefined) {
-                  goTo(previous.id);
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_21.25rem]">
+          <div className="min-w-0 space-y-6">
+            {stepAlert ? (
+              <p
+                role="alert"
+                className="rounded-lg bg-destructive-soft px-4 py-3 text-body-sm font-semibold text-destructive"
+              >
+                {t('stepErrors')}
+              </p>
+            ) : null}
+
+            {card(
+              'zdjecia',
+              photosText('title'),
+              <PhotosStep listing={listing} minPhotos={minPhotos} />,
+            )}
+            {card('kategoria', categoryText('title'), <CategoryStep schema={category} />)}
+            {card('opis', detailsText('title'), <DetailsStep />)}
+            {card(
+              'dostawa',
+              shippingText('title'),
+              <ShippingStep
+                carriers={carriers.data}
+                carriersError={carriers.isError}
+                onRetry={() => void carriers.refetch()}
+              />,
+            )}
+            {card(
+              'cena',
+              pricingText('title'),
+              <PricingStep
+                maxAuctionValue={limits.data?.maxAuctionValue}
+                durationLocked={!draft}
+                endsAt={listing.endsAt}
+              />,
+            )}
+            {card(
+              'podglad',
+              review('summary'),
+              <ReviewStep
+                listing={listing}
+                issues={serverIssues ?? liveIssues}
+                schema={category}
+                carriers={carriers.data}
+                limits={limits.data}
+                phoneVerified={phoneVerified}
+                kycAccepted={kycAccepted}
+                onKycAcceptedChange={(accepted) => {
+                  setKycAccepted(accepted);
+                  form.clearErrors('kycNoticeAccepted' as FieldPath<ListingFormValues>);
+                }}
+                kycError={
+                  (form.formState.errors as Record<string, { message?: string } | undefined>)[
+                    'kycNoticeAccepted'
+                  ]?.message
                 }
-              }}
-            >
-              {t('back')}
-            </Button>
-          ) : (
-            <span />
-          )}
-          {index < LISTING_STEPS.length - 1 ? (
-            <Button type="button" size="lg" onClick={next}>
-              {t('next')}
-            </Button>
-          ) : null}
+                notice={notice}
+                stepHref={stepHref}
+                returnTo={listingWizardUrl(initial.id, 'podglad')}
+              />,
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {index > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    const previous = LISTING_STEPS[index - 1];
+                    if (previous !== undefined) {
+                      goTo(previous.id);
+                    }
+                  }}
+                >
+                  <ArrowLeft aria-hidden />
+                  {t('back')}
+                </Button>
+              ) : draft ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="lg"
+                  onClick={() => {
+                    void autosave.flush().then(() => {
+                      router.push(routes.sell);
+                    });
+                  }}
+                >
+                  {t('saveAndExit')}
+                </Button>
+              ) : (
+                <span />
+              )}
+              {index < LISTING_STEPS.length - 1 ? (
+                <Button type="button" size="lg" onClick={next}>
+                  {t('next')}
+                  <ArrowRight aria-hidden />
+                </Button>
+              ) : canPublish ? (
+                <Button
+                  type="button"
+                  variant="cta"
+                  size="lg"
+                  className="w-full sm:w-auto sm:min-w-70"
+                  disabled={busy}
+                  onClick={() => void submit()}
+                >
+                  <Send aria-hidden />
+                  {draft
+                    ? busy
+                      ? review('publishing')
+                      : review('publish')
+                    : busy
+                      ? review('savingChanges')
+                      : review('saveChanges')}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          <ListingPreview
+            listing={listing}
+            values={form.getValues()}
+            categoryName={category?.name}
+            completed={completed}
+          />
         </div>
       </form>
     </FormProvider>
+  );
+}
+
+/** Nagłówek kroku: fokus po zmianie kroku, żeby czytnik ekranu ogłosił nowy krok. */
+function StepHeading({
+  id,
+  ref,
+  children,
+}: {
+  readonly id: string;
+  readonly ref: Ref<HTMLHeadingElement> | undefined;
+  readonly children: ReactNode;
+}) {
+  return (
+    <h2 id={id} ref={ref} tabIndex={-1} className="text-h3 outline-none">
+      {children}
+    </h2>
+  );
+}
+
+/**
+ * Pasek kroków (F-63): kroki bez braków z ✓, bieżący w ramce marki, kolejne szare. Nazwy kroków
+ * od 1024 px; od 640 px tylko bieżącego, węziej same numery (nazwy zostają dla czytnika).
+ */
+function StepBar({
+  step,
+  completed,
+  stepHref,
+  onNavigate,
+}: {
+  readonly step: ListingStepId;
+  readonly completed: ReadonlySet<ListingStepId> | undefined;
+  readonly stepHref: (step: ListingStepId) => string;
+  readonly onNavigate: () => void;
+}) {
+  const t = useTranslations('listing.wizard');
+  return (
+    <nav aria-label={t('progress')}>
+      <ol className="flex items-center gap-1.5 sm:gap-2.5">
+        {LISTING_STEPS.map((candidate, position) => {
+          const current = candidate.id === step;
+          const done = !current && completed?.has(candidate.id) === true;
+          const previousDone =
+            completed?.has(LISTING_STEPS[position - 1]?.id ?? 'podglad') === true;
+          return (
+            <Fragment key={candidate.id}>
+              {position === 0 ? null : (
+                <li
+                  aria-hidden
+                  className={cn(
+                    'h-0.5 min-w-3 flex-1 rounded-full',
+                    previousDone ? 'bg-brand' : 'bg-border',
+                  )}
+                />
+              )}
+              <li>
+                <Link
+                  href={stepHref(candidate.id)}
+                  scroll={false}
+                  aria-current={current ? 'step' : undefined}
+                  onClick={onNavigate}
+                  className="flex items-center gap-2.5 rounded-full outline-none focus-visible:shadow-focus-ring"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'grid size-8 shrink-0 place-items-center rounded-full text-label font-extrabold tabular-nums',
+                      current
+                        ? 'border-2 border-brand bg-card text-violet-700'
+                        : done
+                          ? 'bg-brand text-primary-foreground'
+                          : 'bg-muted text-foreground-secondary',
+                    )}
+                  >
+                    {done ? <Check className="size-4" /> : position + 1}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-label whitespace-nowrap',
+                      current
+                        ? 'sr-only font-extrabold text-violet-700 sm:not-sr-only'
+                        : 'sr-only text-foreground-secondary lg:not-sr-only',
+                    )}
+                  >
+                    {t(`steps.${candidate.id}`)}
+                    {done ? <span className="sr-only">, {t('stepDone')}</span> : null}
+                  </span>
+                </Link>
+              </li>
+            </Fragment>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }

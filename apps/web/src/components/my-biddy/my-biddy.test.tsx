@@ -214,6 +214,7 @@ function summary(index: number, overrides: Partial<AuctionSummaryDto> = {}): Auc
     endsAt: endsIn(5 * HOUR),
     updatedAt: new Date().toISOString(),
     order: null,
+    completedSteps: null,
     ...overrides,
   };
 }

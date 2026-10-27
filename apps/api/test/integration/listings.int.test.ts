@@ -241,6 +241,8 @@ describe('szkic', () => {
         status: 'DRAFT',
         title: null,
         coverUrl: expect.stringContaining(`/items/${second}/thumb.webp`) as string,
+        // Zdjęcie jest, kategorii brak: ukończony tylko pierwszy krok kreatora.
+        completedSteps: 1,
       }),
     ]);
     expect(
@@ -250,6 +252,32 @@ describe('szkic', () => {
     expect((await call('DELETE', `/v1/auctions/${created.id}`, user)).statusCode).toBe(204);
     expect(await attachedAt(second)).toBeNull();
     expect((await call('GET', `/v1/me/auctions/${created.id}`, user)).statusCode).toBe(404);
+  });
+
+  it('postęp szkicu: kroki bez braków od pierwszego, null po publikacji (F-63)', async () => {
+    const user = await createUser();
+    const empty = await draft(user);
+    const complete = await completeDraft(user);
+    const noDescription = await completeDraft(user, { description: null });
+    // Nowe konto: wartość aukcji do 5000 zł, więc brak jest w kroku ceny.
+    const overLimit = await completeDraft(user, { startPrice: 600_000 });
+    const progress = async () =>
+      new Map(
+        (await call('GET', '/v1/me/auctions', user))
+          .json<{ id: string; completedSteps: number | null }[]>()
+          .map((row) => [row.id, row.completedSteps]),
+      );
+    expect(await progress()).toEqual(
+      new Map([
+        [empty.id, 0],
+        [complete.id, 5],
+        [noDescription.id, 2],
+        [overLimit.id, 4],
+      ]),
+    );
+
+    expect((await publish(user, complete.id)).statusCode).toBe(200);
+    expect((await progress()).get(complete.id)).toBeNull();
   });
 
   it('zdjęcie niegotowe albo cudze i nieistniejąca kategoria: 400, nic się nie zapisuje', async () => {

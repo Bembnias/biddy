@@ -2,7 +2,12 @@
 // anulowanie i ponowne wystawienie. Każda zmiana blokuje wiersz aukcji (FOR UPDATE) i woła
 // publiczne API innych modułów w tej samej transakcji, więc nie przeplecie się z pierwszą
 // ofertą (F-15 blokuje ten sam wiersz). Reguły kompletności i cen: `validateListing` z @biddy/shared.
-import { type ListingInput, type ListingIssue, validateListing } from '@biddy/shared';
+import {
+  type ListingInput,
+  type ListingIssue,
+  completedListingSteps,
+  validateListing,
+} from '@biddy/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 
@@ -57,6 +62,8 @@ export interface ListingSummary {
   readonly coverUrl: string | null;
   /** Zamówienie sprzedanej aukcji (Moje Biddy, F-21). */
   readonly order: Order | undefined;
+  /** Postęp szkicu: kroki kreatora bez braków od pierwszego (0–5, F-63); null poza szkicami. */
+  readonly completedSteps: number | null;
 }
 
 /** Zmiana szkicu albo aukcji: pola przedmiotu i parametry aukcji (null czyści pole). */
@@ -78,6 +85,29 @@ export function isEditable(auction: Pick<Auction, 'status' | 'bidCount'>): boole
     auction.status === 'DRAFT' ||
     (ACTIVE_STATUSES.includes(auction.status) && auction.bidCount === 0)
   );
+}
+
+/** Oferta do `validateListing`: pola przedmiotu i parametry aukcji. */
+function listingInput(auction: Auction, item: ItemDetails): ListingInput {
+  return {
+    photoCount: item.mediaIds.length,
+    categoryId: item.categoryId,
+    attributes: item.attributes,
+    title: item.title,
+    description: item.description,
+    condition: item.condition,
+    brand: item.brand,
+    packageSize: item.packageSize,
+    weightGrams: item.weightGrams,
+    lengthCm: item.lengthCm,
+    widthCm: item.widthCm,
+    heightCm: item.heightCm,
+    allowedCarriers: item.allowedCarriers,
+    startPrice: auction.startPrice,
+    reservePrice: auction.reservePrice,
+    buyNowPrice: auction.buyNowPrice,
+    durationDays: auction.durationDays,
+  };
 }
 
 function conflict(detail: string): DomainError {
@@ -175,6 +205,13 @@ export class ListingService {
     const orders = await this.orders.activeForAuctions(
       rows.filter((row) => row.status === 'ENDED_SOLD').map((row) => row.id),
     );
+    const progress = await this.draftProgress(
+      sellerId,
+      rows.flatMap((auction) => {
+        const item = itemsById.get(auction.itemId);
+        return auction.status === 'DRAFT' && item !== undefined ? [{ auction, item }] : [];
+      }),
+    );
     return rows.map((auction) => {
       const item = itemsById.get(auction.itemId);
       const cover = item?.mediaIds[0];
@@ -183,6 +220,7 @@ export class ListingService {
         title: item?.title ?? null,
         coverUrl: (cover === undefined ? undefined : coverUrls.get(cover)) ?? null,
         order: orders.get(auction.id),
+        completedSteps: progress.get(auction.id) ?? null,
       };
     });
   }
@@ -563,6 +601,35 @@ export class ListingService {
 
   // --- Wewnętrzne ---
 
+  /**
+   * Postęp szkiców (F-63): te same braki co przy „Dalej” w kreatorze (kategoria, przewoźnicy,
+   * limity sprzedawcy), bez sprawdzania gotowości zdjęć i filtra treści z publikacji.
+   */
+  private async draftProgress(
+    sellerId: string,
+    drafts: readonly { readonly auction: Auction; readonly item: ItemDetails }[],
+  ): Promise<Map<string, number>> {
+    if (drafts.length === 0) {
+      return new Map();
+    }
+    const [carriers, standing] = await Promise.all([
+      this.carriers.list(),
+      this.standing.get(sellerId),
+    ]);
+    const limits = {
+      maxAuctionValue: standing.limits.maxAuctionValue,
+      kycVerified: standing.kycVerified,
+    };
+    const progress = new Map<string, number>();
+    for (const { auction, item } of drafts) {
+      const category =
+        item.categoryId === null ? undefined : await this.categories.schema(item.categoryId);
+      const issues = validateListing(listingInput(auction, item), { category, carriers, limits });
+      progress.set(auction.id, completedListingSteps(issues));
+    }
+    return progress;
+  }
+
   /** Wszystko, co blokuje publikację (błędy pól), i powody moderacji. */
   private async check(
     tx: Transaction,
@@ -573,26 +640,7 @@ export class ListingService {
   ): Promise<ListingCheck> {
     const category =
       item.categoryId === null ? undefined : await this.categories.schema(item.categoryId);
-    const input: ListingInput = {
-      photoCount: item.mediaIds.length,
-      categoryId: item.categoryId,
-      attributes: item.attributes,
-      title: item.title,
-      description: item.description,
-      condition: item.condition,
-      brand: item.brand,
-      packageSize: item.packageSize,
-      weightGrams: item.weightGrams,
-      lengthCm: item.lengthCm,
-      widthCm: item.widthCm,
-      heightCm: item.heightCm,
-      allowedCarriers: item.allowedCarriers,
-      startPrice: auction.startPrice,
-      reservePrice: auction.reservePrice,
-      buyNowPrice: auction.buyNowPrice,
-      durationDays: auction.durationDays,
-    };
-    const issues = validateListing(input, {
+    const issues = validateListing(listingInput(auction, item), {
       category,
       carriers: await this.carriers.list(),
       limits: {

@@ -174,12 +174,19 @@
       "confirmPassword": "Powtórz hasło",
       "acceptTerms": "Akceptuję <terms>regulamin</terms> i <privacy>politykę prywatności</privacy>.",
       "adultDeclaration": "Mam ukończone 18 lat.",
-      "captcha": "Weryfikacja, że nie jesteś robotem"
+      "captcha": "Weryfikacja, że nie jesteś robotem",
+      "showPassword": "Pokaż hasło",
+      "ruleMet": "Spełnione:",
+      "ruleNotMet": "Jeszcze nie:"
     },
     "social": {
       "google": "Kontynuuj z Google",
       "apple": "Kontynuuj z Apple",
-      "or": "lub"
+      "or": "albo e-mailem",
+      "signUp": {
+        "google": "Załóż konto z Google",
+        "apple": "Załóż konto z Apple"
+      }
     },
     "signIn": {
       "metaTitle": "Logowanie",
@@ -207,10 +214,11 @@
     "verifyEmail": {
       "metaTitle": "Potwierdzenie adresu e-mail",
       "successTitle": "Adres e-mail potwierdzony",
-      "successText": "Możesz już licytować i wystawiać przedmioty.",
+      "successText": "Został jeszcze telefon. Potem możesz licytować i wystawiać przedmioty.",
       "errorTitle": "Link wygasł lub jest nieprawidłowy",
       "errorText": "Poproś o nowy link na stronie konta.",
-      "goToAccount": "Przejdź do konta"
+      "goToAccount": "Przejdź do konta",
+      "verifyPhone": "Zweryfikuj telefon"
     },
     "forgotPassword": {
       "metaTitle": "Reset hasła",
@@ -219,7 +227,7 @@
       "submit": "Wyślij link",
       "pending": "Wysyłanie…",
       "sentTitle": "Sprawdź skrzynkę",
-      "sentText": "Jeśli konto z adresem {email} istnieje, wysłaliśmy na nie link do zmiany hasła. Link jest ważny 1 godzinę.",
+      "sentText": "Jeśli konto z adresem <strong>{email}</strong> istnieje, wysłaliśmy na nie link do zmiany hasła. Link jest ważny 1 godzinę.",
       "backToSignIn": "Wróć do logowania"
     },
     "resetPassword": {
@@ -246,24 +254,32 @@
       "metaTitle": "Weryfikacja telefonu",
       "title": "Zweryfikuj numer telefonu",
       "changeTitle": "Zmień numer telefonu",
-      "intro": "Licytować i wystawiać przedmioty można po weryfikacji numeru. Jeden numer może mieć tylko jedno konto.",
+      "intro": "Licytować i wystawiać przedmioty można po weryfikacji numeru.",
       "current": "Obecny numer: {phone}. Nowy numer zastąpi go po weryfikacji.",
       "phoneLabel": "Numer telefonu",
       "phoneHint": "Polski numer komórkowy, np. 500 600 700. Wyślemy na niego SMS z kodem.",
       "send": "Wyślij kod",
       "sending": "Wysyłanie…",
-      "codeSent": "Wysłaliśmy SMS z kodem na numer {phone}. Kod jest ważny 5 minut.",
+      "codeSent": "Wysłaliśmy SMS z kodem na numer <strong>{phone}</strong>. Kod jest ważny 5 minut.",
       "codeLabel": "Kod z SMS-a",
       "codeHint": "6 cyfr",
       "confirm": "Potwierdź",
       "confirming": "Sprawdzanie…",
       "resend": "Wyślij kod ponownie",
       "resendIn": "Wyślij ponownie za {seconds} s",
-      "resent": "Wysłaliśmy nowy kod na numer {phone}.",
+      "resent": "Wysłaliśmy nowy kod na numer <strong>{phone}</strong>.",
       "changeNumber": "Zmień numer",
       "emailFirstTitle": "Najpierw potwierdź adres e-mail",
       "emailFirstText": "Weryfikacja telefonu wymaga potwierdzonego adresu e-mail. Kliknij link z wiadomości albo wyślij go ponownie na stronie konta.",
-      "goToAccount": "Przejdź do konta"
+      "goToAccount": "Przejdź do konta",
+      "footnote": "Weryfikacja chroni licytacje przed fałszywymi kontami. Jeden numer może mieć tylko jedno konto.",
+      "progress": {
+        "label": "Postęp weryfikacji",
+        "done": "Zrobione:",
+        "email": "E-mail",
+        "phone": "Telefon",
+        "bid": "Licytujesz"
+      }
     },
     "account": {
       "metaTitle": "Moje konto",
@@ -309,7 +325,16 @@
       "protection": "Płacisz przez Biddy, a sprzedający dostaje pieniądze dopiero po odbiorze paczki.",
       "proxy": "Podajesz maksimum, a Biddy licytuje za Ciebie tylko o tyle, ile trzeba.",
       "zeroFee": "Sprzedający nie płaci prowizji od wylicytowanej kwoty.",
-      "footnote": "Konto w Biddy to jedno miejsce na licytacje, obserwowane aukcje i zamówienia."
+      "footnote": "Konto w Biddy to jedno miejsce na licytacje, obserwowane aukcje i zamówienia.",
+      "signUpTagline": "Od konta do pierwszej oferty w kilka minut.",
+      "signUpFootnote": "Jeden numer telefonu to jedno konto. Dzięki temu licytują prawdziwi ludzie.",
+      "exampleTitle": "Zegarek vintage, lata 80.",
+      "steps": {
+        "account": "Załóż konto",
+        "email": "Potwierdź e-mail jednym kliknięciem",
+        "phone": "Zweryfikuj telefon kodem SMS",
+        "bid": "Licytuj"
+      }
     },
     "genericError": "Coś poszło nie tak. Spróbuj ponownie za chwilę."
   },
@@ -462,7 +487,8 @@
   "listing": {
     "start": {
       "metaTitle": "Wystaw przedmiot",
-      "title": "Wystaw przedmiot",
+      "overline": "Sprzedawaj na Biddy",
+      "title": "Wystaw przedmiot i patrz, jak rośnie cena",
       "text": "Dodaj zdjęcia, opisz przedmiot i ustal cenę. Szkic zapisuje się automatycznie, więc możesz wrócić do niego później.",
       "new": "Nowa aukcja",
       "creating": "Tworzenie szkicu…",
@@ -488,14 +514,37 @@
       "error": "Nie udało się utworzyć szkicu. Spróbuj ponownie.",
       "loadError": "Nie udało się wczytać szkiców.",
       "retry": "Spróbuj ponownie",
-      "myAuctions": "Moje aukcje"
+      "myAuctions": "Moje aukcje",
+      "progress": "Krok {step} z {total}: {name}",
+      "benefits": {
+        "photos": {
+          "title": "Zdjęcia i opis",
+          "text": "Dobre światło i kilka ujęć, także wad, pomagają sprzedać."
+        },
+        "auction": {
+          "title": "Licytacja ustala cenę",
+          "text": "Zaczynasz od ceny wywoławczej. Cena minimalna chroni przed sprzedażą za tanio."
+        },
+        "label": {
+          "title": "Gotowa etykieta",
+          "text": "Po płatności dostajesz kod nadania albo etykietę i śledzenie przesyłki."
+        },
+        "fee": {
+          "title": "0% prowizji",
+          "text": "Dostajesz 100% wylicytowanej kwoty."
+        }
+      },
+      "illustration": {
+        "label": "Twoja aukcja",
+        "from": "od {price}",
+        "caption": "18 ofert · 0% prowizji"
+      }
     },
     "wizard": {
       "metaTitle": "Kreator aukcji",
       "title": "Wystaw przedmiot",
       "editTitle": "Edytuj aukcję",
       "progress": "Postęp",
-      "stepOf": "Krok {current} z {total}: {name}",
       "steps": {
         "zdjecia": "Zdjęcia",
         "kategoria": "Kategoria",
@@ -511,7 +560,11 @@
       "saveError": "Nie udało się zapisać. Spróbujemy przy kolejnej zmianie.",
       "stepErrors": "Popraw zaznaczone pola, żeby przejść dalej.",
       "notEditable": "Tej aukcji nie można już zmienić: ma oferty albo się zakończyła.",
-      "toMyAuctions": "Przejdź do Moich aukcji"
+      "toMyAuctions": "Przejdź do Moich aukcji",
+      "stepShort": "Krok {current} z {total}",
+      "stepDone": "zrobione",
+      "close": "Zamknij kreator",
+      "saveAndExit": "Zapisz i wyjdź"
     },
     "photos": {
       "title": "Zdjęcia",
@@ -523,7 +576,7 @@
       "brand": "Marka",
       "brandRequired": "Marka, wymagane",
       "brandHint": "Np. Nike, LEGO, Sony.",
-      "notice": "Zasady w tej kategorii: {notice}"
+      "notice": "<strong>Zasady w tej kategorii:</strong> {notice}"
     },
     "details": {
       "title": "Opis przedmiotu",
@@ -533,13 +586,28 @@
       "descriptionHint": "Stan, wady, wymiary, co jest w zestawie. Od {min} do {max} znaków.",
       "counter": "{count} z {max} znaków",
       "condition": "Stan",
-      "chooseCondition": "Wybierz stan",
       "conditions": {
         "NEW": "Nowy",
         "LIKE_NEW": "Jak nowy",
         "VERY_GOOD": "Bardzo dobry",
         "GOOD": "Dobry",
         "FAIR": "Zadowalający (widoczne ślady użytkowania)",
+        "FOR_PARTS": "Uszkodzony lub na części"
+      },
+      "conditionHints": {
+        "NEW": "Nieużywany, z metką",
+        "LIKE_NEW": "Bez śladów użytkowania",
+        "VERY_GOOD": "Minimalne ślady",
+        "GOOD": "Używany, sprawny",
+        "FAIR": "Widoczne ślady użytkowania",
+        "FOR_PARTS": "Opisz usterkę w opisie"
+      },
+      "conditionCards": {
+        "NEW": "Nowy",
+        "LIKE_NEW": "Jak nowy",
+        "VERY_GOOD": "Bardzo dobry",
+        "GOOD": "Dobry",
+        "FAIR": "Zadowalający",
         "FOR_PARTS": "Uszkodzony lub na części"
       }
     },
@@ -559,14 +627,20 @@
       "weight": "Waga (kg)",
       "carriers": "Przewoźnicy",
       "carriersHint": "Kupujący wybierze jednego z zaznaczonych przy płatności. Cenę dostawy płaci kupujący.",
-      "unsupported": "{name} (nie obsługuje gabarytu {size})",
       "kinds": {
         "LOCKER": "paczkomat",
         "PICKUP_POINT": "punkt odbioru",
         "COURIER": "kurier"
       },
       "loadError": "Nie udało się wczytać przewoźników.",
-      "retry": "Spróbuj ponownie"
+      "retry": "Spróbuj ponownie",
+      "sizeHints": {
+        "S": "do 8 × 38 × 64 cm",
+        "M": "do 19 × 38 × 64 cm",
+        "L": "do 41 × 38 × 64 cm",
+        "XL": "większa albo cięższa, tylko kurier"
+      },
+      "unsupportedSize": "nie obsługuje gabarytu {size}"
     },
     "pricing": {
       "title": "Cena i czas trwania",
@@ -580,7 +654,10 @@
       "buyNowPriceHint": "Co najmniej 130% ceny wywoławczej i nie mniej niż cena minimalna. Dostępne do pierwszej oferty.",
       "limit": "Twój limit wartości aukcji to {value} (liczy się najwyższa z cen). Rośnie po udanych sprzedażach.",
       "buyerPays": "Kupujący przy cenie wywoławczej",
-      "durationLocked": "Czasu trwania nie można zmienić po publikacji."
+      "durationLocked": "Czasu trwania nie można zmienić po publikacji.",
+      "currency": "zł",
+      "endsIfNow": "Koniec aukcji: {date} (jeśli opublikujesz teraz)",
+      "endsAt": "Koniec aukcji: {date}"
     },
     "review": {
       "title": "Podgląd i publikacja",
@@ -612,7 +689,13 @@
       "publishError": "Nie udało się opublikować. Popraw zaznaczone kroki.",
       "restricted": "Oferty w tej kategorii sprawdza moderator przed publikacją.",
       "terms": "Publikując, potwierdzasz, że przedmiot nie jest na liście zakazanych przedmiotów i że opis jest zgodny ze stanem faktycznym.",
-      "prohibitedItems": "Lista zakazanych przedmiotów"
+      "prohibitedItems": "Lista zakazanych przedmiotów",
+      "summary": "Podsumowanie",
+      "change": "Zmień",
+      "titleLabel": "Tytuł",
+      "noTitle": "Bez tytułu",
+      "photo": "Zdjęcie {position}",
+      "morePhotos": "+{count}"
     },
     "mine": {
       "metaTitle": "Moje aukcje",
@@ -676,6 +759,19 @@
         "gain": "+{amount} od startu",
         "show": "Pokaż licytację",
         "noPhoto": "Brak zdjęcia"
+      }
+    },
+    "preview": {
+      "title": "Tak zobaczą Twoją aukcję",
+      "done": "Gotowe:",
+      "todo": "Do uzupełnienia:",
+      "photos": "{count, plural, one {# zdjęcie} few {# zdjęcia} many {# zdjęć} other {# zdjęcia}}",
+      "steps": {
+        "zdjecia": "Zdjęcia",
+        "kategoria": "Kategoria i marka",
+        "opis": "Tytuł, opis i stan",
+        "dostawa": "Gabaryt i przewoźnicy",
+        "cena": "Cena i czas trwania"
       }
     }
   },
@@ -1251,7 +1347,13 @@
       "loadError": "Nie udało się wczytać zamówienia.",
       "loading": "Wczytywanie zamówienia…",
       "retry": "Spróbuj ponownie",
-      "back": "Sprzedane w Moje Biddy"
+      "back": "Sprzedane",
+      "orderCard": "Zamówienie",
+      "price": "dostawa {price}",
+      "courier": "Adres odbiorcy",
+      "copy": "Kopiuj kod",
+      "copied": "Skopiowano",
+      "copiedStatus": "Skopiowano kod nadania."
     },
     "status": {
       "PENDING": "Czeka na nadanie",

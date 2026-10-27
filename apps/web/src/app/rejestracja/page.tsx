@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 
-import { AuthCard } from '@/components/auth/form-parts';
+import { AuthSplitPage } from '@/components/auth/auth-layout';
 import { SignUpForm } from '@/components/auth/sign-up-form';
 import { type SearchParams, searchParam } from '@/lib/page-params';
 import { safeNextPath } from '@/lib/routes';
@@ -19,8 +19,8 @@ export default async function SignUpPage({
   const t = await getTranslations('auth.signUp');
   const next = safeNextPath(await searchParam(searchParams, 'next'));
   return (
-    <AuthCard title={t('title')} lead={t('lead')}>
+    <AuthSplitPage variant="signUp" title={t('title')} lead={t('lead')}>
       <SignUpForm next={next} />
-    </AuthCard>
+    </AuthSplitPage>
   );
 }

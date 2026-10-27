@@ -123,6 +123,7 @@ describe('watchRow i saleRow', () => {
         status: status as 'PAID',
         paymentDueAt: '2026-10-21T18:00:00.000Z',
       },
+      completedSteps: null,
     });
     expect(saleRow(sale('AWAITING_PAYMENT'), date)).toMatchObject({
       status: {

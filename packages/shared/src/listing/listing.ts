@@ -375,3 +375,35 @@ export function validateListing(input: ListingInput, context: ListingContext): L
   }
   return issues;
 }
+
+/**
+ * Pola kroków 1–5 kreatora aukcji (zdjęcia, kategoria, opis, dostawa, cena) jako ścieżki
+ * `ListingIssue`. Krok 6 (podgląd i publikacja) nie ma własnych pól oferty.
+ */
+export const LISTING_STEP_FIELDS = [
+  ['mediaIds'],
+  ['categoryId', 'attributes', 'brand'],
+  ['title', 'description', 'condition'],
+  ['packageSize', 'weightGrams', 'lengthCm', 'widthCm', 'heightCm', 'allowedCarriers'],
+  ['startPrice', 'durationDays', 'reservePrice', 'buyNowPrice'],
+] as const satisfies readonly (readonly string[])[];
+
+/** Liczba kroków kreatora razem z podglądem. */
+export const LISTING_STEP_COUNT = LISTING_STEP_FIELDS.length + 1;
+
+/** Numer kroku kreatora (1–6) dla ścieżki braku, np. `attributes.rozmiarEu` → 2; inne → 6. */
+export function listingStepOfPath(path: string): number {
+  const field = path.split('.')[0] ?? '';
+  const index = LISTING_STEP_FIELDS.findIndex((fields) =>
+    (fields as readonly string[]).includes(field),
+  );
+  return index === -1 ? LISTING_STEP_COUNT : index + 1;
+}
+
+/**
+ * Postęp szkicu (F-63): liczba kolejnych kroków od pierwszego, w których nie ma braków (0–5).
+ * Krok do uzupełnienia to wynik + 1; 5 znaczy, że zostały podgląd i publikacja.
+ */
+export function completedListingSteps(issues: readonly ListingIssue[]): number {
+  return Math.min(LISTING_STEP_COUNT, ...issues.map((issue) => listingStepOfPath(issue.path))) - 1;
+}

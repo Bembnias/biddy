@@ -154,6 +154,14 @@ export class AuctionSummaryDto extends createZodDto(
       })
       .nullable()
       .describe('Zamówienie sprzedanej aukcji (F-21)'),
+    completedSteps: z
+      .int()
+      .min(0)
+      .max(5)
+      .nullable()
+      .describe(
+        'Postęp szkicu: kroki kreatora bez braków od pierwszego (0–5); krok do uzupełnienia to completedSteps + 1. Null poza szkicami (F-63)',
+      ),
   }),
 ) {}
 
@@ -240,7 +248,13 @@ function toDto({ auction, item, photos }: ListingView): ListingDto {
   };
 }
 
-function toSummaryDto({ auction, title, coverUrl, order }: ListingSummary): AuctionSummaryDto {
+function toSummaryDto({
+  auction,
+  title,
+  coverUrl,
+  order,
+  completedSteps,
+}: ListingSummary): AuctionSummaryDto {
   return {
     id: auction.id,
     publicId: auction.publicId,
@@ -263,6 +277,7 @@ function toSummaryDto({ auction, title, coverUrl, order }: ListingSummary): Auct
             status: order.status,
             paymentDueAt: order.paymentDueAt.toISOString(),
           },
+    completedSteps,
   };
 }
 

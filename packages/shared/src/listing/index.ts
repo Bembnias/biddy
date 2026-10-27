@@ -5,6 +5,8 @@ export {
   type ItemCondition,
   KYC_REQUIRED_ABOVE,
   LISTING_RULES,
+  LISTING_STEP_COUNT,
+  LISTING_STEP_FIELDS,
   type ListingCarrier,
   type ListingCategory,
   type ListingContext,
@@ -19,6 +21,8 @@ export {
   type SellerLevel,
   type SellerLevelLimits,
   auctionValue,
+  completedListingSteps,
+  listingStepOfPath,
   minimumBuyNowPrice,
   validateListing,
 } from './listing.js';

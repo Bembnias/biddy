@@ -26,14 +26,11 @@ export function UnsubscribeForm({ token }: { readonly token: string }) {
   if (preview.isError) {
     const invalid = isApiError(preview.error) && preview.error.status === 400;
     return (
-      <div role="alert" className="space-y-3">
+      <div role="alert" className="space-y-4">
         <p>{invalid ? t('invalid') : t('error')}</p>
-        <Link
-          href={routes.notificationSettings}
-          className="font-semibold text-link underline underline-offset-3 hover:text-link-hover"
-        >
-          {t('settings')}
-        </Link>
+        <Button asChild variant="ghost" className="w-full">
+          <Link href={routes.notificationSettings}>{t('settings')}</Link>
+        </Button>
       </div>
     );
   }
@@ -51,36 +48,46 @@ export function UnsubscribeForm({ token }: { readonly token: string }) {
 
   if (state === 'done') {
     return (
-      <div role="status" className="space-y-3">
+      <div role="status" className="space-y-4">
         <p className="text-title">{t('done')}</p>
         <p className="text-body text-foreground-secondary">{t('inApp')}</p>
-        <Link
-          href={routes.notificationSettings}
-          className="font-semibold text-link underline underline-offset-3 hover:text-link-hover"
-        >
-          {t('settings')}
-        </Link>
+        <Button asChild variant="ghost" className="w-full">
+          <Link href={routes.notificationSettings}>{t('settings')}</Link>
+        </Button>
       </div>
     );
   }
   const scope = preview.data.scope;
   return (
-    <div className="space-y-4">
-      <p>
-        {t('lead', {
-          scope: scope === 'ALL' ? 'ALL' : 'TYPE',
-          type: scope === 'ALL' ? '' : types(scope),
-        })}
-      </p>
-      <p className="text-body text-foreground-secondary">{t('inApp')}</p>
-      <Button type="button" disabled={state === 'sending'} onClick={() => void submit()}>
-        {state === 'sending' ? t('sending') : t('action')}
-      </Button>
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <p className="text-body">
+          {t('lead', {
+            scope: scope === 'ALL' ? 'ALL' : 'TYPE',
+            type: scope === 'ALL' ? '' : types(scope),
+          })}
+        </p>
+        <p className="text-body text-foreground-secondary">{t('inApp')}</p>
+      </div>
       {state === 'error' ? (
-        <p role="alert" className="text-body-sm text-destructive">
+        <p role="alert" className="text-body-sm font-semibold text-destructive">
           {t('error')}
         </p>
       ) : null}
+      <div className="space-y-2">
+        <Button
+          type="button"
+          size="lg"
+          className="w-full"
+          disabled={state === 'sending'}
+          onClick={() => void submit()}
+        >
+          {state === 'sending' ? t('sending') : t('action')}
+        </Button>
+        <Button asChild variant="ghost" className="w-full">
+          <Link href={routes.notificationSettings}>{t('settings')}</Link>
+        </Button>
+      </div>
     </div>
   );
 }

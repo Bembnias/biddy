@@ -5408,6 +5408,13 @@
             "additionalProperties": false,
             "description": "Zamówienie sprzedanej aukcji (F-21)",
             "nullable": true
+          },
+          "completedSteps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5,
+            "description": "Postęp szkicu: kroki kreatora bez braków od pierwszego (0–5); krok do uzupełnienia to completedSteps + 1. Null poza szkicami (F-63)",
+            "nullable": true
           }
         },
         "required": [
@@ -5423,7 +5430,8 @@
           "bidCount",
           "endsAt",
           "updatedAt",
-          "order"
+          "order",
+          "completedSteps"
         ],
         "additionalProperties": false
       },

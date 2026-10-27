@@ -16,6 +16,7 @@ import { AppWrapper } from '@/test/providers';
 
 import { ListingWizard } from './listing-wizard';
 import { MyAuctions } from './my-auctions';
+import { SellStart } from './sell-start';
 
 const router = { push: vi.fn(), refresh: vi.fn(), replace: vi.fn() };
 let search = new URLSearchParams();
@@ -188,7 +189,7 @@ describe('ListingWizard', () => {
     api();
     const user = userEvent.setup();
     renderWizard(EMPTY, 'zdjecia');
-    await screen.findByText('Krok 1 z 6: Zdjęcia');
+    await screen.findByRole('heading', { name: 'Krok 1 z 6: Zdjęcia' });
     await carriersLoaded();
     await user.click(screen.getByRole('button', { name: 'Dalej' }));
     expect(visible(await screen.findAllByText('Dodaj co najmniej jedno zdjęcie.'))).toHaveLength(1);
@@ -234,13 +235,13 @@ describe('ListingWizard', () => {
     const user = userEvent.setup();
     renderWizard(COMPLETE, 'dostawa');
     const locker = await screen.findByRole('checkbox', {
-      name: 'InPost Paczkomat 24/7 (paczkomat)',
+      name: 'InPost Paczkomat 24/7 paczkomat',
     });
     expect(locker.getAttribute('aria-checked')).toBe('true');
 
     await user.click(screen.getByRole('radio', { name: /^XL/u }));
     const disabled = screen.getByRole('checkbox', {
-      name: 'InPost Paczkomat 24/7 (nie obsługuje gabarytu XL)',
+      name: 'InPost Paczkomat 24/7 nie obsługuje gabarytu XL',
     });
     expect(disabled.getAttribute('aria-checked')).toBe('false');
     expect(disabled.hasAttribute('disabled')).toBe(true);
@@ -383,6 +384,7 @@ const SUMMARY: AuctionSummaryDto = {
   endsAt: '2026-10-22T10:00:00.000Z',
   updatedAt: '2026-10-15T10:00:00.000Z',
   order: null,
+  completedSteps: null,
 };
 
 describe('MyAuctions', () => {
@@ -448,5 +450,38 @@ describe('MyAuctions', () => {
     await waitFor(() => {
       expect(router.push).toHaveBeenCalledWith(`/wystaw/${copyId}`);
     });
+  });
+});
+
+describe('SellStart (F-63)', () => {
+  it('szkice z postępem: krok do uzupełnienia, pasek i „Kontynuuj” do tego kroku', async () => {
+    const draft = (id: string, title: string | null, completedSteps: number) => ({
+      ...SUMMARY,
+      id,
+      status: 'DRAFT' as const,
+      editable: true,
+      title,
+      currentPrice: null,
+      bidCount: 0,
+      endsAt: null,
+      completedSteps,
+    });
+    mockApi({
+      '/v1/me/auctions': [
+        draft('01960000-0000-7000-8000-000000000011', 'Wazon ceramiczny', 3),
+        draft('01960000-0000-7000-8000-000000000012', null, 0),
+      ],
+      '/v1/me/selling-limits': LIMITS,
+    });
+    render(<SellStart phoneVerified />, { wrapper: AppWrapper });
+    expect(await screen.findByText(/Krok 4 z 6: Dostawa/u)).toBeDefined();
+    expect(screen.getByText(/Krok 1 z 6: Zdjęcia/u)).toBeDefined();
+    expect(
+      screen.getByRole('link', { name: 'Kontynuuj: Wazon ceramiczny' }).getAttribute('href'),
+    ).toBe('/wystaw/01960000-0000-7000-8000-000000000011?krok=dostawa');
+    expect(
+      screen.getByRole('link', { name: 'Kontynuuj: Szkic bez tytułu' }).getAttribute('href'),
+    ).toBe('/wystaw/01960000-0000-7000-8000-000000000012?krok=zdjecia');
+    expect(screen.getByRole('button', { name: 'Nowa aukcja' })).toBeDefined();
   });
 });

@@ -25,6 +25,7 @@ const AUTH_PAGES = [
   { path: '/nowe-haslo?token=e2e-token', heading: 'Ustaw nowe hasło' },
   { path: '/weryfikacja-email', heading: 'Adres e-mail potwierdzony' },
   { path: '/akceptacja-regulaminu', heading: 'Zanim zaczniesz' },
+  { path: '/wypisz', heading: 'Wypisanie z e-maili' },
 ] as const;
 
 test.beforeEach(async ({ page }) => {
@@ -69,7 +70,7 @@ test('logowanie: po CAPTCHA_REQUIRED Turnstile, kolejna próba z tokenem, potem 
   await gotoHydrated(page, '/logowanie?next=/konto');
 
   await page.getByRole('main').getByLabel('E-mail').fill(MEMBER.email);
-  await page.getByRole('main').getByLabel('Hasło').fill('Biddy-test-2026');
+  await page.getByRole('main').getByLabel('Hasło', { exact: true }).fill('Biddy-test-2026');
   await page.getByRole('main').getByRole('button', { name: 'Zaloguj się' }).click();
 
   await expect(page.getByRole('main').getByRole('alert')).toContainText(
@@ -102,7 +103,7 @@ test('logowanie: złe hasło daje komunikat po polsku przy formularzu', async ({
   await gotoHydrated(page, '/logowanie');
 
   await page.getByRole('main').getByLabel('E-mail').fill(MEMBER.email);
-  await page.getByRole('main').getByLabel('Hasło').fill('zle-haslo-123');
+  await page.getByRole('main').getByLabel('Hasło', { exact: true }).fill('zle-haslo-123');
   await page.getByRole('main').getByRole('button', { name: 'Zaloguj się' }).click();
 
   await expect(page.getByRole('main').getByRole('alert')).toHaveText(
@@ -119,21 +120,21 @@ test('rejestracja: walidacja, zgody i token Turnstile w żądaniu, potem „Spra
   });
   await gotoHydrated(page, '/rejestracja');
 
-  await page.getByRole('main').getByRole('button', { name: 'Załóż konto' }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Załóż konto', exact: true }).click();
   await expect(page.getByText('Zaakceptuj regulamin i politykę prywatności.')).toBeVisible();
   await expect(page.getByText('Konto mogą założyć tylko osoby pełnoletnie.')).toBeVisible();
   expect(api.requests('POST /v1/auth/sign-up/email')).toHaveLength(0);
 
   await page.getByRole('main').getByLabel('Imię wyświetlane').fill('Jan');
   await page.getByRole('main').getByLabel('E-mail').fill('jan@example.com');
-  await page.getByRole('main').getByLabel('Hasło').fill('bardzo-tajne-1');
+  await page.getByRole('main').getByLabel('Hasło', { exact: true }).fill('bardzo-tajne-1');
   await checkWhenHydrated(
     page.getByRole('main').getByRole('checkbox', { name: /Akceptuję regulamin/ }),
   );
   await checkWhenHydrated(
     page.getByRole('main').getByRole('checkbox', { name: 'Mam ukończone 18 lat.' }),
   );
-  await page.getByRole('main').getByRole('button', { name: 'Załóż konto' }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Załóż konto', exact: true }).click();
 
   await expect(page.getByRole('main').getByRole('status')).toContainText('jan@example.com');
   const [request] = api.requests('POST /v1/auth/sign-up/email');
@@ -216,7 +217,7 @@ test.describe('formularz wysłany przed hydratacją (bez JavaScriptu)', () => {
   test('logowanie nie wstawia e-maila ani hasła do adresu (POST zamiast GET)', async ({ page }) => {
     await page.goto('/logowanie');
     await page.getByLabel('E-mail').fill(MEMBER.email);
-    await page.getByLabel('Hasło').fill('Biddy-test-2026');
+    await page.getByLabel('Hasło', { exact: true }).fill('Biddy-test-2026');
     await page.getByRole('button', { name: 'Zaloguj się' }).click();
     await page.waitForLoadState();
 

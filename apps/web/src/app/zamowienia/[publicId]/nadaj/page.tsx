@@ -1,9 +1,11 @@
+import { ChevronLeft } from 'lucide-react';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 import { DispatchPanel } from '@/components/shipping/dispatch-panel';
 import { loadMeOrRedirect } from '@/lib/api/me';
-import { dispatchUrl } from '@/lib/routes';
+import { dispatchUrl, routes } from '@/lib/routes';
 
 interface PageProps {
   readonly params: Promise<{ readonly publicId: string }>;
@@ -24,8 +26,14 @@ export default async function DispatchPage({ params }: PageProps) {
   const t = await getTranslations('shipping.dispatch');
   return (
     <div className="bg-canvas">
-      <div className="mx-auto w-full max-w-3xl px-4 py-8 md:px-6 md:py-12">
-        <h1 className="mb-6 text-h2 md:text-h1">{t('title')}</h1>
+      <div className="mx-auto w-full max-w-narrow space-y-4 px-4 py-8 md:px-6 md:py-10">
+        <Link
+          href={routes.mySales}
+          className="inline-flex items-center gap-1.5 rounded-xs text-label text-link underline-offset-3 outline-none hover:text-link-hover hover:underline focus-visible:shadow-focus-ring"
+        >
+          <ChevronLeft aria-hidden className="size-4" />
+          {t('back')}
+        </Link>
         <DispatchPanel publicId={publicId} />
       </div>
     </div>

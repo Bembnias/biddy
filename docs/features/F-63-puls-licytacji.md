@@ -1,6 +1,6 @@
 # F-63 · Puls licytacji: nowy UI/UX web
 
-**Status:** W trakcie (etapy 1–3 gotowe; decyzje D1–D5 przyjęte 2026-10-26)
+**Status:** Review (etapy 1–4 gotowe; decyzje D1–D5 przyjęte 2026-10-26, w rejestrze PROJECT.md §22 nr 101–105)
 **Rozmiar:** L · **Właściciel:** Mateusz Bienias · **Zależności:** F-62 (design system), F-17 (realtime), F-18 (strona aukcji), F-19 (wyszukiwarka), F-21 (Moje Biddy), F-24 (nadanie paczki)
 
 ## Kontekst i cel
@@ -67,12 +67,22 @@ Wdrożenie w czterech etapach; każdy kończy się działającą aplikacją, zie
 
 **Płótno:** Logowanie, Rejestracja, Weryfikacja telefonu, Hasło, e-mail, regulamin, wypisanie, Wystaw: start i szkice, Kreator 1–6, Nadaj paczkę, Ładowanie, puste stany i błędy. **Trasy:** `/logowanie`, `/rejestracja`, `/weryfikacja-telefonu`, `/reset-hasla`, `/nowe-haslo`, `/weryfikacja-email`, `/akceptacja-regulaminu`, `/wypisz`, `/wystaw`, `/wystaw/[id]`, `/zamowienia/[publicId]/nadaj`, `not-found`, `error`.
 
-- **Logowanie i rejestracja:** dopracowanie układu z F-62 według płótna (panel marki od 1024 px, przyciski logowania społecznościowego, kolejność pól).
-- **Kod SMS:** wygląda jak sześć kafelków, ale w kodzie zostaje jedno pole `inputMode="numeric"` z `autoComplete="one-time-code"`, żeby działało autouzupełnianie kodu i wklejanie.
-- **Wystaw:** hero z korzyściami, szkice z paskiem postępu („3 z 6 kroków”) i datą ostatniej zmiany.
-- **Kreator:** pasek kroków (zrobione, bieżący, kolejne), od 1024 px dwie kolumny z podglądem karty aukcji „Tak zobaczą Twoją aukcję” obok formularza (D5), poniżej jedna kolumna. Krok 6 to podsumowanie z linkami „Zmień” do kroków i CTA „Opublikuj aukcję”.
-- **Nadaj paczkę:** układ z płótna (dane nadawcy, sposób nadania, podsumowanie zamówienia, karta z kodem nadania) na ekranie z F-24.
-- **Strony 404 i błędu** (`not-found.tsx`, `error.tsx`) według płótna.
+- **Logowanie i rejestracja:** dopracowanie układu z F-62 według płótna. Nagłówek i stopka strony zostają.
+  - Panel marki od 1024 px: gradient, hasło, przykładowa karta aukcji z LIVE (dekoracja, ukryta przed czytnikiem), przy logowaniu trzy korzyści, przy rejestracji ścieżka „Załóż konto → potwierdź e-mail → zweryfikuj telefon → licytuj”.
+  - Kolejność: logowanie przez Google i Apple na górze (tylko dostawcy włączeni w API; na rejestracji zwarte kafelki), separator „albo e-mailem”, pola, CTA, link do drugiej strony.
+  - „Nie pamiętasz hasła?” przy etykiecie hasła, przycisk pokazania hasła (`aria-pressed`), przy nowym haśle reguła długości sprawdzana na bieżąco (ikona i tekst, nie sam kolor).
+- **Pozostałe strony kont** (`/reset-hasla`, `/nowe-haslo`, `/weryfikacja-email`, `/akceptacja-regulaminu`, `/wypisz`, `/weryfikacja-telefonu`): karta na środku tła `canvas` z kafelkiem ikony nad tytułem; wynik akcji (wysłano link, zmieniono hasło, potwierdzono e-mail, zły link) w tej samej karcie.
+- **Weryfikacja telefonu:** postęp „E-mail, Telefon, Licytujesz” nad kartą, numer telefonu w treści, odliczanie do ponownej wysyłki z ikoną zegara i „Zmień numer” w stopce karty.
+- **Kod SMS:** wygląda jak sześć kafelków, ale w kodzie zostaje jedno pole `inputMode="numeric"` z `autoComplete="one-time-code"` (przezroczyste, nad kafelkami), żeby działało autouzupełnianie kodu i wklejanie. Kafelki są dekoracją (`aria-hidden`), czytnik ekranu widzi zwykłe pole z etykietą.
+- **Wystaw:** hero z CTA „Nowa aukcja” i limitami konta, cztery korzyści, szkice z paskiem postępu („Krok 4 z 6: Dostawa”) i datą ostatniej zmiany; „Kontynuuj” otwiera krok do uzupełnienia.
+- **Kreator:**
+  - nad formularzem „Krok N z 6”, tytuł, stan autozapisu i „Zamknij kreator”; pasek kroków (zrobione z ✓, bieżący, kolejne; nazwy kroków od 1024 px, węziej same numery);
+  - od 1024 px dwie kolumny z podglądem karty aukcji „Tak zobaczą Twoją aukcję” i listą kroków z ✓ obok formularza (D5), poniżej jedna kolumna;
+  - pola według płótna: stan jako karty wyboru z opisem, gabaryt jako kafelki, przewoźnicy jako karty, ceny z sufiksem „zł”, przy czasie trwania data końca („jeśli opublikujesz teraz”);
+  - na dole „Wstecz” i „Dalej”, na pierwszym kroku szkicu „Zapisz i wyjdź”;
+  - krok 6 to podsumowanie: miniatury zdjęć, wiersze z linkami „Zmień” do kroków, braki z linkami albo „Wszystko gotowe do publikacji”, informacja o weryfikacji tożsamości i CTA „Opublikuj aukcję” obok „Wstecz”.
+- **Nadaj paczkę:** układ z płótna na ekranie z F-24: powrót do Sprzedanych, numer zamówienia, od 1024 px formularz (dane nadawcy, sposób nadania jako karty wyboru) obok karty zamówienia (dostawa, dokąd, odbiorca, gabaryt). Po nadaniu ciemna karta „Przesyłka gotowa do nadania” z kodem nadania, „Kopiuj kod” i etykietą PDF, pod nią numer i historia przesyłki.
+- **Strony 404 i błędu** (`not-found.tsx`, `error.tsx`) według płótna: duże „404” albo kafelek błędu, jedno zdanie, dwie akcje (404) albo „Spróbuj ponownie” i kod błędu (`digest`).
 
 ## Poza zakresem
 
@@ -123,7 +133,17 @@ Według płótna i zasad z F-62. Dodatkowo:
   - powiadomienia: liczba nowych przy tytule, grupy „Dzisiaj” i „Wcześniej” (`warsawDay`), nieprzeczytane z tłem, kropką i pogrubionym tytułem, ikona w tonie typu; ustawienia w trzech grupach z przełącznikami, kłódką „Zawsze wysyłamy” i jednym regionem „Zapisano”;
   - konto: karta z awatarem, e-mailem i telefonem, skróty z opisami, karta „Bezpieczeństwo”; profil z awatarem obok formularza; adresy w siatce z domyślnym w obramowaniu marki i kafelkiem „Dodaj adres”, formularz w dwóch kolumnach; podstrony konta szerokości Moje Biddy (`/wystaw` zostaje węższy do etapu 4);
   - odstępstwa od płótna: bez liczników przy zakładkach Moje Biddy, kafelka „Do zapłaty” i liczby transakcji na koncie (wymagałyby dodatkowych zapytań na każdej stronie); na karcie gorącej aukcji bez liczby licytujących i oglądających (lista sprzedawcy nie zgłasza oglądania, D1); czwarty kafelek to „Kończą się w ciągu doby” zamiast „Do zapłaty” z płótna, a w miejsce „kończą się dziś” z pierwszej wersji specu, bo to ten sam próg co fioletowy licznik i bez niejednoznaczności końca dnia; wiersz powiadomienia zostaje jednym linkiem, bez przycisków w środku (zagnieżdżone elementy interaktywne); Moje aukcje i Sprzedane zostają osobnymi zakładkami.
-- [ ] **Etap 4, logowanie, wystawianie i wysyłka.**
+- [x] **Etap 4, logowanie, wystawianie i wysyłka:**
+  - API: `completedSteps` w `GET /v1/me/auctions` dla szkiców (`validateListing` z kategorią, przewoźnikami i limitami sprzedawcy, bez gotowości zdjęć i filtra słów z publikacji); `LISTING_STEP_FIELDS`, `listingStepOfPath` i `completedListingSteps` w `@biddy/shared`, z których korzysta też kreator; test integracyjny, klient API wygenerowany ponownie;
+  - logowanie i rejestracja: `AuthSplitPage` z panelem marki od 1024 px (przy logowaniu przykładowa aukcja LIVE i trzy korzyści, przy rejestracji droga do pierwszej oferty), Google i Apple nad formularzem (na rejestracji kafelki z literą i pełną nazwą dla czytnika), „Nie pamiętasz hasła?” przy etykiecie, `PasswordField` z przyciskiem pokazania hasła (`aria-pressed`) i regułą długości sprawdzaną na bieżąco;
+  - pozostałe strony kont: `AuthCard` (karta na środku z kafelkiem ikony), wynik akcji w osobnej karcie (wysłano link, hasło zmienione, zły link, e-mail potwierdzony z przejściem do weryfikacji telefonu); `/wypisz` w tym samym układzie;
+  - weryfikacja telefonu: postęp „E-mail, Telefon, Licytujesz” przy pierwszej weryfikacji, numer pogrubiony w treści, kod SMS jako sześć kafelków nad jednym przezroczystym polem `one-time-code`, odliczanie z ikoną zegara i „Zmień numer” w stopce karty, przypis pod kartą;
+  - Wystaw: hero z „Nowa aukcja” i limitami, dekoracyjna karta aukcji LIVE (ukryta przed czytnikiem, od 640 px), cztery korzyści, szkice z paskiem postępu, krokiem do uzupełnienia, datą zmiany i „Kontynuuj” do tego kroku;
+  - kreator: nagłówek z „Krok N z 6”, stanem autozapisu i „Zamknij kreator”; pasek kroków (✓ dla kroków bez braków, nazwy od 1024 px, od 640 px tylko bieżąca); od 1024 px `ListingPreview` (karta jak na listach i lista kroków z ✓); karty wyboru stanu i gabarytu, karty przewoźników z literą w tonie rodzaju usługi, ceny z sufiksem „zł”, data końca przy czasie trwania; krok 6 z miniaturami, wierszami „Zmień” i informacją o KYC; „Wstecz”, „Dalej”, „Zapisz i wyjdź” i CTA publikacji w pasku pod formularzem;
+  - nadanie paczki: powrót do Sprzedanych, numer zamówienia, od 1024 px formularz w dwóch kartach obok karty zamówienia (dostawa z ceną, dokąd, odbiorca, gabaryt), po nadaniu ciemna karta z kodem nadania, „Kopiuj kod” (komunikat dla czytnika) i etykietą PDF, pod nią numer i historia przesyłki; nowy e2e strony nadania (desktop i 390 px, axe);
+  - strony 404 i błędu według płótna (duże „404” w fiolecie 500, kod błędu `digest` w plakietce);
+  - poprawki kontrastu: plakietka zdjęcia głównego i wybrany czas trwania na `brand-strong`, błąd potwierdzenia KYC na niebieskim tle w czerwieni 700;
+  - odstępstwa od płótna: nagłówek i stopka strony zostają na stronach kont i w kreatorze (płótno ma tam własny, uproszczony nagłówek); bez Facebooka (w API są tylko Google i Apple) i bez paska siły hasła (sprawdzamy tylko regułę długości); kategoria zostaje wyborem poziom po poziomie z F-11 zamiast kolumn; waga paczki tylko przy XL, jak dziś; bez cen przy przewoźnikach w kreatorze (cennik zależy od gabarytu i nie ma go w `GET /v1/shipping/carriers`) i bez paska „Twoje progi cenowe”; bez terminu „Nadaj do” i miniatury przedmiotu na stronie nadania (nie ma ich w odpowiedzi zamówienia) oraz bez przykładowej karty z kodem przed nadaniem (pokazywałaby nieprawdziwy kod).
 
 ## Model danych
 
@@ -138,7 +158,7 @@ Bez zmian w bazie. Licznik oglądających (D1) trzyma stan w Redis.
   - `@biddy/realtime`: `viewAuction(auctionId, onViewers)` (zgłasza oglądanie ponownie po reconnect), w web hook `useAuctionViewers`.
 - **Etap 2, pasek „kończy się w ciągu godziny”:** opcjonalny parametr `endsBefore` (data ISO) w `GET /v1/auctions`. Filtr dokłada `endsAtTs < …` do zapytania Meilisearch; liczbę bierzemy z `total` przy `pageSize=1`. Wynik cache'owany 60 s jak listy na stronie głównej.
 - **Etap 3, podsumowanie licytacji:** pole `summary` w `GET /v1/me/bids` dla `status=ACTIVE`: `{ leading, outbid, endingSoon }` (liczba aukcji, w których prowadzę, w których przebito mnie, i tych, które kończą się w ciągu doby: próg `SOON_WINDOW_MS`, ten sam co fioletowy licznik). Liczone w tym samym zapytaniu co `total`, więc nie zależą od strony. Dla `WON` i `LOST` `null`.
-- **Etap 4, postęp szkicu:** pole `completedSteps` (0–6) w `AuctionSummaryDto` dla szkiców, liczone tymi samymi regułami co walidacja kroków kreatora (`LISTING_RULES`). Dla pozostałych statusów `null`.
+- **Etap 4, postęp szkicu:** pole `completedSteps` (0–5) w `AuctionSummaryDto` dla szkiców: liczba kolejnych kroków kreatora od pierwszego, w których nie ma braków. Krok do uzupełnienia to `completedSteps + 1` (6 = podgląd i publikacja). Braki liczy `validateListing` z kategorią, przewoźnikami i limitami sprzedawcy, tak jak przy „Dalej” w kreatorze; przypisanie braków do kroków (`LISTING_STEP_FIELDS`, `completedListingSteps`) jest w `@biddy/shared` i korzysta z niego też kreator. Dla pozostałych statusów `null`.
 - Pozostałe dane już są: `bidCount`, `currentPrice`, `minimumNextBid`, `endsAt`, historia ofert, zdarzenia `auction.updated`, `auction.extended`, `auction.ended`, `user.outbid`, `user.won` (F-17).
 - Klient API (`packages/api-client`) generowany ponownie po każdej zmianie.
 
@@ -168,7 +188,7 @@ Bez zmian w bazie. Licznik oglądających (D1) trzyma stan w Redis.
 
 ## Decyzje
 
-Propozycje z płótna, które wykraczają poza obecny produkt albo design system. Przyjęte 2026-10-26; po wdrożeniu trafiają do rejestru decyzji w PROJECT.md.
+Propozycje z płótna, które wykraczają poza obecny produkt albo design system. Przyjęte 2026-10-26; po wdrożeniu wpisane do rejestru decyzji w PROJECT.md (§22, nr 101–105).
 
 | # | Propozycja | Etap | Decyzja |
 | --- | --- | --- | --- |
@@ -189,14 +209,14 @@ Propozycje z płótna, które wykraczają poza obecny produkt albo design system
 - [x] Given `prefers-reduced-motion: reduce`, Then żaden element nie animuje się ani nie pulsuje, a zmiany ceny i stanu są nadal widoczne.
 - [x] Given wyszukiwarka, Then pasek pokazuje liczbę aukcji kończących się w ciągu godziny i prowadzi do sortowania po końcu.
 - [x] Given Moje Biddy: licytuję, Then aukcje z przebitą ofertą są wyróżnione i mają akcję przebicia.
-- [ ] Given lista szkiców, Then każdy szkic pokazuje postęp w krokach kreatora.
-- [ ] Given kod SMS, Then autouzupełnianie `one-time-code` i wklejenie całego kodu działają jak przed zmianą.
-- [ ] Given każdy widok, Then ma najwyżej jedno CTA, a kolory, typografia, promienie i cienie pochodzą z tokenów (test `design-tokens.test.ts`).
-- [ ] Given strony z e2e, Then scenariusze i axe (WCAG 2.1 AA) przechodzą, a przy 360–1440 px żadna strona nie przewija się w poziomie.
+- [x] Given lista szkiców, Then każdy szkic pokazuje postęp w krokach kreatora.
+- [x] Given kod SMS, Then autouzupełnianie `one-time-code` i wklejenie całego kodu działają jak przed zmianą.
+- [x] Given każdy widok, Then ma najwyżej jedno CTA, a kolory, typografia, promienie i cienie pochodzą z tokenów (test `design-tokens.test.ts`).
+- [x] Given strony z e2e, Then scenariusze i axe (WCAG 2.1 AA) przechodzą, a przy 360–1440 px żadna strona nie przewija się w poziomie.
 
 ## Plan testów
 
-- **Jednostkowe (`packages/shared`):** szybkie kwoty (granice przedziałów kroków), `isHotAuction` i próg LIVE.
+- **Jednostkowe (`packages/shared`):** szybkie kwoty (granice przedziałów kroków), `isHotAuction` i próg LIVE, `completedListingSteps` (pusty szkic, brak w środku, komplet).
 - **Jednostkowe (web, Vitest i Testing Library):**
   - `CountdownTimer` (tony i wariant segmentowy na progach), `PriceTicker` (plakietka przyrostu), `PriceSparkline` (dane z historii);
   - panel licytacji w sześciu stanach, toast po `user.outbid` i `auction.extended`, „Zalicytuj ponownie” i fokus;

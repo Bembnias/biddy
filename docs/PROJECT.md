@@ -1853,6 +1853,11 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 6 | Kategorie startowe do marketingu: TCG/kolekcjonerstwo, sneakers/vintage, retro gaming | Przyjęta | §2.4 | Przed betą |
 | 7 | Limity kont i strike'i (wartości startowe) | Przyjęta | §4.1 | Beta, zmiana bez deployu |
 | 8 | Projekt wizualny kluczowych ekranów: makiety Figma właściciela (2025) przełożone na design system Biddy (F-62); kolejne ekrany projektuje osoba prowadząca feature według tego systemu | Przyjęta | §20 | — |
+| 101 | Puls licytacji (F-63, D1): licznik „X osób ogląda” na stronie aktywnej aukcji, od 3 połączeń, sama liczba bez listy osób | Przyjęta | §11.3, [F-63](features/F-63-puls-licytacji.md) | Beta: czy liczba nie zniechęca przy małym ruchu |
+| 102 | Wygrana jako panel na stronie aukcji, a nie osobny ekran (F-63, D2); na telefonie na pełną szerokość | Przyjęta | §11.3 | — |
+| 103 | Ciemny pas „Kończą się wkrótce” na stronie głównej (F-63, D3) | Przyjęta | §11.3 | — |
+| 104 | Dolny pasek nawigacji na telefonie (Start, Szukaj, Wystaw, Moje Biddy, Konto) poniżej 768 px zamiast menu z design systemu; menu konta zostaje w nagłówku (F-63, D4) | Przyjęta | §11.3 | — |
+| 105 | Kreator aukcji w dwóch kolumnach z podglądem karty od 1024 px (F-63, D5) | Przyjęta | §11.3 | — |
 
 **Transakcje**
 

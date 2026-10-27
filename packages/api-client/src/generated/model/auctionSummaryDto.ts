@@ -56,4 +56,11 @@ export interface AuctionSummaryDto {
      * @nullable
      */
   order: AuctionSummaryDtoOrder;
+  /**
+     * Postęp szkicu: kroki kreatora bez braków od pierwszego (0–5); krok do uzupełnienia to completedSteps + 1. Null poza szkicami (F-63)
+     * @minimum 0
+     * @maximum 5
+     * @nullable
+     */
+  completedSteps: number | null;
 }

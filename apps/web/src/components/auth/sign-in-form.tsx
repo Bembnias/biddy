@@ -17,7 +17,7 @@ import { signInWithEmail } from '@/lib/auth/auth-api';
 import { signInSchema } from '@/lib/auth/schemas';
 import { routes, withNext } from '@/lib/routes';
 
-import { AuthForm, FormAlert, TextField, useErrorMessage } from './form-parts';
+import { AuthForm, FormAlert, PasswordField, TextField, useErrorMessage } from './form-parts';
 import { SocialButtons } from './social-buttons';
 import { TurnstileField } from './turnstile-field';
 import { useValidationMessages } from './use-validation';
@@ -73,7 +73,7 @@ export function SignInForm({ next }: { readonly next: string }) {
   return (
     <div className="space-y-6">
       <SocialButtons next={next} />
-      <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-4">
+      <AuthForm onSubmit={(event) => void form.handleSubmit(submit)(event)} className="space-y-5">
         {error === undefined ? null : <FormAlert>{error}</FormAlert>}
         <TextField
           label={t('fields.email')}
@@ -82,10 +82,17 @@ export function SignInForm({ next }: { readonly next: string }) {
           error={errors.email?.message}
           {...form.register('email')}
         />
-        <TextField
+        <PasswordField
           label={t('fields.password')}
-          type="password"
           autoComplete="current-password"
+          labelAction={
+            <Link
+              href={routes.forgotPassword}
+              className="rounded-xs text-label text-link underline-offset-3 outline-none hover:text-link-hover hover:underline focus-visible:shadow-focus-ring"
+            >
+              {t('signIn.forgotPassword')}
+            </Link>
+          }
           error={errors.password?.message}
           {...form.register('password')}
         />
@@ -102,25 +109,15 @@ export function SignInForm({ next }: { readonly next: string }) {
           {isSubmitting ? t('signIn.pending') : t('signIn.submit')}
         </Button>
       </AuthForm>
-      <div className="space-y-2 text-center text-body">
-        <p>
-          <Link
-            href={routes.forgotPassword}
-            className="font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
-          >
-            {t('signIn.forgotPassword')}
-          </Link>
-        </p>
-        <p className="text-body text-foreground-secondary">
-          {t('signIn.noAccount')}{' '}
-          <Link
-            href={withNext(routes.signUp, next)}
-            className="font-bold text-link underline-offset-3 hover:text-link-hover hover:underline"
-          >
-            {t('signIn.signUp')}
-          </Link>
-        </p>
-      </div>
+      <p className="text-center text-body text-foreground-secondary">
+        {t('signIn.noAccount')}{' '}
+        <Link
+          href={withNext(routes.signUp, next)}
+          className="font-bold text-link underline-offset-3 hover:text-link-hover hover:underline"
+        >
+          {t('signIn.signUp')}
+        </Link>
+      </p>
     </div>
   );
 }

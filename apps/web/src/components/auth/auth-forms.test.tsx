@@ -139,6 +139,25 @@ describe('rejestracja', () => {
     expect(apiCalls(api, '/v1/auth/sign-up/email')).toHaveLength(0);
   });
 
+  it('hasło (F-63): reguła długości na bieżąco i przycisk pokazania hasła', async () => {
+    mockApi({ '/v1/auth-options': AUTH_OPTIONS });
+    const user = userEvent.setup();
+    render(<SignUpForm next="/konto" />, { wrapper: AppWrapper });
+    const password = screen.getByLabelText('Hasło');
+    const rule = () => document.getElementById(password.getAttribute('aria-describedby') ?? '');
+
+    await user.type(password, 'krotkie');
+    expect(rule()?.textContent).toBe('Jeszcze nie: Co najmniej 10 znaków.');
+    await user.type(password, '-dluzsze');
+    expect(rule()?.textContent).toBe('Spełnione: Co najmniej 10 znaków.');
+
+    const toggle = screen.getByRole('button', { name: 'Pokaż hasło' });
+    expect(password.getAttribute('type')).toBe('password');
+    await user.click(toggle);
+    expect(password.getAttribute('type')).toBe('text');
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+  });
+
   it('sukces: zgody i token w żądaniu, potem „Sprawdź skrzynkę” z adresem', async () => {
     const api = mockApi({
       '/v1/auth-options': AUTH_OPTIONS,

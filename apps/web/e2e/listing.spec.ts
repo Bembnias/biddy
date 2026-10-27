@@ -255,7 +255,9 @@ test('kreator: nowy szkic, 6 kroków z autozapisem, informacja o KYC, publikacja
 
   // 2. Kategoria
   await expect(page).toHaveURL(`/wystaw/${ID}?krok=kategoria`);
-  await expect(main.getByRole('heading', { name: 'Krok 2 z 6: Kategoria' })).toBeFocused();
+  await expect(
+    main.getByRole('heading', { name: 'Krok 2 z 6: Kategoria i szczegóły' }),
+  ).toBeFocused();
   await main.getByLabel('Kategoria', { exact: true }).selectOption({ label: 'Dom i ogród' });
   await main.getByLabel('Podkategoria').selectOption({ label: 'Dekoracje' });
   await main.getByRole('button', { name: 'Dalej' }).click();
@@ -267,17 +269,15 @@ test('kreator: nowy szkic, 6 kroków z autozapisem, informacja o KYC, publikacja
   await expect(main.getByLabel('Tytuł')).toBeFocused();
   await main.getByLabel('Tytuł').fill('Wazon ceramiczny, lata 70.');
   await main
-    .getByLabel('Opis')
+    .getByLabel('Opis', { exact: true })
     .fill('Ręcznie malowany wazon, bez pęknięć i odprysków. Wysokość 30 cm.');
-  await main.getByLabel('Stan').selectOption({ label: 'Bardzo dobry' });
+  await main.getByRole('radio', { name: /^Bardzo dobry/u }).check();
   await main.getByRole('button', { name: 'Dalej' }).click();
 
   // 4. Dostawa
   await expect(page).toHaveURL(`/wystaw/${ID}?krok=dostawa`);
-  await main.getByRole('radio', { name: 'M: do 19 × 38 × 64 cm' }).check();
-  await checkWhenHydrated(
-    main.getByRole('checkbox', { name: 'InPost Paczkomat 24/7 (paczkomat)' }),
-  );
+  await main.getByRole('radio', { name: 'M do 19 × 38 × 64 cm' }).check();
+  await checkWhenHydrated(main.getByRole('checkbox', { name: 'InPost Paczkomat 24/7 paczkomat' }));
   await main.getByRole('button', { name: 'Dalej' }).click();
 
   // 5. Cena
@@ -344,7 +344,7 @@ test('kreator na telefonie (360 px): bez przewijania w poziomie, axe-core', asyn
   const main = page.getByRole('main');
   await expect(main.getByLabel('Długość (cm)')).toBeVisible();
   await expect(
-    main.getByRole('checkbox', { name: 'InPost Paczkomat 24/7 (nie obsługuje gabarytu XL)' }),
+    main.getByRole('checkbox', { name: 'InPost Paczkomat 24/7 nie obsługuje gabarytu XL' }),
   ).toBeDisabled();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

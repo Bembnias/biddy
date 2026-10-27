@@ -381,6 +381,8 @@ Kreator aukcji i model przedmiotu oraz aukcji. Spec: [F-14](docs/features/F-14-k
 - **Publikacja** wymaga zweryfikowanego telefonu, przy pierwszej publikacji potwierdzenia informacji o weryfikacji tożsamości (zapisanego z datą), braku blokady wystawiania (`LISTING_BLOCKED`) i miejsca w limicie aktywnych aukcji (`LISTING_LIMIT_REACHED`; nowe konto: 5 aukcji, wartość do 5000 zł; powyżej 5000 zł potrzebne KYC). Po pierwszej ofercie aukcji nie da się zmienić (`AUCTION_HAS_BIDS`), a z ofertami nie da się jej anulować w ostatnich 12 h (`AUCTION_CANCEL_TOO_LATE`).
 - **Filtr słów** (`apps/api/src/modules/trust-safety/content-filter/listing-terms.ts`): lista startowa z §17. `BLOCK` odrzuca publikację z błędem pola, `REVIEW` kieruje aukcję do moderacji. Zmiana listy to zmiana tego pliku (do czasu konfiguracji moderacji w F-35).
 - **Web:** `/wystaw` (szkice, nowa aukcja, limity), `/wystaw/{id}?krok=…` (kreator w 6 krokach z autozapisem po 1 s), `/konto/aukcje` (Moje aukcje: edycja, anulowanie, ponowne wystawienie).
+- **Postęp szkicu (F-63):** `GET /v1/me/auctions` zwraca przy szkicach `completedSteps` (0–5): ile kolejnych kroków kreatora od pierwszego nie ma braków (`validateListing` z kategorią, przewoźnikami i limitami sprzedawcy; przypisanie braków do kroków w `LISTING_STEP_FIELDS` i `completedListingSteps` z `@biddy/shared`, wspólne z kreatorem). `/wystaw` pokazuje przy szkicu „Krok N z 6” z paskiem, a „Kontynuuj” otwiera krok do uzupełnienia.
+- **Kreator w układzie F-63:** pasek kroków z ✓ dla kroków bez braków, od 1024 px podgląd karty „Tak zobaczą Twoją aukcję” z listą kroków obok formularza, karty wyboru stanu i gabarytu, karty przewoźników, ceny z „zł” i datą końca, krok 6 z linkami „Zmień” do kroków.
 
 ### Silnik licytacji (F-15)
 
@@ -511,7 +513,7 @@ Domena rozmawia z przewoźnikami wyłącznie przez port `ShippingProvider` ([PRO
 - **Panel deweloperski:** `http://localhost:3000/dev/fake-shipping` (po zalogowaniu).
   - Przesyłka testowa bez zamówienia z tym samym formularzem „Nadaj” co strona zamówienia.
   - Następny albo dowolny status, zmiana scenariusza, synchronizacja bez webhooka, etykieta.
-- **Strona nadania:** `/zamowienia/{numer}/nadaj` (link z powiadomienia „Opłacono” i z „Moje Biddy → Sprzedane”).
+- **Strona nadania:** `/zamowienia/{numer}/nadaj` (link z powiadomienia „Opłacono” i z „Moje Biddy → Sprzedane”). Układ F-63: od 1024 px formularz (dane nadawcy, sposób nadania) obok karty zamówienia, po nadaniu ciemna karta z kodem nadania („Kopiuj kod”) i etykietą PDF, pod nią numer i historia przesyłki.
 - **Furgonetka:** zmienne `FURGONETKA_*` (komplet albo żadna). Konto loguje się raz, a token z refresh tokenem leży zaszyfrowany w bazie. Bez danych dostępu adapter jest wyłączony, a sandbox ma własne testy kontraktowe (`FURGONETKA_SANDBOX_*`).
 - **Produkcja:** przy `DEPLOYMENT_ENV=production` `SHIPPING_DEFAULT_PROVIDER` jest wymagany i różny od `fake`, a trasy `/v1/dev/fake-shipping/*` odpowiadają 404.
 - **Testy kontraktowe:** `describeShippingProviderContract` w `apps/api/test/support/shipping-provider-contract.ts`; FakeShipping przechodzi go w `test/integration/shipping-contract.int.test.ts`.
@@ -630,6 +632,8 @@ Web czyta zmienne z `.env` w katalogu głównym (sekcja „Web” w [`.env.examp
 | `/wystaw`                | Start wystawiania: szkice, nowa aukcja, limity sprzedawcy (F-14).                           |
 | `/wystaw/{id}`           | Kreator aukcji w 6 krokach z autozapisem i publikacją (F-14).                               |
 | `/u/{id}`                | Profil publiczny (SSR): zdjęcie, imię, data dołączenia, znaczek telefonu; bez kontaktu.     |
+
+Wygląd (F-63): logowanie i rejestracja z panelem marki od 1024 px (przy logowaniu przykładowa aukcja LIVE i korzyści, przy rejestracji droga do pierwszej oferty), Google i Apple nad formularzem, przycisk pokazania hasła i reguła długości nowego hasła sprawdzana na bieżąco. Pozostałe strony kont (hasło, e-mail, regulamin, wypisanie, telefon) to karta na środku z kafelkiem ikony; wynik akcji pokazuje ta sama karta. Kod SMS wygląda jak sześć kafelków, ale to jedno pole `one-time-code` (autouzupełnianie i wklejanie działają). Komponenty: `AuthSplitPage`, `AuthCard` (`src/components/auth/auth-layout.tsx`), `PasswordField` (`form-parts.tsx`).
 
 Szkielet ładowania (`app/konto/loading.tsx`) jest tylko w segmentach konta. Strony publiczne renderują się w całości przed odpowiedzią, dzięki czemu `notFound()` daje prawdziwe 404 (przy globalnym `loading.tsx` Next wysyła 200, zanim strona się wyrenderuje).
 

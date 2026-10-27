@@ -10,14 +10,14 @@ import {
   useGetMyAddresses,
   useGetOrderShipment,
 } from '@biddy/api-client';
+import { formatMoney, money } from '@biddy/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { routes } from '@/lib/routes';
 
 import { DispatchForm } from './dispatch-form';
 import { ShipmentResult } from './shipment-result';
@@ -35,51 +35,73 @@ function waiting(data: OrderShipmentDto | undefined): boolean {
   );
 }
 
-/** Dokąd jedzie paczka: usługa, punkt odbioru albo odbiorca, gabaryt. */
-export function ShipmentDestination({ shipment }: { readonly shipment: ShipmentDto }) {
+/**
+ * Karta zamówienia obok formularza (F-63): przedmiot, usługa z ceną dostawy, punkt odbioru albo
+ * odbiorca i gabaryt.
+ */
+export function ShipmentDestination({
+  title,
+  shipment,
+}: {
+  readonly title: string;
+  readonly shipment: ShipmentDto;
+}) {
   const t = useTranslations('shipping.dispatch');
   const sizes = useTranslations('listing.shipping');
+  const row = (label: string, value: ReactNode) => (
+    <div className="flex gap-3">
+      <dt className="w-24 shrink-0 text-foreground-secondary">{label}</dt>
+      <dd className="min-w-0 font-bold break-words">{value}</dd>
+    </div>
+  );
   return (
     <section
       aria-labelledby="shipment-destination"
-      className="space-y-3 rounded-xl border border-border bg-card p-5 sm:p-6"
+      className="space-y-4 rounded-2xl border border-border bg-card p-5.5"
     >
-      <h2 id="shipment-destination" className="text-h3">
-        {t('destination')}
+      <h2 id="shipment-destination" className="text-overline text-muted-foreground uppercase">
+        {t('orderCard')}
       </h2>
-      <dl className="grid gap-x-6 gap-y-2 text-body sm:grid-cols-[12rem_1fr]">
-        <dt className="text-foreground-secondary">{t('service')}</dt>
-        <dd className="font-semibold">{shipment.carrier.name}</dd>
-        {shipment.pickupPoint === null ? (
+      <p className="text-title break-words">{title}</p>
+      <dl className="space-y-3 border-t border-ink-100 pt-3.5 text-body-sm">
+        {row(
+          t('service'),
           <>
-            <dt className="text-foreground-secondary">{t('recipient')}</dt>
-            <dd>
-              {shipment.recipient.name}
-              {shipment.recipient.city === null ? null : `, ${shipment.recipient.city}`}
-            </dd>
-          </>
-        ) : (
-          <>
-            <dt className="text-foreground-secondary">{t('pickupPoint')}</dt>
-            <dd>
-              <span className="block">{shipment.pickupPoint.name}</span>
-              <span className="block text-body-sm text-muted-foreground">
-                {shipment.pickupPoint.address}
-              </span>
-            </dd>
-          </>
+            {shipment.carrier.name}
+            <span className="block font-medium text-muted-foreground tabular-nums">
+              {t('price', { price: formatMoney(money(shipment.price)) })}
+            </span>
+          </>,
         )}
-        <dt className="text-foreground-secondary">{t('packageSize')}</dt>
-        <dd>{sizes(`sizes.${shipment.packageSize}`)}</dd>
+        {shipment.pickupPoint === null
+          ? row(
+              t('destination'),
+              shipment.recipient.city === null ? t('courier') : shipment.recipient.city,
+            )
+          : row(
+              t('destination'),
+              <>
+                {shipment.pickupPoint.name}
+                <span className="block font-medium text-muted-foreground">
+                  {shipment.pickupPoint.address}
+                </span>
+              </>,
+            )}
+        {row(t('recipient'), shipment.recipient.name)}
+        {row(
+          t('packageSize'),
+          `${shipment.packageSize} · ${sizes(`sizeHints.${shipment.packageSize}`)}`,
+        )}
       </dl>
     </section>
   );
 }
 
 /**
- * Strona nadania paczki (F-24, PROJECT.md §8.3): sprzedający opłaconego zamówienia podaje dane
+ * Strona nadania paczki (F-24, układ F-63): sprzedający opłaconego zamówienia podaje dane
  * nadawcy i sposób nadania, a po utworzeniu przesyłki u przewoźnika dostaje kod nadania albo
- * etykietę. Strona odświeża się sama, dopóki przewoźnik przygotowuje przesyłkę.
+ * etykietę. Od 1024 px formularz albo wynik obok karty zamówienia. Strona odświeża się sama,
+ * dopóki przewoźnik przygotowuje przesyłkę.
  */
 export function DispatchPanel({ publicId }: { readonly publicId: string }) {
   const t = useTranslations('shipping.dispatch');
@@ -92,61 +114,72 @@ export function DispatchPanel({ publicId }: { readonly publicId: string }) {
   });
   const addresses = useGetMyAddresses();
 
+  const header = (number?: string) => (
+    <div className="space-y-1">
+      <h1 className="text-h2 md:text-h1">{t('title')}</h1>
+      {number === undefined ? null : (
+        <p className="text-body font-semibold text-foreground-secondary tabular-nums">
+          {t('order', { number })}
+        </p>
+      )}
+    </div>
+  );
+
   if (order.isPending) {
     return (
-      <div className="space-y-4" aria-busy="true">
-        <span className="sr-only">{t('loading')}</span>
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="space-y-6">
+        {header()}
+        <div className="space-y-4" aria-busy="true">
+          <span className="sr-only">{t('loading')}</span>
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </div>
       </div>
     );
   }
   if (order.isError) {
     const missing = isApiError(order.error) && order.error.status === 404;
     return (
-      <Alert variant={missing ? 'default' : 'destructive'}>
-        <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-          {missing ? t('notFound') : t('loadError')}
-          {missing ? null : (
-            <Button type="button" variant="outline" size="sm" onClick={() => void order.refetch()}>
-              {t('retry')}
-            </Button>
-          )}
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-6">
+        {header()}
+        <Alert variant={missing ? 'default' : 'destructive'}>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            {missing ? t('notFound') : t('loadError')}
+            {missing ? null : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void order.refetch()}
+              >
+                {t('retry')}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 
   const { order: summary, shipment } = order.data;
-  const backLink = (
-    <Link href={routes.mySales} className="text-link underline-offset-3 hover:underline">
-      {t('back')}
-    </Link>
-  );
   if (summary.role !== 'SELLER') {
     return (
-      <Alert>
-        <AlertDescription>{t('notFound')}</AlertDescription>
-      </Alert>
+      <div className="space-y-6">
+        {header()}
+        <Alert>
+          <AlertDescription>{t('notFound')}</AlertDescription>
+        </Alert>
+      </div>
     );
   }
-  const header = (
-    <div className="space-y-1">
-      <p className="text-title break-words">{summary.title}</p>
-      <p className="text-body-sm text-muted-foreground">
-        {t('order', { number: summary.publicId })}
-      </p>
-    </div>
-  );
   if (shipment === null || (shipment.status === 'PENDING' && summary.status !== 'PAID')) {
     return (
       <div className="space-y-6">
-        {header}
+        {header(summary.publicId)}
+        <p className="text-title break-words">{summary.title}</p>
         <Alert>
           <AlertTitle>{t('notAwaiting')}</AlertTitle>
-          <AlertDescription>
-            {t('notAwaitingHint')} {backLink}
-          </AlertDescription>
+          <AlertDescription>{t('notAwaitingHint')}</AlertDescription>
         </Alert>
       </div>
     );
@@ -159,33 +192,39 @@ export function DispatchPanel({ publicId }: { readonly publicId: string }) {
 
   return (
     <div className="space-y-6">
-      {header}
-      <ShipmentDestination shipment={shipment} />
-      {shipment.status === 'PENDING' ? (
-        <>
-          {shipment.lastError === null ? null : (
-            <Alert variant="destructive">
-              <AlertTitle>{t('carrierError')}</AlertTitle>
-              <AlertDescription>{shipment.lastError}</AlertDescription>
-            </Alert>
-          )}
-          {addresses.isPending ? (
-            <Skeleton className="h-64 w-full" />
+      {header(summary.publicId)}
+      <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-5">
+          {shipment.status === 'PENDING' ? (
+            <>
+              {shipment.lastError === null ? null : (
+                <Alert variant="destructive">
+                  <AlertTitle>{t('carrierError')}</AlertTitle>
+                  <AlertDescription>{shipment.lastError}</AlertDescription>
+                </Alert>
+              )}
+              {addresses.isPending ? (
+                <Skeleton className="h-96 w-full rounded-2xl" />
+              ) : (
+                <DispatchForm
+                  methods={shipment.dispatchMethods}
+                  senderAddress={addresses.data?.find((address) => address.isSenderDefault)}
+                  onSubmit={submit}
+                />
+              )}
+            </>
           ) : (
-            <DispatchForm
-              methods={shipment.dispatchMethods}
-              senderAddress={addresses.data?.find((address) => address.isSenderDefault)}
-              onSubmit={submit}
+            <ShipmentResult
+              shipment={shipment}
+              downloadLabel={() =>
+                getOrderLabel(publicId, { headers: { accept: 'application/pdf' } })
+              }
+              labelFilename={`etykieta-${summary.publicId}.pdf`}
             />
           )}
-        </>
-      ) : (
-        <ShipmentResult
-          shipment={shipment}
-          downloadLabel={() => getOrderLabel(publicId, { headers: { accept: 'application/pdf' } })}
-          labelFilename={`etykieta-${summary.publicId}.pdf`}
-        />
-      )}
+        </div>
+        <ShipmentDestination title={summary.title} shipment={shipment} />
+      </div>
     </div>
   );
 }
