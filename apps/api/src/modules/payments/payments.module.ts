@@ -20,6 +20,7 @@ import { PaymentEventProcessor } from './application/payment-event-processor.js'
 import { PaymentTransitions } from './application/payment-transitions.js';
 import { PaymentService } from './application/payment.service.js';
 import { PendingPaymentsPoller } from './application/pending-payments-poller.js';
+import { RefundService } from './application/refund.service.js';
 import { SellerAccountService } from './application/seller-account.service.js';
 import { FeeScheduleService } from './fees/fee-schedule.service.js';
 import { FeeSchedulesController } from './fees/fee-schedules.controller.js';
@@ -29,7 +30,7 @@ import { registerPaymentWebhookRoutes } from './webhooks/payment-webhook-routes.
 /**
  * Moduł domenowy `payments` (PROJECT.md §10.3, §7.8): cenniki POK (F-13), port płatności,
  * rejestr adapterów, FakeGateway, płatności, konta sprzedawców u operatora, webhooki i polling
- * zapasowy (F-23); zwroty, wypłaty i chargebacki w kolejnych feature'ach. Publiczne API:
+ * zapasowy (F-23), zwroty (F-25); wypłaty i chargebacki w kolejnych feature'ach. Publiczne API:
  * ./index.ts. Trasę webhooków (surowe body) rejestruje tylko w procesie HTTP.
  */
 @Module({
@@ -53,6 +54,7 @@ import { registerPaymentWebhookRoutes } from './webhooks/payment-webhook-routes.
     PaymentTransitions,
     SellerAccountService,
     PaymentService,
+    RefundService,
     PaymentEventProcessor,
     PendingPaymentsPoller,
   ],
@@ -60,6 +62,7 @@ import { registerPaymentWebhookRoutes } from './webhooks/payment-webhook-routes.
     FeeScheduleService,
     GatewayRegistry,
     PaymentService,
+    RefundService,
     SellerAccountService,
     PaymentEventProcessor,
     PendingPaymentsPoller,

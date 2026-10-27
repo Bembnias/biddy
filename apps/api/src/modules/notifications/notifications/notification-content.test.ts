@@ -42,6 +42,7 @@ describe('notificationContent', () => {
     expect(text(won.lines.join(' '))).toContain(
       'Do zapłaty z Pakietem Ochrony Kupujących: 109,99 zł',
     );
+    expect(won).toMatchObject({ path: '/zamowienia/p7q2m4nx/zaplac', actionLabel: 'Zapłać' });
     expect(text(notificationContent('SOLD', order).lines[0] ?? '')).toBe(
       'Przedmiot sprzedany za 100 zł.',
     );

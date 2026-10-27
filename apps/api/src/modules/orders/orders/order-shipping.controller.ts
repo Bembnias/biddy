@@ -19,7 +19,6 @@ import { DomainError } from '../../../infra/http/index.js';
 import { type AuthenticatedUser, CurrentUser, RequireSession } from '../../identity/index.js';
 import {
   DispatchShipmentBody,
-  type ParcelSpec,
   ShipmentDto,
   ShipmentService,
   ShippingOptionDto,
@@ -28,7 +27,7 @@ import {
   shippingOptionDto,
 } from '../../shipping/index.js';
 import { ORDER_STATUSES } from '../db/orders.schema.js';
-import type { OrderItemSnapshot } from './order-snapshot.js';
+import { parcelFromSnapshot } from './order-parcel.js';
 import { OrderService, type ParticipantOrder } from './order.service.js';
 
 class OrderParams extends createZodDto(
@@ -47,17 +46,6 @@ export class OrderShipmentDto extends createZodDto(
     shipment: ShipmentDto.schema.nullable().describe('Przesyłka; null przed wyborem dostawy'),
   }),
 ) {}
-
-/** Paczka ze snapshotu przedmiotu z chwili zakupu (późniejsze zmiany przedmiotu się nie liczą). */
-export function parcelFromSnapshot(snapshot: OrderItemSnapshot): ParcelSpec {
-  const size = snapshot.item.packageSize;
-  return {
-    packageSize: size === 'S' || size === 'M' || size === 'L' || size === 'XL' ? size : null,
-    weightGrams: snapshot.item.weightGrams,
-    dimensionsCm: snapshot.item.dimensionsCm,
-    allowedCarriers: snapshot.item.allowedCarriers,
-  };
-}
 
 function notFound(): DomainError {
   return new DomainError({ code: 'NOT_FOUND', detail: 'Nie znaleziono zamówienia.' });

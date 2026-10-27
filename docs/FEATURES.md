@@ -748,6 +748,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-25 · Checkout (web) · `M`
 
+> Pełny spec: [docs/features/F-25-checkout.md](features/F-25-checkout.md). F-25 robi też przejścia `AWAITING_PAYMENT → PAID` i `→ CANCELLED_UNPAID` (bez strike'a i drugiej szansy) oraz zwroty spóźnionych i zdublowanych płatności (PROJECT.md §22, nr 106–108).
+
 **Cel:** zwycięzca płaci szybko i bez niespodzianek.
 
 **Zakres:**
@@ -770,6 +772,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 ### F-26 · Cykl życia zamówienia · `L`
 
 **Cel:** zamówienie przechodzi od wygranej do wypłaty automatycznie, z obsługą wyjątków.
+
+> Opłacenie (`PAID` z `ship_by` i `OrderPaid`), anulowanie nieopłaconego (`CANCELLED_UNPAID`, event `OrderCancelled`) i tabela `refunds` ze zwrotem przez operatora są już w F-25. F-26 dodaje do nich strike, przypomnienia i drugą szansę.
 
 **Zakres:**
 - Maszyna stanów z §7.3 (tylko dozwolone przejścia, sterowane zdarzeniami), joby terminów z §7.4 (ID z terminem, dni robocze z kalendarzem świąt).

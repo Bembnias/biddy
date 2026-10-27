@@ -1,6 +1,6 @@
-// Eventy domenowe modułu payments (F-23, PROJECT.md §14.3). Konsumenci: przejścia zamówienia po
-// płatności (F-25, F-26: OrderPaid, anulowanie, zwrot spóźnionej płatności), powiadomienia
-// i blokada wypłat do weryfikacji sprzedawcy (F-27, F-32).
+// Eventy domenowe modułu payments (F-23, F-25, PROJECT.md §14.3). Konsumenci: przejścia
+// zamówienia po płatności (F-25: OrderPaid, zwrot spóźnionej płatności), wykonanie zwrotu
+// u operatora (F-25), powiadomienia i blokada wypłat do weryfikacji sprzedawcy (F-26, F-27, F-32).
 import { CURRENCIES, type CurrencyCode } from '@biddy/shared';
 import { z } from 'zod';
 
@@ -8,6 +8,7 @@ import { defineDomainEvent } from '../../infra/outbox/index.js';
 import {
   PAYMENT_FAILURE_REASONS,
   PAYMENT_METHODS,
+  REFUND_REASONS,
   SELLER_STATUSES,
 } from './domain/payment-values.js';
 
@@ -54,5 +55,32 @@ export const SellerKycStatusChanged = defineDomainEvent({
     provider: z.string().min(1),
     status: z.enum(SELLER_STATUSES),
     previousStatus: z.enum(SELLER_STATUSES),
+  }),
+});
+
+/** Zlecony zwrot płatności (wiersz `refunds` w PENDING); konsument wywołuje operatora. */
+export const RefundRequested = defineDomainEvent({
+  type: 'RefundRequested',
+  version: 1,
+  aggregateType: 'refund',
+  payload: z.object({
+    paymentId: z.uuid(),
+    orderId: z.uuid(),
+    amount: money,
+    reason: z.enum(REFUND_REASONS),
+  }),
+});
+
+/** Operator potwierdził zwrot; ledger ma już ORDER_REFUNDED. */
+export const RefundSucceeded = defineDomainEvent({
+  type: 'RefundSucceeded',
+  version: 1,
+  aggregateType: 'refund',
+  payload: z.object({
+    paymentId: z.uuid(),
+    orderId: z.uuid(),
+    buyerId: z.uuid(),
+    amount: money,
+    reason: z.enum(REFUND_REASONS),
   }),
 });

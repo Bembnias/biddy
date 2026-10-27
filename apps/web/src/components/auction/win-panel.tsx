@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 import { track } from '@/analytics/posthog';
 import { Button } from '@/components/ui/button';
 import { shortMoney } from '@/lib/auction/auction-state';
-import { routes } from '@/lib/routes';
+import { checkoutUrl, routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 /** Konfetti (ozdoba): pozycje w procentach, kształt, kolor z palety i obrót. */
@@ -26,8 +26,8 @@ const CONFETTI = [
 
 /**
  * Moment wygranej (F-63, decyzja D2): panel na stronie aukcji zamiast osobnego ekranu. Pełny
- * fiolet z konfetti, „Wygrana!”, cena końcowa i trzy kroki „Co dalej”. Do czasu checkoutu (F-25)
- * akcja prowadzi do zamówienia w Moje Biddy, a nie do płatności.
+ * fiolet z konfetti, „Wygrana!”, cena końcowa i trzy kroki „Co dalej”. Akcja prowadzi do checkoutu
+ * (F-25), a przed utworzeniem zamówienia do Moje Biddy.
  */
 export function WinPanel({
   auction,
@@ -174,7 +174,19 @@ export function WinPanel({
           </dl>
         )}
 
-        <Button asChild variant="cta" size="lg" className="w-full">
+        {order !== null && order.status === 'AWAITING_PAYMENT' ? (
+          <Button asChild variant="cta" size="lg" className="w-full">
+            <Link href={checkoutUrl(order.publicId)}>
+              {t('pay', { total: shortMoney(order.total) })}
+            </Link>
+          </Button>
+        ) : null}
+        <Button
+          asChild
+          variant={order !== null && order.status === 'AWAITING_PAYMENT' ? 'ghost' : 'cta'}
+          size="lg"
+          className="w-full"
+        >
           <Link href={routes.myWins}>{t('cta')}</Link>
         </Button>
       </div>

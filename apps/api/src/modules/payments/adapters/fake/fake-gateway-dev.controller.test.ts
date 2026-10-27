@@ -34,7 +34,13 @@ describe('FakeGateway wyłączony (DEPLOYMENT_ENV=production)', () => {
   it('webhook na /webhooks/payments/fake: 404, bo rejestr nie ma FakeGateway', async () => {
     const payu = { provider: 'payu' } as PaymentGateway;
     const registry = new GatewayRegistry([payu], production);
-    const processor = new PaymentEventProcessor({} as never, registry, {} as never, {} as never);
+    const processor = new PaymentEventProcessor(
+      {} as never,
+      registry,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
     await expect(
       processor.receive('fake', { headers: {}, rawBody: Buffer.from('{}') }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });

@@ -453,7 +453,7 @@ Użytkownik nie przegapia ważnych momentów aukcji. Spec: [F-20](docs/features/
 Jedno miejsce na licytacje i sprzedaże. Spec: [F-21](docs/features/F-21-moje-biddy.md).
 
 - **API:** `GET /v1/me/bids?status=ACTIVE|WON|LOST` (aukcje z moimi ważnymi ofertami: moje maksimum, czy prowadzę, wynik, zamówienie zwycięzcy; po 24; przy `ACTIVE` także `summary` z liczbą aukcji, w których prowadzę, w których przebito mnie i które kończą się w ciągu doby, F-63), `GET /v1/me/watchlist` (obserwowane, aktywne najpierw) i `order` przy sprzedanych w `GET /v1/me/auctions`.
-- **Web:** `/moje-biddy` z zakładkami Licytuję (filtr prowadzę/przebito, przegrane), Wygrane, Obserwowane, Moje aukcje (`/moje-biddy/aukcje`, dawne `/konto/aukcje` przekierowuje) i Sprzedane. Każda pozycja ma następną akcję (`apps/web/src/lib/my-biddy/next-action.ts`); „Zapłać” i „Nadaj paczkę” są widoczne, ale nieaktywne do F-25 i F-26.
+- **Web:** `/moje-biddy` z zakładkami Licytuję (filtr prowadzę/przebito, przegrane), Wygrane, Obserwowane, Moje aukcje (`/moje-biddy/aukcje`, dawne `/konto/aukcje` przekierowuje) i Sprzedane. Każda pozycja ma następną akcję (`apps/web/src/lib/my-biddy/next-action.ts`); „Zapłać” prowadzi do checkoutu (F-25), a „Nadaj paczkę” do strony nadania (F-24).
 - **Na żywo:** `user.outbid`, `user.won` i `notification.new` odświeżają listy; aktywne aukcje na liście (do 40) subskrybują kanał aukcji i aktualizują cenę bez odświeżania.
 - **Puls licytacji (F-63):** Licytuję z kafelkami podsumowania (z `summary`, niezależnie od strony listy), filtrem `SegmentedControl` i kartami z paskiem stanu i licznikiem w tonie (przebito Cię: czerwona ramka, „Zalicytuj ponownie”); przegrane i sprzedane jako zwarte wiersze; Moje aukcje z ciemną kartą „Twoja aukcja jest gorąca” (`isHotAuction`, cena na żywo) i filtrami z liczbą pozycji. Centrum powiadomień z grupami „Dzisiaj” i „Wcześniej” i ikoną w tonie typu, ustawienia z przełącznikami (`role="switch"`) i kłódką przy e-mailach transakcyjnych. Konto, profil i adresy w układzie z płótna (karty adresów w siatce, kafelek „Dodaj adres”).
 
@@ -517,6 +517,19 @@ Domena rozmawia z przewoźnikami wyłącznie przez port `ShippingProvider` ([PRO
 - **Furgonetka:** zmienne `FURGONETKA_*` (komplet albo żadna). Konto loguje się raz, a token z refresh tokenem leży zaszyfrowany w bazie. Bez danych dostępu adapter jest wyłączony, a sandbox ma własne testy kontraktowe (`FURGONETKA_SANDBOX_*`).
 - **Produkcja:** przy `DEPLOYMENT_ENV=production` `SHIPPING_DEFAULT_PROVIDER` jest wymagany i różny od `fake`, a trasy `/v1/dev/fake-shipping/*` odpowiadają 404.
 - **Testy kontraktowe:** `describeShippingProviderContract` w `apps/api/test/support/shipping-provider-contract.ts`; FakeShipping przechodzi go w `test/integration/shipping-contract.int.test.ts`.
+
+### Checkout (F-25)
+
+Zwycięzca płaci na stronie `/zamowienia/{numer}/zaplac` (link z powiadomienia o wygranej, z „Moje Biddy → Wygrane” i z panelu wygranej na stronie aukcji). Spec: [F-25](docs/features/F-25-checkout.md).
+
+- **API (kupujący):**
+  - `GET /v1/orders/:id/checkout`: kwoty, termin (z przedłużeniem o 30 min dla płatności w toku), opcje i wybrana dostawa, ostatnia płatność;
+  - `PUT /v1/orders/:id/delivery`: usługa, punkt albo adres i odbiorca; zapisuje cenę dostawy i sumę;
+  - `POST /v1/orders/:id/payments` z nagłówkiem `Idempotency-Key`: płatność na sumę z zamówienia, gdy równa się `expectedTotal` z przycisku (inaczej 409 `CHECKOUT_TOTAL_CHANGED`).
+- **Zasady:** płatność w toku albo udana blokuje kolejną i zmianę dostawy; nieudana nie, więc odrzucony BLIK ponawia się w tym samym zamówieniu. Po terminie 409 `PAYMENT_DEADLINE_PASSED`.
+- **Przejścia zamówienia:** konsument `PaymentSucceeded` przełącza zamówienie w `PAID` (z `ship_by` po 5 dniach roboczych i eventem `OrderPaid`), a job `orders.expire-unpaid` (kolejka `orders`, co minutę) anuluje nieopłacone (`CANCELLED_UNPAID`, event `OrderCancelled`).
+- **Zwroty:** udana płatność anulowanego albo już opłaconego zamówienia wraca do kupującego automatycznie (tabela `refunds`, event `RefundRequested`, operator, webhook, księgowanie `ORDER_REFUNDED`).
+- **Lokalnie:** kody BLIK FakeGateway `777123` (udana), `111111` (odrzucona), `222222` (zostaje w toku); karta i szybki przelew przechodzą przez testową stronę `/dev/fake-pay/{id}`, która wraca na checkout.
 
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 

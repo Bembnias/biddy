@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
-import { type ComponentProps, type ReactNode, useId } from 'react';
+import { type ComponentProps, type ReactNode } from 'react';
 
 import { RowTimer } from '@/components/search/card-signals';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ export const STATUS_TILES: Record<
   outbid: { tone: 'urgent', Icon: TriangleAlert },
   won: { tone: 'warning', Icon: Wallet },
   wonPaid: { tone: 'success', Icon: PackageCheck },
+  wonCancelled: { tone: 'neutral', Icon: Ban },
   lost: { tone: 'neutral', Icon: CircleX },
   reserveNotMet: { tone: 'neutral', Icon: CircleX },
   cancelled: { tone: 'neutral', Icon: Ban },
@@ -93,7 +94,6 @@ export function AuctionRow({
 }) {
   const t = useTranslations('myBiddy');
   const format = useFormatter();
-  const hintId = useId();
   const ended = auction.status !== 'ACTIVE' && auction.status !== 'DRAFT';
   const href = auctionUrl({ slug: auction.slug, publicId: auction.publicId });
   const title = auction.title ?? '';
@@ -120,21 +120,6 @@ export function AuctionRow({
             {t(`actions.${action.label}`)}
           </Link>
         </Button>
-      );
-      break;
-    case 'disabled':
-      actionNode = (
-        <>
-          <p
-            id={hintId}
-            className="basis-full text-caption text-muted-foreground sm:mr-auto sm:basis-auto"
-          >
-            {t(`actions.${action.hint}`)}
-          </p>
-          <Button type="button" disabled aria-describedby={hintId}>
-            {t(`actions.${action.label}`)}
-          </Button>
-        </>
       );
       break;
     case 'unwatch':

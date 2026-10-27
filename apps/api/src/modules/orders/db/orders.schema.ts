@@ -1,5 +1,5 @@
-// Tabele modułu orders: zamówienia z pozycjami (F-16, PROJECT.md §7.3, §13.3). Przejścia stanów,
-// checkout i terminy dojdą w F-25 i F-26. Kwoty w groszach (bigint).
+// Tabele modułu orders: zamówienia z pozycjami (F-16, PROJECT.md §7.3, §13.3), opłacenie
+// i anulowanie nieopłaconych (F-25); pozostałe przejścia stanów i terminy dojdą w F-26. Kwoty w groszach (bigint).
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts).
 import type { CurrencyCode } from '@biddy/shared';
@@ -63,6 +63,11 @@ export const orders = pgTable(
     /** Cennik POK, według którego policzono zamówienie (moduł payments; uuid bez FK). */
     feeScheduleId: uuid().notNull(),
     paymentDueAt: timestamp({ withTimezone: true }).notNull(),
+    /** Opłacenie (F-25) i termin nadania: koniec 5. dnia roboczego od opłacenia (§7.4). */
+    paidAt: timestamp({ withTimezone: true }),
+    shipBy: timestamp({ withTimezone: true }),
+    /** Anulowanie (CANCELLED_UNPAID w F-25, pozostałe w F-26). */
+    cancelledAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
@@ -78,6 +83,11 @@ export const orders = pgTable(
     check(
       'orders_amounts_check',
       sql`${table.itemsTotal} >= 0 and ${table.pokFee} >= 0 and ${table.pokVat} >= 0 and ${table.total} >= ${table.itemsTotal} + ${table.pokFee}`,
+    ),
+    check('orders_paid_check', sql`(${table.paidAt} is null) = (${table.shipBy} is null)`),
+    check(
+      'orders_cancelled_check',
+      sql`${table.cancelledAt} is null or ${table.status} like 'CANCELLED_%'`,
     ),
   ],
 );

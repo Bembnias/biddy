@@ -7,7 +7,13 @@
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
  */
 export { ORDER_STATUSES, type Order, type OrderStatus } from './db/orders.schema.js';
-export { OrderCreated, OrderPaid } from './orders.events.js';
+export {
+  CHECKOUT_PAYMENT_METHODS,
+  PENDING_PAYMENT_GRACE_MS,
+  type CheckoutPaymentMethod,
+} from './checkout/checkout-rules.js';
+export { type ExpireReport, OrderPaymentLifecycle } from './checkout/order-payment-lifecycle.js';
+export { OrderCancelled, OrderCreated, OrderPaid } from './orders.events.js';
 export { OrdersModule } from './orders.module.js';
 export type { OrderItemSnapshot } from './orders/order-snapshot.js';
 export {

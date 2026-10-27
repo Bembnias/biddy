@@ -48,7 +48,7 @@ describe('bidRow', () => {
     expect(outbid.action).toMatchObject({ label: 'rebid', primary: true });
   });
 
-  it('wygrana: kwota, termin i nieaktywne „Zapłać”; opłacona: podgląd', () => {
+  it('wygrana: kwota, termin i „Zapłać” do checkoutu; opłacona: podgląd; anulowana: szukaj', () => {
     const won = bidRow(
       entry({
         outcome: 'WON',
@@ -67,7 +67,12 @@ describe('bidRow', () => {
     expect(won.status).toMatchObject({ key: 'won', tone: 'warning' });
     expect(text(won.status.values?.['total'])).toBe('109,99 zł');
     expect(won.status.values?.['date']).toBe('[2026-10-21]');
-    expect(won.action).toEqual({ kind: 'disabled', label: 'pay', hint: 'payHint' });
+    expect(won.action).toEqual({
+      kind: 'link',
+      label: 'pay',
+      href: '/zamowienia/p7q2m4nx/zaplac',
+      primary: true,
+    });
     const paid = bidRow(
       entry({
         outcome: 'WON',
@@ -83,6 +88,22 @@ describe('bidRow', () => {
       date,
     );
     expect(paid.status.key).toBe('wonPaid');
+    const cancelled = bidRow(
+      entry({
+        outcome: 'WON',
+        order: {
+          id: '01960000-0000-7000-8000-000000000101',
+          publicId: 'p7q2m4nx',
+          status: 'CANCELLED_UNPAID',
+          currency: 'PLN',
+          total: 10_999,
+          paymentDueAt: '2026-10-21T18:00:00.000Z',
+        },
+      }),
+      date,
+    );
+    expect(cancelled.status).toMatchObject({ key: 'wonCancelled', tone: 'neutral' });
+    expect(cancelled.action).toMatchObject({ kind: 'link', label: 'similar' });
   });
 
   it('przegrana, cena minimalna i anulowanie: szukaj podobnych', () => {

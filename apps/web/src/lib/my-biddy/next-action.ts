@@ -1,10 +1,9 @@
-// Następna akcja w listach Moje Biddy (F-21): każda pozycja mówi, co zrobić dalej. Płatność (F-25)
-// jeszcze nie działa, więc jej akcja jest widoczna, ale nieaktywna; nadanie paczki prowadzi do
-// strony nadania (F-24).
+// Następna akcja w listach Moje Biddy (F-21): każda pozycja mówi, co zrobić dalej. „Zapłać”
+// prowadzi do checkoutu (F-25), a nadanie paczki do strony nadania (F-24).
 import type { AuctionSummaryDto, MyBidsDto, MyWatchlistDto } from '@biddy/api-client';
 import { formatMoney, money } from '@biddy/shared';
 
-import { auctionUrl, dispatchUrl, searchUrl } from '@/lib/routes';
+import { auctionUrl, checkoutUrl, dispatchUrl, searchUrl } from '@/lib/routes';
 
 export type MyBidEntry = MyBidsDto['items'][number];
 export type WatchedAuction = MyWatchlistDto['items'][number];
@@ -16,6 +15,7 @@ export interface RowStatus {
     | 'outbid'
     | 'won'
     | 'wonPaid'
+    | 'wonCancelled'
     | 'lost'
     | 'reserveNotMet'
     | 'cancelled'
@@ -32,14 +32,9 @@ export interface RowStatus {
 export type RowAction =
   | {
       readonly kind: 'link';
-      readonly label: 'view' | 'rebid' | 'similar' | 'bid' | 'ship';
+      readonly label: 'view' | 'rebid' | 'similar' | 'bid' | 'ship' | 'pay';
       readonly href: string;
       readonly primary: boolean;
-    }
-  | {
-      readonly kind: 'disabled';
-      readonly label: 'pay';
-      readonly hint: 'payHint';
     }
   | { readonly kind: 'unwatch' }
   | { readonly kind: 'none' };
@@ -57,6 +52,17 @@ export function bidRow(
   switch (entry.outcome) {
     case 'WON': {
       const order = entry.order;
+      if (order?.status === 'CANCELLED_UNPAID') {
+        return {
+          status: { key: 'wonCancelled', values: { number: order.publicId }, tone: 'neutral' },
+          action: {
+            kind: 'link',
+            label: 'similar',
+            href: searchUrl(entry.auction.title),
+            primary: false,
+          },
+        };
+      }
       if (order !== null && order.status !== 'AWAITING_PAYMENT') {
         return {
           status: { key: 'wonPaid', values: { number: order.publicId }, tone: 'positive' },
@@ -72,7 +78,10 @@ export function bidRow(
               : { total: zl(order.total), date: date(order.paymentDueAt), number: order.publicId },
           tone: 'warning',
         },
-        action: { kind: 'disabled', label: 'pay', hint: 'payHint' },
+        action:
+          order === null
+            ? { kind: 'link', label: 'view', href, primary: false }
+            : { kind: 'link', label: 'pay', href: checkoutUrl(order.publicId), primary: true },
       };
     }
     case 'LOST':

@@ -1,5 +1,5 @@
 // Moje Biddy (F-21, układ F-63) na `next start`: zakładki, podsumowanie licytacji, wyróżnione
-// przebite z następną akcją i aktualizacją przez WebSocket, wygrane (nieaktywne „Zapłać”),
+// przebite z następną akcją i aktualizacją przez WebSocket, wygrane („Zapłać” do checkoutu, F-25),
 // obserwowane (przestań obserwować), sprzedane, Moje aukcje z gorącą aukcją (także na telefonie)
 // i przekierowanie dawnego adresu Moich aukcji.
 import AxeBuilder from '@axe-core/playwright';
@@ -196,8 +196,10 @@ test('Wygrane, obserwowane i sprzedane: następne kroki', async ({ page, context
 
   await gotoHydrated(page, '/moje-biddy/wygrane');
   await expect(page.getByText(/Do zapłaty 109,99\s+zł \(bez dostawy\)/u)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Zapłać' })).toBeDisabled();
-  await expect(page.getByText('Płatność online uruchomimy wkrótce.')).toBeVisible();
+  await expect(page.getByRole('link', { name: /^Zapłać: / })).toHaveAttribute(
+    'href',
+    '/zamowienia/p7q2m4nx/zaplac',
+  );
 
   await page.getByRole('link', { name: 'Obserwowane' }).click();
   await expect(page).toHaveURL('/moje-biddy/obserwowane');

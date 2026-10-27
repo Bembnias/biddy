@@ -455,9 +455,13 @@ describe('BidPanel: na żywo i stany', () => {
     expect(win).toContain('Zapłać do 16 października 2026');
     expect(win).toContain('Pakiet Ochrony Kupujących9,99 zł');
     expect(win).toContain('Do zapłaty bez dostawy109,99 zł');
+    // Checkout (F-25): główna akcja to płatność, Moje Biddy jest drugą.
     expect(
-      screen.getByRole('link', { name: 'Zobacz zamówienie w Moje Biddy' }).getAttribute('href'),
-    ).toBe('/moje-biddy/wygrane');
+      screen.getByRole('link', { name: /^Zapłać 109,99\s+zł \+ dostawa$/u }).getAttribute('href'),
+    ).toBe('/zamowienia/p7q2m4nx/zaplac');
+    expect(screen.getByRole('link', { name: 'Zobacz w Moje Biddy' }).getAttribute('href')).toBe(
+      '/moje-biddy/wygrane',
+    );
     expect(screen.queryByRole('region', { name: 'Licytacja' })).toBeNull();
   });
 

@@ -40,6 +40,11 @@ export interface NotificationContent {
 /** Moje aukcje w Moje Biddy (powiadomienie o braku sprzedaży, F-21). */
 const MY_AUCTIONS_PATH = '/moje-biddy/aukcje';
 
+/** Checkout zamówienia dla kupującego (F-25). */
+export function checkoutPath(orderPublicId: string): string {
+  return `/zamowienia/${orderPublicId}/zaplac`;
+}
+
 /** Strona nadania paczki zamówienia (F-24). */
 export function dispatchPath(orderPublicId: string): string {
   return `/zamowienia/${orderPublicId}/nadaj`;
@@ -87,8 +92,8 @@ export function notificationContent(
           `Wylicytowana kwota: ${money(payload.itemsTotal)}. Do zapłaty z Pakietem Ochrony Kupujących: ${money(payload.total)} (bez dostawy).`,
           `Termin płatności: ${date(payload.paymentDueAt)}. Zamówienie nr ${payload.orderPublicId ?? ''}.`,
         ],
-        path,
-        actionLabel: 'Zobacz aukcję',
+        path: payload.orderPublicId === undefined ? path : checkoutPath(payload.orderPublicId),
+        actionLabel: 'Zapłać',
       };
     case 'SOLD':
       return {

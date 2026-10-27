@@ -5,10 +5,12 @@
  * zamówień, konta sprzedawców u operatora, webhooki i polling zapasowy (F-23); zwroty,
  * chargebacki i wypłaty w kolejnych feature'ach.
  * - PaymentService.createPayment: płatność zamówienia u operatora domyślnego (checkout, F-25).
+ * - RefundService.request: zwrot udanej płatności (F-25: spóźniona i zdublowana).
  * - SellerAccountService.register / find: konto sprzedawcy u operatora (rejestracja: F-32).
  * - GatewayRegistry: adapter dla operatora z rekordu i operator domyślny.
  * - PaymentEventProcessor, PendingPaymentsPoller: tor zdarzeń operatora (webhook, polling).
- * - Eventy: PaymentSucceeded, PaymentFailed, SellerKycStatusChanged.
+ * - Eventy: PaymentSucceeded, PaymentFailed, RefundRequested, RefundSucceeded,
+ *   SellerKycStatusChanged.
  *
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
@@ -26,6 +28,7 @@ export {
   PaymentService,
   type PaymentView,
 } from './application/payment.service.js';
+export { type RequestRefundCommand, RefundService } from './application/refund.service.js';
 export {
   POLL_PENDING_AFTER_MINUTES,
   PendingPaymentsPoller,
@@ -41,12 +44,16 @@ export {
   PAYMENT_METHODS,
   PAYMENT_PROVIDERS,
   PAYMENT_STATUSES,
+  REFUND_REASONS,
+  REFUND_STATUSES,
   SELLER_ACCOUNT_TYPES,
   SELLER_STATUSES,
   type PaymentFailureReason,
   type PaymentMethodType,
   type PaymentProvider,
   type PaymentStatus,
+  type RefundReason,
+  type RefundStatus,
   type SellerAccountType,
   type SellerStatus,
 } from './domain/payment-values.js';
@@ -57,7 +64,13 @@ export {
   type PublishFeeScheduleInput,
 } from './fees/fee-schedule.service.js';
 export { PaymentsModule } from './payments.module.js';
-export { PaymentFailed, PaymentSucceeded, SellerKycStatusChanged } from './payments.events.js';
+export {
+  PaymentFailed,
+  PaymentSucceeded,
+  RefundRequested,
+  RefundSucceeded,
+  SellerKycStatusChanged,
+} from './payments.events.js';
 export {
   type GatewayCapabilities,
   type NormalizedPaymentEvent,

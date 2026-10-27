@@ -12,7 +12,13 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 /** Błąd pola: ikona i tekst (nie sam kolor), powiązany z polem przez aria-describedby. */
-function FieldErrorText({ id, children }: { readonly id: string; readonly children: string }) {
+export function FieldErrorText({
+  id,
+  children,
+}: {
+  readonly id: string;
+  readonly children: string;
+}) {
   return (
     <p id={id} className="flex items-start gap-1.5 text-body-sm font-semibold text-destructive">
       <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />

@@ -1,6 +1,7 @@
 // Zamówienia (F-16): utworzenie zamówienia dla sprzedanej aukcji w transakcji jej zakończenia
 // (moduł auctions przekazuje `tx`), z POK według cennika z chwili zakończenia (F-13) i terminem
-// płatności 24 h (§6.8). Przejścia stanów, checkout i terminy: F-25, F-26.
+// płatności 24 h (§6.8). Checkout, opłacenie i anulowanie nieopłaconych: F-25 (../checkout);
+// pozostałe przejścia stanów i terminy: F-26.
 import { type CurrencyCode, money, PUBLIC_ID_PATTERN } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -47,6 +48,11 @@ export class OrderService {
     @Inject(FeeScheduleService) private readonly fees: FeeScheduleService,
     private readonly outbox: Outbox,
   ) {}
+
+  async byId(orderId: string): Promise<Order | undefined> {
+    const [order] = await this.db.select().from(orders).where(eq(orders.id, orderId));
+    return order;
+  }
 
   /** Aktywne zamówienia sprzedanych aukcji według aukcji (listy Moje Biddy, F-21). */
   async activeForAuctions(auctionIds: readonly string[]): Promise<Map<string, Order>> {

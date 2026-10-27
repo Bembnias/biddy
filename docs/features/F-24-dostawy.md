@@ -112,7 +112,7 @@ F-24 dostarcza:
 
 ### Zamówienie: powiadomienie i „Nadaj”
 
-- **Event `OrderPaid`** (kontrakt w module `orders`, wersja 1): `publicId`, `auctionId`, `buyerId`, `sellerId`, `paidAt`, `shipBy`. Publikuje go F-26 po konsumpcji `PaymentSucceeded`.
+- **Event `OrderPaid`** (kontrakt w module `orders`, wersja 1): `publicId`, `auctionId`, `buyerId`, `sellerId`, `paidAt`, `shipBy`. Publikuje go checkout (F-25; pierwotnie planowany F-26) po konsumpcji `PaymentSucceeded`.
 - **Powiadomienie `ORDER_PAID`** dla sprzedającego (in-app i e-mail transakcyjny):
   - treść: „Kupujący zapłacił za „{tytuł}”. Nadaj paczkę do {termin}.”;
   - link do strony nadania.

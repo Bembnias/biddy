@@ -186,6 +186,36 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Przesyłka już nadana',
     detail: 'Przesyłka jest już nadawana albo nadana, więc dostawy nie można zmienić.',
   },
+  ORDER_NOT_AWAITING_PAYMENT: {
+    status: 409,
+    title: 'Zamówienie nie czeka na płatność',
+    detail: 'To zamówienie jest już opłacone albo anulowane.',
+  },
+  PAYMENT_DEADLINE_PASSED: {
+    status: 409,
+    title: 'Termin płatności minął',
+    detail: 'Termin płatności za to zamówienie minął.',
+  },
+  PAYMENT_IN_PROGRESS: {
+    status: 409,
+    title: 'Płatność w toku',
+    detail: 'Płatność za to zamówienie jest w toku. Poczekaj na jej wynik.',
+  },
+  DELIVERY_REQUIRED: {
+    status: 409,
+    title: 'Wybierz dostawę',
+    detail: 'Przed płatnością wybierz dostawę.',
+  },
+  CHECKOUT_TOTAL_CHANGED: {
+    status: 409,
+    title: 'Kwota się zmieniła',
+    detail: 'Kwota do zapłaty się zmieniła. Sprawdź podsumowanie i zapłać ponownie.',
+  },
+  SELLER_UNAVAILABLE: {
+    status: 409,
+    title: 'Sprzedający niedostępny',
+    detail: 'Sprzedający nie może teraz przyjąć płatności. Napisz do nas przez Centrum pomocy.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

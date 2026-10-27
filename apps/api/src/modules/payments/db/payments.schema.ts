@@ -1,6 +1,6 @@
 // Tabele modułu payments: cenniki POK (F-13), płatności u operatora, konta sprzedawców
-// u operatora i idempotencja webhooków (F-23); zwroty, wypłaty i chargebacki dojdą w F-26–F-28
-// (PROJECT.md §7.8). ID to UUIDv7 nadawane przez aplikację (ADR-10). Tabele FakeGateway są
+// u operatora i idempotencja webhooków (F-23), zwroty (F-25); wypłaty i chargebacki dojdą
+// w F-27 i F-28 (PROJECT.md §7.8). ID to UUIDv7 nadawane przez aplikację (ADR-10). Tabele FakeGateway są
 // w fake-gateway.schema.ts.
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts). Ograniczenie
@@ -31,6 +31,10 @@ import {
   type PaymentFailureReason,
   type PaymentMethodType,
   type PaymentStatus,
+  REFUND_REASONS,
+  REFUND_STATUSES,
+  type RefundReason,
+  type RefundStatus,
   SELLER_ACCOUNT_TYPES,
   SELLER_STATUSES,
   type SellerAccountType,
@@ -142,6 +146,47 @@ export const payments = pgTable(
 );
 
 export type PaymentRow = typeof payments.$inferSelect;
+
+/**
+ * Zwrot płatności u operatora (F-25: spóźniona i zdublowana płatność; kolejne powody w F-26–F-28).
+ * Wiersz powstaje w transakcji zlecającej (z eventem RefundRequested), operatora woła konsument
+ * eventu, a stan końcowy i księgowanie przychodzą webhookiem.
+ */
+export const refunds = pgTable(
+  'refunds',
+  {
+    id: idColumn(),
+    paymentId: uuid()
+      .notNull()
+      .references(() => payments.id),
+    /** Zamówienie (moduł orders; uuid bez FK). */
+    orderId: uuid().notNull(),
+    provider: text().notNull(),
+    /** ID zwrotu u operatora; null do czasu jego odpowiedzi. */
+    providerRefundId: text(),
+    currency: char({ length: 3 }).$type<CurrencyCode>().notNull(),
+    amount: money().notNull(),
+    reason: text().$type<RefundReason>().notNull(),
+    status: text().$type<RefundStatus>().notNull().default('PENDING'),
+    /** Klucz wywołującego, np. `refund:payment:{id}:late`. */
+    idempotencyKey: text().notNull(),
+    succeededAt: timestamp({ withTimezone: true }),
+    failedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('refunds_idempotency_key').on(table.idempotencyKey),
+    uniqueIndex('refunds_provider_refund_id').on(table.provider, table.providerRefundId),
+    index().on(table.paymentId),
+    check('refunds_status_check', sql.raw(`status in (${sqlList(REFUND_STATUSES)})`)),
+    check('refunds_reason_check', sql.raw(`reason in (${sqlList(REFUND_REASONS)})`)),
+    check('refunds_amount_check', sql`${table.amount} > 0`),
+    check('refunds_idempotency_key_check', sql`length(${table.idempotencyKey}) between 1 and 200`),
+  ],
+);
+
+export type RefundRow = typeof refunds.$inferSelect;
 
 /**
  * Konto sprzedawcy u operatora (F-23, minimalne kolumny). Na jednego użytkownika najwyżej jedno

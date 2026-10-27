@@ -38,6 +38,7 @@ export const FULL_REFUND_REASONS = [
   'LOST',
   'DISPUTE',
   'LATE_PAYMENT',
+  'DUPLICATE_PAYMENT',
   'CHARGEBACK',
 ] as const;
 export type FullRefundReason = (typeof FULL_REFUND_REASONS)[number];

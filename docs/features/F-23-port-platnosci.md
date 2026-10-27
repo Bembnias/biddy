@@ -307,6 +307,6 @@ Brak zdarzeń produktowych (narzędzie deweloperskie). Logi: odebrany webhook (o
 
 ## Otwarte pytania
 
-- **Rejestracja sprzedawcy w checkoutcie:** czy F-25 rejestruje sprzedawcę u operatora w momencie płatności, gdy nie zrobił tego F-32 (wystawienie)? Do F-32 tak, z kontaktem z modułu `identity`.
+- **Rejestracja sprzedawcy w checkoutcie:** czy F-25 rejestruje sprzedawcę u operatora w momencie płatności, gdy nie zrobił tego F-32 (wystawienie)? Do F-32 tak, z kontaktem z modułu `identity`. **Rozstrzygnięte w F-25:** checkout rejestruje sprzedawcę przed pierwszą płatnością.
 - **Płatność bez identyfikatora operatora:** oznaczamy ją `FAILED` po 15 minutach, ale operator mógł ją przyjąć. Wtedy jego późny webhook nie znajdzie płatności i trafi do dead-letter. Domknięcie przez uzgodnienia z raportami (F-33) albo szukanie po naszym kluczu, jeśli operator to umożliwia (do sprawdzenia przy F-31).
 - **Model wstrzymania FakeGateway:** odwzorowuje `SELLER_BALANCE` (PayU). Jeśli wybierzemy Mangopay (`BUYER_WALLET`), dodamy wariant FakeGateway z portfelem kupującego, żeby testy domeny sprawdzały oba modele.

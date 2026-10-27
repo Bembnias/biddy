@@ -29,10 +29,13 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CheckoutDto,
+  ChooseDeliveryDto,
   DispatchShipmentBody,
   OrderShipmentDto,
   ProblemDetails,
-  ShippingOptionDto
+  ShippingOptionDto,
+  StartPaymentDto
 } from '../model';
 
 import { apiFetch } from '../../fetcher';
@@ -614,3 +617,337 @@ export function useGetOrderLabelSuspense<TData = Awaited<ReturnType<typeof getOr
 
 
 
+export const getGetCheckoutUrl = (id: string,) => {
+
+
+
+
+  return `/v1/orders/${id}/checkout`
+}
+
+/**
+ * Kwoty, termin płatności, opcje i wybrana dostawa, ostatnia płatność. Inni niż kupujący: 404.
+ * @summary Checkout zamówienia (kupujący)
+ */
+export const getCheckout = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<CheckoutDto> => {
+
+  return apiFetch<CheckoutDto>(getGetCheckoutUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCheckoutQueryKey = (id: string,) => {
+    return [
+    `/v1/orders/${id}/checkout`
+    ] as const;
+    }
+
+
+export const getGetCheckoutQueryOptions = <TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCheckoutQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCheckout>>> = ({ signal }) => getCheckout(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetCheckoutQueryResult = NonNullable<Awaited<ReturnType<typeof getCheckout>>>
+export type GetCheckoutQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetCheckout<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCheckout>>,
+          TError,
+          Awaited<ReturnType<typeof getCheckout>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCheckout<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getCheckout>>,
+          TError,
+          Awaited<ReturnType<typeof getCheckout>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCheckout<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Checkout zamówienia (kupujący)
+ */
+
+export function useGetCheckout<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetCheckoutQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetCheckoutSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCheckoutQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCheckout>>> = ({ signal }) => getCheckout(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetCheckoutSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getCheckout>>>
+export type GetCheckoutSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetCheckoutSuspense<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCheckoutSuspense<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetCheckoutSuspense<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Checkout zamówienia (kupujący)
+ */
+
+export function useGetCheckoutSuspense<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetCheckoutSuspenseQueryOptions(id,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getChooseDeliveryUrl = (id: string,) => {
+
+
+
+
+  return `/v1/orders/${id}/delivery`
+}
+
+/**
+ * Usługa, punkt odbioru albo adres i odbiorca. Zapisuje cenę dostawy i nową sumę zamówienia. Tylko przed terminem i bez płatności w toku.
+ * @summary Wybór dostawy (kupujący)
+ */
+export const chooseDelivery = async (id: string,
+    chooseDeliveryDto: ChooseDeliveryDto, options?: Parameters<typeof apiFetch>[1]): Promise<CheckoutDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<CheckoutDto>(getChooseDeliveryUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(chooseDeliveryDto)
+  }
+);}
+
+
+
+
+
+export const getChooseDeliveryMutationKey = () => ['chooseDelivery'] as const;
+
+export const getChooseDeliveryMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chooseDelivery>>, TError,ChooseDeliveryMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof chooseDelivery>>, TError,ChooseDeliveryMutationVariables, TContext> => {
+
+const mutationKey = getChooseDeliveryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof chooseDelivery>>, ChooseDeliveryMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  chooseDelivery(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChooseDeliveryMutationResult = NonNullable<Awaited<ReturnType<typeof chooseDelivery>>>
+    export type ChooseDeliveryMutationBody = BodyType<ChooseDeliveryDto>
+    export type ChooseDeliveryMutationError = ErrorType<ProblemDetails>
+    export type ChooseDeliveryMutationVariables = {id: string;data: BodyType<ChooseDeliveryDto>}
+
+    /**
+ * @summary Wybór dostawy (kupujący)
+ */
+export const useChooseDelivery = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chooseDelivery>>, TError,ChooseDeliveryMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof chooseDelivery>>,
+        TError,
+        ChooseDeliveryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getChooseDeliveryMutationOptions(options), queryClient);
+    }
+    export const getStartPaymentUrl = (id: string,) => {
+
+
+
+
+  return `/v1/orders/${id}/payments`
+}
+
+/**
+ * Zakłada płatność na sumę z zamówienia, gdy równa się expectedTotal (inaczej 409 CHECKOUT_TOTAL_CHANGED). Płatność z przekierowaniem ma redirectUrl. Ponowienie z tym samym Idempotency-Key zwraca tę samą płatność (nagłówek idempotent-replayed: true).
+ * @summary Płatność za zamówienie (kupujący)
+ */
+export const startPayment = async (id: string,
+    startPaymentDto: StartPaymentDto, options?: Parameters<typeof apiFetch>[1]): Promise<CheckoutDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<CheckoutDto>(getStartPaymentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(startPaymentDto)
+  }
+);}
+
+
+
+
+
+export const getStartPaymentMutationKey = () => ['startPayment'] as const;
+
+export const getStartPaymentMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startPayment>>, TError,StartPaymentMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startPayment>>, TError,StartPaymentMutationVariables, TContext> => {
+
+const mutationKey = getStartPaymentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startPayment>>, StartPaymentMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  startPayment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof startPayment>>>
+    export type StartPaymentMutationBody = BodyType<StartPaymentDto>
+    export type StartPaymentMutationError = ErrorType<ProblemDetails>
+    export type StartPaymentMutationVariables = {id: string;data: BodyType<StartPaymentDto>}
+
+    /**
+ * @summary Płatność za zamówienie (kupujący)
+ */
+export const useStartPayment = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startPayment>>, TError,StartPaymentMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof startPayment>>,
+        TError,
+        StartPaymentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartPaymentMutationOptions(options), queryClient);
+    }

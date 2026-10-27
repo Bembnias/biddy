@@ -945,7 +945,8 @@
       "confirmText": "Sprzedawca dostanie pieniądze dopiero po Twoim potwierdzeniu.",
       "pok": "Pakiet Ochrony Kupujących",
       "total": "Do zapłaty bez dostawy",
-      "cta": "Zobacz zamówienie w Moje Biddy"
+      "cta": "Zobacz w Moje Biddy",
+      "pay": "Zapłać {total} + dostawa"
     }
   },
   "search": {
@@ -1141,6 +1142,7 @@
       "outbid": "Przebito Cię",
       "won": "Do zapłaty {total} (bez dostawy) do {date} · zamówienie {number}",
       "wonPaid": "Opłacone · zamówienie {number}",
+      "wonCancelled": "Nie zapłacono w terminie · zamówienie {number} anulowane",
       "lost": "Nie udało się wygrać",
       "reserveNotMet": "Cena minimalna nieosiągnięta",
       "cancelled": "Aukcja anulowana",
@@ -1154,7 +1156,6 @@
       "view": "Zobacz aukcję",
       "rebid": "Zalicytuj ponownie",
       "pay": "Zapłać",
-      "payHint": "Płatność online uruchomimy wkrótce.",
       "similar": "Szukaj podobnych",
       "bid": "Licytuj",
       "unwatch": "Przestań obserwować",
@@ -1423,5 +1424,110 @@
     "label": "Powiadomienia",
     "close": "Zamknij",
     "open": "Zobacz aukcję"
+  },
+  "checkout": {
+    "metaTitle": "Zapłać za zamówienie",
+    "back": "Wygrane",
+    "title": "Zapłać za zamówienie",
+    "order": "Zamówienie nr {number}",
+    "payBy": "Zapłać do {date}",
+    "payByExtended": "Czekamy na płatność do {date}",
+    "loading": "Wczytywanie zamówienia…",
+    "loadError": "Nie udało się wczytać zamówienia.",
+    "notFound": "Nie znaleziono zamówienia.",
+    "retry": "Spróbuj ponownie",
+    "delivery": {
+      "title": "Dostawa",
+      "kinds": {
+        "LOCKER": "Paczkomat",
+        "PICKUP_POINT": "Punkt odbioru",
+        "COURIER": "Kurier"
+      },
+      "none": "Żadna dostawa nie pasuje teraz do tego przedmiotu. Napisz do nas przez Centrum pomocy.",
+      "chooseCarrier": "Wybierz sposób dostawy.",
+      "point": "Punkt odbioru",
+      "pointSearch": "Miasto, adres albo kod punktu",
+      "pointSearchHint": "Np. Warszawa Marszałkowska albo WAW01M",
+      "pointSearchButton": "Szukaj",
+      "pointSearching": "Szukamy punktów…",
+      "pointResults": "Punkty odbioru",
+      "pointNoResults": "Nie znaleźliśmy punktów. Spróbuj innej nazwy miasta albo ulicy.",
+      "pointError": "Nie udało się wyszukać punktów. Spróbuj ponownie.",
+      "pointRequired": "Wybierz punkt odbioru.",
+      "pointQueryTooShort": "Wpisz co najmniej 2 znaki.",
+      "pointChange": "Zmień punkt",
+      "pointSelected": "Wybrany punkt",
+      "recipient": "Odbiorca",
+      "name": "Imię i nazwisko",
+      "phone": "Telefon",
+      "phoneHint": "Przewoźnik wyśle na ten numer informacje o przesyłce.",
+      "street": "Ulica i numer",
+      "postalCode": "Kod pocztowy",
+      "city": "Miejscowość",
+      "defaultAddress": "Wpisaliśmy Twój domyślny adres dostawy. Zmiany dotyczą tylko tego zamówienia."
+    },
+    "payment": {
+      "title": "Płatność",
+      "methods": {
+        "BLIK": "BLIK",
+        "CARD": "Karta płatnicza",
+        "PAY_BY_LINK": "Szybki przelew"
+      },
+      "methodHints": {
+        "BLIK": "Wpisz kod z aplikacji banku i potwierdź płatność w telefonie.",
+        "CARD": "Przejdziesz na stronę operatora płatności.",
+        "PAY_BY_LINK": "Przejdziesz na stronę operatora płatności i wybierzesz bank."
+      },
+      "blikCode": "Kod BLIK",
+      "blikHint": "6 cyfr z aplikacji banku",
+      "blikRequired": "Wpisz 6 cyfr kodu BLIK.",
+      "escrow": "Pieniądze czekają u operatora płatności, aż potwierdzisz odbiór. Sprzedający dostanie je dopiero wtedy.",
+      "failed": {
+        "DECLINED": "Bank odrzucił płatność. Spróbuj ponownie albo wybierz inną metodę.",
+        "INVALID_BLIK_CODE": "Kod BLIK jest błędny albo wygasł. Wygeneruj nowy kod w aplikacji banku.",
+        "EXPIRED": "Płatność wygasła. Zapłać ponownie.",
+        "CANCELLED": "Płatność anulowano. Zapłać ponownie.",
+        "SELLER_NOT_VERIFIED": "Sprzedający nie może jeszcze przyjąć płatności. Napisz do nas przez Centrum pomocy.",
+        "PROVIDER_ERROR": "Operator płatności nie odpowiedział. Zapłać ponownie za chwilę."
+      },
+      "failedTitle": "Płatność nie przeszła"
+    },
+    "summary": {
+      "title": "Podsumowanie",
+      "price": "Cena",
+      "pok": "Pakiet Ochrony Kupujących",
+      "pokLink": "Co to jest?",
+      "shipping": "Dostawa",
+      "shippingNone": "wybierz dostawę",
+      "total": "Do zapłaty",
+      "pay": "Zapłać {total}",
+      "payAgain": "Zapłać ponownie {total}",
+      "paying": "Rozpoczynamy płatność…",
+      "notPickedUp": "Jeśli nie odbierzesz paczki, zwrócimy cenę i Pakiet Ochrony Kupujących, bez kosztu dostawy.",
+      "terms": "Regulamin"
+    },
+    "totalChanged": "Kwota się zmieniła. Sprawdź podsumowanie i zapłać ponownie.",
+    "waiting": {
+      "blikTitle": "Potwierdź płatność w aplikacji banku",
+      "blikText": "Czekamy na potwierdzenie BLIK. Nie zamykaj tej strony.",
+      "redirectTitle": "Sprawdzamy płatność…",
+      "redirectText": "Jeśli strona operatora płatności nadal jest otwarta, dokończ na niej płatność.",
+      "redirectLink": "Wróć do strony płatności",
+      "confirmingTitle": "Potwierdzamy płatność…",
+      "confirmingText": "Płatność przeszła. Za chwilę potwierdzimy zamówienie."
+    },
+    "paid": {
+      "title": "Zapłacone!",
+      "text": "Zapłacono {total} za zamówienie nr {number}.",
+      "shipBy": "Sprzedający ma czas na nadanie paczki do {date}. Dostaniesz numer przesyłki.",
+      "already": "To zamówienie jest już opłacone.",
+      "myBiddy": "Zobacz w Moje Biddy",
+      "auction": "Wróć do aukcji"
+    },
+    "expired": {
+      "title": "Termin płatności minął",
+      "text": "Zamówienie zostało anulowane. Jeśli płatność jednak przejdzie, automatycznie zwrócimy całą kwotę.",
+      "similar": "Szukaj podobnych"
+    }
   }
 }

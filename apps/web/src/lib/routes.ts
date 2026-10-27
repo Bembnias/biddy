@@ -39,6 +39,11 @@ export const routes = {
   fakeShipping: '/dev/fake-shipping',
 } as const;
 
+/** Checkout zamówienia dla kupującego (F-25), np. `/zamowienia/k3x9qa7m/zaplac`. */
+export function checkoutUrl(orderPublicId: string): string {
+  return `/zamowienia/${encodeURIComponent(orderPublicId)}/zaplac`;
+}
+
 /** Strona nadania paczki zamówienia dla sprzedającego (F-24), np. `/zamowienia/k3x9qa7m/nadaj`. */
 export function dispatchUrl(orderPublicId: string): string {
   return `/zamowienia/${encodeURIComponent(orderPublicId)}/nadaj`;

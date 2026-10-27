@@ -8,9 +8,9 @@
 // operatora. Checkout (F-25) wywołuje createPayment; kod BLIK idzie tylko do operatora.
 import { isCurrencyCode, type Money } from '@biddy/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
-import { type Database, DRIZZLE } from '../../../infra/db/index.js';
+import { type Database, DRIZZLE, type Transaction } from '../../../infra/db/index.js';
 import { DomainError } from '../../../infra/http/index.js';
 import * as paymentsTables from '../db/payments.schema.js';
 import { type PaymentRow, payments } from '../db/payments.schema.js';
@@ -146,6 +146,25 @@ export class PaymentService {
 
   async get(id: string): Promise<PaymentView | undefined> {
     const [row] = await this.db.select().from(payments).where(eq(payments.id, id));
+    return row === undefined ? undefined : toPaymentView(row);
+  }
+
+  /** Płatności zamówienia, najnowsza najpierw (checkout, F-25). */
+  async forOrder(orderId: string, tx?: Transaction): Promise<PaymentView[]> {
+    const rows = await (tx ?? this.db)
+      .select()
+      .from(payments)
+      .where(eq(payments.orderId, orderId))
+      .orderBy(desc(payments.createdAt), desc(payments.id));
+    return rows.map(toPaymentView);
+  }
+
+  /** Płatność po kluczu wywołującego (ponowienie żądania checkoutu) albo undefined. */
+  async byIdempotencyKey(key: string, tx?: Transaction): Promise<PaymentView | undefined> {
+    const [row] = await (tx ?? this.db)
+      .select()
+      .from(payments)
+      .where(eq(payments.idempotencyKey, key));
     return row === undefined ? undefined : toPaymentView(row);
   }
 

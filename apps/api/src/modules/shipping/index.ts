@@ -14,6 +14,7 @@
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
  */
 export { CarrierClaimService, type OpenClaimInput } from './application/carrier-claim.service.js';
+export { postalAddressSchema, shipmentPartySchema } from './application/shipment-party.js';
 export { MAX_PICKUP_POINTS, PickupPointService } from './application/pickup-point.service.js';
 export {
   type DispatchInput,

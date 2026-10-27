@@ -29,6 +29,25 @@ export const PAYMENT_FAILURE_REASONS = [
 ] as const;
 export type PaymentFailureReason = (typeof PAYMENT_FAILURE_REASONS)[number];
 
+/**
+ * Powód pełnego zwrotu płatności (F-25); ta sama lista co `FULL_REFUND_REASONS` w ledgerze
+ * (plik tabel nie importuje ledgera). Checkout zwraca płatności spóźnione i zdublowane, a powody
+ * nienadania, zaginięcia, sporu i chargebacku dojdą z F-26–F-28.
+ */
+export const REFUND_REASONS = [
+  'NOT_SHIPPED',
+  'LOST',
+  'DISPUTE',
+  'LATE_PAYMENT',
+  'DUPLICATE_PAYMENT',
+  'CHARGEBACK',
+] as const;
+export type RefundReason = (typeof REFUND_REASONS)[number];
+
+/** Stan zwrotu: PENDING do potwierdzenia przez operatora (webhook). */
+export const REFUND_STATUSES = ['PENDING', 'SUCCEEDED', 'FAILED'] as const;
+export type RefundStatus = (typeof REFUND_STATUSES)[number];
+
 /** Status weryfikacji (KYC) sprzedawcy u operatora. */
 export const SELLER_STATUSES = ['PENDING', 'VERIFIED', 'REJECTED'] as const;
 export type SellerStatus = (typeof SELLER_STATUSES)[number];

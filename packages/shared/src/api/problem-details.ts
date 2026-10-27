@@ -86,6 +86,18 @@ export const ERROR_CODES = {
   ORDER_NOT_AWAITING_SHIPMENT: 'ORDER_NOT_AWAITING_SHIPMENT',
   /** Przesyłka jest już nadawana albo nadana, więc dostawy nie można zmienić (F-24). */
   SHIPMENT_ALREADY_DISPATCHED: 'SHIPMENT_ALREADY_DISPATCHED',
+  /** Zamówienie nie czeka na płatność: już opłacone albo anulowane (F-25). */
+  ORDER_NOT_AWAITING_PAYMENT: 'ORDER_NOT_AWAITING_PAYMENT',
+  /** Termin płatności minął: nowa płatność i zmiana dostawy niemożliwe (F-25). */
+  PAYMENT_DEADLINE_PASSED: 'PAYMENT_DEADLINE_PASSED',
+  /** Płatność zamówienia jest w toku albo już udana (F-25). */
+  PAYMENT_IN_PROGRESS: 'PAYMENT_IN_PROGRESS',
+  /** Przed płatnością trzeba wybrać dostawę (F-25). */
+  DELIVERY_REQUIRED: 'DELIVERY_REQUIRED',
+  /** Suma widziana przez kupującego różni się od sumy zamówienia (F-25). */
+  CHECKOUT_TOTAL_CHANGED: 'CHECKOUT_TOTAL_CHANGED',
+  /** Sprzedający nie może przyjąć płatności (konto zablokowane albo bez e-maila, F-25). */
+  SELLER_UNAVAILABLE: 'SELLER_UNAVAILABLE',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */
