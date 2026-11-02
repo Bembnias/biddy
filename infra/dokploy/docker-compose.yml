@@ -77,7 +77,11 @@ services:
       OPENAPI_ENABLED: ${OPENAPI_ENABLED:-false}
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:?podaj klucz witryny Turnstile}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:?podaj klucz tajny Turnstile}
-      SMSAPI_TOKEN: ${SMSAPI_TOKEN:?podaj token SMSAPI}
+      # SMS-y: prawdziwy token SMSAPI albo, do czasu aktywacji konta, SMS_LOG_ONLY=true (kod w logu
+      # API, bez wysyłki). Brak obu zatrzymuje start API z listą błędnych zmiennych; na produkcji
+      # (DEPLOYMENT_ENV=production) SMS_LOG_ONLY jest odrzucane.
+      SMS_LOG_ONLY: ${SMS_LOG_ONLY:-false}
+      SMSAPI_TOKEN: ${SMSAPI_TOKEN:-}
       SMSAPI_SENDER: ${SMSAPI_SENDER:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}

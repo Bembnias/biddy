@@ -578,6 +578,47 @@ describe('loadConfig: SMS-y (F-08)', () => {
       'SMSAPI_SENDER',
     ]);
   });
+
+  describe('SMS_LOG_ONLY (atrapa z kodem w logu na stagingu)', () => {
+    const staging = {
+      ...production,
+      CORS_ORIGINS: 'https://staging.biddy.pl',
+      DEPLOYMENT_ENV: 'staging',
+      PAYMENTS_DEFAULT_PROVIDER: undefined,
+      ...NO_FURGONETKA,
+    };
+
+    it('włączone przełącza na atrapę nawet z tokenem; wyłączone zostawia SMSAPI', () => {
+      const withToken = { ...minimal, SMSAPI_TOKEN: 't0k3n' };
+      expect(loadConfig({ ...withToken, SMS_LOG_ONLY: 'true' }).sms).toEqual({ kind: 'log' });
+      expect(loadConfig({ ...withToken, SMS_LOG_ONLY: '1' }).sms).toEqual({ kind: 'log' });
+      expect(loadConfig({ ...withToken, SMS_LOG_ONLY: 'false' }).sms).toMatchObject({
+        kind: 'smsapi',
+      });
+    });
+
+    it('odrzuca wartość inną niż true i false', () => {
+      expect(variablesWithIssues({ ...minimal, SMS_LOG_ONLY: 'tak' })).toEqual(['SMS_LOG_ONLY']);
+    });
+
+    it('staging bez tokenu wymaga SMSAPI_TOKEN, a z SMS_LOG_ONLY=true startuje z atrapą', () => {
+      expect(variablesWithIssues({ ...staging, SMSAPI_TOKEN: undefined })).toEqual([
+        'SMSAPI_TOKEN',
+      ]);
+      expect(loadConfig({ ...staging, SMSAPI_TOKEN: undefined, SMS_LOG_ONLY: 'true' }).sms).toEqual(
+        { kind: 'log' },
+      );
+    });
+
+    it('na produkcji jest odrzucane, z tokenem i bez niego', () => {
+      const prod = { ...production, CORS_ORIGINS: 'https://biddy.pl' };
+      expect(variablesWithIssues({ ...prod, SMS_LOG_ONLY: 'true' })).toEqual(['SMS_LOG_ONLY']);
+      expect(
+        variablesWithIssues({ ...prod, SMSAPI_TOKEN: undefined, SMS_LOG_ONLY: 'true' }),
+      ).toEqual(['SMS_LOG_ONLY']);
+      expect(loadConfig({ ...prod, SMS_LOG_ONLY: 'false' }).sms).toMatchObject({ kind: 'smsapi' });
+    });
+  });
 });
 
 describe('loadConfig: konta i e-maile (F-07)', () => {
@@ -961,6 +1002,7 @@ describe('.env.example (sekcja API)', () => {
         'RESEND_API_KEY',
         'SMSAPI_TOKEN',
         'SMSAPI_SENDER',
+        'SMS_LOG_ONLY',
         'MEDIA_PUBLIC_URL',
         'AUCTION_ANTI_SNIPING_SECONDS',
       ]),

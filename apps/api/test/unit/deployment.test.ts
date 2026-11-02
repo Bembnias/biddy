@@ -189,11 +189,16 @@ const references = [...composeConfig.matchAll(/\$\{([A-Z][A-Z0-9_]*)(:[?-][^}]*)
   ([, name, modifier]) => ({ name: name ?? '', required: modifier?.startsWith(':?') ?? false }),
 );
 const requiredVariables = new Set(references.filter((ref) => ref.required).map((ref) => ref.name));
+/**
+ * Compose wymusza `:?` tylko część zmiennych. Token SMSAPI jest opcjonalny w compose (na stagingu
+ * może go zastąpić SMS_LOG_ONLY=true), ale konfiguracja API wymaga go przy SMS_LOG_ONLY=false.
+ */
+const requiredByConfig = new Set([...requiredVariables, 'SMSAPI_TOKEN']);
 /** Zmienne stosu jak w szablonie; puste wymagane (sekrety) dostają przykładową wartość. */
 const stackVariables: Record<string, string> = Object.fromEntries(
   Object.entries(envExample).map(([name, value]) => [
     name,
-    value === '' && requiredVariables.has(name)
+    value === '' && requiredByConfig.has(name)
       ? `przykladowa-wartosc-${name.toLowerCase()}-0123456789`
       : value,
   ]),
@@ -269,6 +274,15 @@ describe('infra/dokploy (stos na serwerze z Dokploy)', () => {
     const production = { ...apiEnv, DEPLOYMENT_ENV: 'production' };
     expect(() => loadConfig(production, 'api')).toThrow(/PAYMENTS_DEFAULT_PROVIDER/);
     expect(() => loadConfig(production, 'api')).toThrow(/SHIPPING_DEFAULT_PROVIDER/);
+  });
+
+  it('staging z SMS_LOG_ONLY=true działa bez tokenu SMSAPI; produkcja odrzuca atrapę SMS (F-08)', () => {
+    expect(loadConfig(apiEnv, 'api').sms.kind).toBe('smsapi');
+    const logOnly = { ...apiEnv, SMSAPI_TOKEN: '', SMS_LOG_ONLY: 'true' };
+    expect(loadConfig(logOnly, 'api').sms).toEqual({ kind: 'log' });
+    expect(() => loadConfig({ ...logOnly, DEPLOYMENT_ENV: 'production' }, 'api')).toThrow(
+      /SMS_LOG_ONLY/,
+    );
   });
 
   it('adresy Redisa, Meilisearch i API wskazują aliasy usług z tego stosu', () => {
