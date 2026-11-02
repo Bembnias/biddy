@@ -1,0 +1,123 @@
+# Cała aplikacja Biddy w Dockerze do lokalnego testowania: infrastruktura z docker-compose.yml
+# plus migracje i dane testowe, API, worker i web.
+#
+#   pnpm app:up     — build obrazów i start wszystkiego (web: http://localhost:3000)
+#   pnpm app:logs   — logi API, workera i web (kody SMS z weryfikacji telefonu są w logach API)
+#   pnpm app:down   — zatrzymanie (dane zostają w wolumenach)
+#
+# Na co dzień przy pisaniu kodu wygodniejsze jest `pnpm dev` (przeładowanie po zmianach).
+#
+# Adresy z przeglądarki i z kontenerów: web i API są pod localhost (porty wystawione na hosta),
+# a renderowanie na serwerze woła API po sieci Dockera (API_INTERNAL_URL). Zdjęcia przeglądarka
+# wysyła wprost do S3 (RustFS) na podpisany adres, więc S3 ma nazwę `s3.localhost`: Chrome
+# i Firefox kierują *.localhost na 127.0.0.1 (port 9000 na hoście), a w sieci Dockera to alias
+# kontenera rustfs. Ten sam adres widzą więc przeglądarka, API i worker.
+
+x-app-env: &app-env
+  # Obraz API ma zależności produkcyjne, ale konfiguracja jak lokalnie: atrapy SMS (kod w logach),
+  # testowe klucze Turnstile, poczta do Mailpit, bez Sentry.
+  NODE_ENV: development
+  LOG_PRETTY: 'false'
+  DATABASE_URL: postgres://${POSTGRES_USER:-biddy}:${POSTGRES_PASSWORD:-biddy}@postgres:5432/${POSTGRES_DB:-biddy}
+  REDIS_QUEUE_URL: redis://redis-queue:6379
+  REDIS_CACHE_URL: redis://redis-cache:6379
+  MEILI_URL: http://meilisearch:7700
+  MEILI_API_KEY: ${MEILI_MASTER_KEY:-biddy-local-meili-master-key}
+  S3_ENDPOINT: http://s3.localhost:9000
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-biddy-local}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-biddy-local-secret}
+  MEDIA_PUBLIC_URL: http://s3.localhost:9000/biddy-media
+  SMTP_HOST: mailpit
+  SMTP_PORT: '1025'
+  API_PUBLIC_URL: http://localhost:3001
+  WEB_URL: http://localhost:3000
+  CORS_ORIGINS: http://localhost:3000
+
+# Jeden obraz dla migracji, API i workera: buduje go tylko `migrate` (równoległe buildy tego
+# samego obrazu kolidują przy zapisie), reszta używa gotowego.
+x-api-image: &api-image
+  image: biddy-api:local
+  pull_policy: never
+
+services:
+  rustfs:
+    networks:
+      default:
+        aliases: [s3.localhost]
+
+  # Migracje i konta testowe (hasło w logach usługi), potem kończy działanie.
+  migrate:
+    <<: *api-image
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment: *app-env
+    command: ['sh', '-c', 'node dist/infra/db/migrate.js && node dist/seed.js']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    <<: *api-image
+    environment:
+      <<: *app-env
+      API_PORT: '3001'
+      API_HOST: 0.0.0.0
+    ports:
+      - '127.0.0.1:3001:3001'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis-queue:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+      start_interval: 1s
+    restart: unless-stopped
+
+  # FakeGateway i FakeShipping w workerze wysyłają webhooki do API po sieci Dockera (localhost
+  # w kontenerze workera to on sam).
+  worker:
+    <<: *api-image
+    environment:
+      <<: *app-env
+      PAYMENTS_FAKE_WEBHOOK_URL: http://api:3001/v1/webhooks/payments/fake
+      SHIPPING_FAKE_WEBHOOK_URL: http://api:3001/v1/webhooks/shipping/fake
+    command: ['node', '--import', './dist/instrument.js', 'dist/worker.js']
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: biddy-web:local
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    environment:
+      API_INTERNAL_URL: http://api:3001
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

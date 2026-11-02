@@ -1,0 +1,82 @@
+/* Tailwind CSS 4 z motywem z @biddy/design-tokens: domyślna paleta, fonty i rozmiary Tailwinda
+   są wyłączone, więc dostępne są tylko klasy z tokenów (np. bg-primary, text-muted-foreground). */
+@import 'tailwindcss';
+@import '@biddy/design-tokens/theme.css';
+
+/* Ruch w „pulsie licytacji” (F-63): wjazd nowych elementów (toast, wpis w historii, pasek stanu),
+   dolny arkusz i konfetti wygranej. Ciągle animuje się tylko kropka LIVE (animate-ping). */
+@theme {
+  --animate-enter: enter 300ms ease-out;
+  --animate-toast-in: toast-in 250ms ease-out;
+  --animate-sheet-in: sheet-in 250ms ease-out;
+  --animate-confetti: confetti 3.2s ease-in-out infinite alternate;
+  --animate-flash: flash 1.6s ease-out forwards;
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(-0.5rem);
+    }
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateX(1.5rem);
+    }
+  }
+
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+
+  @keyframes confetti {
+    to {
+      translate: 0 0.625rem;
+    }
+  }
+
+  /* Podświetlenie (np. nowej ceny): kolor tła daje klasa, animacja tylko go wygasza. */
+  @keyframes flash {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+}
+
+/* Tryb ciemny jest poza MVP: wariant dark: działa tylko z klasą .dark, której nie ustawiamy.
+   Domyślnie Tailwind 4 reagowałby na prefers-color-scheme i mieszał kolory w komponentach shadcn. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  body {
+    @apply flex min-h-dvh flex-col;
+  }
+
+  /* Widoczny fokus klawiatury na linkach i przyciskach bez własnego stylu fokusu. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  /* F-63: przy ograniczonym ruchu nic się nie animuje (animacje kończą się od razu w stanie
+     końcowym, więc zdarzenia animationend nadal przychodzą). Zmiany koloru zostają. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

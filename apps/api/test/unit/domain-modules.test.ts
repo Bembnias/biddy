@@ -2,8 +2,19 @@ import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { Test } from '@nestjs/testing';
+import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
 
+import { ConfigModule, loadConfig } from '../../src/infra/config/index.js';
+import { DbModule } from '../../src/infra/db/index.js';
+import { createLoggerModule } from '../../src/infra/logger/index.js';
+import { MailModule } from '../../src/infra/mail/index.js';
+import { OutboxModule } from '../../src/infra/outbox/index.js';
+import { QueuesModule } from '../../src/infra/queues/index.js';
+import { SmsModule } from '../../src/infra/sms/index.js';
+import { RealtimeModule } from '../../src/infra/realtime/index.js';
+import { WebModule } from '../../src/infra/web/index.js';
+import { StorageModule } from '../../src/infra/storage/index.js';
 import { DOMAIN_MODULES } from '../../src/modules/index.js';
 
 /** Moduły backendu z PROJECT.md §10.3, w kolejności z tabeli. */
@@ -64,8 +75,27 @@ describe('DOMAIN_MODULES', () => {
     }
   });
 
-  it('wszystkie moduły kompilują się w module testowym NestJS', async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [...DOMAIN_MODULES] }).compile();
+  it('wszystkie moduły kompilują się w module testowym NestJS (z infrastrukturą globalną)', async () => {
+    // Pula bazy i Redis łączą się leniwie, więc kompilacja nie wymaga działających usług.
+    const config = loadConfig({
+      NODE_ENV: 'test',
+      DATABASE_URL: 'postgres://biddy@127.0.0.1:1/biddy',
+    });
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        ConfigModule.forRoot(config),
+        DbModule,
+        createLoggerModule(pino({ level: 'silent' })),
+        QueuesModule.forRoot(),
+        MailModule,
+        OutboxModule,
+        SmsModule,
+        StorageModule,
+        RealtimeModule,
+        WebModule,
+        ...DOMAIN_MODULES,
+      ],
+    }).compile();
     try {
       for (const moduleClass of DOMAIN_MODULES) {
         expect(moduleRef.get(moduleClass, { strict: false })).toBeInstanceOf(moduleClass);

@@ -1,4 +1,12 @@
 // Publiczne API warstwy HTTP. Moduły domenowe korzystają stąd z DomainError.
+export {
+  AUTH_COOKIE_PREFIX,
+  CLIENT_IP_HEADER,
+  csrfVerdict,
+  hasSessionCookie,
+  registerCsrfProtection,
+  type CsrfVerdict,
+} from './csrf.js';
 export { DomainError, type DomainErrorOptions } from './domain-error.js';
 export {
   ERROR_DEFINITIONS,

@@ -1,0 +1,1536 @@
+{
+  "metadata": {
+    "title": "Biddy: licytacje z ochroną kupującego",
+    "description": "Licytuj karty, sneakersy, retro gry i kolekcje. Uczciwa cena ustalona przez rynek, płatność wstrzymana do odbioru przedmiotu, a sprzedający dostaje 100% kwoty."
+  },
+  "layout": {
+    "skipToContent": "Przejdź do treści",
+    "home": "Biddy, strona główna",
+    "mainNavigation": "Nawigacja główna",
+    "search": {
+      "label": "Szukaj na Biddy",
+      "placeholder": "Szukaj przedmiotów, np. Pokémon, Air Max…",
+      "submit": "Szukaj"
+    },
+    "sell": "Wystaw przedmiot",
+    "signIn": "Zaloguj się",
+    "account": "Moje konto",
+    "greeting": "Hej,",
+    "bottomNav": {
+      "label": "Szybka nawigacja",
+      "start": "Start",
+      "search": "Szukaj",
+      "sell": "Wystaw",
+      "myBiddy": "Moje Biddy",
+      "account": "Konto"
+    }
+  },
+  "footer": {
+    "label": "Stopka",
+    "tagline": "Second-hand na żywo: oglądaj, licytuj, kupuj i sprzedawaj z ochroną kupujących.",
+    "company": {
+      "title": "Biddy",
+      "about": "O nas",
+      "contact": "Kontakt"
+    },
+    "help": {
+      "title": "Pomoc",
+      "howBiddingWorks": "Jak działa licytacja",
+      "buyerProtection": "Pakiet Ochrony Kupujących",
+      "helpCenter": "Centrum pomocy"
+    },
+    "rules": {
+      "title": "Zasady",
+      "terms": "Regulamin",
+      "privacy": "Polityka prywatności",
+      "prohibitedItems": "Zakazane przedmioty"
+    },
+    "copyright": "© {year} Biddy. Licytacje z ochroną kupującego."
+  },
+  "home": {
+    "hero": {
+      "eyebrow": "Licytacje C2C z ochroną kupującego",
+      "title": "Licytuj. <accent>Wygrywaj.</accent> Kupuj bezpiecznie.",
+      "lead": "Cenę ustala rynek, a pieniądze czekają u operatora płatności, aż odbierzesz przedmiot i potwierdzisz, że wszystko się zgadza.",
+      "browse": "Przeglądaj aukcje",
+      "sell": "Wystaw przedmiot",
+      "trust": {
+        "protection": "Pieniądze bezpieczne do odbioru",
+        "autoBid": "Licytacja automatyczna",
+        "zeroFee": "0% prowizji dla sprzedających"
+      }
+    },
+    "values": {
+      "title": "Dlaczego Biddy",
+      "fairPrice": {
+        "title": "Uczciwa cena",
+        "text": "Licytacja pokazuje, ile przedmiot jest naprawdę wart. Licytuj automatycznie do swojego maksimum, a my podbijemy ofertę za Ciebie."
+      },
+      "protection": {
+        "title": "Pakiet Ochrony Kupujących",
+        "text": "Płacisz BLIK-iem lub kartą, a środki trafiają do sprzedającego dopiero po odbiorze. Masz 36 godzin na sprawdzenie przedmiotu."
+      },
+      "zeroFee": {
+        "title": "0% prowizji dla sprzedających",
+        "text": "Sprzedający dostaje 100% wylicytowanej kwoty, gotową etykietę i śledzenie przesyłki."
+      }
+    },
+    "niches": {
+      "title": "Odkrywaj kolekcje",
+      "collectibles": {
+        "title": "Kolekcjonerstwo",
+        "text": "Karty Pokémon, MTG i One Piece, LEGO, figurki i monety.",
+        "query": "kolekcjonerstwo"
+      },
+      "sneakers": {
+        "title": "Sneakersy i vintage",
+        "text": "Limitowane edycje, streetwear i moda z duszą.",
+        "query": "sneakersy"
+      },
+      "retro": {
+        "title": "Retro gaming",
+        "text": "Konsole, kartridże i elektronika z historią.",
+        "query": "retro gaming"
+      },
+      "cta": "Zobacz aukcje"
+    },
+    "ending": "Kończą się wkrótce",
+    "newest": "Nowe aukcje",
+    "categories": "Kategorie",
+    "seeAll": "Zobacz wszystkie",
+    "endingLive": "Na żywo",
+    "endingLead": "Tu teraz rozstrzyga się cena. Oferta w ostatnich minutach przedłuża aukcję.",
+    "how": {
+      "overline": "Jak działa licytacja",
+      "title": "Podajesz maksimum. Resztę robi Biddy.",
+      "max": {
+        "title": "Ustaw swoje maksimum",
+        "text": "Wpisz najwyższą kwotę, jaką chcesz zapłacić. Inni licytujący jej nie zobaczą."
+      },
+      "proxy": {
+        "title": "Biddy licytuje za Ciebie",
+        "text": "Podbijamy cenę tylko o tyle, ile trzeba, żeby utrzymać prowadzenie. Gdy ktoś Cię przebije, dostaniesz powiadomienie."
+      },
+      "pay": {
+        "title": "Wygrywasz i płacisz bezpiecznie",
+        "text": "Płacisz BLIK-iem lub kartą. Sprzedający dostaje pieniądze dopiero po odbiorze paczki."
+      }
+    },
+    "showcase": {
+      "label": "Aukcja na żywo: {title}",
+      "currentOffer": "Aktualna oferta",
+      "startPrice": "Cena wywoławcza",
+      "bids": "{count, plural, =0 {Brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+      "recentBids": "Ostatnie oferty",
+      "raises": "{name} podbija do <strong>{price}</strong>",
+      "now": "teraz",
+      "minutesAgo": "{minutes} min",
+      "join": "Dołącz do licytacji",
+      "result": "Zobacz wynik",
+      "ended": "Aukcja zakończona",
+      "hot": "Gorąca aukcja"
+    }
+  },
+  "notFound": {
+    "metaTitle": "Nie znaleziono strony",
+    "title": "Nie znaleźliśmy tej strony",
+    "text": "Adres mógł się zmienić albo aukcja została usunięta. Sprawdź adres lub poszukaj przedmiotu.",
+    "home": "Strona główna",
+    "search": "Szukaj przedmiotów"
+  },
+  "error": {
+    "title": "Coś poszło nie tak",
+    "text": "Nie udało się wyświetlić tej strony. Spróbuj ponownie za chwilę. Jeśli problem się powtarza, napisz do nas i podaj kod błędu.",
+    "retry": "Spróbuj ponownie",
+    "home": "Strona główna",
+    "reference": "Kod błędu: {digest}"
+  },
+  "loading": "Ładowanie…",
+  "auth": {
+    "validation": {
+      "email": "Podaj poprawny adres e-mail.",
+      "passwordMin": "Hasło musi mieć co najmniej 10 znaków.",
+      "passwordMax": "Hasło może mieć najwyżej 128 znaków.",
+      "terms": "Zaakceptuj regulamin i politykę prywatności.",
+      "adult": "Konto mogą założyć tylko osoby pełnoletnie.",
+      "passwordsDiffer": "Hasła nie są takie same.",
+      "phone": "Podaj polski numer komórkowy, np. 500 600 700.",
+      "code": "Wpisz 6 cyfr kodu z SMS-a.",
+      "nameLength": "Imię wyświetlane musi mieć od 2 do 60 znaków.",
+      "nameCharacters": "Imię wyświetlane może zawierać litery, cyfry, spacje, kropkę, myślnik, podkreślnik i apostrof.",
+      "nameContact": "Imię wyświetlane nie może zawierać numeru telefonu ani adresu strony.",
+      "recipientName": "Podaj imię i nazwisko albo nazwę firmy (2–100 znaków).",
+      "street": "Podaj ulicę z numerem (2–100 znaków).",
+      "postalCode": "Podaj kod pocztowy w formacie 00-000.",
+      "city": "Podaj miasto (2–60 znaków)."
+    },
+    "fields": {
+      "name": "Imię wyświetlane",
+      "nameHint": "Widoczne dla innych użytkowników, np. przy ofertach.",
+      "email": "E-mail",
+      "password": "Hasło",
+      "passwordHint": "Co najmniej 10 znaków.",
+      "newPassword": "Nowe hasło",
+      "confirmPassword": "Powtórz hasło",
+      "acceptTerms": "Akceptuję <terms>regulamin</terms> i <privacy>politykę prywatności</privacy>.",
+      "adultDeclaration": "Mam ukończone 18 lat.",
+      "captcha": "Weryfikacja, że nie jesteś robotem",
+      "showPassword": "Pokaż hasło",
+      "ruleMet": "Spełnione:",
+      "ruleNotMet": "Jeszcze nie:"
+    },
+    "social": {
+      "google": "Kontynuuj z Google",
+      "apple": "Kontynuuj z Apple",
+      "or": "albo e-mailem",
+      "signUp": {
+        "google": "Załóż konto z Google",
+        "apple": "Załóż konto z Apple"
+      }
+    },
+    "signIn": {
+      "metaTitle": "Logowanie",
+      "title": "Zaloguj się",
+      "lead": "Licytuj, obserwuj aukcje i śledź swoje zakupy.",
+      "submit": "Zaloguj się",
+      "pending": "Logowanie…",
+      "forgotPassword": "Nie pamiętasz hasła?",
+      "noAccount": "Nie masz konta?",
+      "signUp": "Załóż konto",
+      "captchaRequired": "Kilka prób się nie powiodło. Potwierdź, że nie jesteś robotem, i spróbuj ponownie."
+    },
+    "signUp": {
+      "metaTitle": "Załóż konto",
+      "title": "Załóż konto",
+      "lead": "Konto zakładasz w minutę. Licytować możesz po potwierdzeniu e-maila i telefonu.",
+      "submit": "Załóż konto",
+      "pending": "Zakładanie konta…",
+      "hasAccount": "Masz już konto?",
+      "signIn": "Zaloguj się",
+      "checkInboxTitle": "Sprawdź skrzynkę",
+      "checkInboxText": "Wysłaliśmy link potwierdzający na adres {email}. Kliknij go, żeby licytować i wystawiać przedmioty. Link jest ważny 24 godziny.",
+      "goToAccount": "Przejdź do konta"
+    },
+    "verifyEmail": {
+      "metaTitle": "Potwierdzenie adresu e-mail",
+      "successTitle": "Adres e-mail potwierdzony",
+      "successText": "Został jeszcze telefon. Potem możesz licytować i wystawiać przedmioty.",
+      "errorTitle": "Link wygasł lub jest nieprawidłowy",
+      "errorText": "Poproś o nowy link na stronie konta.",
+      "goToAccount": "Przejdź do konta",
+      "verifyPhone": "Zweryfikuj telefon"
+    },
+    "forgotPassword": {
+      "metaTitle": "Reset hasła",
+      "title": "Nie pamiętasz hasła?",
+      "text": "Podaj adres e-mail konta. Wyślemy link do ustawienia nowego hasła.",
+      "submit": "Wyślij link",
+      "pending": "Wysyłanie…",
+      "sentTitle": "Sprawdź skrzynkę",
+      "sentText": "Jeśli konto z adresem <strong>{email}</strong> istnieje, wysłaliśmy na nie link do zmiany hasła. Link jest ważny 1 godzinę.",
+      "backToSignIn": "Wróć do logowania"
+    },
+    "resetPassword": {
+      "metaTitle": "Nowe hasło",
+      "title": "Ustaw nowe hasło",
+      "text": "Po zmianie hasła wylogujemy Cię ze wszystkich urządzeń.",
+      "submit": "Zapisz hasło",
+      "pending": "Zapisywanie…",
+      "successTitle": "Hasło zmienione",
+      "successText": "Zaloguj się nowym hasłem.",
+      "signIn": "Zaloguj się",
+      "invalidLinkTitle": "Link wygasł lub jest nieprawidłowy",
+      "invalidLinkText": "Poproś o nowy link do zmiany hasła.",
+      "requestNew": "Poproś o nowy link"
+    },
+    "acceptTerms": {
+      "metaTitle": "Akceptacja regulaminu",
+      "title": "Zanim zaczniesz",
+      "text": "Żeby korzystać z Biddy, zaakceptuj regulamin i politykę prywatności oraz potwierdź pełnoletność.",
+      "submit": "Akceptuję",
+      "pending": "Zapisywanie…"
+    },
+    "phone": {
+      "metaTitle": "Weryfikacja telefonu",
+      "title": "Zweryfikuj numer telefonu",
+      "changeTitle": "Zmień numer telefonu",
+      "intro": "Licytować i wystawiać przedmioty można po weryfikacji numeru.",
+      "current": "Obecny numer: {phone}. Nowy numer zastąpi go po weryfikacji.",
+      "phoneLabel": "Numer telefonu",
+      "phoneHint": "Polski numer komórkowy, np. 500 600 700. Wyślemy na niego SMS z kodem.",
+      "send": "Wyślij kod",
+      "sending": "Wysyłanie…",
+      "codeSent": "Wysłaliśmy SMS z kodem na numer <strong>{phone}</strong>. Kod jest ważny 5 minut.",
+      "codeLabel": "Kod z SMS-a",
+      "codeHint": "6 cyfr",
+      "confirm": "Potwierdź",
+      "confirming": "Sprawdzanie…",
+      "resend": "Wyślij kod ponownie",
+      "resendIn": "Wyślij ponownie za {seconds} s",
+      "resent": "Wysłaliśmy nowy kod na numer <strong>{phone}</strong>.",
+      "changeNumber": "Zmień numer",
+      "emailFirstTitle": "Najpierw potwierdź adres e-mail",
+      "emailFirstText": "Weryfikacja telefonu wymaga potwierdzonego adresu e-mail. Kliknij link z wiadomości albo wyślij go ponownie na stronie konta.",
+      "goToAccount": "Przejdź do konta",
+      "footnote": "Weryfikacja chroni licytacje przed fałszywymi kontami. Jeden numer może mieć tylko jedno konto.",
+      "progress": {
+        "label": "Postęp weryfikacji",
+        "done": "Zrobione:",
+        "email": "E-mail",
+        "phone": "Telefon",
+        "bid": "Licytujesz"
+      }
+    },
+    "account": {
+      "metaTitle": "Moje konto",
+      "title": "Moje konto",
+      "email": "E-mail",
+      "emailVerified": "potwierdzony",
+      "emailNotVerified": "niepotwierdzony: potwierdź adres, żeby licytować i wystawiać",
+      "resendVerification": "Wyślij link ponownie",
+      "resendPending": "Wysyłanie…",
+      "resendDone": "Wysłaliśmy nowy link. Sprawdź skrzynkę.",
+      "phone": "Telefon",
+      "phoneVerified": "zweryfikowany",
+      "phoneNotVerified": "niezweryfikowany: zweryfikuj numer, żeby licytować i wystawiać",
+      "verifyPhone": "Zweryfikuj numer",
+      "changePhone": "Zmień numer",
+      "memberSince": "Konto od",
+      "profileSection": "Profil i adresy",
+      "editProfile": "Edytuj profil",
+      "addresses": "Adresy",
+      "notifications": "Powiadomienia",
+      "sellingSection": "Licytacje i sprzedaż",
+      "myAuctions": "Moje aukcje",
+      "sell": "Wystaw przedmiot",
+      "viewPublicProfile": "Zobacz swój profil publiczny",
+      "signOut": "Wyloguj się",
+      "signOutEverywhere": "Wyloguj ze wszystkich urządzeń",
+      "signOutEverywhereHint": "Wyloguj ze wszystkich urządzeń, np. po zgubieniu telefonu. Wylogujemy też aplikację mobilną.",
+      "myBiddy": "Moje Biddy",
+      "memberSinceLine": "Konto od {date}",
+      "noPhone": "Brak numeru",
+      "securitySection": "Bezpieczeństwo",
+      "shortcuts": {
+        "myBiddy": "Licytacje, wygrane i obserwowane",
+        "myAuctions": "Szkice, aktywne aukcje i sprzedaż",
+        "sell": "Wystaw aukcję w kilka minut",
+        "editProfile": "Imię wyświetlane i zdjęcie",
+        "addresses": "Dostawa i nadanie paczek",
+        "notifications": "E-maile o przebiciu i końcu aukcji"
+      }
+    },
+    "panel": {
+      "tagline": "Second-hand na żywo: oglądaj, licytuj, kupuj i sprzedawaj.",
+      "protection": "Płacisz przez Biddy, a sprzedający dostaje pieniądze dopiero po odbiorze paczki.",
+      "proxy": "Podajesz maksimum, a Biddy licytuje za Ciebie tylko o tyle, ile trzeba.",
+      "zeroFee": "Sprzedający nie płaci prowizji od wylicytowanej kwoty.",
+      "footnote": "Konto w Biddy to jedno miejsce na licytacje, obserwowane aukcje i zamówienia.",
+      "signUpTagline": "Od konta do pierwszej oferty w kilka minut.",
+      "signUpFootnote": "Jeden numer telefonu to jedno konto. Dzięki temu licytują prawdziwi ludzie.",
+      "exampleTitle": "Zegarek vintage, lata 80.",
+      "steps": {
+        "account": "Załóż konto",
+        "email": "Potwierdź e-mail jednym kliknięciem",
+        "phone": "Zweryfikuj telefon kodem SMS",
+        "bid": "Licytuj"
+      }
+    },
+    "genericError": "Coś poszło nie tak. Spróbuj ponownie za chwilę."
+  },
+  "profile": {
+    "settings": {
+      "metaTitle": "Edycja profilu",
+      "title": "Edycja profilu",
+      "text": "Imię wyświetlane widzą inni użytkownicy, np. przy ofertach i na Twoim profilu.",
+      "nameLabel": "Imię wyświetlane",
+      "nameHint": "2–60 znaków, bez numeru telefonu i adresu strony.",
+      "submit": "Zapisz",
+      "pending": "Zapisywanie…",
+      "saved": "Zapisano.",
+      "viewPublic": "Zobacz profil publiczny",
+      "back": "Wróć do konta"
+    },
+    "public": {
+      "metaDescription": "Profil użytkownika {name} na Biddy: aukcje i oceny.",
+      "memberSince": "Na Biddy od {date}",
+      "phoneVerified": "Zweryfikowany telefon",
+      "activeAuctions": "Aktywne aukcje",
+      "noActiveAuctions": "Brak aktywnych aukcji.",
+      "ratings": "Oceny",
+      "noRatings": "Oceny pojawią się po pierwszych transakcjach.",
+      "stats": "Statystyki",
+      "statActive": "Aktywne"
+    },
+    "avatarLabel": "Zdjęcie profilowe: {name}",
+    "follow": {
+      "follow": "Obserwuj sprzedawcę",
+      "following": "Obserwujesz",
+      "unfollowLabel": "Przestań obserwować sprzedawcę {name}",
+      "guest": "Zaloguj się, aby obserwować",
+      "hint": "Powiadomimy Cię o nowych aukcjach tego sprzedawcy.",
+      "error": "Nie udało się zmienić obserwowania."
+    }
+  },
+  "addresses": {
+    "metaTitle": "Adresy",
+    "title": "Adresy",
+    "text": "Adres domyślny dostawy podpowiemy przy zakupie, a domyślny adres nadania przy wysyłce paczki.",
+    "add": "Dodaj adres",
+    "empty": "Nie masz jeszcze adresów.",
+    "defaultDelivery": "Domyślny adres dostawy",
+    "defaultSender": "Domyślny adres nadania",
+    "edit": "Edytuj",
+    "setDefault": "Ustaw jako domyślny do dostawy",
+    "setSenderDefault": "Ustaw jako domyślny do nadania",
+    "delete": "Usuń",
+    "deleteTitle": "Usunąć adres?",
+    "deleteText": "Adres {address} zniknie z listy. Zamówienia, które już go użyły, nie zmienią się.",
+    "deleteConfirm": "Usuń adres",
+    "cancel": "Anuluj",
+    "limit": "Możesz zapisać najwyżej {max} adresów.",
+    "back": "Wróć do konta",
+    "form": {
+      "newTitle": "Nowy adres",
+      "editTitle": "Edycja adresu",
+      "recipientName": "Imię i nazwisko albo firma",
+      "street": "Ulica i numer",
+      "streetHint": "Np. ul. Długa 5/12",
+      "postalCode": "Kod pocztowy",
+      "city": "Miasto",
+      "phone": "Telefon",
+      "phoneHint": "Przewoźnik wyśle na niego powiadomienie o paczce.",
+      "isDefault": "Domyślny adres dostawy",
+      "isSenderDefault": "Domyślny adres nadania",
+      "submit": "Zapisz adres",
+      "pending": "Zapisywanie…",
+      "cancel": "Anuluj",
+      "countryLabel": "Kraj",
+      "countryValue": "Polska",
+      "flags": "Ustawienia adresu"
+    }
+  },
+  "catalog": {
+    "picker": {
+      "category": "Kategoria",
+      "subcategory": "Podkategoria",
+      "choose": "Wybierz",
+      "selected": "Wybrano: {path}",
+      "chooseLeaf": "Wybierz podkategorię, żeby przejść dalej.",
+      "loadError": "Nie udało się wczytać kategorii.",
+      "retry": "Spróbuj ponownie"
+    },
+    "notices": {
+      "brandSensitive": "Kategoria narażona na podróbki: dodasz więcej zdjęć, w tym metki i kodów.",
+      "restricted": "Kategoria z ograniczeniami: oferta przejdzie moderację przed publikacją."
+    },
+    "attributes": {
+      "title": "Szczegóły przedmiotu",
+      "required": "wymagane",
+      "choose": "Wybierz"
+    }
+  },
+  "media": {
+    "errors": {
+      "type": "Dodaj zdjęcie JPEG, PNG albo WebP.",
+      "size": "Zdjęcie jest za duże: maksymalnie 15 MB.",
+      "upload": "Nie udało się wysłać zdjęcia. Sprawdź połączenie i spróbuj ponownie.",
+      "timeout": "Przetwarzanie zdjęcia trwa za długo. Spróbuj ponownie za chwilę."
+    },
+    "uploader": {
+      "label": "Zdjęcia",
+      "count": "Zdjęcia ({count}/{max})",
+      "add": "Dodaj zdjęcia",
+      "hint": "JPEG, PNG albo WebP, do 15 MB. Pierwsze zdjęcie jest zdjęciem głównym.",
+      "cover": "Zdjęcie główne",
+      "uploading": "Wysyłanie {name}",
+      "processing": "Przetwarzanie…",
+      "flagged": "Zdjęcie czeka na sprawdzenie przez moderatora.",
+      "moveLeft": "Przesuń zdjęcie {position} w lewo",
+      "moveRight": "Przesuń zdjęcie {position} w prawo",
+      "remove": "Usuń zdjęcie {position}",
+      "photo": "Zdjęcie {position}",
+      "limit": "Możesz dodać najwyżej {max} zdjęć."
+    },
+    "avatar": {
+      "title": "Zdjęcie profilowe",
+      "change": "Zmień zdjęcie",
+      "add": "Dodaj zdjęcie",
+      "remove": "Usuń zdjęcie",
+      "uploading": "Wysyłanie…",
+      "saved": "Zapisano zdjęcie profilowe.",
+      "removed": "Usunięto zdjęcie profilowe.",
+      "flagged": "Zdjęcie czeka na sprawdzenie przez moderatora. Wybierz inne albo spróbuj później.",
+      "hint": "JPEG, PNG albo WebP, do 15 MB. Zdjęcie przytniemy do kwadratu."
+    }
+  },
+  "pricing": {
+    "total": {
+      "lead": "{kind, select, maxBid {Licytujesz do} buyNow {Kupujesz za} other {Licytujesz}} {amount}",
+      "pay": "{kind, select, maxBid {zapłacisz najwyżej} other {zapłacisz}}",
+      "shipping": "+ dostawa od {shipping}",
+      "calculating": "Liczymy kwotę łączną…",
+      "unavailable": "+ Pakiet Ochrony Kupujących",
+      "details": "Skąd ta kwota?",
+      "amount": "{kind, select, maxBid {Twoje maksimum} buyNow {Cena Kup teraz} other {Kwota oferty}}",
+      "pok": "Pakiet Ochrony Kupujących",
+      "pokRule": "{fixedFee} + {rates}",
+      "tierOnly": "{rate} kwoty",
+      "tierFirst": "{rate} kwoty do {upTo}",
+      "tierMiddle": "{rate} od {from} do {upTo}",
+      "tierLast": "{rate} nadwyżki",
+      "subtotal": "Razem bez dostawy",
+      "shippingRow": "Dostawa",
+      "shippingFrom": "od {shipping} (wybierasz {kind, select, buyNow {po zakupie} other {po wygranej}})"
+    }
+  },
+  "listing": {
+    "start": {
+      "metaTitle": "Wystaw przedmiot",
+      "overline": "Sprzedawaj na Biddy",
+      "title": "Wystaw przedmiot i patrz, jak rośnie cena",
+      "text": "Dodaj zdjęcia, opisz przedmiot i ustal cenę. Szkic zapisuje się automatycznie, więc możesz wrócić do niego później.",
+      "new": "Nowa aukcja",
+      "creating": "Tworzenie szkicu…",
+      "drafts": "Szkice",
+      "noDrafts": "Nie masz zapisanych szkiców.",
+      "untitled": "Szkic bez tytułu",
+      "updated": "Zmieniono {date}",
+      "continue": "Kontynuuj",
+      "continueNamed": "Kontynuuj: {title}",
+      "delete": "Usuń",
+      "deleteNamed": "Usuń szkic: {title}",
+      "deleteTitle": "Usunąć szkic?",
+      "deleteText": "Szkicu „{title}” nie da się przywrócić.",
+      "deleteConfirm": "Usuń szkic",
+      "keep": "Anuluj",
+      "phoneTitle": "Zweryfikuj telefon, żeby wystawiać",
+      "phoneText": "Szkic przygotujesz już teraz, ale opublikujesz go po weryfikacji numeru telefonu (jeden numer = jedno konto).",
+      "phoneAction": "Zweryfikuj telefon",
+      "blocked": "Masz blokadę wystawiania aukcji do {date}. Szkice możesz przygotowywać, ale opublikujesz je po zakończeniu blokady.",
+      "limit": "Aktywne aukcje: {active} z {max}. Wartość aukcji do {value}.",
+      "limitNoValue": "Aktywne aukcje: {active} z {max}.",
+      "limitReached": "Masz już {max} aktywnych aukcji. Kolejną opublikujesz, gdy któraś się zakończy.",
+      "error": "Nie udało się utworzyć szkicu. Spróbuj ponownie.",
+      "loadError": "Nie udało się wczytać szkiców.",
+      "retry": "Spróbuj ponownie",
+      "myAuctions": "Moje aukcje",
+      "progress": "Krok {step} z {total}: {name}",
+      "benefits": {
+        "photos": {
+          "title": "Zdjęcia i opis",
+          "text": "Dobre światło i kilka ujęć, także wad, pomagają sprzedać."
+        },
+        "auction": {
+          "title": "Licytacja ustala cenę",
+          "text": "Zaczynasz od ceny wywoławczej. Cena minimalna chroni przed sprzedażą za tanio."
+        },
+        "label": {
+          "title": "Gotowa etykieta",
+          "text": "Po płatności dostajesz kod nadania albo etykietę i śledzenie przesyłki."
+        },
+        "fee": {
+          "title": "0% prowizji",
+          "text": "Dostajesz 100% wylicytowanej kwoty."
+        }
+      },
+      "illustration": {
+        "label": "Twoja aukcja",
+        "from": "od {price}",
+        "caption": "18 ofert · 0% prowizji"
+      }
+    },
+    "wizard": {
+      "metaTitle": "Kreator aukcji",
+      "title": "Wystaw przedmiot",
+      "editTitle": "Edytuj aukcję",
+      "progress": "Postęp",
+      "steps": {
+        "zdjecia": "Zdjęcia",
+        "kategoria": "Kategoria",
+        "opis": "Opis",
+        "dostawa": "Dostawa",
+        "cena": "Cena",
+        "podglad": "Podgląd"
+      },
+      "back": "Wstecz",
+      "next": "Dalej",
+      "saving": "Zapisywanie…",
+      "saved": "Zapisano",
+      "saveError": "Nie udało się zapisać. Spróbujemy przy kolejnej zmianie.",
+      "stepErrors": "Popraw zaznaczone pola, żeby przejść dalej.",
+      "notEditable": "Tej aukcji nie można już zmienić: ma oferty albo się zakończyła.",
+      "toMyAuctions": "Przejdź do Moich aukcji",
+      "stepShort": "Krok {current} z {total}",
+      "stepDone": "zrobione",
+      "close": "Zamknij kreator",
+      "saveAndExit": "Zapisz i wyjdź"
+    },
+    "photos": {
+      "title": "Zdjęcia",
+      "text": "Pierwsze zdjęcie jest zdjęciem głównym. Dobre światło i kilka ujęć, także wad, pomagają sprzedać.",
+      "brandSensitive": "W tej kategorii dodaj co najmniej {min} zdjęcia, w tym metkę albo kod produktu."
+    },
+    "category": {
+      "title": "Kategoria i szczegóły",
+      "brand": "Marka",
+      "brandRequired": "Marka, wymagane",
+      "brandHint": "Np. Nike, LEGO, Sony.",
+      "notice": "<strong>Zasady w tej kategorii:</strong> {notice}"
+    },
+    "details": {
+      "title": "Opis przedmiotu",
+      "titleLabel": "Tytuł",
+      "titleHint": "Od {min} do {max} znaków: co to jest, marka, model, rozmiar.",
+      "description": "Opis",
+      "descriptionHint": "Stan, wady, wymiary, co jest w zestawie. Od {min} do {max} znaków.",
+      "counter": "{count} z {max} znaków",
+      "condition": "Stan",
+      "conditions": {
+        "NEW": "Nowy",
+        "LIKE_NEW": "Jak nowy",
+        "VERY_GOOD": "Bardzo dobry",
+        "GOOD": "Dobry",
+        "FAIR": "Zadowalający (widoczne ślady użytkowania)",
+        "FOR_PARTS": "Uszkodzony lub na części"
+      },
+      "conditionHints": {
+        "NEW": "Nieużywany, z metką",
+        "LIKE_NEW": "Bez śladów użytkowania",
+        "VERY_GOOD": "Minimalne ślady",
+        "GOOD": "Używany, sprawny",
+        "FAIR": "Widoczne ślady użytkowania",
+        "FOR_PARTS": "Opisz usterkę w opisie"
+      },
+      "conditionCards": {
+        "NEW": "Nowy",
+        "LIKE_NEW": "Jak nowy",
+        "VERY_GOOD": "Bardzo dobry",
+        "GOOD": "Dobry",
+        "FAIR": "Zadowalający",
+        "FOR_PARTS": "Uszkodzony lub na części"
+      }
+    },
+    "shipping": {
+      "title": "Dostawa",
+      "size": "Gabaryt paczki",
+      "sizes": {
+        "S": "S: do 8 × 38 × 64 cm",
+        "M": "M: do 19 × 38 × 64 cm",
+        "L": "L: do 41 × 38 × 64 cm",
+        "XL": "XL: większa albo cięższa paczka (tylko kurier)"
+      },
+      "dimensions": "Wymiary i waga paczki",
+      "length": "Długość (cm)",
+      "width": "Szerokość (cm)",
+      "height": "Wysokość (cm)",
+      "weight": "Waga (kg)",
+      "carriers": "Przewoźnicy",
+      "carriersHint": "Kupujący wybierze jednego z zaznaczonych przy płatności. Cenę dostawy płaci kupujący.",
+      "kinds": {
+        "LOCKER": "paczkomat",
+        "PICKUP_POINT": "punkt odbioru",
+        "COURIER": "kurier"
+      },
+      "loadError": "Nie udało się wczytać przewoźników.",
+      "retry": "Spróbuj ponownie",
+      "sizeHints": {
+        "S": "do 8 × 38 × 64 cm",
+        "M": "do 19 × 38 × 64 cm",
+        "L": "do 41 × 38 × 64 cm",
+        "XL": "większa albo cięższa, tylko kurier"
+      },
+      "unsupportedSize": "nie obsługuje gabarytu {size}"
+    },
+    "pricing": {
+      "title": "Cena i czas trwania",
+      "startPrice": "Cena wywoławcza (zł)",
+      "startPriceHint": "Licytacja zaczyna się od tej kwoty, co najmniej 1 zł.",
+      "duration": "Czas trwania",
+      "days": "{count, plural, one {# dzień} other {# dni}}",
+      "reservePrice": "Cena minimalna (zł), opcjonalnie",
+      "reservePriceHint": "Ukryta przed kupującymi. Poniżej niej przedmiot nie zostanie sprzedany.",
+      "buyNowPrice": "Kup teraz (zł), opcjonalnie",
+      "buyNowPriceHint": "Co najmniej 130% ceny wywoławczej i nie mniej niż cena minimalna. Dostępne do pierwszej oferty.",
+      "limit": "Twój limit wartości aukcji to {value} (liczy się najwyższa z cen). Rośnie po udanych sprzedażach.",
+      "buyerPays": "Kupujący przy cenie wywoławczej",
+      "durationLocked": "Czasu trwania nie można zmienić po publikacji.",
+      "currency": "zł",
+      "endsIfNow": "Koniec aukcji: {date} (jeśli opublikujesz teraz)",
+      "endsAt": "Koniec aukcji: {date}"
+    },
+    "review": {
+      "title": "Podgląd i publikacja",
+      "missing": "Uzupełnij przed publikacją:",
+      "goTo": "Przejdź do kroku „{step}”",
+      "ready": "Wszystko gotowe do publikacji.",
+      "photos": "{count, plural, one {# zdjęcie} few {# zdjęcia} many {# zdjęć} other {# zdjęcia}}",
+      "category": "Kategoria",
+      "condition": "Stan",
+      "package": "Gabaryt",
+      "carriers": "Przewoźnicy",
+      "startPrice": "Cena wywoławcza",
+      "reservePrice": "Cena minimalna",
+      "buyNowPrice": "Kup teraz",
+      "duration": "Czas trwania",
+      "none": "brak",
+      "kycTitle": "Wypłata wymaga weryfikacji tożsamości",
+      "kycText": "Pieniądze ze sprzedaży wypłacamy po weryfikacji Twojej tożsamości i konta bankowego u operatora płatności (wymóg przepisów o przeciwdziałaniu praniu pieniędzy). Poprosimy o nią przed pierwszą wypłatą albo przed wystawieniem przedmiotu wartego ponad {value}.",
+      "kycAccept": "Rozumiem, że wypłata środków wymaga weryfikacji tożsamości",
+      "kycRequired": "Potwierdź, że znasz zasady weryfikacji tożsamości przed wypłatą środków.",
+      "publish": "Opublikuj aukcję",
+      "publishing": "Publikowanie…",
+      "saveChanges": "Zapisz zmiany",
+      "savingChanges": "Zapisywanie…",
+      "changesSaved": "Zapisano zmiany w aukcji.",
+      "phoneTitle": "Zweryfikuj telefon, żeby opublikować",
+      "phoneText": "Publikacja wymaga zweryfikowanego numeru telefonu. Szkic zostanie zapisany.",
+      "phoneAction": "Zweryfikuj telefon",
+      "publishError": "Nie udało się opublikować. Popraw zaznaczone kroki.",
+      "restricted": "Oferty w tej kategorii sprawdza moderator przed publikacją.",
+      "terms": "Publikując, potwierdzasz, że przedmiot nie jest na liście zakazanych przedmiotów i że opis jest zgodny ze stanem faktycznym.",
+      "prohibitedItems": "Lista zakazanych przedmiotów",
+      "summary": "Podsumowanie",
+      "change": "Zmień",
+      "titleLabel": "Tytuł",
+      "noTitle": "Bez tytułu",
+      "photo": "Zdjęcie {position}",
+      "morePhotos": "+{count}"
+    },
+    "mine": {
+      "metaTitle": "Moje aukcje",
+      "title": "Moje aukcje",
+      "text": "Szkice, aktywne aukcje i historia sprzedaży.",
+      "back": "Wróć do konta",
+      "filter": "Pokaż",
+      "filters": {
+        "all": "Wszystkie",
+        "DRAFT": "Szkice",
+        "ACTIVE": "Aktywne",
+        "PENDING_REVIEW": "W moderacji",
+        "ENDED": "Zakończone",
+        "CANCELLED": "Anulowane"
+      },
+      "statuses": {
+        "DRAFT": "Szkic",
+        "PENDING_REVIEW": "Czeka na moderatora",
+        "ACTIVE": "Aktywna",
+        "ENDED_SOLD": "Sprzedana",
+        "ENDED_UNSOLD": "Bez sprzedaży",
+        "CANCELLED": "Anulowana"
+      },
+      "empty": "Nic tu jeszcze nie ma.",
+      "untitled": "Szkic bez tytułu",
+      "noPhoto": "Brak zdjęcia",
+      "startPrice": "Cena wywoławcza",
+      "currentPrice": "Aktualna cena",
+      "bids": "{count, plural, =0 {brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+      "endsAt": "Koniec {date}",
+      "edit": "Edytuj",
+      "editNamed": "Edytuj: {title}",
+      "cancel": "Anuluj aukcję",
+      "relist": "Wystaw ponownie",
+      "delete": "Usuń szkic",
+      "cancelTitle": "Anulować aukcję?",
+      "cancelText": "Aukcja „{title}” zniknie z wyników i nie będzie można jej wznowić. Możesz ją później wystawić ponownie.",
+      "cancelWithBids": "Aukcja ma oferty: anulowanie oznacza ostrzeżenie (strike) na Twoim koncie, a licytujący dostaną powiadomienie. Aukcji z ofertami nie można anulować w ostatnich 12 godzinach.",
+      "cancelConfirm": "Anuluj aukcję",
+      "keep": "Nie anuluj",
+      "deleteTitle": "Usunąć szkic?",
+      "deleteText": "Szkicu „{title}” nie da się przywrócić.",
+      "deleteConfirm": "Usuń szkic",
+      "published": "Aukcja „{title}” jest aktywna do {date}.",
+      "submitted": "Aukcja „{title}” czeka na sprawdzenie przez moderatora. Damy znać po decyzji.",
+      "actionError": "Nie udało się wykonać operacji. Spróbuj ponownie.",
+      "state": {
+        "bidding": "Trwa licytacja",
+        "noBids": "Bez ofert",
+        "noBidsEditable": "Bez ofert · możesz jeszcze edytować",
+        "updated": "Ostatnia zmiana {date}"
+      },
+      "endedAt": "Zakończona {date}",
+      "finalPrice": "Cena końcowa",
+      "show": "Pokaż licytację",
+      "showNamed": "Pokaż licytację: {title}",
+      "hot": {
+        "label": "Twoja aukcja jest gorąca",
+        "bids": "{count, plural, one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+        "price": "Aktualna oferta",
+        "gain": "+{amount} od startu",
+        "show": "Pokaż licytację",
+        "noPhoto": "Brak zdjęcia"
+      }
+    },
+    "preview": {
+      "title": "Tak zobaczą Twoją aukcję",
+      "done": "Gotowe:",
+      "todo": "Do uzupełnienia:",
+      "photos": "{count, plural, one {# zdjęcie} few {# zdjęcia} many {# zdjęć} other {# zdjęcia}}",
+      "steps": {
+        "zdjecia": "Zdjęcia",
+        "kategoria": "Kategoria i marka",
+        "opis": "Tytuł, opis i stan",
+        "dostawa": "Gabaryt i przewoźnicy",
+        "cena": "Cena i czas trwania"
+      }
+    }
+  },
+  "auction": {
+    "metaDescription": "{title}. Licytuj na Biddy: aktualna cena {price}, kończy się {date}.",
+    "metaDescriptionEnded": "{title}. Aukcja na Biddy zakończona.",
+    "categoryPath": "Kategoria",
+    "conditionChip": "Stan: {condition}",
+    "gallery": {
+      "label": "Zdjęcia przedmiotu",
+      "photo": "Zdjęcie {index} z {count}: {title}",
+      "previous": "Poprzednie zdjęcie",
+      "next": "Następne zdjęcie",
+      "show": "Pokaż zdjęcie {index}",
+      "noPhotos": "Brak zdjęć"
+    },
+    "details": {
+      "description": "Opis",
+      "parameters": "Parametry",
+      "condition": "Stan",
+      "brand": "Marka",
+      "shipping": "Dostawa",
+      "packageSize": "Gabaryt paczki",
+      "carriers": "Przewoźnicy",
+      "carriersHint": "Przewoźnika wybierzesz przy płatności. Cena dostawy zależy od przewoźnika.",
+      "noCarriers": "Żadna dostawa nie pasuje teraz do tego przedmiotu."
+    },
+    "seller": {
+      "title": "Sprzedawca",
+      "avatar": "Zdjęcie profilowe: {name}",
+      "ratings": "Oceny",
+      "noRatings": "Brak ocen",
+      "profile": "Zobacz profil",
+      "profileOf": ": {name}",
+      "private": "Osoba prywatna",
+      "privateNotice": "Sprzedawca jest osobą prywatną, więc prawa konsumenta wobec przedsiębiorcy (np. zwrot w 14 dni) wobec niego nie przysługują. Zakup chroni Pakiet Ochrony Kupujących."
+    },
+    "panel": {
+      "title": "Licytacja",
+      "currentPrice": "Aktualna cena",
+      "startPrice": "Cena wywoławcza",
+      "finalPrice": "Cena końcowa",
+      "bids": "{count, plural, =0 {Brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+      "leader": "Prowadzi: {name}",
+      "reserve": "{status, select, NOT_MET {Cena minimalna nieosiągnięta} MET {Cena minimalna osiągnięta} other {}}",
+      "endsAt": "Koniec: {date}",
+      "startsAt": "Start: {date}",
+      "ending": "Końcówka aukcji: oferta teraz przedłuży aukcję o {minutes, plural, one {# minutę} few {# minuty} many {# minut} other {# minuty}}.",
+      "closing": "Aukcja się kończy…",
+      "scheduled": "Licytacja zacznie się {date}.",
+      "sold": "Sprzedano za {price}",
+      "unsold": "Aukcja zakończona bez sprzedaży",
+      "cancelled": "Aukcja anulowana",
+      "maxLabel": "Twoje maksimum",
+      "maxHint": "Najniższa oferta: {minimum}. System licytuje za Ciebie do tej kwoty, a reszta zostaje tajna.",
+      "bid": "Licytuj",
+      "bidding": "Wysyłanie…",
+      "amountRequired": "Podaj kwotę.",
+      "amountInvalid": "Podaj kwotę w złotych, np. 120 albo 120,50.",
+      "amountTooLow": "Najniższa możliwa oferta to {minimum}.",
+      "confirmTitle": "Potwierdź ofertę",
+      "confirmText": "Licytujesz do {amount}. Oferta jest wiążąca: jeśli wygrasz, musisz kupić przedmiot.",
+      "confirmShipping": "Do tego koszt dostawy wybranej przy płatności.",
+      "confirm": "Potwierdź ofertę",
+      "cancel": "Anuluj",
+      "buyNow": "Kup teraz za {price}",
+      "buyNowTitle": "Kup teraz",
+      "buyNowText": "Kupujesz za {price} i kończysz aukcję. Zakup jest wiążący.",
+      "buyNowConfirm": "Kupuję",
+      "extendedLive": "Aukcja przedłużona. Nowy koniec: {time}.",
+      "endedLive": "Aukcja się zakończyła.",
+      "own": "To Twoja aukcja.",
+      "ownLink": "Moje aukcje",
+      "guest": "Zaloguj się, aby licytować",
+      "guestText": "Licytować mogą zalogowani użytkownicy ze zweryfikowanym telefonem.",
+      "phone": "Zweryfikuj telefon, aby licytować",
+      "phoneText": "Weryfikacja SMS trwa minutę i chroni licytacje przed fałszywymi kontami.",
+      "terms": "Zaakceptuj regulamin, aby licytować",
+      "lost": "Nie udało się wygrać tej aukcji.",
+      "reserveNotMet": "Twoja oferta była najwyższa, ale nie osiągnęła ceny minimalnej sprzedawcy.",
+      "error": "Nie udało się wysłać oferty. Sprawdź połączenie i spróbuj ponownie.",
+      "buyNowError": "Nie udało się kupić przedmiotu. Sprawdź połączenie i spróbuj ponownie.",
+      "bought": "Zakup udany! Przedmiot jest Twój.",
+      "endsIn": "Kończy się za",
+      "lastMinutes": "Ostatnie minuty",
+      "countdownDays": "{days, plural, one {# dzień} other {# dni}} {hours} godz.",
+      "countdownLabel": "{hours, plural, =0 {} one {# godzina } few {# godziny } many {# godzin } other {# godziny }}{minutes} min {seconds} s",
+      "unitHours": "godz",
+      "unitMinutes": "min",
+      "unitSeconds": "sek",
+      "quickAmounts": "Szybkie kwoty",
+      "minimumShort": "min. {minimum}",
+      "newMaxLabel": "Nowe maksimum",
+      "raise": "Podnieś maksimum",
+      "outbidCta": "Przebij ofertę",
+      "leadingTitle": "Prowadzisz",
+      "leadingText": "Twoje maksimum: {max}. Biddy podbije cenę za Ciebie, jeśli ktoś zalicytuje.",
+      "leadingToast": "Twoje maksimum {max} prowadzi. Cena: {price}.",
+      "outbidTitle": "Przebito Cię",
+      "outbidText": "Twoje maksimum {max} nie wystarcza. Zalicytuj co najmniej {minimum}.",
+      "outbidToast": "{title} · najniższa oferta {minimum}",
+      "outbidSheet": "Twoje maksimum {max} nie wystarcza.",
+      "rebid": "Zalicytuj ponownie",
+      "extendedTitle": "Aukcja przedłużona",
+      "extendedToast": "Oferta w końcówce przesunęła koniec na {time}.",
+      "endingSoonTitle": "Aukcja kończy się za kilka minut",
+      "endingSoonText": "{title}: to ostatnia chwila na ofertę.",
+      "lostLink": "Szukaj podobnych",
+      "guestLogin": "Zaloguj się",
+      "guestSignUp": "Nie masz konta? Załóż konto",
+      "termsAction": "Zaakceptuj regulamin",
+      "phoneAction": "Zweryfikuj telefon",
+      "buyNowNote": "Kup teraz znika po pierwszej ofercie.",
+      "retry": "Spróbuj ponownie",
+      "yourMax": "Twoje maksimum",
+      "currentOffer": "Aktualna oferta",
+      "timeLeft": "Do końca",
+      "confirmStale": "W międzyczasie ktoś zalicytował. Najniższa oferta to teraz {minimum}.",
+      "confirmMinimum": "Licytuj {minimum}",
+      "sheetTitle": "Twoje maksimum",
+      "sheetPrice": "Aktualna oferta {price} · {count, plural, =0 {brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+      "notNow": "Nie teraz",
+      "protectionTitle": "Pakiet Ochrony Kupujących.",
+      "protectionText": "Sprzedający dostanie pieniądze dopiero, gdy odbierzesz paczkę i potwierdzisz, że wszystko się zgadza."
+    },
+    "history": {
+      "title": "Historia ofert",
+      "empty": "Nikt jeszcze nie licytował. Złóż pierwszą ofertę.",
+      "bidder": "Licytujący",
+      "amount": "Kwota",
+      "time": "Czas",
+      "kind": "{kind, select, AUTO {licytacja automatyczna} BUY_NOW {Kup teraz} other {}}",
+      "more": "Pokaż starsze",
+      "loading": "Wczytywanie historii ofert…",
+      "error": "Nie udało się wczytać historii ofert.",
+      "retry": "Spróbuj ponownie",
+      "live": "Aktualizuje się na żywo",
+      "now": "teraz",
+      "minutesAgo": "{minutes} min temu",
+      "sparkline": "Cena rosła od {from} do {to} w {count, plural, one {# ofercie} other {# ofertach}}",
+      "start": "Start: {price}",
+      "count": "{count, plural, one {# oferta} few {# oferty} many {# ofert} other {# oferty}}"
+    },
+    "watch": {
+      "watch": "Obserwuj",
+      "watching": "Obserwujesz",
+      "watchLabel": "Obserwuj aukcję",
+      "unwatchLabel": "Przestań obserwować aukcję",
+      "guest": "Zaloguj się, aby obserwować",
+      "error": "Nie udało się zmienić obserwowania."
+    },
+    "live": {
+      "badge": "Live",
+      "viewers": "{count, plural, one {# osoba ogląda} few {# osoby oglądają} many {# osób ogląda} other {# osoby ogląda}}",
+      "hot": "Gorąca aukcja"
+    },
+    "win": {
+      "ended": "Aukcja zakończona · {time}",
+      "title": "Wygrana!",
+      "subtitle": "Przedmiot jest Twój.",
+      "finalPrice": "Cena końcowa",
+      "stats": "{count, plural, one {# oferta} few {# oferty} many {# ofert} other {# oferty}} · Twoje maksimum {max}",
+      "order": "Zamówienie {number}",
+      "nextTitle": "Co dalej",
+      "payTitle": "Zapłać do {date}",
+      "payTitlePending": "Zapłać za przedmiot",
+      "payTitleDone": "Opłacone",
+      "payText": "Pieniądze czekają u operatora płatności, aż odbierzesz paczkę.",
+      "shipTitle": "Sprzedawca nada paczkę",
+      "shipTitleDone": "Paczka nadana",
+      "shipText": "Dostaniesz numer przesyłki i powiadomienie.",
+      "confirmTitle": "Odbierz i potwierdź",
+      "confirmTitleDone": "Odbiór potwierdzony",
+      "confirmText": "Sprzedawca dostanie pieniądze dopiero po Twoim potwierdzeniu.",
+      "pok": "Pakiet Ochrony Kupujących",
+      "total": "Do zapłaty bez dostawy",
+      "cta": "Zobacz w Moje Biddy",
+      "pay": "Zapłać {total} + dostawa"
+    }
+  },
+  "search": {
+    "metaTitle": "Szukaj aukcji",
+    "metaTitleQuery": "„{q}”: wyniki wyszukiwania",
+    "metaCategoryDescription": "Aukcje w kategorii {name} na Biddy: licytuj od 1 zł, płać bezpiecznie z Pakietem Ochrony Kupujących.",
+    "title": "Wszystkie aukcje",
+    "titleQuery": "Wyniki dla „{q}”",
+    "count": "{count, plural, =0 {Brak aukcji} one {# aukcja} few {# aukcje} many {# aukcji} other {# aukcji}}",
+    "countMore": "Ponad {count} aukcji",
+    "inCategory": "w kategorii {name}",
+    "breadcrumbs": "Ścieżka kategorii",
+    "allCategories": "Wszystkie kategorie",
+    "unavailable": "Wyszukiwarka jest chwilowo niedostępna. Spróbuj ponownie za chwilę.",
+    "droppedAttributes": "Pominęliśmy filtry, które nie pasują do tej kategorii.",
+    "empty": "Nic nie znaleźliśmy",
+    "emptyNoFilters": "W tej kategorii nie ma teraz aktywnych aukcji.",
+    "results": "Wyniki",
+    "filters": {
+      "title": "Filtry",
+      "titleCount": "Filtry ({count})",
+      "categories": "Kategorie",
+      "parent": "Wróć do: {name}",
+      "condition": "Stan",
+      "price": "Cena (zł)",
+      "from": "od",
+      "to": "do",
+      "fromLabel": "{name} od",
+      "toLabel": "{name} do",
+      "sort": "Sortuj",
+      "apply": "Pokaż wyniki",
+      "clear": "Wyczyść filtry",
+      "count": "({count})"
+    },
+    "sorts": {
+      "trafnosc": "Trafność",
+      "koniec": "Kończące się",
+      "nowe": "Najnowsze",
+      "cena_rosnaco": "Cena: od najniższej",
+      "cena_malejaco": "Cena: od najwyższej",
+      "oferty": "Liczba ofert"
+    },
+    "card": {
+      "currentPrice": "Aktualna cena",
+      "startPrice": "Cena wywoławcza",
+      "bids": "{count, plural, =0 {Brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+      "endsAt": "Koniec: {date}",
+      "buyNow": "Kup teraz {price}",
+      "noPhoto": "Brak zdjęcia",
+      "conditions": {
+        "NEW": "Nowy",
+        "LIKE_NEW": "Jak nowy",
+        "VERY_GOOD": "Bardzo dobry",
+        "GOOD": "Dobry",
+        "FAIR": "Zadowalający",
+        "FOR_PARTS": "Na części"
+      },
+      "endsIn": "Do końca:",
+      "days": "{days, plural, one {# dzień} other {# dni}}",
+      "hours": "{hours} godz. {minutes} min",
+      "minutes": "{minutes} min {seconds} s",
+      "hot": "Gorąca"
+    },
+    "pagination": {
+      "label": "Strony wyników",
+      "previous": "Poprzednia",
+      "next": "Następna",
+      "page": "Strona {page}"
+    },
+    "ranking": {
+      "title": "Jak ustalamy kolejność wyników?",
+      "relevance": "Przy wyszukiwaniu po słowach najwyżej są aukcje, które najlepiej pasują do zapytania: liczba pasujących słów, literówki (tolerujemy drobne), bliskość słów i miejsce dopasowania (tytuł i marka ważą więcej niż opis).",
+      "sort": "Możesz też wybrać sortowanie: aukcje kończące się najwcześniej (domyślne bez zapytania), najnowsze, cena albo liczba ofert.",
+      "noPaid": "Nie sprzedajemy pozycji w wynikach: kolejność nie zależy od opłat sprzedawców. Pokazujemy tylko aktywne aukcje."
+    },
+    "endingSoon": "{count, plural, one {<strong># aukcja</strong> kończy} few {<strong># aukcje</strong> kończą} many {<strong># aukcji</strong> kończy} other {<strong># aukcji</strong> kończy}} się w ciągu godziny. Teraz rozstrzyga się cena.",
+    "endingSoonShow": "Pokaż",
+    "activeFilters": "Wybrane filtry",
+    "removeFilter": "Usuń filtr: {name}",
+    "chips": {
+      "priceRange": "{from} – {to}",
+      "priceFrom": "od {price}",
+      "priceTo": "do {price}",
+      "range": "{name}: {from}–{to}",
+      "rangeFrom": "{name}: od {from}",
+      "rangeTo": "{name}: do {to}",
+      "values": "{name}: {values}"
+    },
+    "emptyHint": "Sprawdź pisownię albo usuń część filtrów."
+  },
+  "notifications": {
+    "bell": "{count, plural, =0 {Powiadomienia} one {Powiadomienia, # nieprzeczytane} few {Powiadomienia, # nieprzeczytane} many {Powiadomienia, # nieprzeczytanych} other {Powiadomienia, # nieprzeczytanego}}",
+    "metaTitle": "Powiadomienia",
+    "title": "Powiadomienia",
+    "markAll": "Oznacz wszystkie jako przeczytane",
+    "empty": "Nie masz jeszcze powiadomień. Obserwuj aukcje i licytuj, a damy znać o ważnych momentach.",
+    "unread": "Nieprzeczytane",
+    "more": "Pokaż starsze",
+    "loading": "Wczytywanie powiadomień…",
+    "error": "Nie udało się wczytać powiadomień.",
+    "retry": "Spróbuj ponownie",
+    "settingsLink": "Ustawienia powiadomień",
+    "settings": {
+      "metaTitle": "Ustawienia powiadomień",
+      "title": "Ustawienia powiadomień",
+      "lead": "Powiadomienia w aplikacji dostajesz zawsze. Tu wybierasz, o czym napiszemy też e-mailem.",
+      "email": "E-mail",
+      "always": "Zawsze wysyłamy",
+      "saved": "Zapisano",
+      "error": "Nie udało się zapisać ustawienia „{type}”. Spróbuj ponownie.",
+      "types": {
+        "OUTBID": "Ktoś przebił Twoją ofertę",
+        "ENDING_SOON": "Aukcja kończy się za godzinę",
+        "WON": "Wygrana aukcja",
+        "SOLD": "Sprzedany przedmiot",
+        "UNSOLD": "Aukcja zakończona bez sprzedaży",
+        "AUCTION_CANCELLED": "Anulowana aukcja",
+        "FOLLOWED_SELLER_NEW_AUCTION": "Nowa aukcja obserwowanego sprzedawcy",
+        "ORDER_PAID": "Opłacone zamówienie: nadaj paczkę"
+      },
+      "groups": {
+        "bidding": "Licytacje",
+        "selling": "Sprzedaż",
+        "following": "Obserwowani sprzedawcy"
+      },
+      "hints": {
+        "OUTBID": "Najwyżej raz na 15 minut na aukcję",
+        "ENDING_SOON": "Obserwowana albo licytowana",
+        "WON": "Z terminem płatności",
+        "AUCTION_CANCELLED": "Którą obserwujesz albo licytujesz"
+      },
+      "back": "Powiadomienia"
+    },
+    "unsubscribe": {
+      "metaTitle": "Wypisanie z e-maili",
+      "title": "Wypisanie z e-maili",
+      "lead": "{scope, select, ALL {Nie będziemy wysyłać e-maili z powiadomieniami (poza wygranymi, sprzedażą i opłaconymi zamówieniami).} other {Nie będziemy wysyłać e-maili tego typu: {type}.}}",
+      "inApp": "Powiadomienia w aplikacji zostaną.",
+      "action": "Wypisz mnie",
+      "sending": "Wypisywanie…",
+      "done": "Gotowe: wypisaliśmy Cię z tych e-maili.",
+      "invalid": "Link wypisania jest nieprawidłowy. Zmień ustawienia po zalogowaniu.",
+      "error": "Nie udało się wypisać. Spróbuj ponownie.",
+      "settings": "Ustawienia powiadomień"
+    },
+    "newCount": "{count, plural, one {# nowe} few {# nowe} many {# nowych} other {# nowego}}",
+    "settingsShort": "Ustawienia",
+    "groups": {
+      "today": "Dzisiaj",
+      "earlier": "Wcześniej"
+    }
+  },
+  "myBiddy": {
+    "metaTitle": "Moje Biddy",
+    "title": "Moje Biddy",
+    "headerLink": "Moje Biddy",
+    "tabs": {
+      "label": "Sekcje Moje Biddy",
+      "bidding": "Licytuję",
+      "wins": "Wygrane",
+      "watchlist": "Obserwowane",
+      "auctions": "Moje aukcje",
+      "sales": "Sprzedane"
+    },
+    "filters": {
+      "label": "Pokaż",
+      "all": "Wszystkie",
+      "leading": "Prowadzę",
+      "outbid": "Przebito Cię",
+      "empty": {
+        "leading": "Brak aukcji, w których prowadzisz.",
+        "outbid": "Brak aukcji, w których ktoś Cię przebił."
+      }
+    },
+    "lostTitle": "Nie udało się wygrać",
+    "loading": "Wczytywanie…",
+    "error": "Nie udało się wczytać listy.",
+    "retry": "Spróbuj ponownie",
+    "more": "Pokaż więcej",
+    "row": {
+      "price": "Aktualna cena",
+      "startPrice": "Cena wywoławcza",
+      "finalPrice": "Cena końcowa",
+      "bids": "{count, plural, =0 {Brak ofert} one {# oferta} few {# oferty} many {# ofert} other {# oferty}}",
+      "endsAt": "Koniec: {date}",
+      "noPhoto": "Brak zdjęcia",
+      "yourMax": "Twoje maksimum",
+      "yourMaxLine": "Twoje maksimum {max}",
+      "finalPriceLine": "Cena końcowa {price}"
+    },
+    "status": {
+      "leading": "Prowadzisz",
+      "outbid": "Przebito Cię",
+      "won": "Do zapłaty {total} (bez dostawy) do {date} · zamówienie {number}",
+      "wonPaid": "Opłacone · zamówienie {number}",
+      "wonCancelled": "Nie zapłacono w terminie · zamówienie {number} anulowane",
+      "lost": "Nie udało się wygrać",
+      "reserveNotMet": "Cena minimalna nieosiągnięta",
+      "cancelled": "Aukcja anulowana",
+      "watchActive": "Aktywna",
+      "ended": "Zakończona",
+      "awaitingPayment": "Czeka na płatność kupującego do {date} · zamówienie {number}",
+      "paid": "Opłacone · zamówienie {number}",
+      "orderStatus": "{status} · zamówienie {number}"
+    },
+    "actions": {
+      "view": "Zobacz aukcję",
+      "rebid": "Zalicytuj ponownie",
+      "pay": "Zapłać",
+      "similar": "Szukaj podobnych",
+      "bid": "Licytuj",
+      "unwatch": "Przestań obserwować",
+      "ship": "Nadaj paczkę"
+    },
+    "empty": {
+      "bidding": "Nie licytujesz teraz żadnej aukcji.",
+      "wins": "Nie masz jeszcze wygranych aukcji.",
+      "watchlist": "Nie obserwujesz żadnej aukcji. Kliknij „Obserwuj” na stronie aukcji.",
+      "sales": "Nie masz jeszcze sprzedanych przedmiotów.",
+      "browse": "Przeglądaj aukcje",
+      "sell": "Wystaw przedmiot"
+    },
+    "lead": "Twoje licytacje, wygrane i sprzedaż w jednym miejscu.",
+    "summary": {
+      "bidding": {
+        "label": "Licytujesz",
+        "hint": "aktywne aukcje"
+      },
+      "leading": {
+        "label": "Prowadzisz",
+        "hint": "Biddy pilnuje Twojego maksimum"
+      },
+      "outbid": {
+        "label": "Przebito Cię",
+        "hint": "zalicytuj ponownie przed końcem",
+        "none": "nikt Cię nie przebił"
+      },
+      "endingSoon": {
+        "label": "Kończą się",
+        "hint": "w ciągu doby"
+      }
+    },
+    "orderStatuses": {
+      "AWAITING_PAYMENT": "Czeka na płatność",
+      "PAID": "Opłacone",
+      "SHIPPED": "W drodze",
+      "DELIVERED": "Doręczone",
+      "COMPLETED": "Zakończone",
+      "DISPUTED": "Zgłoszony problem",
+      "NOT_PICKED_UP": "Paczka nieodebrana",
+      "LOST": "Przesyłka zaginęła",
+      "REFUNDED": "Zwrot pieniędzy",
+      "PARTIALLY_REFUNDED": "Częściowy zwrot pieniędzy",
+      "CANCELLED_UNPAID": "Anulowane: brak płatności",
+      "CANCELLED_NOT_SHIPPED": "Anulowane: brak wysyłki"
+    }
+  },
+  "devPayments": {
+    "banner": "Środowisko testowe: FakeGateway. Żadne pieniądze nie są pobierane.",
+    "pay": {
+      "metaTitle": "Testowa płatność",
+      "title": "Testowa płatność",
+      "amount": "Do zapłaty",
+      "method": "Metoda",
+      "paymentId": "Numer płatności",
+      "status": "Stan",
+      "pay": "Zapłać",
+      "decline": "Odrzuć",
+      "sending": "Wysyłanie…",
+      "redirecting": "Wracamy do Biddy…",
+      "settled": "Ta płatność jest już rozliczona.",
+      "back": "Wróć do Biddy",
+      "returnUrl": "Adres powrotu spoza Biddy: {url}",
+      "notFound": "Nie znaleziono płatności. Link mógł być błędny albo FakeGateway jest wyłączony.",
+      "error": "Nie udało się połączyć z serwerem. Spróbuj ponownie.",
+      "actionError": "Nie udało się rozliczyć płatności: {detail}",
+      "retry": "Spróbuj ponownie",
+      "loading": "Wczytywanie płatności…"
+    },
+    "paymentStatus": {
+      "PENDING": "W toku",
+      "SUCCEEDED": "Opłacona",
+      "FAILED": "Odrzucona"
+    },
+    "methods": {
+      "BLIK": "BLIK",
+      "CARD": "Karta",
+      "PAY_BY_LINK": "Przelew online",
+      "APPLE_PAY": "Apple Pay",
+      "GOOGLE_PAY": "Google Pay"
+    },
+    "kycStatus": {
+      "PENDING": "W toku",
+      "VERIFIED": "Potwierdzona",
+      "REJECTED": "Odrzucona"
+    },
+    "payoutStatus": {
+      "PENDING": "W toku",
+      "PAID": "Wypłacona",
+      "FAILED": "Odrzucona"
+    },
+    "chargebackStatus": {
+      "OPEN": "Chargeback otwarty",
+      "WON": "Chargeback wygrany",
+      "LOST": "Chargeback przegrany"
+    },
+    "panel": {
+      "metaTitle": "Panel FakeGateway",
+      "title": "Panel FakeGateway",
+      "lead": "Płatności, sprzedawcy, wypłaty i webhooki symulowanego operatora. Widok odświeża się co 5 sekund.",
+      "blikCodes": "Kody BLIK: 777123 (udana), 111111 (odrzucona), 222222 (bez odpowiedzi operatora).",
+      "kycEmails": "Weryfikacja sprzedawcy: adres e-mail z +kyc-pending albo +kyc-rejected przed @.",
+      "payments": "Płatności",
+      "sellers": "Sprzedawcy",
+      "payouts": "Wypłaty",
+      "events": "Webhooki",
+      "empty": "Brak wpisów.",
+      "id": "ID",
+      "amount": "Kwota",
+      "method": "Metoda",
+      "status": "Stan",
+      "created": "Utworzono",
+      "seller": "Sprzedawca",
+      "verification": "Weryfikacja",
+      "balance": "Saldo u operatora",
+      "type": "Typ",
+      "object": "Obiekt",
+      "delivery": "Dostarczenie",
+      "actions": "Akcje",
+      "delivered": "Dostarczony",
+      "notDelivered": "Niedostarczony",
+      "attempts": "{count, plural, =0 {bez prób} one {# próba} few {# próby} many {# prób} other {# próby}}",
+      "pay": "Zapłać",
+      "decline": "Odrzuć",
+      "settleSilently": "Rozlicz bez webhooka",
+      "openChargeback": "Chargeback",
+      "chargebackWon": "Wygrany",
+      "chargebackLost": "Przegrany",
+      "failPayout": "Odrzuć wypłatę",
+      "newStatus": "Nowy status weryfikacji",
+      "redeliver": "Wyślij ponownie",
+      "done": "Gotowe: {action}.",
+      "failed": "Nie udało się: {detail}",
+      "error": "Nie udało się wczytać panelu.",
+      "retry": "Spróbuj ponownie",
+      "loading": "Wczytywanie panelu…"
+    }
+  },
+  "shipping": {
+    "dispatch": {
+      "metaTitle": "Nadaj paczkę",
+      "title": "Nadaj paczkę",
+      "order": "Zamówienie nr {number}",
+      "destination": "Dokąd",
+      "service": "Dostawa",
+      "pickupPoint": "Punkt odbioru",
+      "recipient": "Odbiorca",
+      "packageSize": "Gabaryt",
+      "senderTitle": "Dane nadawcy",
+      "senderLead": "Te dane będą na etykiecie i zobaczy je kupujący.",
+      "senderDefault": "Wpisaliśmy Twój domyślny adres nadania. Zmiany dotyczą tylko tej paczki.",
+      "senderDefaultMissing": "Ustaw domyślny adres nadania w koncie, żeby nie wpisywać go przy każdej paczce.",
+      "addresses": "Adresy w koncie",
+      "name": "Imię i nazwisko",
+      "street": "Ulica i numer",
+      "streetHint": "Np. ul. Prosta 1/2",
+      "postalCode": "Kod pocztowy",
+      "city": "Miejscowość",
+      "phone": "Telefon",
+      "phoneHint": "Przewoźnik wyśle na ten numer informacje o przesyłce.",
+      "method": "Sposób nadania",
+      "methods": {
+        "DROP_OFF": "Nadam w paczkomacie lub punkcie",
+        "COURIER_PICKUP": "Kurier odbierze paczkę"
+      },
+      "methodHints": {
+        "DROP_OFF": "Dostaniesz kod nadania albo etykietę do wydruku.",
+        "COURIER_PICKUP": "Wydrukujesz etykietę i przekażesz paczkę kurierowi."
+      },
+      "submit": "Nadaj",
+      "submitting": "Wysyłanie…",
+      "preparing": "Przygotowujemy przesyłkę…",
+      "preparingHint": "To zwykle trwa kilka sekund.",
+      "ready": "Przesyłka gotowa do nadania",
+      "dropoffCode": "Kod nadania",
+      "dropoffHint": "Podaj kod w paczkomacie lub punkcie. Nie musisz drukować etykiety.",
+      "label": "Pobierz etykietę (PDF)",
+      "labelDownloading": "Pobieranie…",
+      "labelHint": "Wydrukuj etykietę i naklej ją na paczkę.",
+      "labelPending": "Etykieta w przygotowaniu…",
+      "labelError": "Nie udało się pobrać etykiety. Spróbuj ponownie.",
+      "trackingNumber": "Numer przesyłki",
+      "status": "Status",
+      "history": "Historia przesyłki",
+      "carrierError": "Przewoźnik nie przyjął przesyłki",
+      "notAwaiting": "To zamówienie nie czeka na nadanie.",
+      "notAwaitingHint": "Nadać można zamówienie opłacone, w którym kupujący wybrał dostawę.",
+      "notFound": "Nie znaleziono zamówienia.",
+      "loadError": "Nie udało się wczytać zamówienia.",
+      "loading": "Wczytywanie zamówienia…",
+      "retry": "Spróbuj ponownie",
+      "back": "Sprzedane",
+      "orderCard": "Zamówienie",
+      "price": "dostawa {price}",
+      "courier": "Adres odbiorcy",
+      "copy": "Kopiuj kod",
+      "copied": "Skopiowano",
+      "copiedStatus": "Skopiowano kod nadania."
+    },
+    "status": {
+      "PENDING": "Czeka na nadanie",
+      "REQUESTED": "W przygotowaniu",
+      "CREATED": "Gotowa do nadania",
+      "DROPPED_OFF": "Nadana",
+      "IN_TRANSIT": "W drodze",
+      "OUT_FOR_DELIVERY": "Wydana do doręczenia",
+      "READY_FOR_PICKUP": "Czeka w punkcie",
+      "DELIVERED": "Odebrana",
+      "EXCEPTION": "Problem z przesyłką",
+      "RETURNING": "Wraca do nadawcy",
+      "RETURNED": "Zwrócona nadawcy",
+      "CANCELLED": "Anulowana"
+    }
+  },
+  "devShipping": {
+    "banner": "Środowisko testowe: FakeShipping, żadne paczki nie są wysyłane.",
+    "panel": {
+      "metaTitle": "FakeShipping",
+      "title": "FakeShipping",
+      "lead": "Przesyłki symulowanego dostawcy: automat statusów, webhooki i ręczne zmiany.",
+      "magic": "Punkty …-NOPICKUP i …-LOST prowadzą paczkę ścieżką nieodebranej albo zagubionej przesyłki. Telefon nadawcy 500 000 000 przewoźnik odrzuca.",
+      "newTitle": "Nowa przesyłka testowa",
+      "newLead": "Przesyłka bez zamówienia, z Tobą jako odbiorcą. Potem „Nadaj” jak przy zamówieniu.",
+      "carrier": "Usługa",
+      "packageSize": "Gabaryt",
+      "pickupPoint": "Punkt odbioru",
+      "create": "Utwórz przesyłkę",
+      "shipments": "Przesyłki",
+      "shipment": "Przesyłka",
+      "status": "Status w Biddy",
+      "providerStatus": "U dostawcy",
+      "scenario": "Scenariusz",
+      "created": "Utworzona",
+      "actions": "Akcje",
+      "dispatch": "Nadaj",
+      "dispatchTitle": "Nadaj przesyłkę testową",
+      "next": "Następny status",
+      "setStatus": "Ustaw status",
+      "newStatus": "Nowy status",
+      "setScenario": "Zmień scenariusz",
+      "sync": "Synchronizuj",
+      "label": "Etykieta",
+      "webhooks": "Webhooki",
+      "attempts": "{count, plural, one {# próba} few {# próby} many {# prób} other {# próby}}",
+      "delivered": "dostarczony",
+      "notDelivered": "niedostarczony",
+      "test": "testowa",
+      "order": "zamówienie",
+      "empty": "Brak przesyłek.",
+      "loading": "Wczytywanie…",
+      "error": "Nie udało się wczytać panelu.",
+      "retry": "Spróbuj ponownie",
+      "done": "Gotowe: {action}.",
+      "failed": "Nie udało się: {detail}",
+      "close": "Zamknij"
+    },
+    "scenarios": {
+      "DELIVERED": "Doręczona",
+      "NOT_PICKED_UP": "Nieodebrana",
+      "LOST": "Zagubiona",
+      "MANUAL": "Ręcznie"
+    }
+  },
+  "toast": {
+    "label": "Powiadomienia",
+    "close": "Zamknij",
+    "open": "Zobacz aukcję"
+  },
+  "checkout": {
+    "metaTitle": "Zapłać za zamówienie",
+    "back": "Wygrane",
+    "title": "Zapłać za zamówienie",
+    "order": "Zamówienie nr {number}",
+    "payBy": "Zapłać do {date}",
+    "payByExtended": "Czekamy na płatność do {date}",
+    "loading": "Wczytywanie zamówienia…",
+    "loadError": "Nie udało się wczytać zamówienia.",
+    "notFound": "Nie znaleziono zamówienia.",
+    "retry": "Spróbuj ponownie",
+    "delivery": {
+      "title": "Dostawa",
+      "kinds": {
+        "LOCKER": "Paczkomat",
+        "PICKUP_POINT": "Punkt odbioru",
+        "COURIER": "Kurier"
+      },
+      "none": "Żadna dostawa nie pasuje teraz do tego przedmiotu. Napisz do nas przez Centrum pomocy.",
+      "chooseCarrier": "Wybierz sposób dostawy.",
+      "point": "Punkt odbioru",
+      "pointSearch": "Miasto, adres albo kod punktu",
+      "pointSearchHint": "Np. Warszawa Marszałkowska albo WAW01M",
+      "pointSearchButton": "Szukaj",
+      "pointSearching": "Szukamy punktów…",
+      "pointResults": "Punkty odbioru",
+      "pointNoResults": "Nie znaleźliśmy punktów. Spróbuj innej nazwy miasta albo ulicy.",
+      "pointError": "Nie udało się wyszukać punktów. Spróbuj ponownie.",
+      "pointRequired": "Wybierz punkt odbioru.",
+      "pointQueryTooShort": "Wpisz co najmniej 2 znaki.",
+      "pointChange": "Zmień punkt",
+      "pointSelected": "Wybrany punkt",
+      "recipient": "Odbiorca",
+      "name": "Imię i nazwisko",
+      "phone": "Telefon",
+      "phoneHint": "Przewoźnik wyśle na ten numer informacje o przesyłce.",
+      "street": "Ulica i numer",
+      "postalCode": "Kod pocztowy",
+      "city": "Miejscowość",
+      "defaultAddress": "Wpisaliśmy Twój domyślny adres dostawy. Zmiany dotyczą tylko tego zamówienia."
+    },
+    "payment": {
+      "title": "Płatność",
+      "methods": {
+        "BLIK": "BLIK",
+        "CARD": "Karta płatnicza",
+        "PAY_BY_LINK": "Szybki przelew"
+      },
+      "methodHints": {
+        "BLIK": "Wpisz kod z aplikacji banku i potwierdź płatność w telefonie.",
+        "CARD": "Przejdziesz na stronę operatora płatności.",
+        "PAY_BY_LINK": "Przejdziesz na stronę operatora płatności i wybierzesz bank."
+      },
+      "blikCode": "Kod BLIK",
+      "blikHint": "6 cyfr z aplikacji banku",
+      "blikRequired": "Wpisz 6 cyfr kodu BLIK.",
+      "escrow": "Pieniądze czekają u operatora płatności, aż potwierdzisz odbiór. Sprzedający dostanie je dopiero wtedy.",
+      "failed": {
+        "DECLINED": "Bank odrzucił płatność. Spróbuj ponownie albo wybierz inną metodę.",
+        "INVALID_BLIK_CODE": "Kod BLIK jest błędny albo wygasł. Wygeneruj nowy kod w aplikacji banku.",
+        "EXPIRED": "Płatność wygasła. Zapłać ponownie.",
+        "CANCELLED": "Płatność anulowano. Zapłać ponownie.",
+        "SELLER_NOT_VERIFIED": "Sprzedający nie może jeszcze przyjąć płatności. Napisz do nas przez Centrum pomocy.",
+        "PROVIDER_ERROR": "Operator płatności nie odpowiedział. Zapłać ponownie za chwilę."
+      },
+      "failedTitle": "Płatność nie przeszła"
+    },
+    "summary": {
+      "title": "Podsumowanie",
+      "price": "Cena",
+      "pok": "Pakiet Ochrony Kupujących",
+      "pokLink": "Co to jest?",
+      "shipping": "Dostawa",
+      "shippingNone": "wybierz dostawę",
+      "total": "Do zapłaty",
+      "pay": "Zapłać {total}",
+      "payAgain": "Zapłać ponownie {total}",
+      "paying": "Rozpoczynamy płatność…",
+      "notPickedUp": "Jeśli nie odbierzesz paczki, zwrócimy cenę i Pakiet Ochrony Kupujących, bez kosztu dostawy.",
+      "terms": "Regulamin"
+    },
+    "totalChanged": "Kwota się zmieniła. Sprawdź podsumowanie i zapłać ponownie.",
+    "waiting": {
+      "blikTitle": "Potwierdź płatność w aplikacji banku",
+      "blikText": "Czekamy na potwierdzenie BLIK. Nie zamykaj tej strony.",
+      "redirectTitle": "Sprawdzamy płatność…",
+      "redirectText": "Jeśli strona operatora płatności nadal jest otwarta, dokończ na niej płatność.",
+      "redirectLink": "Wróć do strony płatności",
+      "confirmingTitle": "Potwierdzamy płatność…",
+      "confirmingText": "Płatność przeszła. Za chwilę potwierdzimy zamówienie."
+    },
+    "paid": {
+      "title": "Zapłacone!",
+      "text": "Zapłacono {total} za zamówienie nr {number}.",
+      "shipBy": "Sprzedający ma czas na nadanie paczki do {date}. Dostaniesz numer przesyłki.",
+      "already": "To zamówienie jest już opłacone.",
+      "myBiddy": "Zobacz w Moje Biddy",
+      "auction": "Wróć do aukcji"
+    },
+    "expired": {
+      "title": "Termin płatności minął",
+      "text": "Zamówienie zostało anulowane. Jeśli płatność jednak przejdzie, automatycznie zwrócimy całą kwotę.",
+      "similar": "Szukaj podobnych"
+    }
+  }
+}

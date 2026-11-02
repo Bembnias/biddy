@@ -6,4 +6,7 @@
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
  */
+export { type FilterMatch, type FilterResult } from './content-filter/content-filter.js';
+export { ContentFilterService } from './content-filter/content-filter.service.js';
+export type { FilterVerdict } from './content-filter/listing-terms.js';
 export { TrustSafetyModule } from './trust-safety.module.js';

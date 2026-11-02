@@ -39,7 +39,7 @@ describe('isErrorCode', () => {
     ['NOT_FOUND', true],
     ['VALIDATION_FAILED', true],
     ['not_found', false],
-    ['BID_TOO_LOW', false],
+    ['NOT_A_REAL_CODE', false],
     ['', false],
     [404, false],
     [undefined, false],
@@ -73,7 +73,9 @@ describe('isProblemDetails', () => {
   });
 
   it('przyjmuje nieznany kod (nowszy serwer niż klient) i dodatkowe pola', () => {
-    expect(isProblemDetails({ ...problem, code: 'BID_TOO_LOW', minimumBid: 1500 })).toBe(true);
+    expect(isProblemDetails({ ...problem, code: 'FUTURE_ERROR_CODE', minimumBid: 1500 })).toBe(
+      true,
+    );
   });
 
   it('przyjmuje odpowiedź bez pola errors', () => {

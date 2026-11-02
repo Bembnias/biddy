@@ -186,6 +186,7 @@ export function toProblemDetails(exception: unknown, context: ProblemContext): M
           status: exception.status,
           detail: exception.detail,
           extensions: exception.extensions,
+          ...(exception.errors === undefined ? {} : { errors: exception.errors }),
         },
         context,
       ),

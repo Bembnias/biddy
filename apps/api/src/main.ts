@@ -2,24 +2,7 @@
 // aplikacji, więc przy złej zmiennej środowiskowej nic się nie łączy ani nie startuje.
 import 'reflect-metadata';
 
-import {
-  type AppConfig,
-  ConfigError,
-  formatConfigError,
-  loadConfig,
-} from './infra/config/config.js';
-
-function readConfig(): AppConfig {
-  try {
-    return loadConfig(process.env);
-  } catch (error) {
-    if (error instanceof ConfigError) {
-      process.stderr.write(`${formatConfigError(error)}\n`);
-      process.exit(1);
-    }
-    throw error;
-  }
-}
+import { loadConfigOrExit } from './infra/config/config.js';
 
 function displayHost(host: string): string {
   if (host === '0.0.0.0' || host === '::') {
@@ -28,7 +11,7 @@ function displayHost(host: string): string {
   return host.includes(':') ? `[${host}]` : host;
 }
 
-const config = readConfig();
+const config = loadConfigOrExit(process.env, 'api');
 
 const { Logger } = await import('@nestjs/common');
 const { flush } = await import('@sentry/nestjs');

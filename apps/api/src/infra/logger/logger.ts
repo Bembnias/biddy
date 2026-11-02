@@ -44,15 +44,23 @@ export function serializeReply(reply: { readonly statusCode?: number }): Record<
   return { statusCode: reply.statusCode };
 }
 
+/** Nazwy procesów w polu `service` logów (API i worker mają wspólny kod, PROJECT.md §10.4). */
+export const API_SERVICE_NAME = 'biddy-api';
+export const WORKER_SERVICE_NAME = 'biddy-worker';
+
 /**
  * Tworzy główny logger aplikacji. `destination` służy testom (np. strumień w pamięci); z nim
  * logi są zawsze w JSON, bez pino-pretty.
  */
-export function createRootLogger(config: AppConfig, destination?: DestinationStream): Logger {
+export function createRootLogger(
+  config: AppConfig,
+  destination?: DestinationStream,
+  service: string = API_SERVICE_NAME,
+): Logger {
   const options: LoggerOptions = {
     level: config.log.level,
     base: {
-      service: 'biddy-api',
+      service,
       env: config.env,
       ...(config.release === undefined ? {} : { release: config.release }),
     },

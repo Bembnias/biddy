@@ -44,6 +44,178 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Konflikt',
     detail: 'Operacja jest sprzeczna z aktualnym stanem zasobu. Odśwież dane i spróbuj ponownie.',
   },
+  EMAIL_NOT_VERIFIED: {
+    status: 403,
+    title: 'Niepotwierdzony e-mail',
+    detail: 'Potwierdź adres e-mail linkiem z wiadomości, aby kontynuować.',
+  },
+  CAPTCHA_REQUIRED: {
+    status: 403,
+    title: 'Wymagana weryfikacja',
+    detail: 'Potwierdź, że nie jesteś robotem, i spróbuj ponownie.',
+  },
+  CAPTCHA_FAILED: {
+    status: 403,
+    title: 'Weryfikacja nieudana',
+    detail: 'Weryfikacja nie powiodła się albo wygasła. Spróbuj ponownie.',
+  },
+  TERMS_NOT_ACCEPTED: {
+    status: 400,
+    title: 'Brak akceptacji regulaminu',
+    detail: 'Zaakceptuj regulamin i politykę prywatności, aby kontynuować.',
+  },
+  PHONE_NOT_VERIFIED: {
+    status: 403,
+    title: 'Niezweryfikowany telefon',
+    detail: 'Zweryfikuj numer telefonu, żeby licytować i wystawiać przedmioty.',
+  },
+  PHONE_NUMBER_TAKEN: {
+    status: 409,
+    title: 'Numer zajęty',
+    detail:
+      'Ten numer telefonu jest przypisany do innego konta. Jeden numer może mieć tylko jedno konto.',
+  },
+  PHONE_CODE_INVALID: {
+    status: 400,
+    title: 'Nieprawidłowy kod',
+    detail: 'Nieprawidłowy kod z SMS-a.',
+  },
+  PHONE_CODE_EXPIRED: {
+    status: 400,
+    title: 'Kod nieaktywny',
+    detail: 'Kod wygasł albo wykorzystano limit prób. Wyślij nowy kod.',
+  },
+  ADDRESS_LIMIT_REACHED: {
+    status: 409,
+    title: 'Limit adresów',
+    detail: 'Możesz zapisać najwyżej 10 adresów. Usuń adres, którego nie używasz.',
+  },
+  MEDIA_NOT_UPLOADED: {
+    status: 409,
+    title: 'Brak pliku',
+    detail: 'Plik nie dotarł do magazynu. Wyślij zdjęcie ponownie.',
+  },
+  LISTING_BLOCKED: {
+    status: 403,
+    title: 'Blokada wystawiania',
+    detail: 'Masz czasową blokadę wystawiania aukcji. Szczegóły i odwołanie znajdziesz w koncie.',
+  },
+  LISTING_LIMIT_REACHED: {
+    status: 409,
+    title: 'Limit aktywnych aukcji',
+    detail: 'Osiągnięto limit aktywnych aukcji. Poczekaj, aż któraś się zakończy.',
+  },
+  AUCTION_HAS_BIDS: {
+    status: 409,
+    title: 'Aukcja ma oferty',
+    detail: 'Po pierwszej ofercie nie można zmieniać aukcji.',
+  },
+  AUCTION_CANCEL_TOO_LATE: {
+    status: 409,
+    title: 'Za późno na anulowanie',
+    detail: 'Aukcji z ofertami nie można anulować w ostatnich 12 godzinach.',
+  },
+  BID_TOO_LOW: {
+    status: 409,
+    title: 'Za niska oferta',
+    detail: 'Oferta jest niższa niż minimalna kolejna oferta.',
+  },
+  BID_LIMIT_EXCEEDED: {
+    status: 403,
+    title: 'Limit konta',
+    detail: 'Oferta przekracza limit Twojego konta. Limit rośnie po opłaconych zamówieniach.',
+  },
+  BIDDING_BLOCKED: {
+    status: 403,
+    title: 'Blokada licytowania',
+    detail: 'Masz czasową blokadę licytowania. Szczegóły i odwołanie znajdziesz w koncie.',
+  },
+  AUCTION_ENDED: {
+    status: 409,
+    title: 'Aukcja zakończona',
+    detail: 'Aukcja już się zakończyła.',
+  },
+  OWN_AUCTION: {
+    status: 403,
+    title: 'Własna aukcja',
+    detail: 'Nie możesz licytować własnej aukcji.',
+  },
+  BUY_NOW_UNAVAILABLE: {
+    status: 409,
+    title: 'Kup teraz niedostępne',
+    detail: 'Kup teraz jest niedostępne: aukcja ma już oferty.',
+  },
+  IDEMPOTENCY_KEY_REUSED: {
+    status: 422,
+    title: 'Klucz już użyty',
+    detail: 'Ten klucz Idempotency-Key został użyty w innym żądaniu. Wygeneruj nowy klucz.',
+  },
+  SHIPPING_OPTION_UNAVAILABLE: {
+    status: 422,
+    title: 'Dostawa niedostępna',
+    detail: 'Ta dostawa nie pasuje do przedmiotu albo jest chwilowo niedostępna. Wybierz inną.',
+  },
+  PICKUP_POINT_REQUIRED: {
+    status: 422,
+    title: 'Wybierz punkt odbioru',
+    detail: 'Ta dostawa wymaga wybrania paczkomatu albo punktu odbioru.',
+  },
+  PICKUP_POINT_NOT_FOUND: {
+    status: 422,
+    title: 'Nie ma takiego punktu',
+    detail: 'Nie znaleziono wybranego punktu odbioru. Wybierz inny punkt.',
+  },
+  DELIVERY_ADDRESS_REQUIRED: {
+    status: 422,
+    title: 'Podaj adres dostawy',
+    detail: 'Dostawa kurierem wymaga adresu dostawy.',
+  },
+  DISPATCH_METHOD_UNAVAILABLE: {
+    status: 422,
+    title: 'Sposób nadania niedostępny',
+    detail: 'Ten sposób nadania nie jest dostępny dla wybranej dostawy.',
+  },
+  ORDER_NOT_AWAITING_SHIPMENT: {
+    status: 409,
+    title: 'Zamówienie nie czeka na nadanie',
+    detail:
+      'Tego zamówienia nie można teraz nadać: nie jest opłacone albo nie ma wybranej dostawy.',
+  },
+  SHIPMENT_ALREADY_DISPATCHED: {
+    status: 409,
+    title: 'Przesyłka już nadana',
+    detail: 'Przesyłka jest już nadawana albo nadana, więc dostawy nie można zmienić.',
+  },
+  ORDER_NOT_AWAITING_PAYMENT: {
+    status: 409,
+    title: 'Zamówienie nie czeka na płatność',
+    detail: 'To zamówienie jest już opłacone albo anulowane.',
+  },
+  PAYMENT_DEADLINE_PASSED: {
+    status: 409,
+    title: 'Termin płatności minął',
+    detail: 'Termin płatności za to zamówienie minął.',
+  },
+  PAYMENT_IN_PROGRESS: {
+    status: 409,
+    title: 'Płatność w toku',
+    detail: 'Płatność za to zamówienie jest w toku. Poczekaj na jej wynik.',
+  },
+  DELIVERY_REQUIRED: {
+    status: 409,
+    title: 'Wybierz dostawę',
+    detail: 'Przed płatnością wybierz dostawę.',
+  },
+  CHECKOUT_TOTAL_CHANGED: {
+    status: 409,
+    title: 'Kwota się zmieniła',
+    detail: 'Kwota do zapłaty się zmieniła. Sprawdź podsumowanie i zapłać ponownie.',
+  },
+  SELLER_UNAVAILABLE: {
+    status: 409,
+    title: 'Sprzedający niedostępny',
+    detail: 'Sprzedający nie może teraz przyjąć płatności. Napisz do nas przez Centrum pomocy.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

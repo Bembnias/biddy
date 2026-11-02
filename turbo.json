@@ -8,6 +8,21 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
+    "@biddy/web#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/.env"],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "NEXT_OUTPUT",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "VERCEL_ENV",
+        "VERCEL_URL",
+        "VERCEL_GIT_COMMIT_SHA"
+      ],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN", "CI"]
+    },
     "lint": {
       "dependsOn": ["^build"]
     },
@@ -21,7 +36,25 @@
       "dependsOn": ["^build"],
       "passThroughEnv": ["DOCKER_HOST", "TESTCONTAINERS_*", "CI"]
     },
+    "@biddy/api-client#test:integration": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/api/src/**",
+        "$TURBO_ROOT$/apps/api/package.json"
+      ]
+    },
     "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "dev:worker": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "dev:board": {
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true

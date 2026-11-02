@@ -1,0 +1,175 @@
+// Zamówienia (F-16): utworzenie zamówienia dla sprzedanej aukcji w transakcji jej zakończenia
+// (moduł auctions przekazuje `tx`), z POK według cennika z chwili zakończenia (F-13) i terminem
+// płatności 24 h (§6.8). Checkout, opłacenie i anulowanie nieopłaconych: F-25 (../checkout);
+// pozostałe przejścia stanów i terminy: F-26.
+import { type CurrencyCode, money, PUBLIC_ID_PATTERN } from '@biddy/shared';
+import { Inject, Injectable } from '@nestjs/common';
+import { and, eq, inArray } from 'drizzle-orm';
+
+import { type Database, DRIZZLE, newPublicId, type Transaction } from '../../../infra/db/index.js';
+import { DomainError } from '../../../infra/http/index.js';
+import { Outbox } from '../../../infra/outbox/index.js';
+import { FeeScheduleService } from '../../payments/index.js';
+import { type Order, orderItems, orders } from '../db/orders.schema.js';
+import { OrderCreated } from '../orders.events.js';
+import type { OrderItemSnapshot } from './order-snapshot.js';
+
+/** Termin płatności zwycięzcy (§6.8). */
+export const PAYMENT_WINDOW_MS = 24 * 60 * 60 * 1_000;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+/** Strona zamówienia z perspektywy zalogowanego użytkownika. */
+export type OrderRole = 'BUYER' | 'SELLER';
+
+/** Zamówienie z pozycją (snapshot przedmiotu) i rolą oglądającego. */
+export interface ParticipantOrder {
+  readonly order: Order;
+  readonly role: OrderRole;
+  readonly snapshot: OrderItemSnapshot;
+}
+
+/** Sprzedana aukcja, z której powstaje zamówienie. */
+export interface AuctionSale {
+  readonly auctionId: string;
+  readonly buyerId: string;
+  readonly sellerId: string;
+  readonly currency: CurrencyCode;
+  /** Wylicytowana kwota (albo cena Kup teraz) w groszach. */
+  readonly hammerPrice: number;
+  readonly endedAt: Date;
+  readonly snapshot: OrderItemSnapshot;
+}
+
+@Injectable()
+export class OrderService {
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    @Inject(FeeScheduleService) private readonly fees: FeeScheduleService,
+    private readonly outbox: Outbox,
+  ) {}
+
+  async byId(orderId: string): Promise<Order | undefined> {
+    const [order] = await this.db.select().from(orders).where(eq(orders.id, orderId));
+    return order;
+  }
+
+  /** Aktywne zamówienia sprzedanych aukcji według aukcji (listy Moje Biddy, F-21). */
+  async activeForAuctions(auctionIds: readonly string[]): Promise<Map<string, Order>> {
+    if (auctionIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({ auctionId: orderItems.auctionId, order: orders })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .where(
+        and(inArray(orderItems.auctionId, [...new Set(auctionIds)]), eq(orderItems.isActive, true)),
+      );
+    return new Map(rows.map((row) => [row.auctionId, row.order]));
+  }
+
+  /** Aktywne zamówienie sprzedanej aukcji albo undefined (strona aukcji, F-18). */
+  async activeForAuction(auctionId: string): Promise<Order | undefined> {
+    const [row] = await this.db
+      .select({ order: orders })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .where(and(eq(orderItems.auctionId, auctionId), eq(orderItems.isActive, true)));
+    return row?.order;
+  }
+
+  /**
+   * Zamówienie po UUID albo numerze (`publicId`) dla jego kupującego albo sprzedającego.
+   * Inni dostają 404, tak jak dla nieistniejącego zamówienia (bez ujawniania numerów).
+   */
+  async forParticipant(idOrPublicId: string, userId: string): Promise<ParticipantOrder> {
+    const condition = UUID.test(idOrPublicId)
+      ? eq(orders.id, idOrPublicId)
+      : PUBLIC_ID_PATTERN.test(idOrPublicId)
+        ? eq(orders.publicId, idOrPublicId)
+        : undefined;
+    const [row] =
+      condition === undefined
+        ? []
+        : await this.db
+            .select({ order: orders, snapshot: orderItems.itemSnapshot })
+            .from(orders)
+            .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+            .where(condition)
+            .limit(1);
+    const role: OrderRole | undefined =
+      row === undefined
+        ? undefined
+        : row.order.buyerId === userId
+          ? 'BUYER'
+          : row.order.sellerId === userId
+            ? 'SELLER'
+            : undefined;
+    if (row === undefined || role === undefined) {
+      throw new DomainError({ code: 'NOT_FOUND', detail: 'Nie znaleziono zamówienia.' });
+    }
+    return { order: row.order, role, snapshot: row.snapshot };
+  }
+
+  /**
+   * Zamówienie AWAITING_PAYMENT dla sprzedanej aukcji, w transakcji wywołującego. Drugie aktywne
+   * zamówienie dla tej samej aukcji odrzuca unikalny indeks częściowy na `order_items`.
+   */
+  async createForAuction(tx: Transaction, sale: AuctionSale): Promise<Order> {
+    const quote = await this.fees.quote(money(sale.hammerPrice, sale.currency), sale.endedAt);
+    const paymentDueAt = new Date(sale.endedAt.getTime() + PAYMENT_WINDOW_MS);
+    const order = await this.insertOrder(tx, {
+      buyerId: sale.buyerId,
+      sellerId: sale.sellerId,
+      currency: sale.currency,
+      itemsTotal: sale.hammerPrice,
+      pokFee: quote.fee.amount,
+      pokVat: quote.vat.amount,
+      total: quote.total.amount,
+      feeScheduleId: quote.feeScheduleId,
+      paymentDueAt,
+    });
+    await tx.insert(orderItems).values({
+      orderId: order.id,
+      auctionId: sale.auctionId,
+      hammerPrice: sale.hammerPrice,
+      itemSnapshot: sale.snapshot,
+    });
+    await this.outbox.add(
+      tx,
+      OrderCreated.create({
+        aggregateId: order.id,
+        payload: {
+          publicId: order.publicId,
+          auctionId: sale.auctionId,
+          buyerId: sale.buyerId,
+          sellerId: sale.sellerId,
+          itemsTotal: money(order.itemsTotal, order.currency),
+          pokFee: money(order.pokFee, order.currency),
+          total: money(order.total, order.currency),
+          paymentDueAt: paymentDueAt.toISOString(),
+        },
+      }),
+    );
+    return order;
+  }
+
+  private async insertOrder(
+    tx: Transaction,
+    values: Omit<typeof orders.$inferInsert, 'id' | 'publicId'>,
+  ): Promise<Order> {
+    // Kolizja 8-znakowego numeru jest skrajnie mało prawdopodobna; ponawiamy kilka razy.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const [order] = await tx
+        .insert(orders)
+        .values({ ...values, publicId: newPublicId() })
+        .onConflictDoNothing({ target: orders.publicId })
+        .returning();
+      if (order !== undefined) {
+        return order;
+      }
+    }
+    throw new Error('Nie udało się nadać unikalnego numeru zamówienia');
+  }
+}

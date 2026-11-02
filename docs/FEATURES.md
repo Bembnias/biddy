@@ -110,6 +110,8 @@ Szacunki nie obejmują projektu wizualnego kluczowych ekranów (freelancer w Faz
 | F-19 | Wyszukiwarka i przeglądanie | 1 | L |
 | F-20 | Obserwowane i powiadomienia | 1 | M |
 | F-21 | Moje Biddy | 1 | S |
+| F-62 | Design system i odświeżenie UI web | 1 | L |
+| F-63 | Puls licytacji: nowy UI/UX web | 1 | L |
 | F-22 | Ledger | 2a | M |
 | F-23 | Port płatności i FakeGateway | 2a | M |
 | F-24 | Dostawy | 2a | L |
@@ -151,7 +153,7 @@ Feature'y są full-stackowe, więc to podział „kto prowadzi”, a nie sztywny
 
 Uwagi:
 
-- F-15 potrzebuje F-08 tylko do guarda „zweryfikowany telefon”. Do czasu F-08 używamy zaślepki guarda, żeby łańcuch auth (F-05 → F-06 → F-07 → F-08) nie wydłużał ścieżki.
+- F-15 potrzebuje F-08 tylko do guarda „zweryfikowany telefon” (`@RequireVerifiedPhone()`, gotowy od F-08).
 - F-24 zależy od modelu `items` (gabaryt, przewoźnicy), a nie od całego kreatora F-14. Model uzgadniamy na początku Etapu 1.
 - F-28 zawiera endpoint decyzji w sporze (`POST /admin/disputes/:id/decision`), a F-34 dodaje do niego UI. Dzięki temu nie ma cyklu F-28 ↔ F-34.
 
@@ -220,7 +222,7 @@ flowchart TD
 - `infra/docker-compose.yml`: Postgres, 2× Redis (kolejki `noeviction`, cache `allkeys-lru`), Meilisearch, RustFS (lokalny S3 zamiast MinIO), Mailpit.
 - `.env.example` i walidacja zmiennych (`pnpm env:check`).
 - Skrypty `pnpm bootstrap` (pierwsze uruchomienie), `pnpm dev`, `pnpm infra:up|down|logs|reset`, `pnpm db:reset`, `pnpm storage:setup`, `pnpm mail:test`.
-- `pnpm db:reset` z bezpiecznikiem (tylko lokalna baza, nigdy `NODE_ENV=production`) uruchamia zadania `db:migrate` i `db:seed` wszystkich pakietów. Same migracje i seed z użytkownikami testowymi powstają w F-03 i F-07.
+- `pnpm db:reset` z bezpiecznikiem (tylko lokalna baza, nigdy `NODE_ENV=production`) uruchamia zadania `db:migrate` i `db:seed` wszystkich pakietów. Same migracje i seed z użytkownikami testowymi powstały w F-03 i F-07.
 - README z instrukcją startu.
 
 **Kryteria akceptacji:**
@@ -294,6 +296,8 @@ flowchart TD
 
 ### F-06 · Szkielet aplikacji web · `M`
 
+> Pełny spec: [docs/features/F-06-szkielet-web.md](features/F-06-szkielet-web.md).
+
 **Cel:** baza aplikacji Next.js z design systemem.
 
 **Zakres:**
@@ -302,6 +306,7 @@ flowchart TD
 - Layout: nagłówek, miejsce na wyszukiwarkę, stopka.
 - `next-intl` (PL), strony błędów i 404.
 - Sentry, PostHog (włączany dopiero po zgodzie, patrz F-41), bazowe SEO (metadata, robots).
+- Klient API z F-05: `configureApiClient({ baseUrl })` i `QueryClientProvider` w layoucie; synchronizacja zegara z serwerem przez wygenerowane `getServerTime` (`GET /v1/time`), co domyka kryterium F-05 w prawdziwej aplikacji. Server Components wołają wygenerowane funkcje z przekazanym ciasteczkiem sesji (`withSessionCookies`).
 
 **Kryteria akceptacji:**
 - Lighthouse ≥ 90 dla wydajności i dostępności na stronie głównej.
@@ -312,16 +317,18 @@ flowchart TD
 
 ### F-07 · Rejestracja i logowanie · `M`
 
+> Pełny spec: [docs/features/F-07-rejestracja-logowanie.md](features/F-07-rejestracja-logowanie.md).
+
 **Cel:** bezpieczne konta użytkowników.
 
 **Zakres:**
 - Better Auth w NestJS (adapter Drizzle).
 - E-mail i hasło z weryfikacją e-maila i resetem hasła, logowanie Google i Apple.
-- Sesje cookie dla web (domena `.biddy.pl`), przygotowanie tokenów bearer dla mobile.
-- Turnstile na rejestracji i logowaniu.
+- Sesje cookie dla web (domena `.biddy.pl`), przygotowanie tokenów bearer dla mobile. Klient API (F-05) już wysyła ciasteczka (`credentials: 'include'`) i token z `getAccessToken` jako `Authorization: Bearer`; trasy wymagające sesji opisać w OpenAPI (security scheme), żeby klient i dokumentacja to pokazywały.
+- Turnstile na rejestracji, resecie hasła i logowaniu (po 5 nieudanych próbach).
 - Akceptacja regulaminu z zapisem wersji (tabela `terms_acceptances`).
-- Ochrona CSRF dla sesji cookie (sprawdzanie `Origin` albo token; NestJS 12 ma `enableCsrfProtection()`). Parser formularzy (`application/x-www-form-urlencoded`) tylko na trasie callbacku Sign in with Apple, globalnie API przyjmuje wyłącznie JSON (F-03).
-- Decyzja o kluczach obcych między modułami (np. `orders` → użytkownicy z `identity`): reguła granic modułów (F-03) blokuje dziś import cudzego `*.schema.ts`. Do wyboru: wyjątek w regule dla plików schematu albo kolumny uuid bez FK.
+- Ochrona CSRF dla sesji cookie: sprawdzanie `Origin` (§22 nr 43). Parser formularzy (`application/x-www-form-urlencoded`) tylko na trasie callbacku Sign in with Apple, globalnie API przyjmuje wyłącznie JSON (F-03).
+- Decyzja o kluczach obcych między modułami (np. `orders` → użytkownicy z `identity`): kolumny uuid bez FK, reguła granic modułów (F-03) bez wyjątków (§13.1, §22 nr 42).
 - Ekrany web, wylogowanie ze wszystkich urządzeń.
 
 **Kryteria akceptacji:**
@@ -335,12 +342,14 @@ flowchart TD
 
 ### F-08 · Weryfikacja telefonu i 18+ · `S`
 
+> Pełny spec: [docs/features/F-08-weryfikacja-telefonu.md](features/F-08-weryfikacja-telefonu.md).
+
 **Cel:** jedno konto na osobę i podstawowa ochrona przed fałszywymi kontami.
 
 **Zakres:**
 - Kod SMS przez SMSAPI (adapter `SmsProvider` + fake w dev).
 - Unikalność numeru, oświadczenie 18+.
-- Guard `requireVerifiedPhone` dla licytowania i wystawiania.
+- Guard `@RequireVerifiedPhone()` dla licytowania i wystawiania (e-mail, 18+ i telefon).
 
 **Kryteria akceptacji:**
 - Jeden numer można przypisać tylko do jednego konta.
@@ -352,11 +361,13 @@ flowchart TD
 
 ### F-09 · CI/CD i środowiska · `M`
 
+> Runbook: [docs/deployment.md](deployment.md). Konfiguracja: `render.yaml`, `apps/api/Dockerfile`, `apps/web/vercel.json`, `.github/workflows/ci.yml`.
+
 **Cel:** automatyczne testy i wdrożenia od pierwszego tygodnia.
 
 **Zakres:**
 - GitHub Actions: lint, typecheck, testy, build z cache Turborepo.
-- Staging: Render (API, worker, Postgres, 2 instancje Redis: kolejki i cache) i Vercel (web).
+- Staging: Render (API, worker, Postgres, 2 instancje Redis: kolejki i cache) i Vercel (web). Web: `NEXT_PUBLIC_ENVIRONMENT` (`preview`, `staging`, `production`; tylko produkcja jest indeksowana), `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_APP_RELEASE` i `SENTRY_AUTH_TOKEN`/`SENTRY_ORG`/`SENTRY_PROJECT` do uploadu source map (F-06). Worker jako Background Worker z `start:worker` (`node --import ./dist/instrument.js dist/worker.js`), bez portu HTTP. Key Value kolejek z „Maxmemory Policy: noeviction” (inaczej worker nie wystartuje, F-04), `REDIS_QUEUE_URL` dla API i workera.
 - Migracje jako osobny krok przed deployem (`node dist/infra/db/migrate.js`; obraz musi zawierać `apps/api/drizzle/`), sekrety, preview deployments dla web, Sentry releases.
 - Weryfikacja `TRUST_PROXY` na Render: domyślnie ufamy adresom loopback i prywatnym (load balancer Render). Jeśli przed Render stoi Cloudflare, dopisać jego zakresy CIDR (inaczej `request.ip` będzie adresem proxy).
 
@@ -373,6 +384,8 @@ flowchart TD
 
 ### F-10 · Profil i adresy · `S`
 
+> Pełny spec: [docs/features/F-10-profil-i-adresy.md](features/F-10-profil-i-adresy.md).
+
 **Cel:** użytkownik zarządza swoim profilem i adresami dostaw.
 
 **Zakres:**
@@ -387,6 +400,8 @@ flowchart TD
 **Zależności:** F-07 (avatar: F-12) · **Spec:** §13.3
 
 ### F-11 · Kategorie i atrybuty · `M`
+
+> Pełny spec: [docs/features/F-11-kategorie-i-atrybuty.md](features/F-11-kategorie-i-atrybuty.md).
 
 **Cel:** drzewo kategorii z atrybutami zależnymi od kategorii (np. rozmiar dla mody, model dla elektroniki).
 
@@ -406,6 +421,8 @@ flowchart TD
 
 ### F-12 · Zdjęcia: upload i przetwarzanie · `M`
 
+> Pełny spec: [docs/features/F-12-zdjecia.md](features/F-12-zdjecia.md).
+
 **Cel:** bezpieczny upload zdjęć z ochroną prywatności i moderacją.
 
 **Zakres:**
@@ -424,6 +441,8 @@ flowchart TD
 
 ### F-13 · Kalkulator POK i cenniki · `S`
 
+> Pełny spec: [docs/features/F-13-pok-i-cenniki.md](features/F-13-pok-i-cenniki.md).
+
 **Cel:** jedna, wspólna logika opłat i kroków przebicia dla frontu i backendu.
 
 **Zakres:**
@@ -441,6 +460,8 @@ flowchart TD
 
 ### F-14 · Kreator aukcji (web) · `L`
 
+> Pełny spec: [docs/features/F-14-kreator-aukcji.md](features/F-14-kreator-aukcji.md).
+
 **Cel:** sprzedający wystawia przedmiot na licytację w kilka minut.
 
 **Zakres:**
@@ -456,13 +477,15 @@ flowchart TD
 - Nie da się opublikować aukcji bez wymaganych pól.
 - Kup teraz poniżej 130% ceny wywoławczej lub poniżej ceny minimalnej jest odrzucane.
 - Nowe konto nie przekroczy limitu aktywnych aukcji i maksymalnej wartości aukcji (§4.1).
-- Aukcja o wartości > 1000 zł wymaga pozytywnego KYC (blokada aktywna od F-32).
+- Aukcja o wartości > 5000 zł wymaga pozytywnego KYC (blokada aktywna od F-32).
 - Po pierwszej ofercie cena, opis i zdjęcia są zablokowane do edycji.
 - Przed pierwszą publikacją użytkownik widzi informację, że wypłata wymaga weryfikacji tożsamości.
 
 **Zależności:** F-08, F-11, F-12, F-13 · **Spec:** §5, §6.2, §8.2, §17
 
 ### F-15 · Silnik licytacji · `L`
+
+> Pełny spec: [docs/features/F-15-silnik-licytacji.md](features/F-15-silnik-licytacji.md).
 
 **Cel:** poprawne, spójne i odporne na wyścigi przyjmowanie ofert.
 
@@ -488,6 +511,8 @@ flowchart TD
 
 ### F-16 · Zamykanie aukcji · `M`
 
+> Pełny spec: [docs/features/F-16-zamykanie-aukcji.md](features/F-16-zamykanie-aukcji.md).
+
 **Cel:** każda aukcja kończy się na czas i dokładnie raz.
 
 **Zakres:**
@@ -505,6 +530,8 @@ flowchart TD
 **Zależności:** F-15 · **Spec:** §6.7, §15.2
 
 ### F-17 · Realtime · `M`
+
+> Pełny spec: [docs/features/F-17-realtime.md](features/F-17-realtime.md).
 
 **Cel:** ceny, liczniki i powiadomienia aktualizują się na żywo.
 
@@ -524,6 +551,8 @@ flowchart TD
 **Zależności:** F-03, F-15 · **Spec:** §10.5, §15.4
 
 ### F-18 · Strona aukcji · `M`
+
+> Pełny spec: [docs/features/F-18-strona-aukcji.md](features/F-18-strona-aukcji.md).
 
 **Cel:** czytelna strona przedmiotu, która sprzedaje i dobrze się indeksuje.
 
@@ -546,6 +575,8 @@ flowchart TD
 
 ### F-19 · Wyszukiwarka i przeglądanie · `L`
 
+> Pełny spec: [docs/features/F-19-wyszukiwarka.md](features/F-19-wyszukiwarka.md).
+
 **Cel:** kupujący szybko znajduje interesujące aukcje.
 
 **Zakres:**
@@ -565,6 +596,8 @@ flowchart TD
 
 ### F-20 · Obserwowane i powiadomienia · `M`
 
+> Pełny spec: [docs/features/F-20-obserwowane-powiadomienia.md](features/F-20-obserwowane-powiadomienia.md).
+
 **Cel:** użytkownik nie przegapia ważnych momentów aukcji.
 
 **Zakres:**
@@ -583,6 +616,8 @@ flowchart TD
 
 ### F-21 · Moje Biddy · `S`
 
+> Pełny spec: [docs/features/F-21-moje-biddy.md](features/F-21-moje-biddy.md).
+
 **Cel:** jedno miejsce, w którym użytkownik widzi swoje licytacje i sprzedaże.
 
 **Zakres:**
@@ -595,6 +630,46 @@ flowchart TD
 
 **Zależności:** F-15, F-16, F-17 · **Spec:** §5
 
+### F-62 · Design system i odświeżenie UI web · `L`
+
+> Pełny spec: [docs/features/F-62-design-system.md](features/F-62-design-system.md).
+
+Dodany po oszacowaniu planu: to wdrożenie projektu wizualnego, którego szacunki nie obejmowały (patrz „Przegląd i szacunki”).
+
+**Cel:** identyfikacja Biddy w całej aplikacji web: tokeny, font, logo, komponenty bazowe i kluczowe ekrany według design systemu zbudowanego z makiet Figma.
+
+**Zakres:**
+- Tokeny (paleta, role semantyczne, style tekstu, cienie, kontenery), Plus Jakarta Sans, logo.
+- Komponenty bazowe (`Button`, `Badge`, pola, `Chip`, `IconTile`, `PillTabs`, `SegmentedControl`, `Price`, `EmptyState`), nagłówek i stopka.
+- Ekrany: strona aukcji i przeglądanie, Moje Biddy i konto, logowanie i kreator aukcji.
+
+**Kryteria akceptacji:**
+- Pary tekst/tło ≥ 4,5:1, elementy interfejsu ≥ 3:1 (test tokenów), axe bez naruszeń na stronach z e2e.
+- Jedna akcja `cta` na widok; kolory, typografia, promienie i cienie wyłącznie z tokenów.
+
+**Zależności:** F-06, F-18, F-19, F-21 · **Spec:** §11.3, §22 nr 8, nr 87
+
+### F-63 · Puls licytacji: nowy UI/UX web · `L`
+
+> Pełny spec: [docs/features/F-63-puls-licytacji.md](features/F-63-puls-licytacji.md).
+
+Dodany po oszacowaniu planu, jak F-62: wdrożenie projektu widoków „Puls licytacji” (płótno z 31 ekranami) na fundamencie z F-62.
+
+**Cel:** interfejs, który oddaje emocje licytacji na żywo: sygnały zmian ceny i czasu, natychmiastowa informacja o przebiciu i moment wygranej.
+
+**Zakres:**
+- Etap 1, licytacja na żywo: komponenty pulsu (licznik, impuls ceny, LIVE, paski stanu, szybkie kwoty), panel licytacji w sześciu stanach, toasty na żywo, panel wygranej, pasek licytacji i arkusz „Przebito Cię” na telefonie, licznik oglądających.
+- Etap 2, przeglądanie: karta aukcji, strona główna, wyszukiwarka i kategoria, profil sprzedawcy, dolny pasek nawigacji na telefonie.
+- Etap 3: Moje Biddy, konto i powiadomienia.
+- Etap 4: logowanie, kreator aukcji z podglądem karty, nadanie paczki, strony 404 i błędu.
+
+**Kryteria akceptacji:**
+- Przebicie oferty widać w ciągu 1 s na stronie aukcji (pasek i toast) i na każdej innej stronie (toast).
+- Przy `prefers-reduced-motion` nic się nie animuje, a zmiany są nadal widoczne; axe bez naruszeń na stronach z e2e.
+- Jedna akcja `cta` na widok; kolory, typografia, promienie i cienie wyłącznie z tokenów.
+
+**Zależności:** F-62, F-17, F-18, F-19, F-21, F-24 · **Spec:** §11.3
+
 ---
 
 ## Etap 2a: Transakcje (niezależne od operatora płatności)
@@ -602,6 +677,8 @@ flowchart TD
 Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.8).
 
 ### F-22 · Ledger · `M`
+
+> Pełny spec: [docs/features/F-22-ledger.md](features/F-22-ledger.md).
 
 **Cel:** audytowalna księga wszystkich ruchów pieniędzy.
 
@@ -620,6 +697,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Zależności:** F-03 · **Spec:** §7.7
 
 ### F-23 · Port płatności i FakeGateway · `M`
+
+> Pełny spec: [docs/features/F-23-port-platnosci.md](features/F-23-port-platnosci.md).
 
 **Cel:** pełny przepływ płatności bez umowy z operatorem.
 
@@ -644,6 +723,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-24 · Dostawy · `L`
 
+> Pełny spec: [docs/features/F-24-dostawy.md](features/F-24-dostawy.md).
+
 **Cel:** kilka opcji dostawy z automatycznymi etykietami i śledzeniem.
 
 **Zakres:**
@@ -667,6 +748,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-25 · Checkout (web) · `M`
 
+> Pełny spec: [docs/features/F-25-checkout.md](features/F-25-checkout.md). F-25 robi też przejścia `AWAITING_PAYMENT → PAID` i `→ CANCELLED_UNPAID` (bez strike'a i drugiej szansy) oraz zwroty spóźnionych i zdublowanych płatności (PROJECT.md §22, nr 106–108).
+
 **Cel:** zwycięzca płaci szybko i bez niespodzianek.
 
 **Zakres:**
@@ -689,6 +772,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 ### F-26 · Cykl życia zamówienia · `L`
 
 **Cel:** zamówienie przechodzi od wygranej do wypłaty automatycznie, z obsługą wyjątków.
+
+> Opłacenie (`PAID` z `ship_by` i `OrderPaid`), anulowanie nieopłaconego (`CANCELLED_UNPAID`, event `OrderCancelled`) i tabela `refunds` ze zwrotem przez operatora są już w F-25. F-26 dodaje do nich strike, przypomnienia i drugą szansę.
 
 **Zakres:**
 - Maszyna stanów z §7.3 (tylko dozwolone przejścia, sterowane zdarzeniami), joby terminów z §7.4 (ID z terminem, dni robocze z kalendarzem świąt).
@@ -792,6 +877,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 **Zakres:**
 - Poziomy kupujących i sprzedających z §4.1 liczone z historii zamówień, nadpisania w `users.limits`, wartości domyślne w konfiguracji.
+- Nowe maksimum oferty kupującego z §4.1 (decyzja nr 110 w §22): nowy 2500 zł, sprawdzony 5000 zł, zaufany bez limitu. Dotąd kod ma 500 i 3000 zł (`BUYER_LIMITS` w `packages/shared`, komunikat `BID_LIMIT_EXCEEDED`).
 - Tabela `strikes`. Strike'i nadaje system (konsumenci eventów: brak płatności, nieodebrana przesyłka, brak nadania, anulowanie aukcji z ofertami, przegrany spór) albo admin.
 - Reguły blokad: 3 strike'i w 90 dni → blokada na 30 dni, druga blokada w ciągu 12 miesięcy → bezterminowa, potwierdzona podróbka → natychmiastowa blokada.
 - `bidding_blocked_until` i `listing_blocked_until`, guardy w API licytacji i wystawiania.
@@ -837,12 +923,12 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Cel:** sprzedawcy przechodzą KYC wymagane prawem, a my informujemy ich o tym z góry.
 
 **Zakres:**
-- Rejestracja sprzedawcy u operatora (submerchant lub portfel) przy pierwszym wystawieniu, asynchronicznie (§7.6 pkt 5). Pełne KYC: przekazanie danych i dokumentów (osadzone w UI lub przez przekierowanie) przed wypłatą lub aukcją > 1000 zł.
+- Rejestracja sprzedawcy u operatora (submerchant lub portfel) przy pierwszym wystawieniu, asynchronicznie (§7.6 pkt 5). Pełne KYC: przekazanie danych i dokumentów (osadzone w UI lub przez przekierowanie) przed wypłatą lub aukcją > 5000 zł.
 - Statusy KYC z webhooków, komunikaty w UI.
-- Blokady: wypłata, aukcje powyżej 1000 zł.
+- Blokady: wypłata, aukcje powyżej 5000 zł.
 
 **Kryteria akceptacji:**
-- Bez pozytywnej weryfikacji nie da się wypłacić środków ani wystawić aukcji powyżej 1000 zł.
+- Bez pozytywnej weryfikacji nie da się wypłacić środków ani wystawić aukcji powyżej 5000 zł.
 - Zmiana statusu u operatora jest widoczna w UI w mniej niż 1 minutę.
 - Odrzucona weryfikacja pokazuje powód i kolejne kroki.
 
@@ -877,7 +963,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
   - wypłaty, należności, chargebacki,
   - rekompensaty i reklamacje u przewoźników (§7.9, §8.4),
   - cenniki POK,
-  - kategorie i atrybuty.
+  - kategorie i atrybuty,
+  - kolejki: liczniki jobów i dead-letter queue z ponowieniem wpisu (`DeadLetterQueue.list` i `replay` z F-04; Bull Board działa tylko lokalnie).
 - Audit log każdej akcji.
 
 **Kryteria akceptacji:**
@@ -937,7 +1024,7 @@ Prace przed publicznym startem web. Zamknięta beta działa już na produkcji z 
 
 **Zakres:**
 - Regulamin (wersjonowany, ponowna akceptacja po zmianach), polityka prywatności. Regulamin obejmuje m.in. zasady aukcji (KC), limity i strike'i, przesyłki nieodebrane, potrącenia i rekompensaty, minimalną wypłatę (§17).
-- Baner cookies: domyślnie tylko niezbędne, analityka po zgodzie.
+- Baner cookies: domyślnie tylko niezbędne, analityka po zgodzie. Kontrakt z F-06: baner zapisuje ciasteczko `biddy_consent` (kategorie po przecinku, np. `analytics`) i wysyła zdarzenie `biddy:consent-changed` na `window`; aplikacja web wtedy uruchamia PostHog (`apps/web/src/analytics`).
 - Centrum pomocy (POK, licytacje, spory, KYC), lista zakazanych przedmiotów.
 - Informacje wymagane przez Omnibus (C2C, ranking, opinie).
 - Eksport danych i usunięcie konta (RODO).
@@ -957,7 +1044,9 @@ Prace przed publicznym startem web. Zamknięta beta działa już na produkcji z 
 - Testy obciążeniowe k6 (200 ofert/s na gorącą aukcję, 2 tys. połączeń WS).
 - Przegląd bezpieczeństwa lub pentest.
 - Test odtworzenia backupu.
-- Dashboardy i alerty (§18.3), w tym aukcja `ACTIVE` po `ends_at`, straty platformy i pamięć Redisa kolejek.
+- Lighthouse ≥ 90 dla strony głównej i strony aukcji (kryterium przeniesione z F-06): skrypt `pnpm --filter @biddy/web lighthouse` istnieje; w F-06 wydajność wahała się 87–97 przez symulowany LCP ok. 3 s przy FCP 0,8 s, do zbadania i ewentualnie progu w CI.
+- Content Security Policy z nonce dla web (odłożone w F-06, bo wymusza dynamiczne renderowanie stron).
+- Dashboardy i alerty (§18.3), w tym aukcja `ACTIVE` po `ends_at`, straty platformy i pamięć Redisa kolejek. Alert na niepustą kolejkę `dead-letter` i na zaległości w outboxie (wiersze z pustym `published_at` starsze niż minuta, F-04).
 - Runbooki: awaria płatności, zatrzymana kolejka, rozjazd ledgera.
 - Środowisko produkcyjne, Cloudflare WAF, limity.
 
@@ -1096,7 +1185,7 @@ Startuje w trakcie bety (F-43), gdy rdzeń web jest stabilny. Publikacja w sklep
 
 ## Po MVP
 
-Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-62.
+Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-64.
 
 **v1 (miesiące 8–10)**
 

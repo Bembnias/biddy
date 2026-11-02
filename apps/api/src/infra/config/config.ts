@@ -1,5 +1,6 @@
 // Konfiguracja API walidowana Zodem przy starcie (PROJECT.md §11.2). Brakująca lub błędna
 // zmienna kończy start aplikacji z czytelną listą błędów, zanim cokolwiek się połączy.
+import { createHmac } from 'node:crypto';
 import { isIP } from 'node:net';
 
 import { z } from 'zod';
@@ -7,6 +8,13 @@ import { z } from 'zod';
 const MISSING = 'brak zmiennej (nie ustawiono jej albo jest pusta)';
 
 const LOG_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'] as const;
+
+/** Środowiska wdrożenia (PROJECT.md §18.1). Staging działa z NODE_ENV=production. */
+export const DEPLOYMENT_ENVIRONMENTS = ['local', 'preview', 'staging', 'production'] as const;
+
+/** Dostawcy przesyłek z adapterem (F-24): `fake` tylko poza produkcją. */
+export const SHIPPING_PROVIDER_NAMES = ['fake', 'furgonetka'] as const;
+export type ShippingProviderName = (typeof SHIPPING_PROVIDER_NAMES)[number];
 
 function text() {
   return z.string({
@@ -41,6 +49,14 @@ function oneOf<const T extends readonly [string, ...string[]]>(values: T) {
     error: (issue) =>
       issue.input === undefined ? MISSING : `oczekiwano jednej z wartości: ${values.join(', ')}`,
   });
+}
+
+/** Nazwa kubełka S3: 3–63 znaki, małe litery, cyfry, kropki i myślniki. */
+function bucketName() {
+  return text().regex(
+    /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/,
+    'oczekiwano nazwy kubełka (3–63 znaki: małe litery, cyfry, kropki, myślniki)',
+  );
 }
 
 function url(protocols: readonly string[], example: string, extra?: (url: URL) => boolean) {
@@ -159,6 +175,9 @@ function trustProxy() {
  */
 export const envSchema = z.object({
   NODE_ENV: oneOf(['development', 'test', 'production']).default('development'),
+  // Środowisko wdrożenia (§18.1, F-23): odróżnia staging od produkcji, bo oba mają
+  // NODE_ENV=production. Bez zmiennej: production przy NODE_ENV=production, inaczej local.
+  DEPLOYMENT_ENV: oneOf(DEPLOYMENT_ENVIRONMENTS).optional(),
   // Platformy (Render) podają port w PORT; lokalnie używamy API_PORT, żeby nie kolidować z web.
   PORT: port().optional(),
   API_PORT: port().optional(),
@@ -169,6 +188,18 @@ export const envSchema = z.object({
     (parsed) => parsed.pathname.length > 1,
   ),
   DATABASE_POOL_MAX: integer(1, 100).optional(),
+  // Redis kolejek BullMQ (maxmemory-policy noeviction, PROJECT.md §11.2). Cache ma osobną instancję.
+  REDIS_QUEUE_URL: url(['redis:', 'rediss:'], 'redis://localhost:6379').optional(),
+  // Redis cache i pub/sub Socket.IO (allkeys-lru, PROJECT.md §11.2): druga instancja, bez jobów.
+  REDIS_CACHE_URL: url(['redis:', 'rediss:'], 'redis://localhost:6380').optional(),
+  QUEUE_PREFIX: text()
+    .regex(
+      /^[a-z0-9][a-z0-9_-]{0,31}$/,
+      'oczekiwano 1–32 znaków: małe litery, cyfry, _ i - (bez dwukropka), np. biddy',
+    )
+    .optional(),
+  OUTBOX_POLL_INTERVAL_MS: integer(10, 60_000).optional(),
+  BULL_BOARD_PORT: port().optional(),
   LOG_LEVEL: oneOf(LOG_LEVELS).optional(),
   LOG_PRETTY: boolean().optional(),
   CORS_ORIGINS: originList().optional(),
@@ -181,6 +212,92 @@ export const envSchema = z.object({
     .transform(Number)
     .optional(),
   APP_RELEASE: text().optional(),
+  // SHA commita, który Render podaje sam przy każdym deployu: wersja dla Sentry, gdy brak
+  // APP_RELEASE (F-09).
+  RENDER_GIT_COMMIT: text().optional(),
+  // Konta i logowanie (Better Auth, F-07).
+  API_PUBLIC_URL: url(['https:', 'http:'], 'https://api.biddy.pl').optional(),
+  WEB_URL: url(['https:', 'http:'], 'https://biddy.pl').optional(),
+  BETTER_AUTH_SECRET: text()
+    .min(32, 'oczekiwano co najmniej 32 znaków (np. openssl rand -base64 32)')
+    .optional(),
+  AUTH_COOKIE_DOMAIN: text()
+    .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/, 'oczekiwano domeny bez protokołu, np. biddy.pl')
+    .optional(),
+  GOOGLE_CLIENT_ID: text().optional(),
+  GOOGLE_CLIENT_SECRET: text().optional(),
+  APPLE_CLIENT_ID: text().optional(),
+  APPLE_CLIENT_SECRET: text().optional(),
+  APPLE_APP_BUNDLE_ID: text().optional(),
+  TURNSTILE_SITE_KEY: text().optional(),
+  TURNSTILE_SECRET_KEY: text().optional(),
+  // E-maile (weryfikacja, reset hasła): Resend z kluczem, inaczej SMTP (lokalnie Mailpit).
+  MAIL_FROM: text().optional(),
+  RESEND_API_KEY: text().optional(),
+  SMTP_HOST: text().optional(),
+  SMTP_PORT: port().optional(),
+  SMTP_USER: text().optional(),
+  SMTP_PASSWORD: text().optional(),
+  // SMS-y z kodami weryfikacji telefonu (SMSAPI, F-08); bez tokenu atrapa (kod w logu).
+  SMSAPI_TOKEN: text().optional(),
+  SMSAPI_SENDER: text()
+    .regex(/^[A-Za-z0-9 .-]{1,11}$/, 'oczekiwano nazwy nadawcy do 11 znaków (litery, cyfry)')
+    .optional(),
+  // Magazyn plików S3 (F-12): Cloudflare R2 na produkcji, lokalnie RustFS (te same zmienne co
+  // `pnpm storage:setup`).
+  S3_ENDPOINT: url(['https:', 'http:'], 'https://<konto>.r2.cloudflarestorage.com').optional(),
+  S3_REGION: text().optional(),
+  S3_ACCESS_KEY_ID: text().optional(),
+  S3_SECRET_ACCESS_KEY: text().optional(),
+  S3_FORCE_PATH_STYLE: boolean().optional(),
+  S3_BUCKET_MEDIA: bucketName().optional(),
+  S3_BUCKET_UPLOADS: bucketName().optional(),
+  /** Publiczny adres kubełka media (CDN), np. https://media.biddy.pl. */
+  MEDIA_PUBLIC_URL: url(['https:', 'http:'], 'https://media.biddy.pl').optional(),
+  // Anti-sniping (§6.5, F-15): oferta w ostatnich N sekundach, która zmienia cenę albo lidera,
+  // przesuwa koniec aukcji na teraz + N sekund.
+  AUCTION_ANTI_SNIPING_SECONDS: integer(0, 3600).optional(),
+  // Wyszukiwarka Meilisearch (F-19). Lokalnie klucz główny z infra/docker-compose.yml.
+  MEILI_URL: url(['https:', 'http:'], 'https://ms-xxxx.meilisearch.io').optional(),
+  MEILI_API_KEY: text().min(16, 'oczekiwano co najmniej 16 znaków').optional(),
+  /** Klucz główny lokalnego Meilisearch (docker-compose); zapasowy MEILI_API_KEY poza produkcją. */
+  MEILI_MASTER_KEY: text().min(16, 'oczekiwano co najmniej 16 znaków').optional(),
+  SEARCH_INDEX_PREFIX: text()
+    .regex(/^[a-z0-9][a-z0-9-]{0,39}$/, 'oczekiwano małych liter, cyfr i myślników, np. biddy')
+    .optional(),
+  // Rewalidacja stron aukcji w web (ISR, F-18): sekret wspólny z web (Vercel).
+  WEB_REVALIDATE_SECRET: text()
+    .min(32, 'oczekiwano co najmniej 32 znaków (np. openssl rand -base64 32)')
+    .optional(),
+  // Płatności (F-23): operator nowych płatności (adapter w GatewayRegistry). Poza produkcją
+  // domyślnie FakeGateway; na produkcji wymagany i różny od `fake`.
+  PAYMENTS_DEFAULT_PROVIDER: text()
+    .regex(/^[a-z][a-z0-9-]{0,31}$/, 'oczekiwano nazwy operatora małymi literami, np. payu')
+    .optional(),
+  // Dokąd worker wysyła webhooki FakeGateway (domyślnie publiczny adres API).
+  PAYMENTS_FAKE_WEBHOOK_URL: url(
+    ['https:', 'http:'],
+    'http://staging-api:3001/v1/webhooks/payments/fake',
+  ).optional(),
+  // Opóźnienie rozliczenia płatności i webhooka FakeGateway (symulacja potwierdzenia w banku).
+  PAYMENTS_FAKE_WEBHOOK_DELAY_MS: integer(0, 600_000).optional(),
+  // Dostawy (F-24): dostawca nowych przesyłek (adapter w ShippingProviderRegistry). Poza
+  // produkcją domyślnie FakeShipping; na produkcji wymagany i różny od `fake`.
+  SHIPPING_DEFAULT_PROVIDER: oneOf(SHIPPING_PROVIDER_NAMES).optional(),
+  // Dokąd worker wysyła webhooki FakeShipping (domyślnie publiczny adres API).
+  SHIPPING_FAKE_WEBHOOK_URL: url(
+    ['https:', 'http:'],
+    'http://staging-api:3001/v1/webhooks/shipping/fake',
+  ).optional(),
+  // Odstęp między statusami automatu FakeShipping; 0 wyłącza automat (statusy tylko z panelu).
+  SHIPPING_FAKE_STEP_DELAY_MS: integer(0, 3_600_000).optional(),
+  // Furgonetka (agregator kurierów, §8.1): wszystkie zmienne razem albo żadna (adapter wyłączony).
+  FURGONETKA_API_URL: url(['https:', 'http:'], 'https://api.furgonetka.pl').optional(),
+  FURGONETKA_CLIENT_ID: text().optional(),
+  FURGONETKA_CLIENT_SECRET: text().optional(),
+  FURGONETKA_USERNAME: text().optional(),
+  FURGONETKA_PASSWORD: text().optional(),
+  FURGONETKA_WEBHOOK_TOKEN: text().optional(),
 });
 
 /** Nazwy wszystkich zmiennych obsługiwanych przez schemat. */
@@ -188,11 +305,124 @@ export const ENV_KEYS = Object.keys(envSchema.shape) as (keyof z.input<typeof en
 
 export type AppEnvironment = 'development' | 'test' | 'production';
 
+export type DeploymentEnvironment = (typeof DEPLOYMENT_ENVIRONMENTS)[number];
+
 export type LogLevel = (typeof LOG_LEVELS)[number];
+
+/**
+ * Proces, dla którego wczytujemy konfigurację (PROJECT.md §10.4): API (HTTP) albo worker
+ * (BullMQ, relay outboxa). Worker nie obsługuje HTTP, więc nie wymaga np. CORS_ORIGINS.
+ */
+export type ProcessRole = 'api' | 'worker';
+
+/** Domyślny adres Redisa kolejek poza produkcją (infra/docker-compose.yml). */
+export const DEFAULT_REDIS_QUEUE_URL = 'redis://localhost:6379';
+export const DEFAULT_REDIS_CACHE_URL = 'redis://localhost:6380';
+
+/** Domyślny prefiks kluczy BullMQ w Redisie. */
+export const DEFAULT_QUEUE_PREFIX = 'biddy';
+
+/** Domyślne okno anti-snipingu: 2 minuty (§6.5). */
+export const DEFAULT_ANTI_SNIPING_SECONDS = 120;
+
+/** Klucz główny lokalnego Meilisearch z infra/docker-compose.yml. */
+export const DEFAULT_MEILI_MASTER_KEY = 'biddy-local-meili-master-key';
+
+/**
+ * Klucze testowe Cloudflare Turnstile (zawsze przechodzą): domyślne lokalnie i w testach.
+ * https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+ */
+export const TURNSTILE_TEST_SITE_KEY = '1x00000000000000000000AA';
+export const TURNSTILE_TEST_SECRET_KEY = '1x0000000000000000000000000000000AA';
+
+/** Sekret sesji poza produkcją (lokalnie i w testach); na produkcji BETTER_AUTH_SECRET jest wymagany. */
+export const DEVELOPMENT_AUTH_SECRET = 'biddy-development-only-auth-secret-0123456789';
+
+/** Operator testowy (F-23): działa tylko poza produkcją. */
+export const FAKE_PAYMENT_PROVIDER = 'fake';
+
+/** Ścieżka webhooków FakeGateway w API (prefiks /v1 jak API_PREFIX w create-app.ts). */
+export const FAKE_PAYMENTS_WEBHOOK_PATH = '/v1/webhooks/payments/fake';
+
+/** Domyślne opóźnienie rozliczenia i webhooka FakeGateway. */
+export const DEFAULT_FAKE_WEBHOOK_DELAY_MS = 2_000;
+
+/** Ścieżka webhooków FakeShipping w API (F-24). */
+export const FAKE_SHIPPING_WEBHOOK_PATH = '/v1/webhooks/shipping/fake';
+
+/** Domyślny odstęp statusów automatu FakeShipping: cały cykl dostawy w około 2 minuty. */
+export const DEFAULT_FAKE_SHIPPING_STEP_DELAY_MS = 20_000;
+
+/** API Furgonetki: sandbox poza produkcją (osobne konta i klucze), produkcja na produkcji. */
+export const FURGONETKA_SANDBOX_API_URL = 'https://api.sandbox.furgonetka.pl';
+export const FURGONETKA_PRODUCTION_API_URL = 'https://api.furgonetka.pl';
+
+/** Zmienne Furgonetki: podaje się je razem (adapter włączony) albo wcale. */
+const FURGONETKA_VARIABLES = [
+  'FURGONETKA_CLIENT_ID',
+  'FURGONETKA_CLIENT_SECRET',
+  'FURGONETKA_USERNAME',
+  'FURGONETKA_PASSWORD',
+  'FURGONETKA_WEBHOOK_TOKEN',
+] as const;
+
+/** Nadawca e-maili lokalnie (jak MAIL_FROM w .env.example). */
+export const DEFAULT_MAIL_FROM = 'Biddy <no-reply@biddy.local>';
+
+/** Transport e-maili: Resend (produkcja) albo SMTP (lokalnie Mailpit). */
+/** Magazyn plików S3 (F-12). */
+export interface StorageConfig {
+  readonly endpoint: string;
+  readonly region: string;
+  readonly accessKeyId: string;
+  readonly secretAccessKey: string;
+  readonly forcePathStyle: boolean;
+  /** Publiczny kubełek przetworzonych zdjęć (za CDN). */
+  readonly mediaBucket: string;
+  /** Prywatny kubełek oryginałów i zdjęć zatrzymanych przez moderację. */
+  readonly uploadsBucket: string;
+  /** Adres, pod którym klienci czytają obiekty kubełka media (bez ukośnika na końcu). */
+  readonly mediaPublicUrl: string;
+}
+
+/** Wysyłka SMS-ów: SMSAPI albo atrapa (lokalnie i w testach; kod trafia do logu). */
+export type SmsTransportConfig =
+  | { readonly kind: 'smsapi'; readonly token: string; readonly sender: string | undefined }
+  | { readonly kind: 'log' };
+
+export type MailTransportConfig =
+  | { readonly kind: 'resend'; readonly apiKey: string }
+  | {
+      readonly kind: 'smtp';
+      readonly host: string;
+      readonly port: number;
+      readonly user: string | undefined;
+      readonly password: string | undefined;
+    };
+
+/** Dostęp do API Furgonetki (F-24): aplikacja OAuth, konto i token webhooków. */
+export interface FurgonetkaConfig {
+  readonly apiUrl: string;
+  readonly clientId: string;
+  readonly clientSecret: string;
+  /** Konto do pierwszego logowania (grant `password`); potem refresh token z bazy. */
+  readonly username: string;
+  readonly password: string;
+  /** Token sumy kontrolnej webhooków z ustawień konta. */
+  readonly webhookToken: string;
+}
+
+/** Dostawca logowania OAuth z kluczami. */
+export interface OAuthProviderConfig {
+  readonly clientId: string;
+  readonly clientSecret: string;
+}
 
 /** Konfiguracja aplikacji po walidacji i wyliczeniu wartości domyślnych. */
 export interface AppConfig {
   readonly env: AppEnvironment;
+  /** Środowisko wdrożenia (§18.1); `production` blokuje FakeGateway. */
+  readonly deployment: DeploymentEnvironment;
   readonly release: string | undefined;
   readonly http: {
     readonly host: string;
@@ -210,12 +440,91 @@ export interface AppConfig {
     readonly url: string;
     readonly poolMax: number;
   };
+  readonly queues: {
+    /** Redis kolejek BullMQ (noeviction); sprawdza go worker przy starcie. */
+    readonly redisUrl: string;
+    /** Prefiks kluczy BullMQ: osobne przestrzenie kolejek na jednej instancji (np. testy). */
+    readonly prefix: string;
+    /** Co ile relay outboxa sprawdza nowe eventy, gdy ostatnia porcja była niepełna. */
+    readonly outboxPollIntervalMs: number;
+  };
+  readonly cache: {
+    /** Redis cache i pub/sub (Socket.IO, F-17); instancja z allkeys-lru, nie kolejek. */
+    readonly redisUrl: string;
+  };
   readonly log: {
     readonly level: LogLevel;
     readonly pretty: boolean;
   };
   readonly openapi: {
     readonly enabled: boolean;
+  };
+  readonly auth: {
+    /** Sekret podpisu ciasteczek i tokenów Better Auth. */
+    readonly secret: string;
+    /** Publiczny adres API (bez /v1): z niego Better Auth buduje linki i callbacki OAuth. */
+    readonly apiUrl: string;
+    /** Adres aplikacji web: przekierowania po weryfikacji e-maila, resecie hasła i OAuth. */
+    readonly webUrl: string;
+    /** Domena ciasteczka sesji wspólna dla web i API (np. biddy.pl); undefined = host API. */
+    readonly cookieDomain: string | undefined;
+    /** Ciasteczka tylko przez HTTPS (poza lokalnym HTTP). */
+    readonly secureCookies: boolean;
+    readonly google: OAuthProviderConfig | undefined;
+    readonly apple:
+      (OAuthProviderConfig & { readonly appBundleId: string | undefined }) | undefined;
+    readonly turnstile: { readonly siteKey: string; readonly secretKey: string };
+  };
+  readonly mail: {
+    readonly from: string;
+    readonly transport: MailTransportConfig;
+  };
+  readonly sms: SmsTransportConfig;
+  readonly storage: StorageConfig;
+  readonly auctions: {
+    /** Okno anti-snipingu (§6.5): długość przedłużenia i próg „końcówki” aukcji. */
+    readonly antiSnipingWindowMs: number;
+  };
+  readonly search: {
+    /** Adres Meilisearch (bez końcowego ukośnika). */
+    readonly url: string;
+    readonly apiKey: string;
+    /** Prefiks nazw indeksów, np. `biddy` → indeks `biddy-auctions`. */
+    readonly indexPrefix: string;
+  };
+  readonly web: {
+    /** Adres aplikacji web (bez końcowego ukośnika). */
+    readonly url: string;
+    /** Sekret `POST /api/revalidate` w web; undefined = bez rewalidacji (strony co 60 s). */
+    readonly revalidateSecret: string | undefined;
+  };
+  readonly payments: {
+    /** Operator nowych płatności; GatewayRegistry musi mieć dla niego adapter. */
+    readonly defaultProvider: string;
+    /** FakeGateway (F-23, §7.8): adapter testowy, wyłączony na produkcji. */
+    readonly fake: {
+      readonly enabled: boolean;
+      /** Adres endpointu webhooków API, na który worker wysyła zdarzenia. */
+      readonly webhookUrl: string;
+      readonly webhookDelayMs: number;
+      /** Sekret podpisu webhooków, wyprowadzony z BETTER_AUTH_SECRET. */
+      readonly webhookSecret: string;
+    };
+  };
+  readonly shipping: {
+    /** Dostawca nowych przesyłek; ShippingProviderRegistry musi mieć dla niego adapter. */
+    readonly defaultProvider: ShippingProviderName;
+    /** FakeShipping (F-24): adapter testowy z automatem statusów, wyłączony na produkcji. */
+    readonly fake: {
+      readonly enabled: boolean;
+      /** Adres endpointu webhooków API, na który worker wysyła zmiany statusów. */
+      readonly webhookUrl: string;
+      /** Odstęp automatu; 0 = bez automatu. */
+      readonly stepDelayMs: number;
+      readonly webhookSecret: string;
+    };
+    /** Furgonetka (§8.1); undefined = adapter wyłączony. */
+    readonly furgonetka: FurgonetkaConfig | undefined;
   };
   readonly sentry: {
     readonly dsn: string | undefined;
@@ -261,6 +570,22 @@ export function formatConfigError(error: ConfigError): string {
 
 type RawEnv = Readonly<Record<string, string | undefined>>;
 
+/**
+ * loadConfig dla punktu wejścia procesu (main.ts, worker.ts): przy błędnej konfiguracji wypisuje
+ * listę błędów na stderr i kończy proces kodem 1, zanim cokolwiek się połączy.
+ */
+export function loadConfigOrExit(env: RawEnv, role: ProcessRole): AppConfig {
+  try {
+    return loadConfig(env, role);
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      process.stderr.write(`${formatConfigError(error)}\n`);
+      process.exit(1);
+    }
+    throw error;
+  }
+}
+
 /** Kopia zmiennych schematu bez pustych wartości (pusta wartość = brak zmiennej). */
 function pickNonEmpty(env: RawEnv, keys: readonly string[]): Record<string, string> {
   const input: Record<string, string> = {};
@@ -286,14 +611,193 @@ function isLoopbackHost(host: string): boolean {
 }
 
 /** Problemy, które zależą od kilku zmiennych naraz (np. od NODE_ENV). */
-function crossFieldIssues(input: Readonly<Record<string, string>>): ConfigIssue[] {
+function crossFieldIssues(
+  input: Readonly<Record<string, string>>,
+  role: ProcessRole,
+): ConfigIssue[] {
   const issues: ConfigIssue[] = [];
-  // Na produkcji domyślny localhost w CORS byłby błędem konfiguracji, a nie wygodą.
-  if (input['NODE_ENV'] === 'production' && input['CORS_ORIGINS'] === undefined) {
+  if (input['NODE_ENV'] !== 'production') {
+    return issues;
+  }
+  // Na produkcji domyślne adresy localhost byłyby błędem konfiguracji, a nie wygodą.
+  if (role === 'api' && input['CORS_ORIGINS'] === undefined) {
     issues.push({
       variable: 'CORS_ORIGINS',
       message: `${MISSING}; na produkcji podaj originy frontendu, np. https://biddy.pl`,
     });
+  }
+  if (input['REDIS_QUEUE_URL'] === undefined) {
+    issues.push({
+      variable: 'REDIS_QUEUE_URL',
+      message: `${MISSING}; na produkcji podaj adres Redisa kolejek (instancja z maxmemory-policy noeviction)`,
+    });
+  }
+  const required: [string, string][] = [
+    [
+      'REDIS_CACHE_URL',
+      'adres Redisa cache i pub/sub (instancja allkeys-lru, osobna od kolejek); zdarzenia na żywo',
+    ],
+    ['RESEND_API_KEY', 'na produkcji e-maile (weryfikacja, reset hasła) wysyła Resend'],
+    ['S3_ENDPOINT', 'adres S3 Cloudflare R2, np. https://<konto>.r2.cloudflarestorage.com'],
+    ['S3_ACCESS_KEY_ID', 'klucz dostępu R2 (token API z uprawnieniem do kubełków)'],
+    ['S3_SECRET_ACCESS_KEY', 'sekret klucza R2'],
+    ['MEDIA_PUBLIC_URL', 'publiczny adres kubełka media (CDN), np. https://media.biddy.pl'],
+    ['MEILI_URL', 'adres Meilisearch (wyszukiwarka), np. https://ms-xxxx.meilisearch.io'],
+    ['MEILI_API_KEY', 'klucz API Meilisearch z uprawnieniami do indeksu aukcji'],
+  ];
+  if (role === 'api') {
+    required.push(
+      ['BETTER_AUTH_SECRET', 'sekret sesji, np. openssl rand -base64 32'],
+      ['API_PUBLIC_URL', 'publiczny adres API, np. https://api.biddy.pl'],
+      ['WEB_URL', 'adres aplikacji web, np. https://biddy.pl'],
+      ['TURNSTILE_SITE_KEY', 'klucz witryny Cloudflare Turnstile'],
+      ['TURNSTILE_SECRET_KEY', 'klucz tajny Cloudflare Turnstile'],
+      ['SMSAPI_TOKEN', 'token API SMSAPI (kody weryfikacji telefonu)'],
+    );
+  } else {
+    required.push(
+      ['WEB_URL', 'adres aplikacji web, np. https://biddy.pl (rewalidacja stron aukcji)'],
+      ['BETTER_AUTH_SECRET', 'ten sam sekret co w API: podpis linków wypisania z e-maili (F-20)'],
+      [
+        'WEB_REVALIDATE_SECRET',
+        'sekret rewalidacji stron aukcji, ten sam co w web (np. openssl rand -base64 32)',
+      ],
+    );
+  }
+  for (const [variable, hint] of required) {
+    if (input[variable] === undefined) {
+      issues.push({ variable, message: `${MISSING}; ${hint}` });
+    }
+  }
+  return issues;
+}
+
+/** Środowisko wdrożenia z surowych zmiennych; undefined, gdy NODE_ENV albo DEPLOYMENT_ENV są błędne. */
+function deploymentOf(input: Readonly<Record<string, string>>): DeploymentEnvironment | undefined {
+  const nodeEnv = input['NODE_ENV'] ?? 'development';
+  if (!['development', 'test', 'production'].includes(nodeEnv)) {
+    return undefined;
+  }
+  const declared = input['DEPLOYMENT_ENV'];
+  if (declared === undefined) {
+    return nodeEnv === 'production' ? 'production' : 'local';
+  }
+  return (DEPLOYMENT_ENVIRONMENTS as readonly string[]).includes(declared)
+    ? (declared as DeploymentEnvironment)
+    : undefined;
+}
+
+/**
+ * Płatności (F-23): na produkcji operator jest wymagany, a FakeGateway zablokowany. Poza nią
+ * worker przy NODE_ENV=production (staging) musi wiedzieć, dokąd wysyłać webhooki FakeGateway.
+ */
+function paymentIssues(input: Readonly<Record<string, string>>, role: ProcessRole): ConfigIssue[] {
+  const deployment = deploymentOf(input);
+  const provider = input['PAYMENTS_DEFAULT_PROVIDER'];
+  if (deployment === 'production') {
+    if (provider === undefined) {
+      return [
+        {
+          variable: 'PAYMENTS_DEFAULT_PROVIDER',
+          message: `${MISSING}; na produkcji podaj operatora płatności, np. payu (FakeGateway działa tylko poza produkcją)`,
+        },
+      ];
+    }
+    if (provider === FAKE_PAYMENT_PROVIDER) {
+      return [
+        {
+          variable: 'PAYMENTS_DEFAULT_PROVIDER',
+          message:
+            'FakeGateway (fake) nie może działać na produkcji (DEPLOYMENT_ENV=production); podaj operatora, np. payu, a na stagingu ustaw DEPLOYMENT_ENV=staging',
+        },
+      ];
+    }
+    return [];
+  }
+  if (
+    deployment !== undefined &&
+    input['NODE_ENV'] === 'production' &&
+    role === 'worker' &&
+    input['PAYMENTS_FAKE_WEBHOOK_URL'] === undefined &&
+    input['API_PUBLIC_URL'] === undefined
+  ) {
+    return [
+      {
+        variable: 'PAYMENTS_FAKE_WEBHOOK_URL',
+        message: `${MISSING}; worker wysyła webhooki FakeGateway do API, np. http://staging-api:3001${FAKE_PAYMENTS_WEBHOOK_PATH} (albo ustaw API_PUBLIC_URL)`,
+      },
+    ];
+  }
+  return [];
+}
+
+/**
+ * Dostawy (F-24): na produkcji dostawca jest wymagany, a FakeShipping zablokowany; zmienne
+ * Furgonetki idą w komplecie, a wybrana Furgonetka wymaga kompletu. Worker na stagingu musi
+ * wiedzieć, dokąd wysyłać webhooki FakeShipping.
+ */
+function shippingIssues(input: Readonly<Record<string, string>>, role: ProcessRole): ConfigIssue[] {
+  const issues: ConfigIssue[] = [];
+  const deployment = deploymentOf(input);
+  const provider = input['SHIPPING_DEFAULT_PROVIDER'];
+  const furgonetkaGiven = FURGONETKA_VARIABLES.filter((name) => input[name] !== undefined);
+  if (
+    furgonetkaGiven.length > 0 ||
+    (provider === 'furgonetka' && furgonetkaGiven.length < FURGONETKA_VARIABLES.length)
+  ) {
+    for (const variable of FURGONETKA_VARIABLES) {
+      if (input[variable] === undefined) {
+        issues.push({
+          variable,
+          message: `${MISSING}; podaj wszystkie zmienne Furgonetki (${FURGONETKA_VARIABLES.join(', ')}) albo żadnej`,
+        });
+      }
+    }
+  }
+  if (deployment === 'production') {
+    if (provider === undefined) {
+      issues.push({
+        variable: 'SHIPPING_DEFAULT_PROVIDER',
+        message: `${MISSING}; na produkcji podaj dostawcę przesyłek, np. furgonetka (FakeShipping działa tylko poza produkcją)`,
+      });
+    } else if (provider === 'fake') {
+      issues.push({
+        variable: 'SHIPPING_DEFAULT_PROVIDER',
+        message:
+          'FakeShipping (fake) nie może działać na produkcji (DEPLOYMENT_ENV=production); podaj dostawcę, np. furgonetka, a na stagingu ustaw DEPLOYMENT_ENV=staging',
+      });
+    }
+    return issues;
+  }
+  if (
+    deployment !== undefined &&
+    input['NODE_ENV'] === 'production' &&
+    role === 'worker' &&
+    input['SHIPPING_FAKE_WEBHOOK_URL'] === undefined &&
+    input['API_PUBLIC_URL'] === undefined
+  ) {
+    issues.push({
+      variable: 'SHIPPING_FAKE_WEBHOOK_URL',
+      message: `${MISSING}; worker wysyła webhooki FakeShipping do API, np. http://staging-api:3001${FAKE_SHIPPING_WEBHOOK_PATH} (albo ustaw API_PUBLIC_URL)`,
+    });
+  }
+  return issues;
+}
+
+/** Klucze dostawcy OAuth podaje się parami: sam identyfikator albo sam sekret to błąd. */
+function oauthPairIssues(input: Readonly<Record<string, string>>): ConfigIssue[] {
+  const issues: ConfigIssue[] = [];
+  for (const [id, secret] of [
+    ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+    ['APPLE_CLIENT_ID', 'APPLE_CLIENT_SECRET'],
+  ] as const) {
+    if ((input[id] === undefined) !== (input[secret] === undefined)) {
+      const missing = input[id] === undefined ? id : secret;
+      issues.push({
+        variable: missing,
+        message: `${MISSING}; podaj ${id} i ${secret} razem albo żadnej (logowanie wyłączone)`,
+      });
+    }
   }
   return issues;
 }
@@ -310,11 +814,19 @@ function byVariableOrder(left: ConfigIssue, right: ConfigIssue): number {
 /**
  * Waliduje zmienne środowiskowe i wylicza konfigurację. Rzuca {@link ConfigError} ze
  * wszystkimi problemami naraz. Nie czyta process.env sama, żeby dało się ją testować.
+ *
+ * @param role proces, który startuje: worker nie wymaga zmiennych samego HTTP (CORS_ORIGINS)
  */
-export function loadConfig(env: RawEnv): AppConfig {
+export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
   const input = pickNonEmpty(env, ENV_KEYS);
   const result = envSchema.safeParse(input);
-  const issues = [...(result.success ? [] : issuesOf(result.error)), ...crossFieldIssues(input)];
+  const issues = [
+    ...(result.success ? [] : issuesOf(result.error)),
+    ...crossFieldIssues(input, role),
+    ...oauthPairIssues(input),
+    ...paymentIssues(input, role),
+    ...shippingIssues(input, role),
+  ];
   if (!result.success || issues.length > 0) {
     throw new ConfigError(issues.sort(byVariableOrder));
   }
@@ -322,10 +834,16 @@ export function loadConfig(env: RawEnv): AppConfig {
   const production = vars.NODE_ENV === 'production';
   const development = vars.NODE_ENV === 'development';
   const host = vars.API_HOST ?? (production ? '0.0.0.0' : '127.0.0.1');
+  const deployment = vars.DEPLOYMENT_ENV ?? (production ? 'production' : 'local');
+  const authSecret = vars.BETTER_AUTH_SECRET ?? DEVELOPMENT_AUTH_SECRET;
+  const apiUrl = (
+    vars.API_PUBLIC_URL ?? `http://localhost:${vars.PORT ?? vars.API_PORT ?? 3001}`
+  ).replace(/\/+$/, '');
 
   return {
     env: vars.NODE_ENV,
-    release: vars.APP_RELEASE,
+    deployment,
+    release: vars.APP_RELEASE ?? vars.RENDER_GIT_COMMIT,
     http: {
       host,
       port: vars.PORT ?? vars.API_PORT ?? 3001,
@@ -340,6 +858,14 @@ export function loadConfig(env: RawEnv): AppConfig {
       url: vars.DATABASE_URL,
       poolMax: vars.DATABASE_POOL_MAX ?? 10,
     },
+    queues: {
+      redisUrl: vars.REDIS_QUEUE_URL ?? DEFAULT_REDIS_QUEUE_URL,
+      prefix: vars.QUEUE_PREFIX ?? DEFAULT_QUEUE_PREFIX,
+      outboxPollIntervalMs: vars.OUTBOX_POLL_INTERVAL_MS ?? 250,
+    },
+    cache: {
+      redisUrl: vars.REDIS_CACHE_URL ?? DEFAULT_REDIS_CACHE_URL,
+    },
     log: {
       level: vars.LOG_LEVEL ?? (development ? 'debug' : 'info'),
       pretty: vars.LOG_PRETTY ?? development,
@@ -347,12 +873,124 @@ export function loadConfig(env: RawEnv): AppConfig {
     openapi: {
       enabled: vars.OPENAPI_ENABLED ?? !production,
     },
+    auth: {
+      secret: authSecret,
+      apiUrl,
+      webUrl: (vars.WEB_URL ?? 'http://localhost:3000').replace(/\/+$/, ''),
+      cookieDomain: vars.AUTH_COOKIE_DOMAIN,
+      secureCookies: production || (vars.API_PUBLIC_URL?.startsWith('https:') ?? false),
+      google:
+        vars.GOOGLE_CLIENT_ID === undefined || vars.GOOGLE_CLIENT_SECRET === undefined
+          ? undefined
+          : { clientId: vars.GOOGLE_CLIENT_ID, clientSecret: vars.GOOGLE_CLIENT_SECRET },
+      apple:
+        vars.APPLE_CLIENT_ID === undefined || vars.APPLE_CLIENT_SECRET === undefined
+          ? undefined
+          : {
+              clientId: vars.APPLE_CLIENT_ID,
+              clientSecret: vars.APPLE_CLIENT_SECRET,
+              appBundleId: vars.APPLE_APP_BUNDLE_ID,
+            },
+      turnstile: {
+        siteKey: vars.TURNSTILE_SITE_KEY ?? TURNSTILE_TEST_SITE_KEY,
+        secretKey: vars.TURNSTILE_SECRET_KEY ?? TURNSTILE_TEST_SECRET_KEY,
+      },
+    },
+    mail: {
+      from: vars.MAIL_FROM ?? DEFAULT_MAIL_FROM,
+      transport:
+        vars.RESEND_API_KEY === undefined
+          ? {
+              kind: 'smtp',
+              host: vars.SMTP_HOST ?? 'localhost',
+              port: vars.SMTP_PORT ?? 1025,
+              user: vars.SMTP_USER,
+              password: vars.SMTP_PASSWORD,
+            }
+          : { kind: 'resend', apiKey: vars.RESEND_API_KEY },
+    },
+    storage: storageConfig(vars),
+    auctions: {
+      antiSnipingWindowMs:
+        (vars.AUCTION_ANTI_SNIPING_SECONDS ?? DEFAULT_ANTI_SNIPING_SECONDS) * 1000,
+    },
+    search: {
+      url: (vars.MEILI_URL ?? 'http://localhost:7700').replace(/\/+$/, ''),
+      apiKey: vars.MEILI_API_KEY ?? vars.MEILI_MASTER_KEY ?? DEFAULT_MEILI_MASTER_KEY,
+      indexPrefix: vars.SEARCH_INDEX_PREFIX ?? 'biddy',
+    },
+    web: {
+      url: (vars.WEB_URL ?? 'http://localhost:3000').replace(/\/+$/, ''),
+      revalidateSecret: vars.WEB_REVALIDATE_SECRET,
+    },
+    sms:
+      vars.SMSAPI_TOKEN === undefined
+        ? { kind: 'log' }
+        : { kind: 'smsapi', token: vars.SMSAPI_TOKEN, sender: vars.SMSAPI_SENDER },
+    payments: {
+      // Na produkcji paymentIssues wymaga zmiennej, więc `fake` zostaje tylko poza nią.
+      defaultProvider: vars.PAYMENTS_DEFAULT_PROVIDER ?? FAKE_PAYMENT_PROVIDER,
+      fake: {
+        enabled: deployment !== 'production',
+        webhookUrl: vars.PAYMENTS_FAKE_WEBHOOK_URL ?? `${apiUrl}${FAKE_PAYMENTS_WEBHOOK_PATH}`,
+        webhookDelayMs: vars.PAYMENTS_FAKE_WEBHOOK_DELAY_MS ?? DEFAULT_FAKE_WEBHOOK_DELAY_MS,
+        webhookSecret: fakeWebhookSecret(authSecret),
+      },
+    },
+    shipping: {
+      // Na produkcji shippingIssues wymaga zmiennej, więc `fake` zostaje tylko poza nią.
+      defaultProvider: vars.SHIPPING_DEFAULT_PROVIDER ?? 'fake',
+      fake: {
+        enabled: deployment !== 'production',
+        webhookUrl: vars.SHIPPING_FAKE_WEBHOOK_URL ?? `${apiUrl}${FAKE_SHIPPING_WEBHOOK_PATH}`,
+        stepDelayMs: vars.SHIPPING_FAKE_STEP_DELAY_MS ?? DEFAULT_FAKE_SHIPPING_STEP_DELAY_MS,
+        webhookSecret: derivedSecret(authSecret, 'biddy:fake-shipping-webhook'),
+      },
+      furgonetka:
+        vars.FURGONETKA_CLIENT_ID === undefined ||
+        vars.FURGONETKA_CLIENT_SECRET === undefined ||
+        vars.FURGONETKA_USERNAME === undefined ||
+        vars.FURGONETKA_PASSWORD === undefined ||
+        vars.FURGONETKA_WEBHOOK_TOKEN === undefined
+          ? undefined
+          : {
+              apiUrl: (
+                vars.FURGONETKA_API_URL ??
+                (deployment === 'production'
+                  ? FURGONETKA_PRODUCTION_API_URL
+                  : FURGONETKA_SANDBOX_API_URL)
+              ).replace(/\/+$/, ''),
+              clientId: vars.FURGONETKA_CLIENT_ID,
+              clientSecret: vars.FURGONETKA_CLIENT_SECRET,
+              username: vars.FURGONETKA_USERNAME,
+              password: vars.FURGONETKA_PASSWORD,
+              webhookToken: vars.FURGONETKA_WEBHOOK_TOKEN,
+            },
+    },
     sentry: {
       dsn: vars.SENTRY_DSN,
       environment: vars.SENTRY_ENVIRONMENT ?? vars.NODE_ENV,
       tracesSampleRate: vars.SENTRY_TRACES_SAMPLE_RATE ?? 0,
     },
   };
+}
+
+/**
+ * Sekret podpisu webhooków FakeGateway wyprowadzony z sekretu sesji (osobny klucz do osobnego
+ * celu). API i worker mają zawsze ten sam BETTER_AUTH_SECRET, więc staging nie potrzebuje
+ * kolejnego sekretu, a webhooka nie podrobi nikt, kto nie zna sekretu sesji.
+ */
+export function fakeWebhookSecret(authSecret: string): string {
+  return derivedSecret(authSecret, 'biddy:fake-payments-webhook');
+}
+
+/**
+ * Sekret do osobnego celu wyprowadzony z sekretu sesji (HMAC z etykietą), np. podpis webhooków
+ * FakeShipping albo klucz szyfrowania tokenów Furgonetki. Ta sama etykieta daje ten sam sekret
+ * w API i workerze.
+ */
+export function derivedSecret(authSecret: string, label: string): string {
+  return createHmac('sha256', authSecret).update(label).digest('base64url');
 }
 
 /** Ustawienia Sentry potrzebne w instrument.ts (przed załadowaniem reszty aplikacji). */
@@ -369,10 +1007,11 @@ const sentryEnvSchema = envSchema.pick({
   SENTRY_ENVIRONMENT: true,
   SENTRY_TRACES_SAMPLE_RATE: true,
   APP_RELEASE: true,
+  RENDER_GIT_COMMIT: true,
 });
 
 /**
- * Czyta tylko zmienne Sentry (oraz NODE_ENV i APP_RELEASE). Zwraca undefined, gdy SENTRY_DSN
+ * Czyta tylko zmienne Sentry (oraz NODE_ENV, APP_RELEASE i RENDER_GIT_COMMIT). Zwraca undefined, gdy SENTRY_DSN
  * jest pusty albo zmienne są błędne: wtedy start i tak przerwie loadConfig w main.ts z pełną
  * listą błędów, więc tutaj niczego nie zgłaszamy.
  */
@@ -385,7 +1024,69 @@ export function loadSentryOptions(env: RawEnv): SentryOptions | undefined {
   return {
     dsn,
     environment: vars.SENTRY_ENVIRONMENT ?? vars.NODE_ENV,
-    release: vars.APP_RELEASE,
+    release: vars.APP_RELEASE ?? vars.RENDER_GIT_COMMIT,
     tracesSampleRate: vars.SENTRY_TRACES_SAMPLE_RATE ?? 0,
+  };
+}
+
+/** Wartości domyślne jak lokalny RustFS z infra/docker-compose.yml i .env.example. */
+function storageConfig(vars: z.output<typeof envSchema>): StorageConfig {
+  const endpoint = (vars.S3_ENDPOINT ?? 'http://localhost:9000').replace(/\/+$/, '');
+  const forcePathStyle = vars.S3_FORCE_PATH_STYLE ?? true;
+  const mediaBucket = vars.S3_BUCKET_MEDIA ?? 'biddy-media';
+  return {
+    endpoint,
+    region: vars.S3_REGION ?? 'us-east-1',
+    accessKeyId: vars.S3_ACCESS_KEY_ID ?? 'biddy-local',
+    secretAccessKey: vars.S3_SECRET_ACCESS_KEY ?? 'biddy-local-secret',
+    forcePathStyle,
+    mediaBucket,
+    uploadsBucket: vars.S3_BUCKET_UPLOADS ?? 'biddy-uploads',
+    mediaPublicUrl: (vars.MEDIA_PUBLIC_URL ?? `${endpoint}/${mediaBucket}`).replace(/\/+$/, ''),
+  };
+}
+
+/** Ustawienia lokalnego Bull Board (src/bull-board.ts): podgląd kolejek tylko w development. */
+export interface BullBoardConfig {
+  readonly redisUrl: string;
+  readonly prefix: string;
+  /** Bull Board nie ma logowania, więc słucha wyłącznie na interfejsie lokalnym. */
+  readonly host: '127.0.0.1';
+  readonly port: number;
+}
+
+const bullBoardEnvSchema = envSchema.pick({
+  NODE_ENV: true,
+  REDIS_QUEUE_URL: true,
+  QUEUE_PREFIX: true,
+  BULL_BOARD_PORT: true,
+});
+
+/**
+ * Konfiguracja Bull Board. Nie wymaga DATABASE_URL (podgląd czyta tylko Redis). Odmawia na
+ * produkcji: panel pozwala ponawiać i usuwać joby, a nie ma uwierzytelniania (kolejki na
+ * produkcji obejrzymy w panelu administracyjnym, F-34).
+ */
+export function loadBullBoardConfig(env: RawEnv): BullBoardConfig {
+  const input = pickNonEmpty(env, Object.keys(bullBoardEnvSchema.shape));
+  const result = bullBoardEnvSchema.safeParse(input);
+  if (!result.success) {
+    throw new ConfigError(issuesOf(result.error).sort(byVariableOrder));
+  }
+  const vars = result.data;
+  if (vars.NODE_ENV === 'production') {
+    throw new ConfigError([
+      {
+        variable: 'NODE_ENV',
+        message:
+          'Bull Board działa tylko poza produkcją (nie ma uwierzytelniania); na produkcji kolejki pokaże panel administracyjny',
+      },
+    ]);
+  }
+  return {
+    redisUrl: vars.REDIS_QUEUE_URL ?? DEFAULT_REDIS_QUEUE_URL,
+    prefix: vars.QUEUE_PREFIX ?? DEFAULT_QUEUE_PREFIX,
+    host: '127.0.0.1',
+    port: vars.BULL_BOARD_PORT ?? 3002,
   };
 }

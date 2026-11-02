@@ -16,15 +16,18 @@ if (existsSync(rootEnvFile)) {
 }
 const databaseUrl = process.env['DATABASE_URL']?.trim();
 
-// Konwencja: tabele modułu leżą w src/modules/<moduł>/db/*.schema.ts (patrz src/infra/db/schema.ts).
-const MODULE_SCHEMAS = 'src/modules/*/db/*.schema.ts';
-// drizzle-kit kończy się błędem, gdy wzorzec nie pasuje do żadnego pliku. Dopóki żaden moduł nie
-// ma tabel, wskazujemy pusty plik agregujący, żeby `generate` działało (np. migracje --custom).
-const schema = globSync(MODULE_SCHEMAS).length > 0 ? MODULE_SCHEMAS : 'src/infra/db/schema.ts';
+// Konwencja: tabele modułu leżą w src/modules/<moduł>/db/*.schema.ts, tabele infra (np. outbox)
+// w src/infra/<nazwa>/db/*.schema.ts (patrz src/infra/db/schema.ts).
+const SCHEMA_PATTERNS = ['src/modules/*/db/*.schema.ts', 'src/infra/*/db/*.schema.ts'];
+// drizzle-kit kończy się błędem, gdy wzorzec nie pasuje do żadnego pliku, więc podajemy tylko
+// wzorce, które coś znajdują (moduły mogą jeszcze nie mieć tabel).
+const schema = SCHEMA_PATTERNS.filter((pattern) => globSync(pattern).length > 0).map(
+  (pattern) => `./${pattern}`,
+);
 
 export default defineConfig({
   dialect: 'postgresql',
-  schema: `./${schema}`,
+  schema,
   out: './drizzle',
   casing: 'snake_case',
   ...(databaseUrl ? { dbCredentials: { url: databaseUrl } } : {}),

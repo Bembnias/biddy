@@ -7,3 +7,6 @@ pnpm-lock.yaml
 docs/**/*.md
 # drizzle-kit zapisuje meta (journal, snapshoty) w swoim formacie; nie formatujemy ich.
 apps/api/drizzle/meta
+# Kontrakt OpenAPI i klient generowane przez `pnpm api:generate` (sprawdza je `pnpm api:check`).
+apps/api/openapi.json
+packages/api-client/src/generated/

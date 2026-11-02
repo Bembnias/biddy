@@ -198,16 +198,16 @@ Role wewnętrzne (panel admina): `support`, `moderator`, `finance`, `admin`, z p
 
 | Poziom | Warunek | Maks. kwota oferty (maksimum proxy) | Aukcje z aktywną ofertą |
 |---|---|---:|---:|
-| Nowy | 0 opłaconych zamówień | 500 zł | 10 |
-| Sprawdzony | ≥ 1 opłacone zamówienie | 3000 zł | 50 |
+| Nowy | 0 opłaconych zamówień | 2500 zł | 10 |
+| Sprawdzony | ≥ 1 opłacone zamówienie | 5000 zł | 50 |
 | Zaufany | ≥ 3 zakończone zamówienia i konto ≥ 30 dni | bez limitu | bez limitu |
 
 **Limity sprzedającego:**
 
 | Poziom | Warunek | Aktywne aukcje | Maks. wartość aukcji |
 |---|---|---:|---:|
-| Nowy | 0 zakończonych sprzedaży | 5 | 500 zł |
-| Sprawdzony | ≥ 3 zakończone sprzedaże, 0 przegranych sporów | 20 | 1000 zł |
+| Nowy | 0 zakończonych sprzedaży | 5 | 5000 zł |
+| Sprawdzony | ≥ 3 zakończone sprzedaże, 0 przegranych sporów | 20 | 5000 zł |
 | Z KYC | pozytywna weryfikacja u operatora | 50 (100 po 10 sprzedażach) | bez limitu |
 
 **Strike'i:**
@@ -564,7 +564,7 @@ Przykład: sprzedawca sprzedaje jeden przedmiot za 50 zł w miesiącu i wypłaca
    - opcjonalnie automatyczna wypłata zbiorcza raz w tygodniu (sprzedający włącza ją w ustawieniach, obowiązuje to samo minimum),
    - saldo poniżej minimum **nie może utknąć**: wypłacamy całość przy zamknięciu konta i automatycznie po 90 dniach bez nowych sprzedaży (lekcja z Vinted, [§17](#17-prawo-i-compliance)).
 5. **[DECYZJA TYMCZASOWA] Moment rejestracji sprzedawcy u operatora.**
-   - Domyślnie: rejestracja z minimalnym zestawem danych przy **pierwszym wystawieniu** (asynchronicznie, bez blokowania kreatora), a pełne KYC przed pierwszą wypłatą lub przed aukcją o wartości > 1000 zł.
+   - Domyślnie: rejestracja z minimalnym zestawem danych przy **pierwszym wystawieniu** (asynchronicznie, bez blokowania kreatora), a pełne KYC przed pierwszą wypłatą lub przed aukcją o wartości > 5000 zł.
    - Jeśli operator przyjmie płatność na rzecz sprzedawcy dopiero po pełnym KYC, przenosimy KYC przed pierwszą publikację. To gorszy UX, więc w takim przypadku Mangopay (portfel kupującego nie wymaga konta sprzedawcy do zwolnienia środków) zyskuje w porównaniu.
 
 > **Opcja długoterminowa:** własne zezwolenie, np. wpis jako **mała instytucja płatnicza (MIP)** w KNF, pozwoliłoby obsługiwać escrow bez pośrednika. Wymaga to procedur AML, kapitału, raportowania i ma limity obrotu. To temat na etap dużej skali, do analizy z prawnikiem, **nie na MVP**.
@@ -617,11 +617,14 @@ Mapowanie modelu na operatorów (do potwierdzenia w dokumentacji i umowie):
 | Zwrot nieodebranej | D `buyer_funds_held` total · C `provider_cash` (total − dostawa) · C `platform_shipping` dostawa |
 | Zwrot częściowy | D `buyer_funds_held` kwota zwrotu · C `provider_cash` kwota zwrotu. Reszta jak przy zakończeniu, z ceną pomniejszoną o zwrot |
 | Zlecenie wypłaty | D `seller_balance_available` · C `payouts_in_transit` |
-| Wypłata zrealizowana / nieudana | D `payouts_in_transit` · C `provider_cash` / storno do `seller_balance_available` |
+| Wypłata zrealizowana / nieudana | D `payouts_in_transit` · C `provider_cash` / C `seller_balance_available` (najpierw spłata `seller_receivable`, jeśli jest) |
 | Opłata operatora | D `payment_fees_expense` · C `provider_cash` |
 | Koszty sporu po stronie sprzedającego | D `seller_balance_available` (do wysokości salda) + D `seller_receivable` (reszta) · C `platform_shipping` |
 | Chargeback po zakończeniu, ponosi Biddy | D `platform_losses` · C `provider_cash` |
-| Rekompensata za zaginioną paczkę | D `carrier_claims_receivable` · C `seller_balance_available` lub `platform_external`. Nieodzyskana część reklamacji → D `platform_losses` · C `carrier_claims_receivable` |
+| Chargeback po zakończeniu, oszustwo sprzedającego (§7.9) | D `seller_balance_available` (do wysokości salda) + D `seller_receivable` (reszta) · C `provider_cash` |
+| Rekompensata za zaginioną paczkę | D `carrier_claims_receivable` · C `seller_balance_available` (najpierw spłata `seller_receivable`) lub `platform_external` |
+| Rozliczenie reklamacji u przewoźnika | D `platform_external` odszkodowanie · D `platform_losses` nieodzyskana część · C `carrier_claims_receivable` |
+| Spisanie należności (180 dni, §7.9) | D `platform_losses` · C `seller_receivable` |
 
 Niezmienniki (testowane w F-22):
 
@@ -629,6 +632,9 @@ Niezmienniki (testowane w F-22):
 - `seller_balance_available` nigdy nie jest ujemne. Niedobór trafia na `seller_receivable`.
 - `buyer_funds_held:{orderId}` po zakończeniu zamówienia (w każdym stanie końcowym) wynosi 0.
 - Każde saldo da się odtworzyć z samych wpisów.
+- Saldo dostępne i należność sprzedającego nigdy nie są jednocześnie dodatnie: **każde** uznanie salda sprzedającego (zakończenie, reszta po zwrocie częściowym, nieudana wypłata, rekompensata) najpierw spłaca `seller_receivable` (F-22).
+
+**Implementacja (F-22):** konta planu w `ledger_accounts` z saldem utrzymywanym wyłącznie przez trigger przy wstawieniu wpisu, transakcje w `ledger_transactions`, wpisy w `ledger_entries` ([§13.3](#133-tabele-kluczowe-kolumny)). Moduły nie podają wpisów, tylko zdarzenie (szablon z tabeli wyżej) z kluczem idempotencji; korekta to storno całej transakcji. Bilans transakcji, strona salda kont użytkowników i zamówień oraz niemodyfikowalność są wymuszane w bazie, a codzienny job porównuje salda z sumami wpisów.
 
 Wszystkie kwoty są w **groszach jako liczby całkowite** (`bigint`). **Nigdy float.** Zaokrąglenia POK i VAT: half-up do grosza, jedna funkcja w `packages/shared`.
 
@@ -751,7 +757,7 @@ W modelu `SELLER_BALANCE` jedyną blokadą przed przedwczesną wypłatą jest na
 1. `POST /webhooks/payments/:provider` przyjmuje surowe body.
 2. `adapter.parseWebhook()` weryfikuje podpis i zwraca zdarzenia znormalizowane.
 3. Tabela `processed_webhooks` zapewnia idempotencję (to samo zdarzenie przetwarzamy raz).
-4. Handler domenowy w jednej transakcji aktualizuje płatność, zapisuje wpisy w ledgerze, przełącza stan zamówienia i dodaje eventy do outboxa.
+4. Handler domenowy w jednej transakcji z wpisem idempotencji aktualizuje płatność, zapisuje wpisy w ledgerze i dodaje eventy do outboxa (`PaymentSucceeded`, `PaymentFailed`). Stan zamówienia przełącza konsument tych eventów w module `orders` (F-25, F-26), bo `payments` nie zależy od `orders`.
 5. Polling zapasowy: job sprawdza przez `getPayment()` płatności w stanie `PENDING` dłużej niż 15 minut, bo webhooki potrafią zaginąć.
 
 #### FakeGateway
@@ -768,9 +774,26 @@ Pełnoprawny adapter do developmentu, testów i stagingu. Dzięki niemu cały pr
 - Panel deweloperski do ręcznego wyzwalania zdarzeń: chargeback, nieudana wypłata, zmiana statusu KYC.
 - **Nie może się uruchomić w produkcji.** Walidacja konfiguracji przy starcie aplikacji blokuje `fake` w środowisku `production`.
 
+**Implementacja (F-23):**
+
+- **Stan symulowanego operatora** jest w Postgresie (tabele `fake_gateway_*`), bo płatność tworzy API, a rozlicza ją worker.
+- **Asynchroniczność:** rozliczenie z opóźnieniem (`PAYMENTS_FAKE_WEBHOOK_DELAY_MS`, domyślnie 2 s) i wysyłka webhooka to joby w kolejce `payments`.
+  - Webhook idzie HTTP na `PAYMENTS_FAKE_WEBHOOK_URL` (domyślnie `API_PUBLIC_URL` + `/v1/webhooks/payments/fake`).
+  - Podpis: nagłówek `x-fake-signature: t={unix},v1={HMAC-SHA256}` z tolerancją ±5 min.
+  - Sekret wyprowadzamy z `BETTER_AUTH_SECRET`.
+- **Model:** FakeGateway odwzorowuje `SELLER_BALANCE` z saldem sprzedawcy u operatora.
+- **Magiczne wartości:** nieznany kod BLIK jest od razu odrzucony (`INVALID_BLIK_CODE`). Sprzedawca z `+kyc-pending` albo `+kyc-rejected` w adresie e-mail zaczyna z weryfikacją w toku albo odrzuconą.
+- **Ekrany:** testowa strona płatności jest pod `/dev/fake-pay/[paymentId]`, a panel zdarzeń pod `/dev/fake-gateway` (po zalogowaniu).
+- **Środowisko:** `DEPLOYMENT_ENV` odróżnia staging od produkcji, bo oba mają `NODE_ENV=production` (§18.1).
+- **Blokada na produkcji:**
+  - konfiguracja z `fake` przy `DEPLOYMENT_ENV=production` jest odrzucona, a operator domyślny jest tam wymagany;
+  - `GatewayRegistry` nie rejestruje FakeGateway;
+  - trasy `/v1/dev/fake-gateway/*` odpowiadają 404.
+- **Brak adaptera** dla `PAYMENTS_DEFAULT_PROVIDER` zatrzymuje start aplikacji.
+
 #### Testy kontraktowe
 
-Jeden wspólny zestaw testów (`describeGatewayContract(makeGateway)` w Vitest), który musi przejść każdy adapter:
+Jeden wspólny zestaw testów (`describeGatewayContract(name, setup)` w Vitest, `apps/api/test/support/payment-gateway-contract.ts`), który musi przejść każdy adapter:
 
 - ponowne `createPayment` z tym samym kluczem idempotencji zwraca ten sam wynik,
 - `parseWebhook` odrzuca zmanipulowany podpis,
@@ -778,7 +801,7 @@ Jeden wspólny zestaw testów (`describeGatewayContract(makeGateway)` w Vitest),
 - wypłata ponad dostępne saldo kończy się błędem,
 - statusy operatora mapują się na zdarzenia znormalizowane.
 
-Na każdym PR zestaw działa na FakeGateway. Na prawdziwym sandboksie operatora uruchamia się co noc w CI.
+Na każdym PR zestaw działa na FakeGateway (testy integracyjne na Postgresie, bo tam jest stan symulatora). Na prawdziwym sandboksie operatora uruchamia się co noc w CI.
 
 #### Zasady
 
@@ -800,8 +823,10 @@ apps/api/src/modules/payments/
 │  ├─ fake/          # FakeGateway, symulator webhooków, testowa strona płatności
 │  ├─ payu/          # po decyzji
 │  └─ mangopay/      # po decyzji
-├─ webhooks/         # kontroler /webhooks/payments/:provider
-└─ contract-tests/   # wspólny zestaw testów dla każdego adaptera
+├─ webhooks/         # trasa /v1/webhooks/payments/:provider (surowe body)
+└─ fees/             # cenniki POK (F-13)
+
+apps/api/test/support/payment-gateway-contract.ts   # wspólny zestaw testów kontraktowych
 ```
 
 Ledger pozostaje osobnym modułem `ledger` ([§10.3](#103-moduły-backendu-bounded-contexts)).
@@ -910,6 +935,20 @@ Reklamacje (zaginięcie, uszkodzenie) składa **Biddy** jako zleceniodawca. Pane
 - Limity odpowiedzialności przewoźników, przebieg i terminy reklamacji, opcje ubezpieczenia.
 - Dostępność webhooków trackingu dla każdego przewoźnika, sandbox, limity API.
 - Stawki per przewoźnik i gabaryt oraz warunki ich renegocjacji przy wolumenie.
+- (F-24) Jakie stany trackingu przychodzą przy zwrocie nieodebranej paczki (czy po `returned` jest `delivered` do nadawcy)? Czy API zwraca kod nadania bez etykiety (paczkomat, Orlen Paczka)? Jak zamawiać kuriera po paczkę (`pickup-commands`)?
+
+### 8.6 Moduł dostaw (adapter, F-24)
+
+Domena rozmawia z dostawcą przesyłek wyłącznie przez port `ShippingProvider` (`modules/shipping/ports/`). Adapter wybiera rejestr po polu `provider` przesyłki, a dla nowych przesyłek po `SHIPPING_DEFAULT_PROVIDER`. Pełny opis: [F-24](features/F-24-dostawy.md).
+
+- **Adaptery:**
+  - `FurgonetkaProvider` (MVP): komendy `create-package-command` i `order-commands` z UUID wyprowadzonym z naszego klucza, etykieta, tracking v2, punkty, suma kontrolna webhooka; OAuth z jednorazowym refresh tokenem w bazie (zaszyfrowany, odświeżany pod blokadą);
+  - `FakeShippingProvider` (poza produkcją): stan w `fake_shipping_*`, automat statusów i webhooki jako joby BullMQ, scenariusze (doręczona, nieodebrana, zagubiona, ręcznie), panel `/dev/fake-shipping`;
+  - InPost ShipX (v1) dojdzie jako kolejny adapter tego samego portu.
+- **Cena dla kupującego** pochodzi z cennika Biddy (`shipping_rates`), a nie z wyceny dostawcy na żywo. Koszt u dostawcy zapisujemy w przesyłce (`cost`), więc marżę na dostawie da się policzyć.
+- **Wybór dostawy to przesyłka `PENDING`**, a „Nadaj” tworzy ją u dostawcy (§8.3). Jedna aktywna przesyłka na zamówienie i kierunek (`OUTBOUND`, `RETURN`).
+- **Tracking:** webhook jest tylko wskazówką; stan zawsze pobieramy z API dostawcy. Zdarzenia zapisujemy unikalnie po (przesyłka, status dostawcy, czas), a każda zmiana statusu to event `ShipmentStatusChanged` w kolejności chronologicznej. Przy `RETURNING` event niesie powód: `NOT_COLLECTED`, gdy paczka czekała na kupującego (§7.4).
+- **Statusy Furgonetki:** jeden stan zwrotu (`returned`) mapujemy na `RETURNING`, a późniejsze `delivered` na `RETURNED` (do potwierdzenia na sandboksie, §8.5).
 
 ---
 
@@ -1015,10 +1054,12 @@ Jeden codebase `apps/api` ma dwa entrypointy:
 
 | Room | Kto subskrybuje | Zdarzenia |
 |---|---|---|
-| `auction:{id}` | Oglądający stronę aukcji | `auction.updated`, `auction.extended`, `auction.ended` |
+| `auction:{id}` | Oglądający stronę aukcji | `auction.updated`, `auction.extended`, `auction.ended`, `auction.viewers` |
 | `user:{id}` | Zalogowany użytkownik (wszystkie urządzenia) | `user.outbid`, `user.won`, `order.updated`, `message.new`, `notification.new` |
 
 Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez REST (nie polegamy na tym, że WS dostarczy wszystko).
+
+Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, adapter Redis na instancji cache. Do `user:{id}` dołącza wyłącznie serwer przy połączeniu (sesja z ciasteczka albo token Bearer); `auction:{id}` klient subskrybuje sam (`auction:subscribe`, najwyżej 50 aukcji). Zdarzenia publikuje API albo worker przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji. `notification.new` (F-20) niesie powiadomienie i liczbę nieprzeczytanych; `order.updated` i `message.new` dojdą z zamówieniami i czatem. Liczba oglądających (F-63): strona aukcji zgłasza `auction:view` (najwyżej 5 aukcji na połączenie), API trzyma identyfikatory gniazd w Redisie cache z wygasaniem, a `auction.viewers` wysyła najwyżej raz na 5 s i tylko po zmianie; na zewnątrz wychodzi sama liczba.
 
 ---
 
@@ -1033,7 +1074,7 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 | Monorepo | **Turborepo + pnpm 10 workspaces** (wersje wspólnych narzędzi w `catalog:` w `pnpm-workspace.yaml`) | Cache buildów, proste. Alt.: Nx. |
 | Build pakietów | **tsdown** (ESM + CJS + `.d.ts`) | Pakiety w `packages/*` są budowane, bo NestJS działa na CommonJS, a Next.js i Expo na ESM. tsup odpadł: jest w trybie utrzymania i nie działa z TypeScript 6. |
 | Walidacja / kontrakty | **Zod** w `packages/shared` | Te same schematy na froncie, w mobile i w NestJS (`nestjs-zod`) |
-| Klient API | **OpenAPI** z NestJS, generowany przez **orval** do hooków **TanStack Query** | Typowany klient dla web i mobile bez ręcznego pisania |
+| Klient API | **OpenAPI** z NestJS, generowany przez **orval 8** do hooków **TanStack Query 5** (`packages/api-client`) | Typowany klient dla web i mobile bez ręcznego pisania. Kontrakt (`apps/api/openapi.json`) i kod klienta są w repozytorium, a CI sprawdza, czy zgadzają się z kodem API. Żądania idą przez własny fetcher (adres API, sesja cookie lub token Bearer, błędy jako `ApiError` z Problem Details). |
 | Lint / format | **ESLint (flat config, typed linting) + Prettier** | ESLint, a nie Biome, bo potrzebujemy reguł granic modułów (§10.3) i reguł z informacją o typach (np. `no-floating-promises`). Wspólna konfiguracja w `packages/config`. |
 | Testy | **Vitest**, **Testcontainers** (Postgres/Redis), **Playwright** (web e2e), **Maestro** (mobile e2e), **k6** (load), **fast-check** (property-based dla silnika licytacji) | |
 
@@ -1045,12 +1086,12 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 | Baza | **PostgreSQL 17/18** (najnowsza dostępna na Render) | Transakcje, `FOR UPDATE`, JSONB dla atrybutów, `ltree` dla drzewa kategorii. UUIDv7 generujemy w aplikacji (ADR-10). |
 | ORM | **Drizzle ORM 0.45** + drizzle-kit (migracje) | Pełna kontrola SQL (blokady, CTE, indeksy częściowe), lekki. Alt.: Prisma (lepszy DX, mniej kontroli). Wersja 1.0 jest w RC; aktualizacja po wydaniu stabilnej. Tabele modułu leżą w `src/modules/<moduł>/db/*.schema.ts`, migracje w `apps/api/drizzle/`, na produkcji uruchamiane osobnym krokiem przed deployem (§18.2). |
 | Auth | **Better Auth** (montowany w NestJS, adapter Drizzle) | Open-source, dane u nas. E-mail i hasło, Google, Apple, Facebook, OTP telefonu, 2FA, plugin Expo. Alt.: Clerk (szybciej, ale koszt per MAU i lock-in). |
-| Kolejki / joby | **BullMQ** na Redis | Opóźnione joby (koniec aukcji, terminy), retry, repeatable. **Osobna instancja Redis z `maxmemory-policy noeviction`** (wymóg BullMQ: eviction gubi joby). |
+| Kolejki / joby | **BullMQ 6** na Redis (klient ioredis 5.11, wersja testowana przez BullMQ) | Opóźnione joby (koniec aukcji, terminy), retry, repeatable. **Osobna instancja Redis z `maxmemory-policy noeviction`** (wymóg BullMQ: eviction gubi joby); worker bez niej nie startuje. Joby, które wyczerpały próby, trafiają do kolejki `dead-letter` i do Sentry. Podgląd: Bull Board tylko lokalnie. |
 | Realtime | **Socket.IO** + `@socket.io/redis-adapter` | Alt.: zarządzany Ably/Pusher przy dużej skali |
 | Cache / rate limit / pub-sub | **Redis** (druga instancja, `allkeys-lru`) | Oddzielona od kolejek, żeby zapełniony cache nie blokował jobów |
 | Wyszukiwarka | **Meilisearch** (Cloud, EU) | Fasety, tolerancja literówek, proste API. Alt.: Typesense; OpenSearch przy dużej skali. |
-| Pliki | **Cloudflare R2** (S3 API) + Cloudflare Image Transformations | Brak opłat za egress, CDN |
-| Moderacja obrazów | Sightengine lub AWS Rekognition | NSFW, broń, przemoc |
+| Pliki | **Cloudflare R2** (S3 API) za CDN, warianty zdjęć z workera (sharp) | Brak opłat za egress, CDN. Gotowe warianty WebP zamiast Cloudflare Image Transformations: stały koszt i ten sam wynik lokalnie (F-12). |
+| Moderacja obrazów | Sightengine lub AWS Rekognition | NSFW, broń, przemoc. Adapter `ImageModerator`; do wyboru dostawcy atrapa (F-12). |
 | E-mail | **Resend** + **React Email** (`packages/emails`) | Alt.: Postmark, AWS SES |
 | SMS / OTP | **SMSAPI.pl** | Polski dostawca, tani, dobre doręczalności. Alt.: Twilio. |
 | Push | **Expo Push Service** (FCM/APNs pod spodem) | |
@@ -1061,15 +1102,15 @@ Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez 
 
 | Obszar | Wybór |
 |---|---|
-| Framework | **Next.js** (App Router, Server Components, ISR dla stron aukcji i kategorii) |
-| Świeżość stron aukcji | ISR z `revalidate` 60 s + **rewalidacja na żądanie** (`revalidateTag('auction:{id}')`) wywoływana przez worker po `BidPlaced`, `AuctionExtended` i `AuctionEnded`, maks. raz na 5 s na aukcję. HTML bez JS pokazuje cenę nie starszą niż ok. 10 s. |
+| Framework | **Next.js 16** (App Router, Server Components, Turbopack, ISR dla stron aukcji i kategorii) |
+| Świeżość stron aukcji | ISR z `revalidate` 60 s + **rewalidacja na żądanie** wywoływana przez worker po zmianach aukcji (oferta, zakończenie, anulowanie, publikacja, edycja), maks. raz na 5 s na aukcję. HTML bez JS pokazuje cenę nie starszą niż ok. 10 s. Implementacja (F-18): job `auction.revalidate-page` w kolejce `web` z końcem 5-sekundowego okna w ID, `POST /api/revalidate` z sekretem `WEB_REVALIDATE_SECRET`, `revalidateTag('auction:{publicId}', { expire: 0 })`. |
 | PWA i web push | Manifest, service worker, **Web Push (VAPID)** przez bibliotekę `web-push` w module `notifications`. Na iOS web push działa tylko po dodaniu strony do ekranu głównego (iOS 16.4+), więc po pierwszej ofercie na iPhonie proponujemy instalację. |
-| UI | **Tailwind CSS** + **shadcn/ui** (Radix) |
+| UI | **Tailwind CSS 4** + **shadcn/ui** (Radix). Kolory, typografia, promienie, cienie i szerokości kontenerów wyłącznie z `packages/design-tokens` (motyw Tailwind bez domyślnej palety i fontów), według design systemu Biddy (F-62, [spec](features/F-62-design-system.md)). |
 | Dane | TanStack Query (client), fetch w Server Components z przekazywaniem cookie sesji |
 | Formularze | react-hook-form + Zod |
 | Realtime | `socket.io-client` (wspólny wrapper z `packages/realtime`) |
-| i18n | `next-intl` (PL na start, EN później) |
-| SEO | Metadata API, `sitemap.xml` (dynamiczny), schema.org `Product` + `Offer`, OG images (`next/og`) |
+| i18n | `next-intl` (PL na start, EN później; bez prefiksu języka w adresie, dopóki jest jeden język) |
+| SEO | Metadata API, `sitemap.xml` (dynamiczny), schema.org `Product` + `Offer`, OG images (`next/og`; na stronie aukcji zdjęcie główne, F-18) |
 | Analityka | PostHog (EU), Sentry |
 
 ### 11.4 Mobile (`apps/mobile`)
@@ -1111,6 +1152,8 @@ Osobna aplikacja Next.js z shadcn/ui i TanStack Table, pod osobną domeną (`adm
 | Sekrety | Zmienne środowiskowe platform + Doppler lub 1Password | AWS Secrets Manager |
 | Mobile CI | EAS | |
 | CI | GitHub Actions + Turborepo remote cache | |
+
+**Staging na teraz** (decyzja §22 nr 89): VM Oracle Cloud z Dokploy, cały stos (web, API, worker, Postgres, oba Redisy, Meilisearch) na jednym serwerze, R2 i usługi zewnętrzne bez zmian ([deployment-dokploy.md](deployment-dokploy.md)). Tabela opisuje hosting produkcji.
 
 Docker od pierwszego dnia, więc migracja z Render do AWS nie wymaga zmian w kodzie. **Szacunek kosztów infrastruktury w MVP** (bez kosztów transakcyjnych): rząd **kilkuset do ok. 2 tys. zł miesięcznie**. Zweryfikuj przy konfiguracji.
 
@@ -1168,6 +1211,7 @@ biddy/
 - Czasy: `timestamptz` w UTC.
 - Soft delete tylko tam, gdzie wymaga tego audyt. Dane finansowe są **niemodyfikowalne** (korekty przez nowe wpisy).
 - Snapshot przedmiotu w zamówieniu (`order_items.item_snapshot`), bo opis aukcji nie może się zmienić po sprzedaży.
+- Klucze obce tylko wewnątrz modułu. Między modułami (np. `orders.buyer_id` → `users.id`) kolumna `uuid` bez FK: granice modułów zostają bez wyjątków, a integralność pilnuje kod (publiczne API modułu) i eventy. Użytkowników nie usuwamy fizycznie (usunięcie konta na żądanie z §17 to anonimizacja, F-41), więc osierocone wiersze nie powstają.
 
 ### 13.2 Diagram relacji (główne encje)
 
@@ -1205,26 +1249,27 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `users` | id, email, phone, phone_verified_at, display_name, avatar_key, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), bidding_blocked_until, listing_blocked_until, limits (jsonb, nadpisania §4.1), created_at |
+| `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), staff_role, bidding_blocked_until, listing_blocked_until, seller_kyc_notice_accepted_at, limits (jsonb, nadpisania §4.1), created_at |
 | `terms_acceptances` | id, user_id, document (`TERMS`/`PRIVACY`), version, accepted_at, ip |
 | `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, order_id, auction_id, issued_by (system/admin), statement_of_reasons, expires_at, appeal_status, revoked_at, created_at |
-| `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider). |
-| `addresses` | id, user_id, name, street, city, postal_code, country, phone, is_default, is_sender_default |
+| `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider) i (provider, provider_account_id). Moduł `payments`: F-23 tworzy kolumny do kyc_status, resztę dodadzą F-27 i F-32. |
+| `addresses` | id, user_id, recipient_name, street, postal_code, city, country, phone, is_default, is_sender_default (moduł `identity`; najwyżej jeden domyślny adres dostawy i nadania na konto, F-10) |
 | `payment_methods` (v1) | id, user_id, provider_ref, type, brand, last4, is_default (tylko referencje/tokeny operatora, **żadnych danych kart**) |
 | `devices` | id, user_id, platform (`WEB`/`IOS`/`ANDROID`), push_token (Expo), web_push_subscription (jsonb: endpoint, klucze), fingerprint, last_seen_at |
 | `user_follows` | follower_id, seller_id, created_at (obserwowani sprzedawcy) |
 | `user_blocks` | blocker_id, blocked_id, created_at |
-| `notification_preferences` | user_id, type, channel, enabled |
+| `notification_preferences` | user_id, type, channel, enabled, updated_at; brak wiersza = wartość domyślna (F-20) |
 
 **Katalog i aukcje**
 
 | Tabela | Kolumny |
 |---|---|
-| `categories` | id, parent_id, path (ltree), slug, name, attribute_schema (jsonb, JSON Schema), is_restricted, is_active |
-| `items` | id, seller_id, category_id, title, description, condition (enum), brand, attributes (jsonb), package_size, weight_g, dims, allowed_carriers (text[]), location_city, created_at |
-| `item_media` | id, item_id, storage_key, width, height, position, moderation_status |
-| `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status, start_price, reserve_price, buy_now_price, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, starts_at, ends_at, original_ends_at, extension_policy, version, created_at |
-| `bids` | id, auction_id, bidder_id, amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, idempotency_key (unique per bidder), ip, device_id, created_at |
+| `categories` | id, parent_id, path (ltree ze slugów), slug (unikalny), name, position, attributes (jsonb: definicje atrybutów w formacie z `@biddy/shared`, z których powstaje JSON Schema), is_restricted, is_brand_sensitive, listing_notice, is_active (F-11) |
+| `items` | id, seller_id, category_id, title, description, condition (`NEW`/`LIKE_NEW`/`VERY_GOOD`/`GOOD`/`FAIR`/`FOR_PARTS`), brand, attributes (jsonb), package_size (`S`/`M`/`L`/`XL`), weight_grams, length_cm, width_cm, height_cm, allowed_carriers (text[]), created_at, updated_at (moduł `catalog`, F-14; pola puste w szkicu, lokalizacja z adresu nadania w F-18) |
+| `media` | id, owner_id, purpose (`ITEM_PHOTO`/`AVATAR`), status (`PENDING_UPLOAD`/`PROCESSING`/`READY`/`FLAGGED`/`REJECTED`), content_type, size_bytes, width, height, rejection_reason, moderation_labels, attached_at, processed_at (moduł `media`, F-12; nieprzypisane znikają po 24 h) |
+| `item_media` | item_id, media_id, position (F-14; plik, wymiary i moderacja w `media`; to samo zdjęcie może być w kopii przedmiotu po ponownym wystawieniu) |
+| `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status (`DRAFT`/`PENDING_REVIEW`/`ACTIVE`/`ENDED_SOLD`/`ENDED_UNSOLD`/`CANCELLED`), currency, start_price, reserve_price, buy_now_price, duration_days, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, bid_sequence, review_reasons, review_terms, starts_at, ends_at, original_ends_at, published_at, cancelled_at, version, created_at, updated_at (F-14; extension_policy w F-15) |
+| `bids` | id, auction_id, bidder_id, sequence (kolejność w aukcji, replay §15.6), amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, cancelled_at, idempotency_key (unique per bidder), created_at (F-15; ip i device_id dojdą z antyfraudem F-36) |
 | `watchlist` | user_id, auction_id, created_at |
 | `saved_searches` (v1) | id, user_id, query (jsonb), notify, created_at |
 | `second_chance_offers` | id, auction_id, bidder_id, amount, status (`PENDING`/`ACCEPTED`/`DECLINED`/`EXPIRED`), expires_at, order_id, created_at |
@@ -1233,17 +1278,20 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, cancelled_at, chargeback_status, second_chance_offer_id, created_at |
+| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, cancelled_at, chargeback_status, second_chance_offer_id, created_at (F-16 tworzy kolumny do payment_due_at; pozostałe dodadzą F-25 i F-26) |
 | `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb), is_active (false po anulowaniu zamówienia) |
-| `fee_schedules` | id, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), category_id (nullable), valid_from, valid_to |
-| `payments` | id, order_id, provider, provider_payment_id, method, amount, status, failure_reason, idempotency_key, raw (jsonb), created_at |
+| `fee_schedules` | id, currency, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), vat_rate_bp, valid_from, valid_to, note (moduł `payments`, F-13; okresy bez nakładania, wiersz niezmienny poza zamknięciem; category_id dojdzie z cennikami per kategoria) |
+| `payments` | id, order_id, buyer_id, seller_id, provider, provider_payment_id (unikalne z provider), method, currency, amount, seller_amount, platform_amount (split, suma = amount), status (`PENDING`/`SUCCEEDED`/`FAILED`), failure_reason, redirect_url, idempotency_key (unikalny), raw (jsonb), polled_at, succeeded_at, failed_at, created_at, updated_at (moduł `payments`, F-23) |
 | `refunds` | id, order_id, payment_id, dispute_id, reason (`DISPUTE`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, raw (jsonb), created_at |
 | `chargebacks` | id, payment_id, order_id, amount, reason, status, liable_party (`PLATFORM`/`SELLER`), provider_ref, evidence_submitted_at, opened_at, closed_at |
-| `ledger_entries` | id, transaction_id, account, amount (+/−), currency, order_id, payout_id, description, created_at |
+| `ledger_accounts` | id, code (konto planu §7.7), subject (operator albo ID sprzedającego, zamówienia lub wypłaty; null dla kont platformy), currency, seller_id, seller_amount (tylko `buyer_funds_held`: część dla sprzedającego, saldo „w trakcie”), balance (= suma wpisów, zmienia je tylko trigger), created_at. Unikalne (code, subject, currency) (moduł `ledger`, F-22) |
+| `ledger_transactions` | id, type (szablon księgowania albo `REVERSAL`), idempotency_key (unikalny), currency, order_id, payout_id, reverses_transaction_id (storno, najwyżej jedno), payload (jsonb: dane wejściowe), created_at |
+| `ledger_entries` | id, transaction_id, account_id, amount (+/−, ≠ 0). Niemodyfikowalne; wpisy transakcji sumują się do 0 (trigger przy zatwierdzeniu) |
 | `payouts` | id, seller_id, provider, amount, status, provider_payout_id, idempotency_key, requested_at, completed_at |
-| `shipments` | id, order_id, direction (`OUTBOUND`/`RETURN`), provider, carrier, service, package_size, pickup_point_id, sender (jsonb), recipient (jsonb), tracking_number, label_key, dropoff_code, status, cost, created_at |
-| `shipment_events` | id, shipment_id, raw_status, status, occurred_at, raw (jsonb) |
-| `carrier_claims` | id, shipment_id, type (`LOST`/`DAMAGED`), status, claimed_amount, recovered_amount, submitted_at, resolved_at |
+| `shipping_rates` | id, carrier_id, package_size, currency, price, valid_from, valid_to (cennik dostaw Biddy dla kupującego; okresy bez nakładania per usługa, gabaryt i waluta; F-24) |
+| `shipments` | id, order_id (null tylko dla przesyłki testowej FakeShipping), direction (`OUTBOUND`/`RETURN`), provider, carrier_id, package_size, parcel (jsonb), pickup_point (jsonb: id, nazwa, adres), recipient (jsonb), sender (jsonb), dispatch_method (`DROP_OFF`/`COURIER_PICKUP`), declared_value, reference, currency, price (cena dla kupującego), cost (koszt u dostawcy), status (§8.3 + `PENDING`/`REQUESTED` przed utworzeniem u dostawcy), status_changed_at, provider_shipment_id, tracking_number, dropoff_code, label_key, dispatch_attempts, last_error, requested_at, delivered_at, returned_at, cancelled_at, polled_at, created_at. Unikalne (provider, provider_shipment_id) i (order_id, direction) bez anulowanych (moduł `shipping`, F-24) |
+| `shipment_events` | id, shipment_id, raw_status, status, description, occurred_at, recorded_at. Unikalne (shipment_id, raw_status, occurred_at): webhook i polling nie dublują zdarzeń |
+| `carrier_claims` | id, shipment_id (unikalny), type (`LOST`/`DAMAGED`), status (`OPEN`/`SUBMITTED`/`ACCEPTED`/`REJECTED`), currency, claimed_amount, recovered_amount, provider_claim_ref, note, submitted_at, resolved_at |
 | `disputes` | id, order_id, opened_by, reason, status (§7.5), resolution, refund_amount, deadline_at, decided_by, decision_reason, created_at |
 | `dispute_messages` / `dispute_evidence` | wiadomości i załączniki w sporze |
 
@@ -1253,10 +1301,13 @@ erDiagram
 |---|---|
 | `conversations` / `messages` | czat per aukcja lub zamówienie, flagi wykrytych danych kontaktowych |
 | `reviews` | id, order_id, author_id, target_id, role (`BUYER`/`SELLER`), rating, comment, visible_at. Unikalne (order_id, author_id). |
-| `notifications` | id, user_id, type, payload, read_at, created_at |
+| `notifications` | id, user_id, type, auction_id, payload (migawka), dedupe_key (unikalny z user_id), read_at, emailed_at, created_at (F-20) |
 | `reports` | id, reporter_id, target_type, target_id, reason, status, decision, statement_of_reasons, created_at (DSA *notice & action*) |
 | `outbox` | id, type, payload, created_at, processed_at, attempts |
-| `processed_webhooks` | provider, event_id (PK), processed_at (idempotencja webhooków) |
+| `processed_webhooks` | provider, event_id (PK z provider), event_type, outcome (`HANDLED`/`IGNORED`: bez obsługi w tej wersji), processed_at (idempotencja webhooków, F-23) |
+| `fake_shipping_*` | stan FakeShipping (F-24): `parcels` (klucz idempotencji, odcisk żądania, scenariusz), `tracking` (statusy w notacji symulatora), `webhooks` (stan dostarczenia); na produkcji puste |
+| `furgonetka_tokens` | jeden wiersz: token dostępu i refresh token Furgonetki (zaszyfrowane AES-256-GCM), expires_at (F-24) |
+| `fake_gateway_*` | stan FakeGateway (F-23): `sellers` (status KYC, saldo), `payments`, `refunds`, `payouts` (klucze idempotencji i odcisk żądania), `events` (webhooki w notacji symulatora ze stanem dostarczenia); na produkcji puste |
 | `audit_log` | id, actor_id, action, target, diff, ip, created_at |
 
 **Kluczowe indeksy:**
@@ -1267,7 +1318,7 @@ erDiagram
 - unikalny `bids(bidder_id, idempotency_key)`,
 - unikalny częściowy `order_items(auction_id) WHERE is_active` (jedno aktywne zamówienie na aukcję; anulowanie zamówienia ustawia `is_active = false` w tej samej transakcji),
 - `strikes(user_id, created_at)` dla reguły „3 w 90 dni”,
-- `shipments(status)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`.
+- `shipments(status, polled_at)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`.
 
 ---
 
@@ -1277,12 +1328,13 @@ erDiagram
 
 ```
 # Auth (Better Auth, /auth/*)
-POST   /auth/sign-up | /auth/sign-in | /auth/sign-in/social | /auth/phone/send-otp | /auth/phone/verify
+POST   /auth/sign-up/email | /auth/sign-in/email | /auth/sign-in/social | /auth/sign-out | …
+POST   /me/phone-verification      { phoneNumber } → SMS z kodem      POST /me/phone-verification/confirm { code }
 
 # Użytkownicy
 GET    /me                         PATCH /me
-GET    /users/:id                  (profil publiczny, oceny)
-CRUD   /me/addresses
+GET    /users/:id                  (profil publiczny: imię, data dołączenia, znaczek telefonu; oceny w F-30)
+GET    /me/addresses               POST /me/addresses           PATCH|DELETE /me/addresses/:id
 POST   /me/terms-acceptances       (akceptacja aktualnej wersji regulaminu / polityki)
 POST   /me/seller-onboarding       → rejestracja sprzedawcy i KYC u operatora
 GET    /me/balance                 POST /me/payouts             PATCH /me/payout-settings
@@ -1291,19 +1343,27 @@ PUT    /me/followed-sellers/:userId    DELETE /me/followed-sellers/:userId
 PUT    /me/blocks/:userId          DELETE /me/blocks/:userId
 
 # Powiadomienia
-GET    /me/notifications           POST /me/notifications/read   { ids | all }
+GET    /me/notifications           POST /me/notifications/read   { ids | all }    GET /me/notifications/summary
+GET    /notifications/unsubscribe  POST /notifications/unsubscribe { token }   (wypisanie z e-maili bez logowania, F-20)
 GET    /me/notification-preferences    PUT /me/notification-preferences
 POST   /me/devices                 (rejestracja web push / Expo push)   DELETE /me/devices/:id
 
 # Katalog i media
 GET    /categories                 GET /categories/:id/schema
-POST   /media/upload-url           POST /media/:id/complete
+GET    /fee-schedules/current      (cennik POK, F-13)
+POST   /media/uploads              POST /media/:id/complete      GET /media/:id    DELETE /media/:id
+PUT    /me/avatar                  DELETE /me/avatar
 
 # Aukcje
-POST   /auctions                   (szkic z przedmiotem)
+POST   /auctions                   (szkic z przedmiotem)        DELETE /auctions/:id (szkic)
 PATCH  /auctions/:id               POST /auctions/:id/publish   POST /auctions/:id/cancel
-GET    /auctions                   (wyszukiwanie — proxy do Meilisearch z filtrami)
-GET    /auctions/:id               GET /auctions/:id/bids       (historia, zanonimizowana)
+GET    /me/auctions                GET /me/auctions/:id         GET /me/selling-limits
+GET    /me/bids?status=            (Moje Biddy: trwające, wygrane, przegrane; F-21)   GET /me/watchlist
+GET    /shipping/carriers          (przewoźnicy i gabaryty, F-14)
+GET    /auctions                   (wyszukiwanie w Meilisearch: filtry, fasety, sortowanie; F-19)
+GET    /sitemap/auctions           (aktywne aukcje do sitemap, F-19)
+GET    /auctions/:id               (widok publiczny; :id = UUID albo publicId, F-18; ceny dostaw i „dostawa od”, F-24)
+GET    /auctions/:id/bids          (historia, zanonimizowana)    GET /me/bids/:id (mój stan w aukcji, F-18)
 POST   /auctions/:id/bids          { maxAmount }            + nagłówek Idempotency-Key
 POST   /auctions/:id/buy-now       {}                       + nagłówek Idempotency-Key
 POST   /auctions/:id/relist        (kopia zakończonej aukcji jako szkic)
@@ -1312,16 +1372,17 @@ PUT    /me/watchlist/:auctionId    DELETE /me/watchlist/:auctionId
 # Zamówienia
 GET    /me/orders?role=buyer|seller
 GET    /orders/:id
-GET    /orders/:id/shipping-options
+GET    /orders/:id/shipping-options   (kupujący; ceny z cennika Biddy, F-24)
 POST   /orders/:id/checkout        { carrier, service, pickupPointId | addressId, paymentMethod, blikCode? }
-POST   /orders/:id/shipment        (sprzedający: „Nadaj” — dane nadawcy, sposób nadania → etykieta / kod)
-GET    /orders/:id/label
+GET    /orders/:id/shipment        (obie strony: zamówienie i przesyłka; kod nadania i nadawca tylko dla sprzedającego, F-24)
+POST   /orders/:id/shipment        (sprzedający: „Nadaj” — dane nadawcy, sposób nadania → 202, worker tworzy przesyłkę, F-24)
+GET    /orders/:id/label           (sprzedający: etykieta PDF, F-24)
 POST   /orders/:id/confirm-receipt
 POST   /orders/:id/disputes        (w oknie 36 h)
 POST   /orders/:id/not-received    (po 14 dniach bez statusu końcowego → ścieżka LOST)
 POST   /orders/:id/second-chance   (sprzedający, po CANCELLED_UNPAID)
 POST   /second-chance-offers/:id/accept | /decline
-GET    /shipping/points?carrier=&lat=&lng=
+GET    /shipping/points?carrier=&lat=&lng= | &q=   (sesja; punkty odbioru u dostawcy, F-24)
 
 # Spory, wiadomości, oceny, zgłoszenia
 GET|POST /disputes/:id/messages    POST /disputes/:id/evidence   POST /disputes/:id/respond
@@ -1330,11 +1391,22 @@ POST   /orders/:id/review
 POST   /reports
 
 # Webhooki (weryfikacja podpisu + idempotencja)
-POST   /webhooks/payments/:provider
-POST   /webhooks/shipping/:provider
+POST   /webhooks/payments/:provider       (surowe body, poza OpenAPI; F-23)
+POST   /webhooks/shipping/:provider      (surowe body, poza OpenAPI; wskazówka → synchronizacja trackingu, F-24)
+
+# FakeGateway (F-23, poza produkcją; inaczej 404)
+GET    /dev/fake-gateway/payments/:id     POST /dev/fake-gateway/payments/:id/complete   (strona testowa, bez sesji)
+GET    /dev/fake-gateway                  (panel, sesja)   POST /dev/fake-gateway/payments/:id/chargeback
+POST   /dev/fake-gateway/payouts/:id/fail   POST /dev/fake-gateway/sellers/:id/status   POST /dev/fake-gateway/events/:id/redeliver
+
+# FakeShipping (F-24, poza produkcją; inaczej 404; sesja)
+GET    /dev/fake-shipping                 POST /dev/fake-shipping/shipments   (przesyłka testowa bez zamówienia)
+POST   /dev/fake-shipping/shipments/:id/dispatch   GET /dev/fake-shipping/shipments/:id/label   POST /dev/fake-shipping/shipments/:id/sync
+POST   /dev/fake-shipping/parcels/:id/advance      POST /dev/fake-shipping/parcels/:id/scenario
 
 # Admin (/admin/*, osobna sesja i RBAC) — m.in.:
 POST   /admin/bids/:id/cancel      (unieważnienie oferty + replay, §15.6)
+POST   /admin/auctions/:id/cancel  (anulowanie aukcji przez moderację, F-16)
 POST   /admin/disputes/:id/decision
 POST   /admin/strikes              POST /admin/strikes/:id/revoke
 POST   /admin/compensations        (rekompensata dla sprzedającego, §7.9)
@@ -1349,29 +1421,53 @@ Zasady:
 ### 14.2 Zdarzenia WebSocket
 
 ```ts
-// packages/realtime — przykładowe typy
-type AuctionUpdated = {
-  type: 'auction.updated';
+// packages/realtime/src/events.ts (skrót; kwoty w groszach, czasy w ISO)
+interface AuctionUpdatedEvent {
   auctionId: string;
-  currentPrice: number;      // grosze
+  version: number;           // rośnie z każdą zmianą aukcji: klient ignoruje starsze stany
+  status: AuctionStatus;
+  currency: string;
+  currentPrice: number | null;
   bidCount: number;
   leader: { publicName: string } | null; // zanonimizowany, np. "k***a"
-  endsAt: string;            // ISO, autorytatywne
-  reserveMet: boolean | null;
+  endsAt: string | null;     // autorytatywne
+  reserveStatus: 'NONE' | 'NOT_MET' | 'MET';
+  minimumNextBid: number;
+  buyNowAvailable: boolean;
   serverTime: string;
-};
-type UserOutbid = { type: 'user.outbid'; auctionId: string; currentPrice: number; serverTime: string };
-type UserWon = { type: 'user.won'; auctionId: string; orderId: string; paymentDueAt: string; serverTime: string };
+}
+interface AuctionExtendedEvent { auctionId: string; endsAt: string; serverTime: string }
+interface AuctionEndedEvent {
+  auctionId: string;
+  outcome: 'SOLD' | 'UNSOLD' | 'CANCELLED';
+  currency: string;
+  finalPrice: number | null;
+  serverTime: string;
+}
+interface UserOutbidEvent {
+  auctionId: string; currency: string; currentPrice: number; minimumNextBid: number;
+  endsAt: string; serverTime: string;
+}
+interface UserWonEvent {
+  auctionId: string; orderId: string; orderPublicId: string; currency: string; total: number;
+  paymentDueAt: string; serverTime: string;
+}
+interface AuctionViewersEvent { auctionId: string; count: number; serverTime: string } // F-63
+// klient → serwer: 'auction:subscribe' (ack { ok } albo { ok: false, error }),
+// 'auction:unsubscribe', 'auction:view' (ack { ok, viewers } albo { ok: false, error }, F-63),
+// 'auction:unview', 'time:ping' (ack { serverTime })
 ```
 
 ### 14.3 Eventy domenowe (outbox)
 
-- **Aukcje:** `AuctionPublished`, `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
-- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`.
-- **Spory i pieniądze:** `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged`.
+- **Aukcje:** `AuctionPublished`, `AuctionSubmittedForReview`, `AuctionUpdated` (zmiana przed pierwszą ofertą), `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
+- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`. `ShipmentCreated` i `ShipmentStatusChanged` (F-24) publikuje moduł `shipping`; `ShipmentStatusChanged` niesie czas u przewoźnika, czas wykrycia i przy `RETURNING` powód zwrotu. Kontrakt `OrderPaid` (z `shipBy`) zdefiniował F-24 dla powiadomienia „nadaj paczkę”, a publikuje go F-26.
+- **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
 - **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `ReviewPublished`, `ReportCreated`.
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
+
+Dostarczanie (F-04): relay w workerze przekazuje zatwierdzone eventy z tabeli `outbox` do kolejki `domain-events`, osobnym jobem dla każdego konsumenta (błąd jednego nie ponawia pozostałych). Gwarancja **at-least-once**, bez gwarancji kolejności. Konsument jest idempotentny: jego obsługa i wpis w `processed_events` (konsument, ID eventu) to jedna transakcja. Typ eventu w PascalCase w czasie przeszłym, wersja payloadu od 1, payload ze schematem Zod z typami JSON (konwencja w `apps/api/src/infra/outbox/domain-event.ts`).
 
 ---
 
@@ -1437,7 +1533,7 @@ Każda zmiana statusu planuje odpowiedni job (`order.payment-deadline`, `order.s
 
 ### 15.4 Synchronizacja czasu
 
-- Klient wysyła `ping` z `t0`, serwer odpowiada `serverTime`, klient mierzy `t1`. Wtedy `offset = serverTime − (t0 + t1)/2`. Używamy mediany z 3–5 próbek, odświeżanej co minutę.
+- Klient wysyła `ping` z `t0`, serwer odpowiada `serverTime`, klient mierzy `t1`. Wtedy `offset = serverTime − (t0 + t1)/2`. Używamy mediany z 3–5 próbek, odświeżanej co minutę. W `@biddy/realtime` (F-17): 5 próbek `time:ping` po każdym połączeniu i co minutę, mediana szybszej połowy próbek, odrzucenie próbek z czasem odpowiedzi powyżej 1 s.
 - Liczniki w UI: `endsAt − (Date.now() + offset)`.
 - Ostateczną decyzję o tym, czy oferta zdążyła, podejmuje **wyłącznie serwer** (`now()` w bazie).
 
@@ -1446,6 +1542,8 @@ Każda zmiana statusu planuje odpowiedni job (`order.payment-deadline`, `order.s
 Eventy z outboxa trafiają do joba indeksującego, a ten robi częściowe aktualizacje dokumentu w Meilisearch. Zmiany cen gorących aukcji **debounce'ujemy** (np. co 5 s), bo strona aukcji i tak ma realtime z WS. Nocny pełny reindeks wyrównuje ewentualne rozjazdy.
 
 Dokument indeksu zawiera: `title`, `description`, `brand`, `categoryPath`, `attributes.*`, `condition`, `currentPrice`, `bidCount`, `endsAt`, `status`, `sellerRating`, `city`, `carriers`, `createdAt`.
+
+Implementacja (F-19): indeks `{SEARCH_INDEX_PREFIX}-auctions` tylko z aktywnymi aukcjami; job `search.index-auction` (kolejka `search`) na koniec 5-sekundowego okna; dodatkowo `categoryIds`, `attributeText`, `price` (aktualna albo wywoławcza), `endsAtTs`, `publishedAtTs`, `sellerId`, zdjęcie główne. `sellerRating` i `city` dojdą z ocenami i adresem sprzedawcy.
 
 ### 15.6 Unieważnienie oferty (replay)
 
@@ -1473,10 +1571,12 @@ Terminy w dniach roboczych (nadanie, nadanie zwrotu) liczy jedna funkcja w `pack
 
 - OWASP ASVS jako checklista.
 - Walidacja wszystkich wejść (Zod), Helmet, CORS ograniczony do domen Biddy, CSRF dla sesji cookie.
-- Rate limiting w Redis per IP i per użytkownik: oferty, wiadomości, logowanie, OTP.
-- Logowanie: po 5 nieudanych próbach wymagamy Turnstile i wprowadzamy rosnące opóźnienie (per konto i per IP). **Bez twardej blokady konta**, bo pozwalałaby każdemu zablokować cudze konto.
-- Cloudflare WAF i Turnstile na rejestracji i logowaniu.
-- Upload tylko przez presigned URL z limitem rozmiaru i typu. Worker **ponownie koduje obraz i usuwa EXIF** (w tym GPS, czyli prywatność adresów domowych).
+- Rate limiting per IP i per użytkownik: oferty, wiadomości, OTP (Redis). Logowanie i trasy wysyłające e-maile liczą w Postgresie (F-07): mały ruch, a liczniki przetrwają restart Redisa.
+- Logowanie: po 5 nieudanych próbach na konto (20 z jednego IP, bo za adresem bywa wiele osób) wymagamy Turnstile i wprowadzamy rosnące opóźnienie: 2 s, 4 s… do 5 min. Liczniki w Postgresie, okno 24 h. **Bez twardej blokady konta**, bo pozwalałaby każdemu zablokować cudze konto.
+- Cloudflare WAF i Turnstile na rejestracji, resecie hasła i logowaniu (po progu nieudanych prób).
+- Kody SMS (weryfikacja telefonu, F-08): tylko polskie numery komórkowe (ochrona przed SMS pumping), wymagany potwierdzony e-mail, kolejny SMS po 60 s, maks. 3 na numer i 10 z IP na godzinę, 10 na konto na dobę. Kod ważny 5 minut, 5 prób, w bazie tylko HMAC.
+- CSRF: żądanie zmieniające stan z ciasteczkiem sesji musi mieć `Origin` aplikacji Biddy; do tego API przyjmuje tylko JSON. Token Bearer (mobile) nie podlega sprawdzeniu.
+- Upload tylko przez presigned PUT z podpisanym typem i rozmiarem, do prywatnego kubełka. Worker **ponownie koduje obraz i usuwa EXIF** (w tym GPS, czyli prywatność adresów domowych), a publiczny kubełek dostaje tylko przetworzone warianty (F-12).
 - Sekrety poza repo. Szyfrowanie wrażliwych pól (dane DAC7) kluczem z KMS lub env.
 - Webhooki: weryfikacja podpisu i idempotencja (`processed_webhooks`).
 - Zmiana konta do wypłat: potwierdzenie e-mailem, **blokada wypłat na 48 h** i powiadomienie na wszystkie urządzenia.
@@ -1489,7 +1589,7 @@ Terminy w dniach roboczych (nadanie, nadanie zwrotu) liczy jedna funkcja w `pack
 | **Shill bidding** (sztuczne podbijanie przez sprzedającego) | Wykrywanie powiązań kont: urządzenie, IP, metoda płatności, adres, numer telefonu. Wzorzec: konto często licytuje u jednego sprzedającego i rzadko wygrywa. Kolejka do ręcznej weryfikacji, unieważnianie ofert (§15.6), bany. Zasady poniżej. |
 | Fałszywe konta / boty | 1 telefon = 1 konto, Turnstile, limity dla nowych kont (§4.1) |
 | Niepłacący zwycięzcy | Limity nowych kupujących i strike'i (§4.1); w v1 wymóg zapisanej metody płatności dla aukcji powyżej określonej kwoty |
-| Oszuści-sprzedawcy | Limity dla nowych sprzedawców (§4.1: 5 aktywnych aukcji, maks. 500 zł), KYC przed wypłatą i przed aukcją > 1000 zł, środki wstrzymane do weryfikacji |
+| Oszuści-sprzedawcy | Limity dla nowych sprzedawców (§4.1: 5 aktywnych aukcji, maks. 5000 zł), KYC przed wypłatą i przed aukcją > 5000 zł, środki wstrzymane do weryfikacji |
 | Transakcje poza platformą | Wykrywanie telefonów, e-maili i IBAN-ów w czacie z ostrzeżeniem, edukacja („poza Biddy nie masz ochrony”) |
 | Podróbki | Kategorie „brand-sensitive” wymagają więcej zdjęć (metki, kody), zgłoszenia, docelowo weryfikacja autentyczności |
 | Fraud płatniczy | Narzędzia antyfraudowe operatora, 3DS/SCA |
@@ -1562,10 +1662,12 @@ Odpowiedzi nie blokują Etapów 0–1. Do czasu ich otrzymania obowiązują decy
 | `staging` | Integracje w trybie testowym (sandbox płatności, sandbox kurierów) | Syntetyczne |
 | `production` | — | Produkcyjne |
 
+API i worker dostają środowisko w `DEPLOYMENT_ENV`, bo staging działa z `NODE_ENV=production`. Bez tej zmiennej `NODE_ENV=production` oznacza produkcję (bezpieczna wartość domyślna). Od niej zależy m.in. blokada FakeGateway (§7.8) i FakeShipping (§8.6). Staging działa na obu adapterach testowych.
+
 ### 18.2 CI/CD (GitHub Actions)
 
 - **Na każdy PR:** lint, typecheck, testy jednostkowe i integracyjne (Testcontainers), build zmienionych pakietów (Turborepo), sprawdzenie, czy wygenerowany klient API jest aktualny, Playwright smoke na preview.
-- **Merge do `main`:** deploy na staging. Migracje bazy (drizzle-kit) uruchamia osobny krok **przed** deployem nowej wersji, migracje są wstecznie kompatybilne (expand → contract).
+- **Merge do `main`:** deploy na staging. Render wdraża API i workera dopiero po zielonych checkach CI na commicie (`autoDeployTrigger: checksPass`), Vercel buduje web. Migracje bazy uruchamia osobny krok **przed** startem nowej wersji (`preDeployCommand`); nieudana migracja przerywa deploy, a poprzednia wersja działa dalej. Migracje są wstecznie kompatybilne (expand → contract). Runbook: [deployment.md](deployment.md).
 - **Release na produkcję:** tag lub ręczne zatwierdzenie.
 - **Mobile:** EAS Build na tagach. EAS Update dla poprawek JS z kanałami `preview` i `production`.
 
@@ -1750,7 +1852,12 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 5 | Sprzedawcy firmowi dopiero w v2. Próg „ukrytej firmy” do ręcznej weryfikacji = próg DAC7 (30 sprzedaży lub 2000 EUR rocznie) | Przyjęta | §17 | — |
 | 6 | Kategorie startowe do marketingu: TCG/kolekcjonerstwo, sneakers/vintage, retro gaming | Przyjęta | §2.4 | Przed betą |
 | 7 | Limity kont i strike'i (wartości startowe) | Przyjęta | §4.1 | Beta, zmiana bez deployu |
-| 8 | Projekt wizualny kluczowych ekranów: freelancer w Fazie 0–1, wireframe'y robi osoba prowadząca feature | Tymczasowa | §20 | Faza 0 |
+| 8 | Projekt wizualny kluczowych ekranów: makiety Figma właściciela (2025) przełożone na design system Biddy (F-62); kolejne ekrany projektuje osoba prowadząca feature według tego systemu | Przyjęta | §20 | — |
+| 101 | Puls licytacji (F-63, D1): licznik „X osób ogląda” na stronie aktywnej aukcji, od 3 połączeń, sama liczba bez listy osób | Przyjęta | §11.3, [F-63](features/F-63-puls-licytacji.md) | Beta: czy liczba nie zniechęca przy małym ruchu |
+| 102 | Wygrana jako panel na stronie aukcji, a nie osobny ekran (F-63, D2); na telefonie na pełną szerokość | Przyjęta | §11.3 | — |
+| 103 | Ciemny pas „Kończą się wkrótce” na stronie głównej (F-63, D3) | Przyjęta | §11.3 | — |
+| 104 | Dolny pasek nawigacji na telefonie (Start, Szukaj, Wystaw, Moje Biddy, Konto) poniżej 768 px zamiast menu z design systemu; menu konta zostaje w nagłówku (F-63, D4) | Przyjęta | §11.3 | — |
+| 105 | Kreator aukcji w dwóch kolumnach z podglądem karty od 1024 px (F-63, D5) | Przyjęta | §11.3 | — |
 
 **Transakcje**
 
@@ -1763,7 +1870,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 13 | Podział kosztów w sporach i stratach, rekompensata za zaginioną paczkę = cena do limitu przewoźnika | Tymczasowa | §7.5, §7.9 | Prawnik, operator (transfery) |
 | 14 | Zwrot częściowy tylko z części sprzedającego; POK i dostawa bez zwrotu | Przyjęta | §7.5 | — |
 | 15 | Oferta drugiej szansy po maksimum licytującego, niewiążąca, 24 h | Przyjęta | §6.8 | Prawnik (KC) |
-| 16 | Rejestracja sprzedawcy u operatora przy pierwszym wystawieniu; KYC przed wypłatą i przed aukcją > 1000 zł | Tymczasowa | §7.6 | Oferta operatora |
+| 16 | Rejestracja sprzedawcy u operatora przy pierwszym wystawieniu; KYC przed wypłatą i przed aukcją > 5000 zł | Tymczasowa | §7.6 | Oferta operatora |
 | 17 | Wypłaty: minimum 20 zł, opcjonalna wypłata tygodniowa, saldo poniżej minimum wypłacane przy zamknięciu konta i po 90 dniach | Przyjęta | §7.6 | Prawnik (§17.1 pkt 6) |
 | 18 | Przesyłka tworzona po kliknięciu „Nadaj” przez sprzedającego | Tymczasowa | §8.3 | Oferta Furgonetki |
 | 19 | Oceny także po sporze zakończonym zwrotem | Przyjęta | §5 | — |
@@ -1787,6 +1894,77 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 32 | Lokalny S3: RustFS zamiast MinIO | Przyjęta | §12 |
 | 33 | Backend: NestJS 12 (ESM) + SWC, nestjs-zod mimo deklarowanej zgodności tylko z Nest ≤ 11 | Przyjęta | §11.2 |
 | 34 | Błędy API: RFC 9457 (`application/problem+json`) z polem `code`; lista kodów wspólna dla klientów w `packages/shared` | Przyjęta | §14.1 |
+| 35 | Kolejki: BullMQ 6 + ioredis 5.11; eventy z outboxa osobnym jobem na konsumenta, idempotencja przez `processed_events`, DLQ jako kolejka `dead-letter` | Przyjęta | §11.2, §14.3 |
+| 36 | Bull Board tylko lokalnie (osobny proces, bez uwierzytelniania); na produkcji kolejki i DLQ w panelu administracyjnym | Przyjęta | §11.5, §18.3 |
+| 37 | Kontrakt API: odpowiedzi przez `@ZodResponse` (serializacja schematem DTO), `operationId` = nazwa metody kontrolera (unikalna), błąd `default` = ProblemDetails; klient orval z fetcherem `apiFetch` i kodem w repozytorium | Przyjęta | §11.1, §14.1 |
+| 38 | Web: Next.js 16 + Tailwind CSS 4 + shadcn/ui, next-intl bez prefiksu języka; konfiguracja `NEXT_PUBLIC_*` walidowana przy buildzie, środowisko w `NEXT_PUBLIC_ENVIRONMENT` (indeksowanie tylko na produkcji) | Przyjęta | §11.3 |
+| 39 | Design tokens w TypeScript (`packages/design-tokens`) generują motyw Tailwind 4 z wyzerowaną domyślną paletą; paleta i font z identyfikacji wizualnej (nr 87) | Przyjęta | §11.3, §22 nr 8 |
+| 40 | Sentry w przeglądarce ładowany osobnym fragmentem JS po starcie strony (błędy z pierwszych chwil buforowane), PostHog dopiero po zgodzie | Przyjęta | §17, §18.3, §19 |
+| 41 | Konta: Better Auth pod `/v1/auth/*` z błędami jako Problem Details; web woła je fetcherem klienta API (bez klienta Better Auth w paczce), mobile dostaje token Bearer (`set-auth-token`) | Przyjęta | §11.2, §14.1 |
+| 42 | Klucze obce tylko wewnątrz modułu; między modułami kolumny `uuid` bez FK | Przyjęta | §10.3, §13.1 |
+| 43 | Logowanie: Turnstile i przerwa po 5 porażkach na konto albo 20 z IP (liczniki w Postgresie); CSRF przez sprawdzanie `Origin` dla żądań z ciasteczkiem sesji | Przyjęta | §16.1 |
+| 44 | E-maile transakcyjne przez kolejkę `emails` w workerze (Resend na produkcji, SMTP lokalnie); job z linkiem z tokenem znika po wysłaniu | Przyjęta | §11.2 |
+| 45 | Weryfikacja telefonu własnymi endpointami `/v1/me/phone-verification` zamiast wtyczki telefonu Better Auth (bez logowania numerem, z limitami per numer i IP, w OpenAPI); SMS wysyłany synchronicznie (SMSAPI), bez kolejki | Przyjęta | §4, §16.1 |
+| 46 | Licytowanie i wystawianie za `@RequireVerifiedPhone()`: potwierdzony e-mail, oświadczenie 18+ i zweryfikowany telefon (1 numer = 1 konto, tylko numery polskie w MVP) | Przyjęta | §4, §16.2 |
+| 47 | API i worker jako jeden obraz Docker (`apps/api/Dockerfile`, `turbo prune`), migracje jako `preDeployCommand` obu usług; staging z Blueprintu Render (`render.yaml`) wdrażany z `main` po zielonym CI (`checksPass`) | Przyjęta | §11.6, §18.2 |
+| 48 | Staging: `staging.biddy.pl` (Vercel, środowisko Production projektu) i `api.staging.biddy.pl` (Render); preview Vercel na API stagingu, bez sesji (CORS i ciasteczko tylko dla `staging.biddy.pl`) | Tymczasowa | §18.1 |
+| 49 | Wersja (release) w Sentry i `/health` to SHA commita z platformy (`RENDER_GIT_COMMIT`, `VERCEL_GIT_COMMIT_SHA`) | Przyjęta | §18.3 |
+| 50 | Adresy w module `identity` (dane użytkownika); zamówienia i przesyłki kopiują adres, więc edycja nie zmienia historii. Zmiana profilu tylko przez `PATCH /v1/me` (trasa Better Auth `/update-user` zablokowana), reguły imienia wyświetlanego wspólne w `@biddy/shared` | Przyjęta | §10.3, §13.3 |
+| 51 | Web: szkielet ładowania (`loading.tsx`) tylko w segmentach konta; strony publiczne renderują się w całości przed odpowiedzią, żeby `notFound()` dawało prawdziwe 404 (SEO profili i aukcji) | Przyjęta | §11.3 |
+| 52 | Atrybuty kategorii jako definicje w formacie Biddy (`text`, `number`, `select`, `boolean`; `@biddy/shared`), a nie dowolny JSON Schema: z nich walidacja (web i API), formularz i JSON Schema. Dziedziczenie po ścieżce w drzewie, przedmiot tylko w aktywnym liściu | Przyjęta | §13.3 |
+| 53 | Drzewo kategorii i jego zmiany (do panelu admina, F-34) to migracje danych, więc kategorie są w każdym środowisku; przedmioty przechowują atrybuty tak, jak je zapisano, a walidacja działa tylko przy zapisie | Przyjęta | §13.3 |
+| 54 | Zdjęcia w trzech kubełkach: prywatny `uploads` (oryginały z EXIF, kwarantanna moderacji), publiczny `media` (tylko przetworzone warianty), `documents`. Upload przez presigned PUT z podpisanym typem i dokładnym rozmiarem (R2 nie ma presigned POST z limitem rozmiaru) | Przyjęta | §16.1 |
+| 55 | Przetwarzanie zdjęć w workerze (sharp: format z treści, limit 40 MP, WebP bez metadanych, warianty z góry) zamiast Cloudflare Image Transformations; nieprzypisane zdjęcia sprząta job po 24 h | Przyjęta | §11.2, §16.1 |
+| 56 | Moderacja obrazów przez adapter `ImageModerator`; do wyboru dostawcy (przed startem) atrapa. Zdjęcie oznaczone nie jest publiczne, event `MediaFlagged` zasila kolejkę moderacji (F-35) | Tymczasowa | §11.2, §16.1 |
+| 57 | Zdjęcie profilowe przez `PUT/DELETE /v1/me/avatar` w module `media` (on woła publiczne API `identity`, nie odwrotnie); `users.avatar_url` trzyma gotowy adres, więc sesja i profil nie pytają modułu `media` | Przyjęta | §10.3, §13.3 |
+| 58 | POK: jedno zaokrąglenie half-up dla całej części zmiennej (suma iloczynów na bigint), stawka VAT częścią cennika; kroki przebicia jako stała w `@biddy/shared`, nie w bazie (replay ofert) | Przyjęta | §3.1, §6.3, §7.7 |
+| 59 | Cenniki POK wersjonowane okresem `[valid_from, valid_to)` z wykluczeniem nakładania (btree_gist) i triggerem niezmienności; zmiana stawek skryptem `fees:publish` do czasu panelu admina (F-34); jeden cennik globalny, cenniki per kategoria później | Przyjęta | §3.1, §13.3 |
+| 60 | Wystawianie: przedmiot w module `catalog`, aukcja i proces w `auctions`; `auctions` woła publiczne API innych modułów w swojej transakcji (`tx`) z blokadą wiersza aukcji, więc edycja nie przeplecie się z pierwszą ofertą. Reguły kompletności (`validateListing`) wspólne dla web i API | Przyjęta | §10.3, §13.3 |
+| 61 | Po pierwszej ofercie aukcja jest zablokowana w całości (nie tylko cena, opis i zdjęcia); aukcja w kategorii z ograniczeniami albo ze słowem niejednoznacznym czeka na moderatora (`PENDING_REVIEW`), a słowo zakazane odrzuca publikację | Przyjęta | §6.6, §17 |
+| 62 | Przed pierwszą publikacją sprzedawca potwierdza informację, że wypłata wymaga weryfikacji tożsamości; potwierdzenie z datą w `users` jako dowód poinformowania (lekcja UOKiK/Vinted) | Przyjęta | §17 |
+| 63 | Kategorie narażone na podróbki: min. 4 zdjęcia (w tym metka lub kod) i obowiązkowa marka; przewoźnicy i gabaryty jako tabela `shipping_carriers` (konfiguracja w bazie) | Tymczasowa | §8.2, §16.2 |
+| 64 | Silnik licytacji: `resolve` jako czysta funkcja w `@biddy/shared`; oferty numerowane w aukcji (`bids.sequence`) zamiast porządku po `created_at`; czas z `clock_timestamp()` po blokadzie wiersza; okno anti-snipingu w konfiguracji (`AUCTION_ANTI_SNIPING_SECONDS`) | Przyjęta | §6.4, §6.5, §15.1 |
+| 65 | Idempotency-Key ofert zapisany przy ofercie (unikalny per licytujący), sprawdzany przed i pod blokadą aukcji; ponowienie zwraca tę samą ofertę z aktualnym stanem aukcji, inny payload z tym samym kluczem: 422 | Przyjęta | §14.1 |
+| 66 | Unieważnianie ofert przez personel (`@RequireStaff`) w zwykłej sesji do czasu panelu admina z osobną sesją (F-34); stan ceny minimalnej w API jako `reserveStatus` (`NONE`/`NOT_MET`/`MET`) | Tymczasowa | §11.5, §15.6 |
+| 67 | Job zamknięcia planowany przez konsumentów eventów `AuctionPublished` i `AuctionExtended` (outbox: job nie zginie z odrzuconą transakcją); sweeper w osobnej kolejce `auctions`, żeby nie czekał za jobami porządkowymi | Przyjęta | §15.2 |
+| 68 | Zamówienie tworzone przez moduł `orders` w transakcji zakończenia aukcji (`auctions` przekazuje `tx`), ze snapshotem przedmiotu (wersjonowany JSON); POK według cennika z chwili zakończenia aukcji, nie z chwili checkoutu | Przyjęta | §6.7, §13.1 |
+| 69 | Socket.IO tylko z transportem WebSocket (long-polling wymagałby sticky sessions, których load balancer Render nie zapewnia); adapter Redis na instancji cache; publikacja przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji zamiast przez outbox (odpytywanie co 250 ms nie mieści się w 300 ms); dostarczenie najlepszym wysiłkiem, stan dociągany przez REST po reconnect | Przyjęta | §10.5 |
+| 70 | Połączenie WebSocket: ciasteczko sesji tylko z originów `CORS_ORIGINS` (ochrona przed cross-site WebSocket hijacking), klient bez Origin (mobile) uwierzytelnia się tokenem Bearer; room `user:{id}` dołącza wyłącznie serwer; połączenia anonimowe dozwolone dla rooms aukcji | Przyjęta | §10.5, §16 |
+| 71 | Kolejność zdarzeń aukcji: wiadomości budowane w transakcji pod blokadą aukcji (odczyty przez tę samą transakcję, bez drugiego połączenia z puli) i wysyłane synchronicznie po zatwierdzeniu; między instancjami klient porównuje `version` aukcji | Przyjęta | §14.2 |
+| 72 | Strona aukcji `/a/{slug}-{publicId}` jako ISR bez ciasteczek; dane użytkownika (maksimum, wygrana, zamówienie) z `GET /v1/me/bids/{id}` w przeglądarce; slug z tytułu (`@biddy/shared`), stary slug przekierowuje 308 | Przyjęta | §11.3 |
+| 73 | Rewalidacja stron aukcji: konsumenci eventów w workerze planują job w kolejce `web` z końcem 5-sekundowego okna w ID (najwyżej jedna rewalidacja na okno, ostatnia zmiana też trafia na stronę), job woła `POST /api/revalidate` w web z sekretem; `revalidateTag(…, { expire: 0 })`, żeby następne żądanie nie dostało starej wersji | Przyjęta | §11.3 |
+| 74 | Obrazek OG strony aukcji to zdjęcie główne (wariant 1600 px), bez generowania `next/og`: cena w obrazku byłaby nieaktualna w cache serwisów społecznościowych, a generowanie kosztuje | Przyjęta | §11.3 |
+| 75 | Strona aukcji przed cennikiem dostaw (F-24) pokazuje akceptowanych przewoźników, a cenę łączną z POK bez „dostawa od”; oceny sprzedawcy (F-30) jako „Brak ocen” | Tymczasowa | §3.1, §17 |
+| 76 | Indeks wyszukiwarki tylko z aktywnymi aukcjami (zakończona albo anulowana jest usuwana), aktualizowany jobem na koniec 5-sekundowego okna (debounce zmian cen) z pełnym dokumentem; wyszukiwanie dodatkowo filtruje `endsAt > teraz`; nocny pełny reindeks | Przyjęta | §15.5 |
+| 77 | Klient Meilisearch przez HTTP bez SDK; indeks tworzony aktualizacją ustawień, a krótkie okno bez ustawień po utworzeniu (Meilisearch odrzuca wtedy filtr) API traktuje jak brak wyników | Przyjęta | §11.2 |
+| 78 | Filtry atrybutów w wyszukiwarce tylko ze schematu wybranej kategorii (z dziedziczeniem); liczby przy opcjach uwzględniają wszystkie wybrane filtry (bez faset rozłącznych w MVP); najwyżej 1000 wyników na zapytanie | Tymczasowa | §15.5 |
+| 79 | Web: filtry w zwykłym formularzu GET z polskimi parametrami (działa bez JavaScriptu); `/szukaj` bez indeksowania, strony kategorii indeksowane; sitemap renderowana przy żądaniu z danych w cache (10 min) | Przyjęta | §11.3 |
+| 80 | Powiadomienie zapisywane w transakcji zdarzenia z kluczem deduplikacji `(user_id, dedupe_key)`; dostarczenie (Socket.IO, e-mail) przez event `NotificationCreated` po zatwierdzeniu, nie job dodany w transakcji (job mógłby ruszyć przed commitem) | Przyjęta | §14.3 |
+| 81 | Powiadomienia in-app zawsze włączone; w MVP konfigurowalny kanał EMAIL; e-maile o wygranej i sprzedaży transakcyjne (bez wypisania); e-mail o nowej aukcji obserwowanego sprzedawcy domyślnie wyłączony | Tymczasowa | §5 |
+| 82 | E-mail o przebiciu najwyżej raz na 15 min na (użytkownik, aukcja): `emailed_at` i blokada doradcza w transakcji dostarczenia | Przyjęta | §5 |
+| 83 | Wypisanie jednym kliknięciem: `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058) na Route Handler w web, który woła API (API przyjmuje tylko JSON); token HMAC bez wygasania z kluczem wyprowadzonym z `BETTER_AUTH_SECRET` | Przyjęta | §16.1, §17 |
+| 84 | Szablony e-maili w React Email (`packages/emails`, render HTML i tekstu w API/workerze); treść powiadomień budowana w API, wspólna dla in-app i e-maili | Przyjęta | §11.2 |
+| 85 | Moje Biddy pod `/moje-biddy` z zakładkami (licytuję, wygrane, obserwowane, moje aukcje, sprzedane); dawne `/konto/aukcje` przekierowuje regułą `next.config.ts` (przekierowanie w stronie pod granicą Suspense nie ustawia kodu 308) | Przyjęta | §11.3 |
+| 86 | Każda pozycja Moje Biddy ma następną akcję; akcje zależne od płatności i dostaw (Zapłać, Nadaj paczkę) widoczne, ale nieaktywne z wyjaśnieniem do F-25/F-26 | Zastąpiona (F-25: „Zapłać” prowadzi do checkoutu, nr 109) | §5 |
+| 87 | Identyfikacja wizualna (F-62): design system Biddy z makiet Figma; font Plus Jakarta Sans; skale `ink`, `violet`, `pink`, `red`, `green`, `amber`, `sky`; gradient fiolet → róż tylko dla jednej głównej akcji widoku, granat dla akcji w kartach, fiolet dla zaznaczenia, czerwień dla LIVE, pilności i usuwania; kolory makiet niespełniające WCAG AA zastąpione ciemniejszymi krokami tej samej skali; style tekstu semantyczne (`text-h1`, `text-price-xl`…) w motywie Tailwinda i w konfiguracji tailwind-merge | Przyjęta | §11.3, §22 nr 8 |
+| 88 | Maks. wartość aukcji nowego i sprawdzonego sprzedawcy 5000 zł (było 500 i 1000 zł), próg KYC dla aukcji 5000 zł (było 1000 zł): pierwsze aukcje sprzedawcy mogą obejmować droższe przedmioty (elektronika, kolekcje), a limit nie jest niższy niż próg KYC, który i tak go ogranicza | Przyjęta | §4.1, §7.6 |
+| 89 | Staging na własnej VM Oracle Cloud (Ampere A1, ARM64, Always Free) z Dokploy zamiast Render + Vercel: cały stos w jednym pliku compose (`infra/dokploy`), Postgres jako baza Dokploy z nocnym backupem do R2, Meilisearch na tym samym serwerze; obrazy `linux/arm64` budowane w GitHub Actions i trzymane w GHCR (tag na każdy commit), deploy przez API Dokploy po zielonym CI z automatycznym wycofaniem nieudanej wersji; `render.yaml` i konfiguracja Vercel zostają jako alternatywa. Hosting produkcji do wyboru przed startem | Tymczasowa | §11.6, [deployment-dokploy.md](deployment-dokploy.md) |
+| 90 | Ledger: saldo konta w `ledger_accounts.balance` zmienia wyłącznie trigger przy wstawieniu wpisu (saldo zawsze = suma wpisów), CHECK nie pozwala saldom użytkowników i zamówień przejść na złą stronę, bilans transakcji sprawdza odroczony trigger przy zatwierdzeniu, wpisy, transakcje i konta są niemodyfikowalne (także TRUNCATE); konta księgowania blokowane `FOR UPDATE` w stałej kolejności; codzienny job `ledger.verify-integrity` porównuje salda z wpisami | Przyjęta | §7.7, §13.3 |
+| 91 | Księgowanie tylko przez szablony zdarzeń (`LedgerService.post`) z kluczem idempotencji, korekta przez storno całej transakcji; każde uznanie salda sprzedającego (także nieudana wypłata i rekompensata) najpierw spłaca `seller_receivable`; saldo „w trakcie” z części sprzedającego zapisanej przy koncie `buyer_funds_held` przy pierwszej płatności | Przyjęta | §7.7 |
+| 92 | Środowisko wdrożenia `DEPLOYMENT_ENV` (`local`/`preview`/`staging`/`production`) obok `NODE_ENV`, bo staging działa z `NODE_ENV=production`. Bez zmiennej przy `NODE_ENV=production` przyjmujemy `production`. Na produkcji `PAYMENTS_DEFAULT_PROVIDER` jest wymagany i różny od `fake`, więc do adaptera operatora (F-31) produkcja nie wystartuje | Przyjęta | §7.8, §18.1 |
+| 93 | FakeGateway jako pełny adapter: stan symulowanego operatora w Postgresie (`fake_gateway_*`), rozliczenie i webhooki jako joby BullMQ wysyłane HTTP na nasz endpoint z podpisem HMAC (sekret wyprowadzony z `BETTER_AUTH_SECRET`). Do tego magiczne kody BLIK i adresy e-mail (KYC), strona testowa i panel w web pod `/dev/*`. Blokada na produkcji: konfiguracja, rejestr adapterów i 404 tras deweloperskich | Przyjęta | §7.8 |
+| 94 | Zdarzenie operatora: wpis `processed_webhooks` i obsługa w jednej transakcji ze stanem płatności, ledgerem i outboxem. Stan zamówienia zmienia konsument `PaymentSucceeded`/`PaymentFailed` (F-25, F-26), bo `payments` nie zależy od `orders`. Płatność bez odpowiedzi operatora jest po 15 min `FAILED` (`PROVIDER_ERROR`), a późną wpłatę przyjmujemy (`FAILED → SUCCEEDED`). Zdarzenia bez obsługi (zwroty, wypłaty, chargebacki do F-28) zapisujemy jako `IGNORED` | Przyjęta | §7.8, §14.3 |
+| 95 | Testy kontraktowe portu w `apps/api/test/support/payment-gateway-contract.ts`, a nie w `src/`: zestaw importuje Vitest, a build kompiluje `src/`. FakeGateway przechodzi je w testach integracyjnych na każdym PR | Przyjęta | §7.8 |
+| 96 | Wybór dostawy jest przesyłką `PENDING` w module `shipping` (dane odbiorcy zostają w tym module), a cena dla kupującego pochodzi ze stałego cennika Biddy (`shipping_rates`), nie z wyceny dostawcy na żywo; koszt u dostawcy zapisujemy w przesyłce. Przesyłkę u dostawcy tworzy worker po „Nadaj”, z kluczem idempotencji z numerem próby (poprawione dane po odrzuceniu to nowa próba) | Przyjęta | §8.3, §8.6 |
+| 97 | Webhook dostawcy przesyłek jest tylko wskazówką: stan zawsze pobieramy z API dostawcy (Furgonetka podpisuje webhooki wyłącznie sumą MD5 z tokenem), zdarzenia trackingu zapisujemy unikalnie, a każda zmiana statusu to osobny event w kolejności chronologicznej; polling zapasowy co 10 min dla przesyłek niesprawdzanych od 2 h | Przyjęta | §8.3, §8.6 |
+| 98 | Zwrot do nadawcy ma powód `NOT_COLLECTED`, gdy paczka wcześniej czekała na kupującego (w punkcie albo u kuriera), inaczej `OTHER`; Furgonetka ma jeden stan zwrotu, więc `returned` to „zwrot w drodze”, a późniejsze `delivered` to `RETURNED` | Tymczasowa (do potwierdzenia na sandboksie Furgonetki) | §7.4, §8.5 |
+| 99 | Adapter Furgonetki w F-24 obsługuje tylko nadanie w punkcie (`DROP_OFF`) i daje etykietę PDF; zamówienie kuriera po paczkę i kod nadania bez etykiety po odpowiedziach Furgonetki. Token OAuth (logowanie hasłem raz na instalację, jednorazowy refresh token) w bazie, zaszyfrowany kluczem z `BETTER_AUTH_SECRET`, odświeżany pod blokadą doradczą | Tymczasowa | §8.1, §8.5 |
+| 100 | Kontrakt eventu `OrderPaid` (z terminem nadania `shipBy`) i powiadomienie sprzedającego `ORDER_PAID` (e-mail transakcyjny) powstały w F-24, zanim F-26 zacznie publikować event; przesyłka testowa FakeShipping może nie mieć zamówienia (`order_id` null tylko dla `provider = 'fake'`) | Przyjęta | §14.3, §8.6 |
+| 106 | F-25 przejmuje z F-26 przejścia zamówienia wokół płatności: `AWAITING_PAYMENT → PAID` w konsumencie `PaymentSucceeded` (z `paid_at`, `ship_by` = koniec 5. dnia roboczego i eventem `OrderPaid`) oraz `AWAITING_PAYMENT → CANCELLED_UNPAID` w jobie `orders.expire-unpaid` co minutę (płatność w toku założona przed terminem przesuwa anulowanie o 30 min). Strike i druga szansa zostają w F-26 jako konsumenci `OrderCancelled` (`paymentPending` mówi, czy płatność może jeszcze przyjść) | Przyjęta | §6.8, §7.3, §7.4 |
+| 107 | Checkout: kwoty liczy backend, a klient wysyła tylko sumę z przycisku (`expectedTotal`; inna = 409 `CHECKOUT_TOTAL_CHANGED`). Zmiana dostawy i nowa płatność blokują wiersz zamówienia (`FOR UPDATE`) do zapisu płatności, także na czas wywołania operatora; płatność w toku albo udana blokuje kolejną, nieudana nie. Klucz płatności `checkout:{orderId}:{Idempotency-Key}` | Przyjęta | §7.2, §7.8 |
+| 108 | Zwroty płatności w module `payments` (tabela `refunds`): zlecenie w transakcji wywołującego z eventem `RefundRequested`, wywołanie operatora w konsumencie z kluczem `refund:{id}`, księgowanie `ORDER_REFUNDED` dopiero po webhooku `REFUND_SUCCEEDED`; nieudany zwrot czeka na support. Udana płatność anulowanego zamówienia (`LATE_PAYMENT`) albo drugiej płatności (`DUPLICATE_PAYMENT`, nowy powód w ledgerze) wraca automatycznie i bez strike'a | Przyjęta | §6.8, §7.7 |
+| 109 | Do F-32 checkout rejestruje sprzedawcę u operatora przed pierwszą płatnością (imię i potwierdzony e-mail z `identity`; zablokowany albo bez e-maila: 409 `SELLER_UNAVAILABLE`). Checkout web: BLIK z kodem, karta i szybki przelew (Apple Pay i Google Pay z prawdziwym operatorem, F-31), punkty odbioru przez wyszukiwarkę bez mapy | Tymczasowa | §7.6, §8.1 |
+| 110 | Maks. oferta nowego kupującego 2500 zł (było 500 zł), sprawdzonego 5000 zł (było 3000 zł), zaufanego bez limitu; limit liczby aukcji z aktywną ofertą bez zmian. Pierwsze zakupy mogą obejmować droższe przedmioty (elektronika, kolekcje), a ryzyko niepłacącego zwycięzcy ograniczają strike'i i blokady (F-61). Do F-61 kod ma stare wartości (`BUYER_LIMITS`) | Przyjęta | §4.1 |
 
 ---
 

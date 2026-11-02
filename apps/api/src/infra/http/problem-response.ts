@@ -6,6 +6,7 @@ import { PROBLEM_CONTENT_TYPE } from '@biddy/shared';
 import { captureException } from '@sentry/nestjs';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
+import { DomainError } from './domain-error.js';
 import { toProblemDetails } from './problem-details.js';
 import { REQUEST_ID_HEADER, requestIdFor } from './request-id.js';
 import { pathWithoutQuery } from './url.js';
@@ -46,6 +47,11 @@ export function replyForRawResponse(response: ServerResponse): FastifyReply | un
   return repliesByRawResponse.get(response);
 }
 
+/** Nagłówki zgłoszone przez błąd domenowy (np. `retry-after`). */
+function headersOf(exception: unknown): Readonly<Record<string, string>> {
+  return exception instanceof DomainError ? exception.headers : {};
+}
+
 /** Loguje (z reqId) i zgłasza do Sentry błąd, którego API nie przewidziało. */
 function reportUnexpected(
   exception: unknown,
@@ -82,8 +88,11 @@ export function replyWithProblem(
     // Odpowiedź już wysłana (np. strumień przerwany w połowie): zostaje tylko log.
     return;
   }
+  void reply.status(problem.status);
+  for (const [name, value] of Object.entries(headersOf(exception))) {
+    void reply.header(name, value);
+  }
   void reply
-    .status(problem.status)
     .header('content-type', PROBLEM_CONTENT_TYPE_HEADER)
     .header('cache-control', 'no-store')
     .header(REQUEST_ID_HEADER, problem.requestId)
@@ -126,6 +135,9 @@ export function writeProblemToRawResponse(
   // setHeader zamiast writeHead(…, nagłówki): zostają nagłówki ustawione już na surowej
   // odpowiedzi (np. przez helmet).
   response.statusCode = problem.status;
+  for (const [name, value] of Object.entries(headersOf(exception))) {
+    response.setHeader(name, value);
+  }
   response.setHeader('content-type', PROBLEM_CONTENT_TYPE_HEADER);
   response.setHeader('content-length', Buffer.byteLength(body));
   response.setHeader('cache-control', 'no-store');

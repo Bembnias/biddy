@@ -1,0 +1,249 @@
+# Render Blueprint: środowisko staging API (PROJECT.md §11.6, §18; F-09).
+# Web działa na Vercel (apps/web/vercel.json). Konfiguracja i pierwsze uruchomienie:
+# docs/deployment.md.
+#
+# Deploy: każdy commit na main, po zielonym CI (autoDeployTrigger: checksPass). Migracje stosuje
+# preDeployCommand przed startem nowej wersji API i workera. Nieudana migracja przerywa deploy,
+# a poprzednia wersja działa dalej (migracje są wstecznie kompatybilne: expand → contract).
+#
+# Wartości oznaczone `sync: false` (sekrety i klucze dostawców) Render pyta przy pierwszym
+# utworzeniu Blueprintu; później zmienia się je w panelu usługi.
+
+envVarGroups:
+  # Wspólne dla API i workera. Bez sekretów (grupy nie obsługują `sync: false`).
+  - name: biddy-staging-shared
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Staging z FakeGateway (F-23) i FakeShipping (F-24); bez tej zmiennej NODE_ENV=production
+      # oznacza produkcję.
+      - key: DEPLOYMENT_ENV
+        value: staging
+      # Worker wysyła webhooki FakeGateway na publiczny adres API.
+      - key: PAYMENTS_FAKE_WEBHOOK_URL
+        value: https://api.staging.biddy.pl/v1/webhooks/payments/fake
+      # Worker wysyła webhooki FakeShipping (automat statusów przesyłek, F-24).
+      - key: SHIPPING_FAKE_WEBHOOK_URL
+        value: https://api.staging.biddy.pl/v1/webhooks/shipping/fake
+      - key: LOG_LEVEL
+        value: info
+      - key: SENTRY_ENVIRONMENT
+        value: staging
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: '0.2'
+      - key: QUEUE_PREFIX
+        value: biddy
+      - key: WEB_URL
+        value: https://staging.biddy.pl
+      - key: MAIL_FROM
+        value: Biddy Staging <no-reply@staging.biddy.pl>
+      # Meilisearch Cloud (F-19): indeks `biddy-staging-auctions`; adres i klucz w usługach.
+      - key: SEARCH_INDEX_PREFIX
+        value: biddy-staging
+      # Cloudflare R2 (F-12): kubełki i konfiguracja w docs/deployment.md. Endpoint i klucze są
+      # w usługach (sync: false).
+      - key: S3_REGION
+        value: auto
+      - key: S3_FORCE_PATH_STYLE
+        value: 'true'
+      - key: S3_BUCKET_MEDIA
+        value: biddy-staging-media
+      - key: S3_BUCKET_UPLOADS
+        value: biddy-staging-uploads
+      - key: MEDIA_PUBLIC_URL
+        value: https://media.staging.biddy.pl
+
+services:
+  - type: web
+    name: biddy-staging-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    region: frankfurt
+    plan: 0.5c-512mb
+    branch: main
+    autoDeployTrigger: checksPass
+    # Ten sam obraz co worker; migracje z blokadą doradczą, więc równoległy pre-deploy workera
+    # czeka i niczego nie dubluje.
+    preDeployCommand: node dist/infra/db/migrate.js
+    # Liveness bez bazy: awaria Postgresa nie restartuje API (gotowość: /ready).
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 30
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - packages/realtime/**
+        - packages/emails/**
+        - packages/design-tokens/**
+        - packages/config/**
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - .nvmrc
+        - .dockerignore
+        - .pnpmfile.cjs
+      ignoredPaths:
+        - apps/api/test/**
+        - apps/api/**/*.test.ts
+        - apps/api/openapi.json
+    envVars:
+      - fromGroup: biddy-staging-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: biddy-staging-postgres
+          property: connectionString
+      - key: REDIS_QUEUE_URL
+        fromService:
+          name: biddy-staging-queues
+          type: keyvalue
+          property: connectionString
+      - key: REDIS_CACHE_URL
+        fromService:
+          name: biddy-staging-cache
+          type: keyvalue
+          property: connectionString
+      - key: API_PUBLIC_URL
+        value: https://api.staging.biddy.pl
+      - key: CORS_ORIGINS
+        value: https://staging.biddy.pl
+      # Ciasteczko sesji wspólne dla staging.biddy.pl i api.staging.biddy.pl.
+      - key: AUTH_COOKIE_DOMAIN
+        value: staging.biddy.pl
+      # Swagger UI na stagingu (na produkcji domyślnie wyłączony).
+      - key: OPENAPI_ENABLED
+        value: 'true'
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: MEILI_URL
+        sync: false
+      - key: MEILI_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SMSAPI_TOKEN
+        sync: false
+      - key: SMSAPI_SENDER
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: APPLE_CLIENT_ID
+        sync: false
+      - key: APPLE_CLIENT_SECRET
+        sync: false
+
+  - type: worker
+    name: biddy-staging-worker
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    dockerCommand: node --import ./dist/instrument.js dist/worker.js
+    region: frankfurt
+    plan: 0.5c-512mb
+    branch: main
+    autoDeployTrigger: checksPass
+    preDeployCommand: node dist/infra/db/migrate.js
+    # Worker kończy rozpoczęte joby po SIGTERM (F-04).
+    maxShutdownDelaySeconds: 120
+    # Ten sam filtr co API (ten sam obraz).
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - packages/realtime/**
+        - packages/emails/**
+        - packages/design-tokens/**
+        - packages/config/**
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - .nvmrc
+        - .dockerignore
+        - .pnpmfile.cjs
+      ignoredPaths:
+        - apps/api/test/**
+        - apps/api/**/*.test.ts
+        - apps/api/openapi.json
+    envVars:
+      - fromGroup: biddy-staging-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: biddy-staging-postgres
+          property: connectionString
+      - key: REDIS_QUEUE_URL
+        fromService:
+          name: biddy-staging-queues
+          type: keyvalue
+          property: connectionString
+      # Zdarzenia na żywo z workera (zamknięcie aukcji, F-17) przez pub/sub Socket.IO.
+      - key: REDIS_CACHE_URL
+        fromService:
+          name: biddy-staging-cache
+          type: keyvalue
+          property: connectionString
+      - key: BETTER_AUTH_SECRET
+        fromService:
+          name: biddy-staging-api
+          type: web
+          envVarKey: BETTER_AUTH_SECRET
+      - key: MEILI_URL
+        sync: false
+      - key: MEILI_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      # Rewalidacja stron aukcji w web (F-18): ta sama wartość co WEB_REVALIDATE_SECRET na Vercel.
+      - key: WEB_REVALIDATE_SECRET
+        sync: false
+
+  # Kolejki BullMQ: noeviction (inaczej worker nie wystartuje, F-04) i trwałość danych.
+  - type: keyvalue
+    name: biddy-staging-queues
+    region: frankfurt
+    plan: 256mb
+    maxmemoryPolicy: noeviction
+    persistenceMode: journal-snapshot
+    # Tylko sieć prywatna Render (bez dostępu z internetu).
+    ipAllowList: []
+
+  # Cache i pub/sub Socket.IO (F-17): dane można odtworzyć, więc bez trwałości.
+  - type: keyvalue
+    name: biddy-staging-cache
+    region: frankfurt
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+databases:
+  - name: biddy-staging-postgres
+    databaseName: biddy
+    user: biddy
+    region: frankfurt
+    plan: 0.1c-256mb
+    postgresMajorVersion: '17'
+    # Tylko sieć prywatna Render; dostęp administracyjny przez panel albo `render psql`.
+    ipAllowList: []

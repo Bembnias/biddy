@@ -30,6 +30,74 @@ export const ERROR_CODES = {
   METHOD_NOT_ALLOWED: 'METHOD_NOT_ALLOWED',
   /** Stan zasobu nie pozwala na operację (np. równoległa zmiana). */
   CONFLICT: 'CONFLICT',
+  /** Operacja wymaga potwierdzonego adresu e-mail (licytowanie, wystawianie). */
+  EMAIL_NOT_VERIFIED: 'EMAIL_NOT_VERIFIED',
+  /** Wymagana weryfikacja Turnstile (np. po kilku nieudanych logowaniach). */
+  CAPTCHA_REQUIRED: 'CAPTCHA_REQUIRED',
+  /** Weryfikacja Turnstile nie powiodła się albo token wygasł. */
+  CAPTCHA_FAILED: 'CAPTCHA_FAILED',
+  /** Brak akceptacji aktualnego regulaminu albo polityki prywatności (albo oświadczenia 18+). */
+  TERMS_NOT_ACCEPTED: 'TERMS_NOT_ACCEPTED',
+  /** Operacja wymaga zweryfikowanego numeru telefonu (licytowanie, wystawianie). */
+  PHONE_NOT_VERIFIED: 'PHONE_NOT_VERIFIED',
+  /** Numer telefonu jest przypisany do innego konta (1 numer = 1 konto). */
+  PHONE_NUMBER_TAKEN: 'PHONE_NUMBER_TAKEN',
+  /** Nieprawidłowy kod SMS; rozszerzenie `remainingAttempts` podaje liczbę pozostałych prób. */
+  PHONE_CODE_INVALID: 'PHONE_CODE_INVALID',
+  /** Brak aktywnego kodu SMS (wygasł, wykorzystano próby albo wysłano nowszy). */
+  PHONE_CODE_EXPIRED: 'PHONE_CODE_EXPIRED',
+  /** Osiągnięto limit zapisanych adresów (F-10). */
+  ADDRESS_LIMIT_REACHED: 'ADDRESS_LIMIT_REACHED',
+  /** Plik zdjęcia nie dotarł do magazynu przed potwierdzeniem uploadu (F-12). */
+  MEDIA_NOT_UPLOADED: 'MEDIA_NOT_UPLOADED',
+  /** Sprzedający ma blokadę wystawiania (F-61); `blockedUntil` w odpowiedzi (F-14). */
+  LISTING_BLOCKED: 'LISTING_BLOCKED',
+  /** Osiągnięto limit aktywnych aukcji poziomu sprzedawcy (§4.1, F-14). */
+  LISTING_LIMIT_REACHED: 'LISTING_LIMIT_REACHED',
+  /** Aukcja ma oferty: zmiana jest zablokowana (§6.6, F-14). */
+  AUCTION_HAS_BIDS: 'AUCTION_HAS_BIDS',
+  /** Aukcji z ofertami nie można anulować w ostatnich 12 h (§6.6, F-14). */
+  AUCTION_CANCEL_TOO_LATE: 'AUCTION_CANCEL_TOO_LATE',
+  /** Oferta poniżej minimalnej kolejnej oferty; `minimumBid` (grosze) w odpowiedzi (F-15). */
+  BID_TOO_LOW: 'BID_TOO_LOW',
+  /** Oferta przekracza limit konta kupującego (§4.1, F-15). */
+  BID_LIMIT_EXCEEDED: 'BID_LIMIT_EXCEEDED',
+  /** Kupujący ma blokadę licytowania (F-61); `blockedUntil` w odpowiedzi (F-15). */
+  BIDDING_BLOCKED: 'BIDDING_BLOCKED',
+  /** Aukcja się zakończyła albo została anulowana (F-15). */
+  AUCTION_ENDED: 'AUCTION_ENDED',
+  /** Sprzedający nie może licytować własnej aukcji (§6.6, F-15). */
+  OWN_AUCTION: 'OWN_AUCTION',
+  /** Kup teraz niedostępne: aukcja ma oferty albo nie ma ceny Kup teraz (F-15). */
+  BUY_NOW_UNAVAILABLE: 'BUY_NOW_UNAVAILABLE',
+  /** Ten sam Idempotency-Key użyty z innym żądaniem (F-15). */
+  IDEMPOTENCY_KEY_REUSED: 'IDEMPOTENCY_KEY_REUSED',
+  /** Usługa dostawy nie pasuje do przedmiotu albo nie ma ceny w cenniku (F-24). */
+  SHIPPING_OPTION_UNAVAILABLE: 'SHIPPING_OPTION_UNAVAILABLE',
+  /** Paczkomat i punkt odbioru wymagają wskazania punktu (F-24). */
+  PICKUP_POINT_REQUIRED: 'PICKUP_POINT_REQUIRED',
+  /** Punktu odbioru nie ma u dostawcy (nieaktywny albo zły identyfikator, F-24). */
+  PICKUP_POINT_NOT_FOUND: 'PICKUP_POINT_NOT_FOUND',
+  /** Kurier wymaga adresu dostawy (F-24). */
+  DELIVERY_ADDRESS_REQUIRED: 'DELIVERY_ADDRESS_REQUIRED',
+  /** Sposób nadania niedostępny dla tej usługi albo dostawcy (F-24). */
+  DISPATCH_METHOD_UNAVAILABLE: 'DISPATCH_METHOD_UNAVAILABLE',
+  /** Zamówienie nie czeka na nadanie: nieopłacone albo bez wybranej dostawy (F-24). */
+  ORDER_NOT_AWAITING_SHIPMENT: 'ORDER_NOT_AWAITING_SHIPMENT',
+  /** Przesyłka jest już nadawana albo nadana, więc dostawy nie można zmienić (F-24). */
+  SHIPMENT_ALREADY_DISPATCHED: 'SHIPMENT_ALREADY_DISPATCHED',
+  /** Zamówienie nie czeka na płatność: już opłacone albo anulowane (F-25). */
+  ORDER_NOT_AWAITING_PAYMENT: 'ORDER_NOT_AWAITING_PAYMENT',
+  /** Termin płatności minął: nowa płatność i zmiana dostawy niemożliwe (F-25). */
+  PAYMENT_DEADLINE_PASSED: 'PAYMENT_DEADLINE_PASSED',
+  /** Płatność zamówienia jest w toku albo już udana (F-25). */
+  PAYMENT_IN_PROGRESS: 'PAYMENT_IN_PROGRESS',
+  /** Przed płatnością trzeba wybrać dostawę (F-25). */
+  DELIVERY_REQUIRED: 'DELIVERY_REQUIRED',
+  /** Suma widziana przez kupującego różni się od sumy zamówienia (F-25). */
+  CHECKOUT_TOTAL_CHANGED: 'CHECKOUT_TOTAL_CHANGED',
+  /** Sprzedający nie może przyjąć płatności (konto zablokowane albo bez e-maila, F-25). */
+  SELLER_UNAVAILABLE: 'SELLER_UNAVAILABLE',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

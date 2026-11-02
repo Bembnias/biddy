@@ -335,7 +335,7 @@ describe('middleware NestJS', () => {
     expect(response.headers['x-request-id']).toBe('mw-401');
     // CORS i helmet działają przed middleware, więc przeglądarka może odczytać ten błąd.
     expect(response.headers['access-control-allow-origin']).toBe('https://biddy.pl');
-    expect(response.headers['access-control-expose-headers']).toBe('x-request-id');
+    expect(response.headers['access-control-expose-headers']).toBe('x-request-id, set-auth-token');
     expect(response.headers['content-security-policy']).toContain("default-src 'none'");
     expect(response.headers['x-content-type-options']).toBe('nosniff');
     expect(problemOf(response)).toMatchObject({
@@ -645,7 +645,7 @@ describe('CORS', () => {
     });
 
     expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
-    expect(response.headers['access-control-expose-headers']).toBe('x-request-id');
+    expect(response.headers['access-control-expose-headers']).toBe('x-request-id, set-auth-token');
   });
 
   it('OPTIONS bez Origin (to nie preflight) → 204 bez nagłówków CORS, z x-request-id', async () => {
