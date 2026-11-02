@@ -94,9 +94,14 @@ services:
       start_interval: 1s
     restart: unless-stopped
 
+  # FakeGateway i FakeShipping w workerze wysyłają webhooki do API po sieci Dockera (localhost
+  # w kontenerze workera to on sam).
   worker:
     <<: *api-image
-    environment: *app-env
+    environment:
+      <<: *app-env
+      PAYMENTS_FAKE_WEBHOOK_URL: http://api:3001/v1/webhooks/payments/fake
+      SHIPPING_FAKE_WEBHOOK_URL: http://api:3001/v1/webhooks/shipping/fake
     command: ['node', '--import', './dist/instrument.js', 'dist/worker.js']
     depends_on:
       api:
