@@ -5,7 +5,7 @@ import { ZodResponse, createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 import { type AuthenticatedUser, CurrentUser, RequireSession } from '../../identity/index.js';
-import { ORDER_STATUSES } from '../../orders/index.js';
+import { type Order, ORDER_STATUSES } from '../../orders/index.js';
 import { CARRIER_KINDS } from '../../shipping/index.js';
 import { nextMinimumBid, reserveStatus } from '../bidding/auction-state.js';
 import {
@@ -17,6 +17,21 @@ import { auctionCardDto, auctionCardSchema } from './card-dto.js';
 import { MY_BIDS_FILTERS, MY_BIDS_PAGE, MyListsService } from './my-lists.service.js';
 
 const iso = (date: Date | null) => date?.toISOString() ?? null;
+
+/**
+ * Zamówienie zwycięzcy w liście i na stronie aukcji. `total` to cena z POK bez dostawy: od F-25
+ * `orders.total` po wyborze dostawy zawiera też jej cenę, a te widoki dopisują „+ dostawa”.
+ */
+function orderSummaryDto(order: Order) {
+  return {
+    id: order.id,
+    publicId: order.publicId,
+    status: order.status,
+    currency: order.currency,
+    total: order.itemsTotal + order.pokFee,
+    paymentDueAt: order.paymentDueAt.toISOString(),
+  };
+}
 
 export class PublicAuctionDto extends createZodDto(
   z.object({
@@ -222,17 +237,7 @@ function toMyBiddingDto(bidding: MyBidding): MyBiddingDto {
     leading: bidding.leading,
     maxAmount: bidding.maxAmount,
     outcome: bidding.outcome,
-    order:
-      order === undefined
-        ? null
-        : {
-            id: order.id,
-            publicId: order.publicId,
-            status: order.status,
-            currency: order.currency,
-            total: order.total,
-            paymentDueAt: order.paymentDueAt.toISOString(),
-          },
+    order: order === undefined ? null : orderSummaryDto(order),
   };
 }
 
@@ -284,17 +289,7 @@ export class MyBidsController {
         maxAmount: entry.maxAmount,
         leading: entry.leading,
         outcome: entry.outcome,
-        order:
-          entry.order === undefined
-            ? null
-            : {
-                id: entry.order.id,
-                publicId: entry.order.publicId,
-                status: entry.order.status,
-                currency: entry.order.currency,
-                total: entry.order.total,
-                paymentDueAt: entry.order.paymentDueAt.toISOString(),
-              },
+        order: entry.order === undefined ? null : orderSummaryDto(entry.order),
       })),
       total,
       page,

@@ -98,6 +98,7 @@ async function readyPhoto(owner: TestUser): Promise<string> {
 }
 
 interface Sale {
+  readonly auctionId: string;
   readonly orderId: string;
   readonly publicId: string;
   readonly seller: TestUser;
@@ -141,6 +142,7 @@ async function sale(): Promise<Sale> {
     [id],
   );
   return {
+    auctionId: id,
     orderId: order.rows[0]?.id ?? '',
     publicId: order.rows[0]?.public_id ?? '',
     seller,
@@ -344,6 +346,22 @@ describe('płatność (kryteria 1–3, 5, 6)', () => {
 
     const again = await pay(order, body);
     expect(problemOf(again).code).toBe('ORDER_NOT_AWAITING_PAYMENT');
+
+    // Strona aukcji i Moje Biddy: status opłacony i kwota bez dostawy (cena + POK), bo te widoki
+    // dopisują „+ dostawa”, a `orders.total` po wyborze dostawy ją zawiera.
+    const withoutShipping = paid.order.itemsTotal + paid.order.pokFee;
+    expect(withoutShipping).toBe(shown - (paid.order.shippingFee ?? 0));
+    const mine = await call('GET', `/v1/me/bids/${order.auctionId}`, order.buyer);
+    expect(mine.statusCode, mine.body).toBe(200);
+    expect(mine.json<{ order: { status: string; total: number } }>().order).toMatchObject({
+      status: 'PAID',
+      total: withoutShipping,
+    });
+    const list = await call('GET', '/v1/me/bids?status=WON', order.buyer);
+    expect(list.statusCode, list.body).toBe(200);
+    expect(
+      list.json<{ items: { order: { status: string; total: number } | null }[] }>().items[0]?.order,
+    ).toMatchObject({ status: 'PAID', total: withoutShipping });
   });
 
   it('odrzucony BLIK: ponowienie w tym samym zamówieniu kończy się opłaceniem', async () => {
