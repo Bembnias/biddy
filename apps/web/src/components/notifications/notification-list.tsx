@@ -19,7 +19,10 @@ import {
   Clock,
   type LucideIcon,
   Package,
+  Scale,
   Settings,
+  ShieldAlert,
+  ShieldCheck,
   Store,
   TriangleAlert,
   Trophy,
@@ -53,6 +56,11 @@ const TYPE_TILES: Record<
   UNSOLD: { tone: 'danger', Icon: CircleX },
   AUCTION_CANCELLED: { tone: 'neutral', Icon: Ban },
   FOLLOWED_SELLER_NEW_AUCTION: { tone: 'info', Icon: Store },
+  STRIKE_ISSUED: { tone: 'urgent', Icon: ShieldAlert },
+  STRIKE_REVOKED: { tone: 'success', Icon: ShieldCheck },
+  ACCOUNT_BLOCKED: { tone: 'danger', Icon: Ban },
+  ACCOUNT_UNBLOCKED: { tone: 'success', Icon: ShieldCheck },
+  APPEAL_REJECTED: { tone: 'neutral', Icon: Scale },
 };
 
 function NotificationItem({

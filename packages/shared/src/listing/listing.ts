@@ -48,22 +48,9 @@ export const LISTING_RULES = {
   maxPrice: 1_000_000_000,
 } as const;
 
-/** Poziom sprzedawcy (§4.1). Liczenie z historii zamówień i nadpisania to F-61. */
+/** Poziom sprzedawcy (§4.1); limity i liczenie z historii zamówień w `account/account-policy.ts` (F-61). */
 export const SELLER_LEVELS = ['NEW', 'VERIFIED', 'KYC'] as const;
 export type SellerLevel = (typeof SELLER_LEVELS)[number];
-
-export interface SellerLevelLimits {
-  readonly maxActiveAuctions: number;
-  /** Maks. wartość aukcji w groszach albo null (bez limitu). */
-  readonly maxAuctionValue: number | null;
-}
-
-/** Wartości startowe limitów sprzedawcy z §4.1. */
-export const SELLER_LIMITS: Readonly<Record<SellerLevel, SellerLevelLimits>> = {
-  NEW: { maxActiveAuctions: 5, maxAuctionValue: 500_000 },
-  VERIFIED: { maxActiveAuctions: 20, maxAuctionValue: 500_000 },
-  KYC: { maxActiveAuctions: 50, maxAuctionValue: null },
-};
 
 /** Aukcja o wartości powyżej tej kwoty wymaga pozytywnego KYC (§4.1, §7.6). */
 export const KYC_REQUIRED_ABOVE = 500_000;

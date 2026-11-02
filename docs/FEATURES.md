@@ -773,7 +773,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 **Cel:** zamówienie przechodzi od wygranej do wypłaty automatycznie, z obsługą wyjątków.
 
-> Opłacenie (`PAID` z `ship_by` i `OrderPaid`), anulowanie nieopłaconego (`CANCELLED_UNPAID`, event `OrderCancelled`) i tabela `refunds` ze zwrotem przez operatora są już w F-25. F-26 dodaje do nich strike, przypomnienia i drugą szansę.
+> Opłacenie (`PAID` z `ship_by` i `OrderPaid`), anulowanie nieopłaconego (`CANCELLED_UNPAID`, event `OrderCancelled`) i tabela `refunds` ze zwrotem przez operatora są już w F-25. Strike'i za brak płatności i nieodebraną paczkę (oraz cofnięcie po spóźnionej płatności) nadają już konsumenci z F-61. F-26 dodaje przypomnienia, drugą szansę, strike za brak nadania (`StrikeService.issue` z powodem `NOT_SHIPPED`) i historię zakończonych zamówień (`TradeHistoryService.recordCompleted`).
 
 **Zakres:**
 - Maszyna stanów z §7.3 (tylko dozwolone przejścia, sterowane zdarzeniami), joby terminów z §7.4 (ID z terminem, dni robocze z kalendarzem świąt).
@@ -783,7 +783,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 - Przesyłki zaginione: „nie otrzymałem” po 14 dniach bez statusu → `LOST`, zgłoszenie reklamacji, rekompensata dla sprzedającego (§7.9).
 - Anulowania, oferta drugiej szansy (tabela `second_chance_offers`, §6.8), ponowne wystawienie.
 - Flaga chargebacku (`orders.chargeback_status`) blokuje auto-zakończenie.
-- Strike'i za brak płatności, brak nadania i nieodebraną przesyłkę (eventy dla F-61).
+- Strike za brak nadania (`NOT_SHIPPED`) przez API z F-61; strike'i za brak płatności i nieodebraną przesyłkę są już w F-61.
 - Powiadomienia na każdym etapie, widok zamówienia dla obu stron.
 
 **Kryteria akceptacji:**
@@ -872,6 +872,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Zależności:** F-26 · **Spec:** §5, §17
 
 ### F-61 · Limity kont i strike'i · `M`
+
+> Pełny spec: [docs/features/F-61-limity-i-strike.md](features/F-61-limity-i-strike.md).
 
 **Cel:** ograniczenie szkód od nowych i nierzetelnych kont, z przejrzystymi zasadami i prawem do odwołania.
 

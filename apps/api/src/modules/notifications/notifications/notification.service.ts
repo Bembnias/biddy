@@ -52,7 +52,7 @@ const UNSUBSCRIBE_PAGE_PATH = '/wypisz';
 const UNSUBSCRIBE_ONE_CLICK_PATH = '/api/wypisz';
 
 function toView(row: Notification): NotificationView {
-  const content = notificationContent(row.type, row.payload as unknown as NotificationPayload);
+  const content = notificationContent(row.type, row.payload);
   return {
     id: row.id,
     type: row.type,
@@ -204,7 +204,7 @@ export class NotificationService {
       return;
     }
     const web = this.config.web.url;
-    const content = notificationContent(row.type, row.payload as unknown as NotificationPayload);
+    const content = notificationContent(row.type, row.payload);
     const token = NOTIFICATION_EMAIL[row.type].configurable
       ? createUnsubscribeToken(this.config.auth.secret, row.userId, row.type)
       : undefined;

@@ -98,7 +98,7 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
   LISTING_BLOCKED: {
     status: 403,
     title: 'Blokada wystawiania',
-    detail: 'Masz czasową blokadę wystawiania aukcji. Szczegóły i odwołanie znajdziesz w koncie.',
+    detail: 'Masz blokadę wystawiania aukcji. Szczegóły i odwołanie znajdziesz w koncie.',
   },
   LISTING_LIMIT_REACHED: {
     status: 409,
@@ -128,7 +128,7 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
   BIDDING_BLOCKED: {
     status: 403,
     title: 'Blokada licytowania',
-    detail: 'Masz czasową blokadę licytowania. Szczegóły i odwołanie znajdziesz w koncie.',
+    detail: 'Masz blokadę licytowania. Szczegóły i odwołanie znajdziesz w koncie.',
   },
   AUCTION_ENDED: {
     status: 409,
@@ -149,6 +149,26 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     status: 422,
     title: 'Klucz już użyty',
     detail: 'Ten klucz Idempotency-Key został użyty w innym żądaniu. Wygeneruj nowy klucz.',
+  },
+  STRIKE_NOT_FOUND: {
+    status: 404,
+    title: "Nie znaleziono strike'a",
+    detail: "Nie znaleziono strike'a.",
+  },
+  ACCOUNT_BLOCK_NOT_FOUND: {
+    status: 404,
+    title: 'Nie znaleziono blokady',
+    detail: 'Nie znaleziono blokady konta.',
+  },
+  APPEAL_NOT_ALLOWED: {
+    status: 409,
+    title: 'Odwołanie niemożliwe',
+    detail: 'Od tej decyzji nie można już się odwołać.',
+  },
+  APPEAL_NOT_PENDING: {
+    status: 409,
+    title: 'Brak odwołania w toku',
+    detail: 'To odwołanie zostało już rozpatrzone albo go nie ma.',
   },
   SHIPPING_OPTION_UNAVAILABLE: {
     status: 422,

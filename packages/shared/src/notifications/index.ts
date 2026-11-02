@@ -10,6 +10,11 @@ export const NOTIFICATION_TYPES = [
   'AUCTION_CANCELLED',
   'FOLLOWED_SELLER_NEW_AUCTION',
   'ORDER_PAID',
+  'STRIKE_ISSUED',
+  'STRIKE_REVOKED',
+  'ACCOUNT_BLOCKED',
+  'ACCOUNT_UNBLOCKED',
+  'APPEAL_REJECTED',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -22,7 +27,8 @@ export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 /**
  * E-mail per typ: domyślnie włączony i czy użytkownik może go wyłączyć. Wygrana, sprzedaż
  * i opłacone zamówienie (F-24: „nadaj paczkę”) to e-maile transakcyjne (termin płatności,
- * wysyłka), więc wychodzą zawsze.
+ * wysyłka), a strike'i, blokady i odwołania (F-61) to uzasadnienia decyzji (DSA), więc wychodzą
+ * zawsze.
  */
 export const NOTIFICATION_EMAIL: Readonly<
   Record<NotificationType, { readonly enabledByDefault: boolean; readonly configurable: boolean }>
@@ -35,6 +41,11 @@ export const NOTIFICATION_EMAIL: Readonly<
   AUCTION_CANCELLED: { enabledByDefault: true, configurable: true },
   FOLLOWED_SELLER_NEW_AUCTION: { enabledByDefault: false, configurable: true },
   ORDER_PAID: { enabledByDefault: true, configurable: false },
+  STRIKE_ISSUED: { enabledByDefault: true, configurable: false },
+  STRIKE_REVOKED: { enabledByDefault: true, configurable: false },
+  ACCOUNT_BLOCKED: { enabledByDefault: true, configurable: false },
+  ACCOUNT_UNBLOCKED: { enabledByDefault: true, configurable: false },
+  APPEAL_REJECTED: { enabledByDefault: true, configurable: false },
 };
 
 /** E-mail o przebiciu w tej samej aukcji najwyżej raz na ten czas. */

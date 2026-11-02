@@ -64,6 +64,39 @@ describe('notificationContent', () => {
   });
 });
 
+describe('powiadomienia o koncie (F-61)', () => {
+  it('strike: uzasadnienie i link do limitów', () => {
+    const content = notificationContent('STRIKE_ISSUED', {
+      account: { reason: 'UNPAID', statement: 'Nie zapłacono w terminie.' },
+    });
+    expect(content).toEqual({
+      title: 'Strike: brak płatności',
+      lines: ['Nie zapłacono w terminie.'],
+      path: '/konto/limity',
+      actionLabel: 'Zobacz szczegóły',
+    });
+  });
+
+  it('blokada, zdjęcie blokady i odrzucone odwołanie', () => {
+    expect(
+      notificationContent('ACCOUNT_BLOCKED', { account: { kind: 'BIDDING', statement: 'x' } })
+        .title,
+    ).toBe('Blokada licytowania');
+    expect(
+      notificationContent('ACCOUNT_UNBLOCKED', { account: { kind: 'LISTING', statement: 'x' } })
+        .title,
+    ).toBe('Zdjęto blokadę wystawiania aukcji');
+    expect(
+      notificationContent('APPEAL_REJECTED', {
+        account: { subject: 'STRIKE', reason: 'NOT_COLLECTED', statement: 'Decyzja w mocy.' },
+      }),
+    ).toMatchObject({
+      title: "Odwołanie od strike'a nieuwzględnione: nieodebrana paczka",
+      lines: ['Decyzja w mocy.'],
+    });
+  });
+});
+
 describe('token wypisania', () => {
   const secret = 'test-secret-0123456789-0123456789';
   const userId = '01960000-0000-7000-8000-000000000001';

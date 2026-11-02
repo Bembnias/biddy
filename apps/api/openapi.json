@@ -673,6 +673,770 @@
         ]
       }
     },
+    "/v1/me/standing": {
+      "get": {
+        "description": "Następny poziom z brakującymi warunkami; aktywne blokady licytowania i wystawiania.",
+        "operationId": "getMyStanding",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Stan konta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyStandingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Poziomy, limity, blokady i liczniki strike'ów (§4.1)",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/strikes": {
+      "get": {
+        "description": "Każdy wpis ma uzasadnienie i stan odwołania; `canAppeal` mówi, czy można się odwołać.",
+        "operationId": "listMyStrikes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Strike'i i blokady",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyStrikesDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Strike'i i blokady z uzasadnieniem (ostatnie 2 lata)",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/strikes/{id}/appeal": {
+      "post": {
+        "description": "Jedno odwołanie na strike, tylko od niecofniętego i w terminie (409 APPEAL_NOT_ALLOWED).",
+        "operationId": "appealStrike",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppealDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Strike z odwołaniem w toku",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StrikeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odwołanie od strike'a",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/account-blocks/{id}/appeal": {
+      "post": {
+        "description": "Jedno odwołanie na blokadę, tylko od trwającej i w terminie (409 APPEAL_NOT_ALLOWED).",
+        "operationId": "appealAccountBlock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppealDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Blokada z odwołaniem w toku",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountBlockDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odwołanie od blokady konta",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/admin/account-policy": {
+      "get": {
+        "operationId": "getAccountPolicy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Polityka",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPolicyDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obowiązująca polityka kont (limity i reguły strike'ów)",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "description": "Działa w każdym procesie najpóźniej po 30 s, bez deployu.",
+        "operationId": "publishAccountPolicy",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishAccountPolicyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Zapisana polityka",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPolicyDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nowa wersja polityki kont",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users/{id}/limits": {
+      "put": {
+        "operationId": "setUserLimits",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserLimitsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stan konta po zmianie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserStandingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nadpisania limitów użytkownika (`users.limits`)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/users/{id}/standing": {
+      "get": {
+        "operationId": "getUserStanding",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stan konta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserStandingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Poziomy, limity, nadpisania, strike'i i blokady użytkownika",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/appeals": {
+      "get": {
+        "operationId": "listAppeals",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Odwołania",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAppealsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odwołania w toku (najstarsze pierwsze)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/strikes": {
+      "post": {
+        "description": "COUNTERFEIT (podróbka) albo OTHER z rolą; ocenia blokadę jak strike systemowy.",
+        "operationId": "issueStrike",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueStrikeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Nadany strike",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStrikeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Strike nadany przez personel",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/strikes/{id}/revoke": {
+      "post": {
+        "description": "Zdejmuje blokady, które ten strike wywołał. Cofnięty strike zwraca bez zmian.",
+        "operationId": "revokeStrike",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cofnięty strike",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStrikeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cofnięcie strike'a",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/strikes/{id}/appeal-decision": {
+      "post": {
+        "description": "ACCEPTED cofa strike razem z blokadami; bez odwołania w toku 409 APPEAL_NOT_PENDING.",
+        "operationId": "decideStrikeAppeal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppealDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Strike po decyzji",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStrikeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decyzja w odwołaniu od strike'a",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/account-blocks/{id}/lift": {
+      "post": {
+        "description": "Strike'i zostają.",
+        "operationId": "liftAccountBlock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Zdjęta blokada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAccountBlockDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zdjęcie blokady konta",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/account-blocks/{id}/appeal-decision": {
+      "post": {
+        "description": "ACCEPTED zdejmuje blokadę; bez odwołania w toku 409 APPEAL_NOT_PENDING.",
+        "operationId": "decideAccountBlockAppeal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppealDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Blokada po decyzji",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAccountBlockDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          },
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decyzja w odwołaniu od blokady",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/categories": {
       "get": {
         "description": "Płaska lista w kolejności drzewa (w głąb); drzewo buduje się z parentId.",
@@ -4436,6 +5200,3102 @@
         ],
         "additionalProperties": false
       },
+      "MyStandingDto": {
+        "type": "object",
+        "properties": {
+          "buyer": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "string",
+                "enum": [
+                  "NEW",
+                  "CHECKED",
+                  "TRUSTED"
+                ]
+              },
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "maxBidAmount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Maks. oferta w groszach albo null (bez limitu)",
+                    "nullable": true
+                  },
+                  "maxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Maks. aukcji z aktywną ofertą albo null",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "maxBidAmount",
+                  "maxActiveAuctions"
+                ],
+                "additionalProperties": false
+              },
+              "overridden": {
+                "type": "boolean",
+                "description": "Limity ustawione ręcznie przez Biddy"
+              },
+              "next": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "NEW",
+                      "CHECKED",
+                      "TRUSTED"
+                    ]
+                  },
+                  "limits": {
+                    "type": "object",
+                    "properties": {
+                      "maxBidAmount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Maks. oferta w groszach albo null (bez limitu)",
+                        "nullable": true
+                      },
+                      "maxActiveAuctions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Maks. aukcji z aktywną ofertą albo null",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "maxBidAmount",
+                      "maxActiveAuctions"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "requirements": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PAID_ORDERS",
+                            "COMPLETED_ORDERS",
+                            "ACCOUNT_AGE_DAYS",
+                            "COMPLETED_SALES",
+                            "NO_LOST_DISPUTES",
+                            "KYC"
+                          ]
+                        },
+                        "current": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "required": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "met": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "current",
+                        "required",
+                        "met"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "level",
+                  "limits",
+                  "requirements"
+                ],
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "block": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "description": "null = bezterminowa",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "until"
+                ],
+                "additionalProperties": false,
+                "description": "Aktywna blokada licytowania",
+                "nullable": true
+              }
+            },
+            "required": [
+              "level",
+              "limits",
+              "overridden",
+              "next",
+              "block"
+            ],
+            "additionalProperties": false
+          },
+          "seller": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "string",
+                "enum": [
+                  "NEW",
+                  "VERIFIED",
+                  "KYC"
+                ]
+              },
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "maxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Maks. aktywnych aukcji albo null",
+                    "nullable": true
+                  },
+                  "maxAuctionValue": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Maks. wartość aukcji w groszach albo null",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "maxActiveAuctions",
+                  "maxAuctionValue"
+                ],
+                "additionalProperties": false
+              },
+              "overridden": {
+                "type": "boolean"
+              },
+              "next": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "NEW",
+                      "VERIFIED",
+                      "KYC"
+                    ]
+                  },
+                  "limits": {
+                    "type": "object",
+                    "properties": {
+                      "maxActiveAuctions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Maks. aktywnych aukcji albo null",
+                        "nullable": true
+                      },
+                      "maxAuctionValue": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Maks. wartość aukcji w groszach albo null",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "maxActiveAuctions",
+                      "maxAuctionValue"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "requirements": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PAID_ORDERS",
+                            "COMPLETED_ORDERS",
+                            "ACCOUNT_AGE_DAYS",
+                            "COMPLETED_SALES",
+                            "NO_LOST_DISPUTES",
+                            "KYC"
+                          ]
+                        },
+                        "current": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "required": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "met": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "current",
+                        "required",
+                        "met"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "level",
+                  "limits",
+                  "requirements"
+                ],
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "block": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "description": "null = bezterminowa",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "until"
+                ],
+                "additionalProperties": false,
+                "description": "Aktywna blokada wystawiania",
+                "nullable": true
+              }
+            },
+            "required": [
+              "level",
+              "limits",
+              "overridden",
+              "next",
+              "block"
+            ],
+            "additionalProperties": false
+          },
+          "strikes": {
+            "type": "object",
+            "properties": {
+              "windowDays": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "blockDays": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Długość pierwszej blokady w dniach"
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Tyle strike'ów w oknie daje blokadę"
+              },
+              "buyer": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Strike'i kupującego, które liczą się do progu"
+              },
+              "seller": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Strike'i sprzedającego, które liczą się do progu"
+              }
+            },
+            "required": [
+              "windowDays",
+              "blockDays",
+              "threshold",
+              "buyer",
+              "seller"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "buyer",
+          "seller",
+          "strikes"
+        ],
+        "additionalProperties": false
+      },
+      "MyStrikesDto": {
+        "type": "object",
+        "properties": {
+          "strikes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "BUYER",
+                    "SELLER"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "UNPAID",
+                    "NOT_COLLECTED",
+                    "NOT_SHIPPED",
+                    "AUCTION_CANCELLED_WITH_BIDS",
+                    "DISPUTE_LOST",
+                    "COUNTERFEIT",
+                    "OTHER"
+                  ]
+                },
+                "statement": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Uzasadnienie (statement of reasons)"
+                },
+                "orderId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "nullable": true
+                },
+                "auctionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "description": "Po tej chwili strike nie liczy się do progu"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "EXPIRED",
+                    "REVOKED"
+                  ]
+                },
+                "revokedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "revokeNote": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "appeal": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "NONE",
+                        "PENDING",
+                        "ACCEPTED",
+                        "REJECTED"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Treść odwołania użytkownika",
+                      "nullable": true
+                    },
+                    "appealedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "resolvedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Uzasadnienie decyzji personelu",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "message",
+                    "appealedAt",
+                    "resolvedAt",
+                    "note"
+                  ],
+                  "additionalProperties": false
+                },
+                "canAppeal": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "reason",
+                "statement",
+                "orderId",
+                "auctionId",
+                "createdAt",
+                "expiresAt",
+                "state",
+                "revokedAt",
+                "revokeNote",
+                "appeal",
+                "canAppeal"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Ostatnie 2 lata, najnowsze pierwsze"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "BIDDING",
+                    "LISTING",
+                    "PAYOUTS"
+                  ]
+                },
+                "cause": {
+                  "type": "string",
+                  "enum": [
+                    "STRIKES",
+                    "COUNTERFEIT"
+                  ]
+                },
+                "strikeIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "startsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "endsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "description": "null = bezterminowa",
+                  "nullable": true
+                },
+                "statement": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "EXPIRED",
+                    "LIFTED"
+                  ]
+                },
+                "liftedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "liftNote": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "appeal": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "NONE",
+                        "PENDING",
+                        "ACCEPTED",
+                        "REJECTED"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Treść odwołania użytkownika",
+                      "nullable": true
+                    },
+                    "appealedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "resolvedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Uzasadnienie decyzji personelu",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "message",
+                    "appealedAt",
+                    "resolvedAt",
+                    "note"
+                  ],
+                  "additionalProperties": false
+                },
+                "canAppeal": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "cause",
+                "strikeIds",
+                "startsAt",
+                "endsAt",
+                "statement",
+                "state",
+                "liftedAt",
+                "liftNote",
+                "appeal",
+                "canAppeal"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Ostatnie 2 lata, najnowsze pierwsze"
+          }
+        },
+        "required": [
+          "strikes",
+          "blocks"
+        ],
+        "additionalProperties": false
+      },
+      "AppealDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "StrikeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "UNPAID",
+              "NOT_COLLECTED",
+              "NOT_SHIPPED",
+              "AUCTION_CANCELLED_WITH_BIDS",
+              "DISPUTE_LOST",
+              "COUNTERFEIT",
+              "OTHER"
+            ]
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Uzasadnienie (statement of reasons)"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          },
+          "auctionId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Po tej chwili strike nie liczy się do progu"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "EXPIRED",
+              "REVOKED"
+            ]
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "revokeNote": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "appeal": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "NONE",
+                  "PENDING",
+                  "ACCEPTED",
+                  "REJECTED"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Treść odwołania użytkownika",
+                "nullable": true
+              },
+              "appealedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Uzasadnienie decyzji personelu",
+                "nullable": true
+              }
+            },
+            "required": [
+              "status",
+              "message",
+              "appealedAt",
+              "resolvedAt",
+              "note"
+            ],
+            "additionalProperties": false
+          },
+          "canAppeal": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "reason",
+          "statement",
+          "orderId",
+          "auctionId",
+          "createdAt",
+          "expiresAt",
+          "state",
+          "revokedAt",
+          "revokeNote",
+          "appeal",
+          "canAppeal"
+        ],
+        "additionalProperties": false
+      },
+      "AccountBlockDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "BIDDING",
+              "LISTING",
+              "PAYOUTS"
+            ]
+          },
+          "cause": {
+            "type": "string",
+            "enum": [
+              "STRIKES",
+              "COUNTERFEIT"
+            ]
+          },
+          "strikeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "null = bezterminowa",
+            "nullable": true
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "EXPIRED",
+              "LIFTED"
+            ]
+          },
+          "liftedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "liftNote": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "appeal": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "NONE",
+                  "PENDING",
+                  "ACCEPTED",
+                  "REJECTED"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Treść odwołania użytkownika",
+                "nullable": true
+              },
+              "appealedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Uzasadnienie decyzji personelu",
+                "nullable": true
+              }
+            },
+            "required": [
+              "status",
+              "message",
+              "appealedAt",
+              "resolvedAt",
+              "note"
+            ],
+            "additionalProperties": false
+          },
+          "canAppeal": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "cause",
+          "strikeIds",
+          "startsAt",
+          "endsAt",
+          "statement",
+          "state",
+          "liftedAt",
+          "liftNote",
+          "appeal",
+          "canAppeal"
+        ],
+        "additionalProperties": false
+      },
+      "AccountPolicyDto": {
+        "type": "object",
+        "properties": {
+          "policy": {
+            "type": "object",
+            "properties": {
+              "buyer": {
+                "type": "object",
+                "properties": {
+                  "levels": {
+                    "type": "object",
+                    "properties": {
+                      "NEW": {
+                        "type": "object",
+                        "properties": {
+                          "maxBidAmount": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. oferta w groszach albo null (bez limitu)",
+                            "nullable": true
+                          },
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aukcji z aktywną ofertą albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxBidAmount",
+                          "maxActiveAuctions"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "CHECKED": {
+                        "type": "object",
+                        "properties": {
+                          "maxBidAmount": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. oferta w groszach albo null (bez limitu)",
+                            "nullable": true
+                          },
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aukcji z aktywną ofertą albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxBidAmount",
+                          "maxActiveAuctions"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "TRUSTED": {
+                        "type": "object",
+                        "properties": {
+                          "maxBidAmount": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. oferta w groszach albo null (bez limitu)",
+                            "nullable": true
+                          },
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aukcji z aktywną ofertą albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxBidAmount",
+                          "maxActiveAuctions"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "NEW",
+                      "CHECKED",
+                      "TRUSTED"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "checkedAfterPaidOrders": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Opłacone zamówienia do poziomu „sprawdzony”"
+                  },
+                  "trustedAfterCompletedOrders": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Zakończone zamówienia do poziomu „zaufany”"
+                  },
+                  "trustedMinAccountAgeDays": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3650,
+                    "description": "Min. wiek konta zaufanego"
+                  }
+                },
+                "required": [
+                  "levels",
+                  "checkedAfterPaidOrders",
+                  "trustedAfterCompletedOrders",
+                  "trustedMinAccountAgeDays"
+                ],
+                "additionalProperties": false
+              },
+              "seller": {
+                "type": "object",
+                "properties": {
+                  "levels": {
+                    "type": "object",
+                    "properties": {
+                      "NEW": {
+                        "type": "object",
+                        "properties": {
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aktywnych aukcji albo null",
+                            "nullable": true
+                          },
+                          "maxAuctionValue": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. wartość aukcji w groszach albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxActiveAuctions",
+                          "maxAuctionValue"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "VERIFIED": {
+                        "type": "object",
+                        "properties": {
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aktywnych aukcji albo null",
+                            "nullable": true
+                          },
+                          "maxAuctionValue": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. wartość aukcji w groszach albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxActiveAuctions",
+                          "maxAuctionValue"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "KYC": {
+                        "type": "object",
+                        "properties": {
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aktywnych aukcji albo null",
+                            "nullable": true
+                          },
+                          "maxAuctionValue": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. wartość aukcji w groszach albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxActiveAuctions",
+                          "maxAuctionValue"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "NEW",
+                      "VERIFIED",
+                      "KYC"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "verifiedAfterCompletedSales": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Zakończone sprzedaże do „zweryfikowany”"
+                  },
+                  "kycExtendedAfterSales": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Sprzedaże, po których sprzedawca z KYC ma więcej"
+                  },
+                  "kycExtendedMaxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Aktywne aukcje sprzedawcy z KYC po progu"
+                  }
+                },
+                "required": [
+                  "levels",
+                  "verifiedAfterCompletedSales",
+                  "kycExtendedAfterSales",
+                  "kycExtendedMaxActiveAuctions"
+                ],
+                "additionalProperties": false
+              },
+              "strikes": {
+                "type": "object",
+                "properties": {
+                  "windowDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Strike liczy się do progu przez tyle dni"
+                  },
+                  "blockThreshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "description": "Tyle strike'ów w oknie daje blokadę"
+                  },
+                  "blockDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Długość pierwszej blokady"
+                  },
+                  "escalationWindowDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Kolejna blokada w tylu dniach od poprzedniej jest bezterminowa"
+                  },
+                  "appealWindowDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Na odwołanie od nadania jest tyle dni"
+                  }
+                },
+                "required": [
+                  "windowDays",
+                  "blockThreshold",
+                  "blockDays",
+                  "escalationWindowDays",
+                  "appealWindowDays"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "buyer",
+              "seller",
+              "strikes"
+            ],
+            "additionalProperties": false
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "null = wartości domyślne",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          }
+        },
+        "required": [
+          "policy",
+          "id",
+          "createdAt",
+          "createdBy",
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "PublishAccountPolicyDto": {
+        "type": "object",
+        "properties": {
+          "policy": {
+            "type": "object",
+            "properties": {
+              "buyer": {
+                "type": "object",
+                "properties": {
+                  "levels": {
+                    "type": "object",
+                    "properties": {
+                      "NEW": {
+                        "type": "object",
+                        "properties": {
+                          "maxBidAmount": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. oferta w groszach albo null (bez limitu)",
+                            "nullable": true
+                          },
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aukcji z aktywną ofertą albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxBidAmount",
+                          "maxActiveAuctions"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "CHECKED": {
+                        "type": "object",
+                        "properties": {
+                          "maxBidAmount": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. oferta w groszach albo null (bez limitu)",
+                            "nullable": true
+                          },
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aukcji z aktywną ofertą albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxBidAmount",
+                          "maxActiveAuctions"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "TRUSTED": {
+                        "type": "object",
+                        "properties": {
+                          "maxBidAmount": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. oferta w groszach albo null (bez limitu)",
+                            "nullable": true
+                          },
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aukcji z aktywną ofertą albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxBidAmount",
+                          "maxActiveAuctions"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "NEW",
+                      "CHECKED",
+                      "TRUSTED"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "checkedAfterPaidOrders": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Opłacone zamówienia do poziomu „sprawdzony”"
+                  },
+                  "trustedAfterCompletedOrders": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Zakończone zamówienia do poziomu „zaufany”"
+                  },
+                  "trustedMinAccountAgeDays": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3650,
+                    "description": "Min. wiek konta zaufanego"
+                  }
+                },
+                "required": [
+                  "levels",
+                  "checkedAfterPaidOrders",
+                  "trustedAfterCompletedOrders",
+                  "trustedMinAccountAgeDays"
+                ],
+                "additionalProperties": false
+              },
+              "seller": {
+                "type": "object",
+                "properties": {
+                  "levels": {
+                    "type": "object",
+                    "properties": {
+                      "NEW": {
+                        "type": "object",
+                        "properties": {
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aktywnych aukcji albo null",
+                            "nullable": true
+                          },
+                          "maxAuctionValue": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. wartość aukcji w groszach albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxActiveAuctions",
+                          "maxAuctionValue"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "VERIFIED": {
+                        "type": "object",
+                        "properties": {
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aktywnych aukcji albo null",
+                            "nullable": true
+                          },
+                          "maxAuctionValue": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. wartość aukcji w groszach albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxActiveAuctions",
+                          "maxAuctionValue"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "KYC": {
+                        "type": "object",
+                        "properties": {
+                          "maxActiveAuctions": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100000,
+                            "description": "Maks. aktywnych aukcji albo null",
+                            "nullable": true
+                          },
+                          "maxAuctionValue": {
+                            "type": "integer",
+                            "minimum": 100,
+                            "maximum": 9007199254740991,
+                            "description": "Maks. wartość aukcji w groszach albo null",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "maxActiveAuctions",
+                          "maxAuctionValue"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "NEW",
+                      "VERIFIED",
+                      "KYC"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "verifiedAfterCompletedSales": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Zakończone sprzedaże do „zweryfikowany”"
+                  },
+                  "kycExtendedAfterSales": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Sprzedaże, po których sprzedawca z KYC ma więcej"
+                  },
+                  "kycExtendedMaxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "description": "Aktywne aukcje sprzedawcy z KYC po progu"
+                  }
+                },
+                "required": [
+                  "levels",
+                  "verifiedAfterCompletedSales",
+                  "kycExtendedAfterSales",
+                  "kycExtendedMaxActiveAuctions"
+                ],
+                "additionalProperties": false
+              },
+              "strikes": {
+                "type": "object",
+                "properties": {
+                  "windowDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Strike liczy się do progu przez tyle dni"
+                  },
+                  "blockThreshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "description": "Tyle strike'ów w oknie daje blokadę"
+                  },
+                  "blockDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Długość pierwszej blokady"
+                  },
+                  "escalationWindowDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Kolejna blokada w tylu dniach od poprzedniej jest bezterminowa"
+                  },
+                  "appealWindowDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3650,
+                    "description": "Na odwołanie od nadania jest tyle dni"
+                  }
+                },
+                "required": [
+                  "windowDays",
+                  "blockThreshold",
+                  "blockDays",
+                  "escalationWindowDays",
+                  "appealWindowDays"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "buyer",
+              "seller",
+              "strikes"
+            ],
+            "additionalProperties": false
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "policy"
+        ],
+        "additionalProperties": false
+      },
+      "UserLimitsDto": {
+        "type": "object",
+        "properties": {
+          "limits": {
+            "type": "object",
+            "properties": {
+              "buyer": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "NEW",
+                      "CHECKED",
+                      "TRUSTED"
+                    ]
+                  },
+                  "maxBidAmount": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 9007199254740991,
+                    "nullable": true
+                  },
+                  "maxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "nullable": true
+                  }
+                },
+                "additionalProperties": false
+              },
+              "seller": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "NEW",
+                      "VERIFIED",
+                      "KYC"
+                    ]
+                  },
+                  "maxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "nullable": true
+                  },
+                  "maxAuctionValue": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 9007199254740991,
+                    "nullable": true
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false,
+            "description": "null usuwa nadpisania",
+            "nullable": true
+          }
+        },
+        "required": [
+          "limits"
+        ],
+        "additionalProperties": false
+      },
+      "AdminUserStandingDto": {
+        "type": "object",
+        "properties": {
+          "buyer": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "string",
+                "enum": [
+                  "NEW",
+                  "CHECKED",
+                  "TRUSTED"
+                ]
+              },
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "maxBidAmount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Maks. oferta w groszach albo null (bez limitu)",
+                    "nullable": true
+                  },
+                  "maxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Maks. aukcji z aktywną ofertą albo null",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "maxBidAmount",
+                  "maxActiveAuctions"
+                ],
+                "additionalProperties": false
+              },
+              "overridden": {
+                "type": "boolean",
+                "description": "Limity ustawione ręcznie przez Biddy"
+              },
+              "next": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "NEW",
+                      "CHECKED",
+                      "TRUSTED"
+                    ]
+                  },
+                  "limits": {
+                    "type": "object",
+                    "properties": {
+                      "maxBidAmount": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Maks. oferta w groszach albo null (bez limitu)",
+                        "nullable": true
+                      },
+                      "maxActiveAuctions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Maks. aukcji z aktywną ofertą albo null",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "maxBidAmount",
+                      "maxActiveAuctions"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "requirements": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PAID_ORDERS",
+                            "COMPLETED_ORDERS",
+                            "ACCOUNT_AGE_DAYS",
+                            "COMPLETED_SALES",
+                            "NO_LOST_DISPUTES",
+                            "KYC"
+                          ]
+                        },
+                        "current": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "required": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "met": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "current",
+                        "required",
+                        "met"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "level",
+                  "limits",
+                  "requirements"
+                ],
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "block": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "description": "null = bezterminowa",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "until"
+                ],
+                "additionalProperties": false,
+                "description": "Aktywna blokada licytowania",
+                "nullable": true
+              }
+            },
+            "required": [
+              "level",
+              "limits",
+              "overridden",
+              "next",
+              "block"
+            ],
+            "additionalProperties": false
+          },
+          "seller": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "string",
+                "enum": [
+                  "NEW",
+                  "VERIFIED",
+                  "KYC"
+                ]
+              },
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "maxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Maks. aktywnych aukcji albo null",
+                    "nullable": true
+                  },
+                  "maxAuctionValue": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "Maks. wartość aukcji w groszach albo null",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "maxActiveAuctions",
+                  "maxAuctionValue"
+                ],
+                "additionalProperties": false
+              },
+              "overridden": {
+                "type": "boolean"
+              },
+              "next": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "NEW",
+                      "VERIFIED",
+                      "KYC"
+                    ]
+                  },
+                  "limits": {
+                    "type": "object",
+                    "properties": {
+                      "maxActiveAuctions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Maks. aktywnych aukcji albo null",
+                        "nullable": true
+                      },
+                      "maxAuctionValue": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "description": "Maks. wartość aukcji w groszach albo null",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "maxActiveAuctions",
+                      "maxAuctionValue"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "requirements": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "PAID_ORDERS",
+                            "COMPLETED_ORDERS",
+                            "ACCOUNT_AGE_DAYS",
+                            "COMPLETED_SALES",
+                            "NO_LOST_DISPUTES",
+                            "KYC"
+                          ]
+                        },
+                        "current": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "required": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "met": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "current",
+                        "required",
+                        "met"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "level",
+                  "limits",
+                  "requirements"
+                ],
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "block": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "until": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "description": "null = bezterminowa",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "until"
+                ],
+                "additionalProperties": false,
+                "description": "Aktywna blokada wystawiania",
+                "nullable": true
+              }
+            },
+            "required": [
+              "level",
+              "limits",
+              "overridden",
+              "next",
+              "block"
+            ],
+            "additionalProperties": false
+          },
+          "strikes": {
+            "type": "object",
+            "properties": {
+              "windowDays": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "blockDays": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "buyer": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "seller": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "BUYER",
+                        "SELLER"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "UNPAID",
+                        "NOT_COLLECTED",
+                        "NOT_SHIPPED",
+                        "AUCTION_CANCELLED_WITH_BIDS",
+                        "DISPUTE_LOST",
+                        "COUNTERFEIT",
+                        "OTHER"
+                      ]
+                    },
+                    "statement": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Uzasadnienie (statement of reasons)"
+                    },
+                    "orderId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "nullable": true
+                    },
+                    "auctionId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "description": "Po tej chwili strike nie liczy się do progu"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "EXPIRED",
+                        "REVOKED"
+                      ]
+                    },
+                    "revokedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "revokeNote": {
+                      "type": "string",
+                      "minLength": 1,
+                      "nullable": true
+                    },
+                    "appeal": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "NONE",
+                            "PENDING",
+                            "ACCEPTED",
+                            "REJECTED"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Treść odwołania użytkownika",
+                          "nullable": true
+                        },
+                        "appealedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                          "nullable": true
+                        },
+                        "resolvedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                          "nullable": true
+                        },
+                        "note": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Uzasadnienie decyzji personelu",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "message",
+                        "appealedAt",
+                        "resolvedAt",
+                        "note"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "canAppeal": {
+                      "type": "boolean"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "issuedBy": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "description": "Personel; null = system",
+                      "nullable": true
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Notatka wewnętrzna personelu",
+                      "nullable": true
+                    },
+                    "revokedBy": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "role",
+                    "reason",
+                    "statement",
+                    "orderId",
+                    "auctionId",
+                    "createdAt",
+                    "expiresAt",
+                    "state",
+                    "revokedAt",
+                    "revokeNote",
+                    "appeal",
+                    "canAppeal",
+                    "userId",
+                    "issuedBy",
+                    "note",
+                    "revokedBy"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "windowDays",
+              "blockDays",
+              "threshold",
+              "buyer",
+              "seller",
+              "items"
+            ],
+            "additionalProperties": false
+          },
+          "limitsOverride": {
+            "type": "object",
+            "properties": {
+              "buyer": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "NEW",
+                      "CHECKED",
+                      "TRUSTED"
+                    ]
+                  },
+                  "maxBidAmount": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 9007199254740991,
+                    "nullable": true
+                  },
+                  "maxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "nullable": true
+                  }
+                },
+                "additionalProperties": false
+              },
+              "seller": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "enum": [
+                      "NEW",
+                      "VERIFIED",
+                      "KYC"
+                    ]
+                  },
+                  "maxActiveAuctions": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000,
+                    "nullable": true
+                  },
+                  "maxAuctionValue": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 9007199254740991,
+                    "nullable": true
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "BIDDING",
+                    "LISTING",
+                    "PAYOUTS"
+                  ]
+                },
+                "cause": {
+                  "type": "string",
+                  "enum": [
+                    "STRIKES",
+                    "COUNTERFEIT"
+                  ]
+                },
+                "strikeIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "startsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "endsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "description": "null = bezterminowa",
+                  "nullable": true
+                },
+                "statement": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "EXPIRED",
+                    "LIFTED"
+                  ]
+                },
+                "liftedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "liftNote": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "appeal": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "NONE",
+                        "PENDING",
+                        "ACCEPTED",
+                        "REJECTED"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Treść odwołania użytkownika",
+                      "nullable": true
+                    },
+                    "appealedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "resolvedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Uzasadnienie decyzji personelu",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "message",
+                    "appealedAt",
+                    "resolvedAt",
+                    "note"
+                  ],
+                  "additionalProperties": false
+                },
+                "canAppeal": {
+                  "type": "boolean"
+                },
+                "userId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "liftedBy": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "cause",
+                "strikeIds",
+                "startsAt",
+                "endsAt",
+                "statement",
+                "state",
+                "liftedAt",
+                "liftNote",
+                "appeal",
+                "canAppeal",
+                "userId",
+                "liftedBy"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "buyer",
+          "seller",
+          "strikes",
+          "limitsOverride",
+          "blocks"
+        ],
+        "additionalProperties": false
+      },
+      "AdminAppealsDto": {
+        "type": "object",
+        "properties": {
+          "strikes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "BUYER",
+                    "SELLER"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "UNPAID",
+                    "NOT_COLLECTED",
+                    "NOT_SHIPPED",
+                    "AUCTION_CANCELLED_WITH_BIDS",
+                    "DISPUTE_LOST",
+                    "COUNTERFEIT",
+                    "OTHER"
+                  ]
+                },
+                "statement": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Uzasadnienie (statement of reasons)"
+                },
+                "orderId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "nullable": true
+                },
+                "auctionId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "description": "Po tej chwili strike nie liczy się do progu"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "EXPIRED",
+                    "REVOKED"
+                  ]
+                },
+                "revokedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "revokeNote": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "appeal": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "NONE",
+                        "PENDING",
+                        "ACCEPTED",
+                        "REJECTED"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Treść odwołania użytkownika",
+                      "nullable": true
+                    },
+                    "appealedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "resolvedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Uzasadnienie decyzji personelu",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "message",
+                    "appealedAt",
+                    "resolvedAt",
+                    "note"
+                  ],
+                  "additionalProperties": false
+                },
+                "canAppeal": {
+                  "type": "boolean"
+                },
+                "userId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "issuedBy": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "description": "Personel; null = system",
+                  "nullable": true
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Notatka wewnętrzna personelu",
+                  "nullable": true
+                },
+                "revokedBy": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "reason",
+                "statement",
+                "orderId",
+                "auctionId",
+                "createdAt",
+                "expiresAt",
+                "state",
+                "revokedAt",
+                "revokeNote",
+                "appeal",
+                "canAppeal",
+                "userId",
+                "issuedBy",
+                "note",
+                "revokedBy"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Odwołania od strike'ów, najstarsze pierwsze"
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "BIDDING",
+                    "LISTING",
+                    "PAYOUTS"
+                  ]
+                },
+                "cause": {
+                  "type": "string",
+                  "enum": [
+                    "STRIKES",
+                    "COUNTERFEIT"
+                  ]
+                },
+                "strikeIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "startsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "endsAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "description": "null = bezterminowa",
+                  "nullable": true
+                },
+                "statement": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ACTIVE",
+                    "EXPIRED",
+                    "LIFTED"
+                  ]
+                },
+                "liftedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "liftNote": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "appeal": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "NONE",
+                        "PENDING",
+                        "ACCEPTED",
+                        "REJECTED"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Treść odwołania użytkownika",
+                      "nullable": true
+                    },
+                    "appealedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "resolvedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "note": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Uzasadnienie decyzji personelu",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "message",
+                    "appealedAt",
+                    "resolvedAt",
+                    "note"
+                  ],
+                  "additionalProperties": false
+                },
+                "canAppeal": {
+                  "type": "boolean"
+                },
+                "userId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "liftedBy": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "cause",
+                "strikeIds",
+                "startsAt",
+                "endsAt",
+                "statement",
+                "state",
+                "liftedAt",
+                "liftNote",
+                "appeal",
+                "canAppeal",
+                "userId",
+                "liftedBy"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Odwołania od blokad, najstarsze pierwsze"
+          }
+        },
+        "required": [
+          "strikes",
+          "blocks"
+        ],
+        "additionalProperties": false
+      },
+      "IssueStrikeDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "COUNTERFEIT",
+              "OTHER"
+            ],
+            "description": "COUNTERFEIT blokuje od razu wystawianie i wypłaty"
+          },
+          "role": {
+            "description": "Wymagana przy OTHER",
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000,
+            "description": "Dopisywane do uzasadnienia dla użytkownika"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "auctionId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "userId",
+          "reason",
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "AdminStrikeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "UNPAID",
+              "NOT_COLLECTED",
+              "NOT_SHIPPED",
+              "AUCTION_CANCELLED_WITH_BIDS",
+              "DISPUTE_LOST",
+              "COUNTERFEIT",
+              "OTHER"
+            ]
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Uzasadnienie (statement of reasons)"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          },
+          "auctionId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Po tej chwili strike nie liczy się do progu"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "EXPIRED",
+              "REVOKED"
+            ]
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "revokeNote": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "appeal": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "NONE",
+                  "PENDING",
+                  "ACCEPTED",
+                  "REJECTED"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Treść odwołania użytkownika",
+                "nullable": true
+              },
+              "appealedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Uzasadnienie decyzji personelu",
+                "nullable": true
+              }
+            },
+            "required": [
+              "status",
+              "message",
+              "appealedAt",
+              "resolvedAt",
+              "note"
+            ],
+            "additionalProperties": false
+          },
+          "canAppeal": {
+            "type": "boolean"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "issuedBy": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Personel; null = system",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Notatka wewnętrzna personelu",
+            "nullable": true
+          },
+          "revokedBy": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "reason",
+          "statement",
+          "orderId",
+          "auctionId",
+          "createdAt",
+          "expiresAt",
+          "state",
+          "revokedAt",
+          "revokeNote",
+          "appeal",
+          "canAppeal",
+          "userId",
+          "issuedBy",
+          "note",
+          "revokedBy"
+        ],
+        "additionalProperties": false
+      },
+      "StaffNoteDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000,
+            "description": "Widoczne dla użytkownika"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "AppealDecisionDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REJECTED"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 1000,
+            "description": "Widoczne dla użytkownika"
+          }
+        },
+        "required": [
+          "decision",
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "AdminAccountBlockDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "BIDDING",
+              "LISTING",
+              "PAYOUTS"
+            ]
+          },
+          "cause": {
+            "type": "string",
+            "enum": [
+              "STRIKES",
+              "COUNTERFEIT"
+            ]
+          },
+          "strikeIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "null = bezterminowa",
+            "nullable": true
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "EXPIRED",
+              "LIFTED"
+            ]
+          },
+          "liftedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "liftNote": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "appeal": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "NONE",
+                  "PENDING",
+                  "ACCEPTED",
+                  "REJECTED"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Treść odwołania użytkownika",
+                "nullable": true
+              },
+              "appealedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "note": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Uzasadnienie decyzji personelu",
+                "nullable": true
+              }
+            },
+            "required": [
+              "status",
+              "message",
+              "appealedAt",
+              "resolvedAt",
+              "note"
+            ],
+            "additionalProperties": false
+          },
+          "canAppeal": {
+            "type": "boolean"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "liftedBy": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "cause",
+          "strikeIds",
+          "startsAt",
+          "endsAt",
+          "statement",
+          "state",
+          "liftedAt",
+          "liftNote",
+          "appeal",
+          "canAppeal",
+          "userId",
+          "liftedBy"
+        ],
+        "additionalProperties": false
+      },
       "CategoryDto": {
         "type": "object",
         "properties": {
@@ -5638,7 +9498,9 @@
           "maxActiveAuctions": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 9007199254740991
+            "maximum": 9007199254740991,
+            "description": "Maks. aktywnych aukcji albo null",
+            "nullable": true
           },
           "activeAuctions": {
             "type": "integer",
@@ -5662,10 +9524,15 @@
             "maximum": 9007199254740991,
             "description": "Wartość aukcji (grosze), powyżej której wymagane jest KYC"
           },
+          "listingBlocked": {
+            "type": "boolean",
+            "description": "Aktywna blokada wystawiania (F-61)"
+          },
           "listingBlockedUntil": {
             "type": "string",
             "format": "date-time",
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Koniec blokady wystawiania; null bez blokady albo przy bezterminowej",
             "nullable": true
           },
           "kycNoticeAccepted": {
@@ -5680,6 +9547,7 @@
           "maxAuctionValue",
           "kycVerified",
           "kycRequiredAbove",
+          "listingBlocked",
           "listingBlockedUntil",
           "kycNoticeAccepted"
         ],
@@ -9489,7 +13357,12 @@
                     "UNSOLD",
                     "AUCTION_CANCELLED",
                     "FOLLOWED_SELLER_NEW_AUCTION",
-                    "ORDER_PAID"
+                    "ORDER_PAID",
+                    "STRIKE_ISSUED",
+                    "STRIKE_REVOKED",
+                    "ACCOUNT_BLOCKED",
+                    "ACCOUNT_UNBLOCKED",
+                    "APPEAL_REJECTED"
                   ]
                 },
                 "title": {
@@ -9599,7 +13472,12 @@
                     "UNSOLD",
                     "AUCTION_CANCELLED",
                     "FOLLOWED_SELLER_NEW_AUCTION",
-                    "ORDER_PAID"
+                    "ORDER_PAID",
+                    "STRIKE_ISSUED",
+                    "STRIKE_REVOKED",
+                    "ACCOUNT_BLOCKED",
+                    "ACCOUNT_UNBLOCKED",
+                    "APPEAL_REJECTED"
                   ]
                 },
                 "channel": {
@@ -9652,7 +13530,12 @@
                     "UNSOLD",
                     "AUCTION_CANCELLED",
                     "FOLLOWED_SELLER_NEW_AUCTION",
-                    "ORDER_PAID"
+                    "ORDER_PAID",
+                    "STRIKE_ISSUED",
+                    "STRIKE_REVOKED",
+                    "ACCOUNT_BLOCKED",
+                    "ACCOUNT_UNBLOCKED",
+                    "APPEAL_REJECTED"
                   ]
                 },
                 "channel": {
@@ -9693,6 +13576,11 @@
               "AUCTION_CANCELLED",
               "FOLLOWED_SELLER_NEW_AUCTION",
               "ORDER_PAID",
+              "STRIKE_ISSUED",
+              "STRIKE_REVOKED",
+              "ACCOUNT_BLOCKED",
+              "ACCOUNT_UNBLOCKED",
+              "APPEAL_REJECTED",
               "ALL"
             ],
             "description": "Typ powiadomień albo ALL (wszystkie)"
@@ -9709,7 +13597,12 @@
                 "UNSOLD",
                 "AUCTION_CANCELLED",
                 "FOLLOWED_SELLER_NEW_AUCTION",
-                "ORDER_PAID"
+                "ORDER_PAID",
+                "STRIKE_ISSUED",
+                "STRIKE_REVOKED",
+                "ACCOUNT_BLOCKED",
+                "ACCOUNT_UNBLOCKED",
+                "APPEAL_REJECTED"
               ]
             },
             "description": "Typy e-maili, które wyłączamy"

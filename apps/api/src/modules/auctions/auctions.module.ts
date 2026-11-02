@@ -18,6 +18,7 @@ import { AuctionsController, MyAuctionsController } from './listings/listings.co
 import { AuctionPages } from './pages/auction-pages.js';
 import { AuctionCards } from './public/auction-cards.js';
 import { AuctionDirectory } from './public/auction-directory.js';
+import { ListingStrikes } from './listings/listing-strikes.js';
 import { MyListsService } from './public/my-lists.service.js';
 import { AuctionSearchSource } from './public/auction-search-source.js';
 import { AuctionViewService } from './public/auction-view.service.js';
@@ -50,6 +51,7 @@ import { WatchlistService } from './watchlist/watchlist.service.js';
     AuctionPages,
     AuctionSearchSource,
     AuctionDirectory,
+    ListingStrikes,
     WatchlistService,
     AuctionCards,
     MyListsService,

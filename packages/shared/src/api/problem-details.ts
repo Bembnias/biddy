@@ -50,7 +50,10 @@ export const ERROR_CODES = {
   ADDRESS_LIMIT_REACHED: 'ADDRESS_LIMIT_REACHED',
   /** Plik zdjęcia nie dotarł do magazynu przed potwierdzeniem uploadu (F-12). */
   MEDIA_NOT_UPLOADED: 'MEDIA_NOT_UPLOADED',
-  /** Sprzedający ma blokadę wystawiania (F-61); `blockedUntil` w odpowiedzi (F-14). */
+  /**
+   * Sprzedający ma blokadę wystawiania (F-61): `blockedUntil` (null = bezterminowa) i `blockId`
+   * w odpowiedzi.
+   */
   LISTING_BLOCKED: 'LISTING_BLOCKED',
   /** Osiągnięto limit aktywnych aukcji poziomu sprzedawcy (§4.1, F-14). */
   LISTING_LIMIT_REACHED: 'LISTING_LIMIT_REACHED',
@@ -62,7 +65,10 @@ export const ERROR_CODES = {
   BID_TOO_LOW: 'BID_TOO_LOW',
   /** Oferta przekracza limit konta kupującego (§4.1, F-15). */
   BID_LIMIT_EXCEEDED: 'BID_LIMIT_EXCEEDED',
-  /** Kupujący ma blokadę licytowania (F-61); `blockedUntil` w odpowiedzi (F-15). */
+  /**
+   * Kupujący ma blokadę licytowania (F-61): `blockedUntil` (null = bezterminowa) i `blockId`
+   * w odpowiedzi.
+   */
   BIDDING_BLOCKED: 'BIDDING_BLOCKED',
   /** Aukcja się zakończyła albo została anulowana (F-15). */
   AUCTION_ENDED: 'AUCTION_ENDED',
@@ -72,6 +78,14 @@ export const ERROR_CODES = {
   BUY_NOW_UNAVAILABLE: 'BUY_NOW_UNAVAILABLE',
   /** Ten sam Idempotency-Key użyty z innym żądaniem (F-15). */
   IDEMPOTENCY_KEY_REUSED: 'IDEMPOTENCY_KEY_REUSED',
+  /** Nie ma takiego strike'a albo należy do innego użytkownika (F-61). */
+  STRIKE_NOT_FOUND: 'STRIKE_NOT_FOUND',
+  /** Nie ma takiej blokady konta albo należy do innego użytkownika (F-61). */
+  ACCOUNT_BLOCK_NOT_FOUND: 'ACCOUNT_BLOCK_NOT_FOUND',
+  /** Odwołanie niemożliwe: już było, decyzja jest cofnięta albo minął termin (F-61). */
+  APPEAL_NOT_ALLOWED: 'APPEAL_NOT_ALLOWED',
+  /** Decyzja w odwołaniu, którego nie ma albo które już rozpatrzono (F-61). */
+  APPEAL_NOT_PENDING: 'APPEAL_NOT_PENDING',
   /** Usługa dostawy nie pasuje do przedmiotu albo nie ma ceny w cenniku (F-24). */
   SHIPPING_OPTION_UNAVAILABLE: 'SHIPPING_OPTION_UNAVAILABLE',
   /** Paczkomat i punkt odbioru wymagają wskazania punktu (F-24). */

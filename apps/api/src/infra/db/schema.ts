@@ -11,6 +11,7 @@
 // (reguła granic modułów w eslint.config.js). Tabele innego modułu nie są jego publicznym API.
 export * from '../outbox/db/outbox.schema.js';
 export * from '../../modules/identity/db/identity.schema.js';
+export * from '../../modules/identity/db/standing.schema.js';
 export * from '../../modules/catalog/db/catalog.schema.js';
 export * from '../../modules/media/db/media.schema.js';
 export * from '../../modules/payments/db/payments.schema.js';

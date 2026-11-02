@@ -30,7 +30,9 @@ import type {
 
 import type {
   AcceptTermsDto,
+  AccountBlockDto,
   AddressDto,
+  AppealDto,
   AuctionSummaryDto,
   AvatarDto,
   ConfirmPhoneVerificationDto,
@@ -44,6 +46,8 @@ import type {
   MeDto,
   MyBiddingDto,
   MyBidsDto,
+  MyStandingDto,
+  MyStrikesDto,
   MyWatchlistDto,
   NotificationListDto,
   NotificationPreferencesDto,
@@ -54,6 +58,7 @@ import type {
   SessionDto,
   SetAvatarDto,
   StartPhoneVerificationDto,
+  StrikeDto,
   UpdateAddressDto,
   UpdateMeDto,
   UpdatePreferencesDto,
@@ -1450,6 +1455,496 @@ export const useUnfollowSeller = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getUnfollowSellerMutationOptions(options), queryClient);
+    }
+    export const getGetMyStandingUrl = () => {
+
+
+
+
+  return `/v1/me/standing`
+}
+
+/**
+ * Następny poziom z brakującymi warunkami; aktywne blokady licytowania i wystawiania.
+ * @summary Poziomy, limity, blokady i liczniki strike'ów (§4.1)
+ */
+export const getMyStanding = async ( options?: Parameters<typeof apiFetch>[1]): Promise<MyStandingDto> => {
+
+  return apiFetch<MyStandingDto>(getGetMyStandingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyStandingQueryKey = () => {
+    return [
+    `/v1/me/standing`
+    ] as const;
+    }
+
+
+export const getGetMyStandingQueryOptions = <TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyStandingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyStanding>>> = ({ signal }) => getMyStanding({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyStandingQueryResult = NonNullable<Awaited<ReturnType<typeof getMyStanding>>>
+export type GetMyStandingQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyStanding<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyStanding>>,
+          TError,
+          Awaited<ReturnType<typeof getMyStanding>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyStanding<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyStanding>>,
+          TError,
+          Awaited<ReturnType<typeof getMyStanding>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyStanding<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Poziomy, limity, blokady i liczniki strike'ów (§4.1)
+ */
+
+export function useGetMyStanding<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyStandingQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyStandingSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyStandingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyStanding>>> = ({ signal }) => getMyStanding({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyStandingSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyStanding>>>
+export type GetMyStandingSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyStandingSuspense<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyStandingSuspense<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyStandingSuspense<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Poziomy, limity, blokady i liczniki strike'ów (§4.1)
+ */
+
+export function useGetMyStandingSuspense<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyStandingSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getListMyStrikesUrl = () => {
+
+
+
+
+  return `/v1/me/strikes`
+}
+
+/**
+ * Każdy wpis ma uzasadnienie i stan odwołania; `canAppeal` mówi, czy można się odwołać.
+ * @summary Strike'i i blokady z uzasadnieniem (ostatnie 2 lata)
+ */
+export const listMyStrikes = async ( options?: Parameters<typeof apiFetch>[1]): Promise<MyStrikesDto> => {
+
+  return apiFetch<MyStrikesDto>(getListMyStrikesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyStrikesQueryKey = () => {
+    return [
+    `/v1/me/strikes`
+    ] as const;
+    }
+
+
+export const getListMyStrikesQueryOptions = <TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyStrikesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyStrikes>>> = ({ signal }) => listMyStrikes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListMyStrikesQueryResult = NonNullable<Awaited<ReturnType<typeof listMyStrikes>>>
+export type ListMyStrikesQueryError = ErrorType<ProblemDetails>
+
+
+export function useListMyStrikes<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMyStrikes>>,
+          TError,
+          Awaited<ReturnType<typeof listMyStrikes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMyStrikes<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMyStrikes>>,
+          TError,
+          Awaited<ReturnType<typeof listMyStrikes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMyStrikes<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Strike'i i blokady z uzasadnieniem (ostatnie 2 lata)
+ */
+
+export function useListMyStrikes<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListMyStrikesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getListMyStrikesSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyStrikesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyStrikes>>> = ({ signal }) => listMyStrikes({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type ListMyStrikesSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof listMyStrikes>>>
+export type ListMyStrikesSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useListMyStrikesSuspense<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMyStrikesSuspense<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMyStrikesSuspense<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Strike'i i blokady z uzasadnieniem (ostatnie 2 lata)
+ */
+
+export function useListMyStrikesSuspense<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListMyStrikesSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getAppealStrikeUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/strikes/${id}/appeal`
+}
+
+/**
+ * Jedno odwołanie na strike, tylko od niecofniętego i w terminie (409 APPEAL_NOT_ALLOWED).
+ * @summary Odwołanie od strike'a
+ */
+export const appealStrike = async (id: string,
+    appealDto: AppealDto, options?: Parameters<typeof apiFetch>[1]): Promise<StrikeDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<StrikeDto>(getAppealStrikeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(appealDto)
+  }
+);}
+
+
+
+
+
+export const getAppealStrikeMutationKey = () => ['appealStrike'] as const;
+
+export const getAppealStrikeMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appealStrike>>, TError,AppealStrikeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof appealStrike>>, TError,AppealStrikeMutationVariables, TContext> => {
+
+const mutationKey = getAppealStrikeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof appealStrike>>, AppealStrikeMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  appealStrike(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AppealStrikeMutationResult = NonNullable<Awaited<ReturnType<typeof appealStrike>>>
+    export type AppealStrikeMutationBody = BodyType<AppealDto>
+    export type AppealStrikeMutationError = ErrorType<ProblemDetails>
+    export type AppealStrikeMutationVariables = {id: string;data: BodyType<AppealDto>}
+
+    /**
+ * @summary Odwołanie od strike'a
+ */
+export const useAppealStrike = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appealStrike>>, TError,AppealStrikeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof appealStrike>>,
+        TError,
+        AppealStrikeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAppealStrikeMutationOptions(options), queryClient);
+    }
+    export const getAppealAccountBlockUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/account-blocks/${id}/appeal`
+}
+
+/**
+ * Jedno odwołanie na blokadę, tylko od trwającej i w terminie (409 APPEAL_NOT_ALLOWED).
+ * @summary Odwołanie od blokady konta
+ */
+export const appealAccountBlock = async (id: string,
+    appealDto: AppealDto, options?: Parameters<typeof apiFetch>[1]): Promise<AccountBlockDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<AccountBlockDto>(getAppealAccountBlockUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(appealDto)
+  }
+);}
+
+
+
+
+
+export const getAppealAccountBlockMutationKey = () => ['appealAccountBlock'] as const;
+
+export const getAppealAccountBlockMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appealAccountBlock>>, TError,AppealAccountBlockMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof appealAccountBlock>>, TError,AppealAccountBlockMutationVariables, TContext> => {
+
+const mutationKey = getAppealAccountBlockMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof appealAccountBlock>>, AppealAccountBlockMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  appealAccountBlock(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AppealAccountBlockMutationResult = NonNullable<Awaited<ReturnType<typeof appealAccountBlock>>>
+    export type AppealAccountBlockMutationBody = BodyType<AppealDto>
+    export type AppealAccountBlockMutationError = ErrorType<ProblemDetails>
+    export type AppealAccountBlockMutationVariables = {id: string;data: BodyType<AppealDto>}
+
+    /**
+ * @summary Odwołanie od blokady konta
+ */
+export const useAppealAccountBlock = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appealAccountBlock>>, TError,AppealAccountBlockMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof appealAccountBlock>>,
+        TError,
+        AppealAccountBlockMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAppealAccountBlockMutationOptions(options), queryClient);
     }
     export const getSetAvatarUrl = () => {
 

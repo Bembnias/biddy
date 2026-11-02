@@ -3,7 +3,10 @@
  *
  * Odpowiedzialność: konta i logowanie (Better Auth), sesje, weryfikacja e-maila, akceptacje
  * regulaminu z oświadczeniem 18+, weryfikacja telefonu (F-08), profil i adresy (F-10), stan
- * sprzedawcy (F-14); dalej limity i strike'i (F-61).
+ * sprzedawcy (F-14) i kupującego (F-15), limity kont, strike'i i blokady (F-61): inne moduły nadają
+ * strike'i (`StrikeService.issue`) i dopisują historię zamówień (`TradeHistoryService`) w swoich
+ * transakcjach; eventy StrikeIssued, StrikeRevoked, AccountBlocked, AccountBlockLifted,
+ * AppealResolved.
  *
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
@@ -14,6 +17,31 @@ export { AddressService, MAX_ADDRESSES } from './addresses/address.service.js';
 export { PHONE_NUMBER_HINT, normalizePhoneNumber } from './phone/phone-number.js';
 export { type BuyerStanding, BuyerStandingService } from './buyer/buyer-standing.service.js';
 export { FollowService, type NotificationContact } from './follows/follow.service.js';
+export {
+  AccountBlocked,
+  AccountBlockLifted,
+  AppealResolved,
+  StrikeIssued,
+  StrikeRevoked,
+} from './identity.events.js';
+export {
+  type AccountBlockRow as AccountBlock,
+  type StrikeRow as Strike,
+} from './db/standing.schema.js';
+export { type ActiveBlock, AccountBlockService } from './standing/account-block.service.js';
+export { AccountPolicyService } from './standing/account-policy.service.js';
+export { accountBlockedError } from './standing/blocked-error.js';
+export {
+  LATE_PAYMENT_REVOKE_NOTE,
+  type StrikeContext,
+  strikeSourceKey,
+} from './standing/statements.js';
+export {
+  type IssueStrikeInput,
+  type IssuedStrike,
+  StrikeService,
+} from './standing/strike.service.js';
+export { type TradeParties, TradeHistoryService } from './standing/trade-history.service.js';
 export { ProfileService, type PublicProfile } from './profile/profile.service.js';
 export { type SellerStanding, SellerStandingService } from './seller/seller-standing.service.js';
 export {

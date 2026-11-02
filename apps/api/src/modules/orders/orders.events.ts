@@ -1,6 +1,6 @@
 // Eventy domenowe modułu orders (F-16, F-25, PROJECT.md §14.3). Konsumenci: powiadomienia
-// o wygranej i sprzedaży (F-20), powiadomienie „nadaj paczkę” (F-24), strike i druga szansa po
-// anulowaniu (F-26).
+// o wygranej i sprzedaży (F-20), powiadomienie „nadaj paczkę” (F-24), historia zamówień i strike
+// za brak płatności (F-61), druga szansa po anulowaniu (F-26).
 import { CURRENCIES, type CurrencyCode } from '@biddy/shared';
 import { z } from 'zod';
 

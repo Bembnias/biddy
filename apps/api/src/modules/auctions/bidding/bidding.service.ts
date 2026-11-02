@@ -18,7 +18,12 @@ import { APP_CONFIG, type AppConfig } from '../../../infra/config/index.js';
 import { type Database, DRIZZLE, newId, type Transaction } from '../../../infra/db/index.js';
 import { DomainError } from '../../../infra/http/index.js';
 import { Outbox } from '../../../infra/outbox/index.js';
-import { BuyerStandingService, ProfileService } from '../../identity/index.js';
+import {
+  accountBlockedError,
+  type BuyerStanding,
+  BuyerStandingService,
+  ProfileService,
+} from '../../identity/index.js';
 import {
   AuctionEnded,
   AuctionExtended,
@@ -496,19 +501,16 @@ export class BiddingService {
       throw new DomainError({ code: 'OWN_AUCTION' });
     }
     const standing = await this.buyers.get(bidderId, tx);
-    if (standing.biddingBlockedUntil !== null && standing.biddingBlockedUntil > new Date()) {
-      throw new DomainError({
-        code: 'BIDDING_BLOCKED',
-        detail: `Masz blokadę licytowania do ${formatDate(standing.biddingBlockedUntil)}.`,
-        extensions: { blockedUntil: standing.biddingBlockedUntil.toISOString() },
-      });
+    if (standing.biddingBlock !== null) {
+      throw accountBlockedError('BIDDING_BLOCKED', standing.biddingBlock);
     }
     const { maxBidAmount, maxActiveAuctions } = standing.limits;
+    const limitOwner = buyerLimitOwner(standing);
     if (maxBidAmount !== null && amount > maxBidAmount) {
       throw new DomainError({
         code: 'BID_LIMIT_EXCEEDED',
-        detail: `Jako nowy kupujący możesz zaoferować najwyżej ${formatPln(maxBidAmount)}. Limit rośnie po opłaconych zamówieniach.`,
-        extensions: { limit: maxBidAmount, limitKind: 'BID_AMOUNT' },
+        detail: `${limitOwner} możesz zaoferować najwyżej ${formatPln(maxBidAmount)}.${limitHint(standing)}`,
+        extensions: { limit: maxBidAmount, limitKind: 'BID_AMOUNT', level: standing.level },
       });
     }
     if (countAuctions && maxActiveAuctions !== null) {
@@ -527,8 +529,12 @@ export class BiddingService {
       if ((row?.value ?? 0) >= maxActiveAuctions) {
         throw new DomainError({
           code: 'BID_LIMIT_EXCEEDED',
-          detail: `Jako nowy kupujący możesz licytować najwyżej ${String(maxActiveAuctions)} aukcji naraz. Limit rośnie po opłaconych zamówieniach.`,
-          extensions: { limit: maxActiveAuctions, limitKind: 'ACTIVE_AUCTIONS' },
+          detail: `${limitOwner} możesz licytować najwyżej ${String(maxActiveAuctions)} aukcji naraz.${limitHint(standing)}`,
+          extensions: {
+            limit: maxActiveAuctions,
+            limitKind: 'ACTIVE_AUCTIONS',
+            level: standing.level,
+          },
         });
       }
     }
@@ -598,10 +604,20 @@ function formatPln(amount: number): string {
   return formatMoney(money(amount), { trailingZeroDisplay: 'stripIfInteger' });
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleString('pl-PL', {
-    timeZone: 'Europe/Warsaw',
-    dateStyle: 'long',
-    timeStyle: 'short',
-  });
+/** Kto ma limit: poziom konta albo limit ustawiony ręcznie (`users.limits`). */
+function buyerLimitOwner(standing: BuyerStanding): string {
+  if (standing.overridden) {
+    return 'Na Twoim koncie';
+  }
+  return standing.level === 'NEW' ? 'Jako nowe konto' : 'Na poziomie „Sprawdzone konto”';
+}
+
+/** Jak podnieść limit (§4.1): pierwsze opłacone zamówienie albo zakończone zakupy. */
+function limitHint(standing: BuyerStanding): string {
+  if (standing.overridden) {
+    return '';
+  }
+  return standing.level === 'NEW'
+    ? ' Limit rośnie po pierwszym opłaconym zamówieniu.'
+    : ' Limit znika po kilku zakończonych zakupach.';
 }

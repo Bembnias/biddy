@@ -311,13 +311,16 @@
       "memberSinceLine": "Konto od {date}",
       "noPhone": "Brak numeru",
       "securitySection": "Bezpieczeństwo",
+      "standing": "Limity i strike'i",
+      "standingAlert": "Masz aktywną blokadę konta",
       "shortcuts": {
         "myBiddy": "Licytacje, wygrane i obserwowane",
         "myAuctions": "Szkice, aktywne aukcje i sprzedaż",
         "sell": "Wystaw aukcję w kilka minut",
         "editProfile": "Imię wyświetlane i zdjęcie",
         "addresses": "Dostawa i nadanie paczek",
-        "notifications": "E-maile o przebiciu i końcu aukcji"
+        "notifications": "E-maile o przebiciu i końcu aukcji",
+        "standing": "Poziom konta, limity i odwołania"
       }
     },
     "panel": {
@@ -508,8 +511,11 @@
       "phoneText": "Szkic przygotujesz już teraz, ale opublikujesz go po weryfikacji numeru telefonu (jeden numer = jedno konto).",
       "phoneAction": "Zweryfikuj telefon",
       "blocked": "Masz blokadę wystawiania aukcji do {date}. Szkice możesz przygotowywać, ale opublikujesz je po zakończeniu blokady.",
+      "blockedForever": "Masz bezterminową blokadę wystawiania aukcji. Szkice możesz przygotowywać, ale opublikujesz je dopiero po zdjęciu blokady.",
+      "blockedLink": "Uzasadnienie i odwołanie",
       "limit": "Aktywne aukcje: {active} z {max}. Wartość aukcji do {value}.",
       "limitNoValue": "Aktywne aukcje: {active} z {max}.",
+      "activeOnly": "Aktywne aukcje: {active}.",
       "limitReached": "Masz już {max} aktywnych aukcji. Kolejną opublikujesz, gdy któraś się zakończy.",
       "error": "Nie udało się utworzyć szkicu. Spróbuj ponownie.",
       "loadError": "Nie udało się wczytać szkiców.",
@@ -1068,12 +1074,18 @@
         "UNSOLD": "Aukcja zakończona bez sprzedaży",
         "AUCTION_CANCELLED": "Anulowana aukcja",
         "FOLLOWED_SELLER_NEW_AUCTION": "Nowa aukcja obserwowanego sprzedawcy",
-        "ORDER_PAID": "Opłacone zamówienie: nadaj paczkę"
+        "ORDER_PAID": "Opłacone zamówienie: nadaj paczkę",
+        "STRIKE_ISSUED": "Nowy strike",
+        "STRIKE_REVOKED": "Cofnięty strike",
+        "ACCOUNT_BLOCKED": "Blokada konta",
+        "ACCOUNT_UNBLOCKED": "Zdjęta blokada",
+        "APPEAL_REJECTED": "Odrzucone odwołanie"
       },
       "groups": {
         "bidding": "Licytacje",
         "selling": "Sprzedaż",
-        "following": "Obserwowani sprzedawcy"
+        "following": "Obserwowani sprzedawcy",
+        "account": "Konto: strike'i, blokady i odwołania"
       },
       "hints": {
         "OUTBID": "Najwyżej raz na 15 minut na aukcję",
@@ -1086,7 +1098,7 @@
     "unsubscribe": {
       "metaTitle": "Wypisanie z e-maili",
       "title": "Wypisanie z e-maili",
-      "lead": "{scope, select, ALL {Nie będziemy wysyłać e-maili z powiadomieniami (poza wygranymi, sprzedażą i opłaconymi zamówieniami).} other {Nie będziemy wysyłać e-maili tego typu: {type}.}}",
+      "lead": "{scope, select, ALL {Nie będziemy wysyłać e-maili z powiadomieniami (poza wygranymi, sprzedażą, opłaconymi zamówieniami i decyzjami o koncie).} other {Nie będziemy wysyłać e-maili tego typu: {type}.}}",
       "inApp": "Powiadomienia w aplikacji zostaną.",
       "action": "Wypisz mnie",
       "sending": "Wypisywanie…",
@@ -1531,6 +1543,117 @@
       "title": "Termin płatności minął",
       "text": "Zamówienie zostało anulowane. Jeśli płatność jednak przejdzie, automatycznie zwrócimy całą kwotę.",
       "similar": "Szukaj podobnych"
+    }
+  },
+  "standing": {
+    "metaTitle": "Limity i strike'i",
+    "title": "Limity i strike'i",
+    "lead": "Tu widzisz swoje limity, ostrzeżenia (strike'i) i blokady. Od każdej decyzji możesz się odwołać.",
+    "back": "Moje konto",
+    "error": "Nie udało się wczytać stanu konta.",
+    "retry": "Spróbuj ponownie",
+    "rules": "Strike dostajesz między innymi za brak płatności, nieodebraną paczkę albo anulowanie aukcji z ofertami. {threshold} strike'i w ciągu {days} dni blokują licytowanie albo wystawianie na {blockDays} dni, a kolejna blokada w ciągu roku jest bezterminowa.",
+    "terms": "Zasady w regulaminie",
+    "block": {
+      "until": {
+        "BIDDING": "Licytowanie zablokowane do {date}",
+        "LISTING": "Wystawianie aukcji zablokowane do {date}",
+        "PAYOUTS": "Wypłaty zablokowane do {date}"
+      },
+      "forever": {
+        "BIDDING": "Licytowanie zablokowane bezterminowo",
+        "LISTING": "Wystawianie aukcji zablokowane bezterminowo",
+        "PAYOUTS": "Wypłaty zablokowane do decyzji moderatora"
+      }
+    },
+    "limits": {
+      "title": "Twoje limity",
+      "buyer": "Kupowanie",
+      "seller": "Sprzedawanie",
+      "maxBid": "Maks. oferta",
+      "activeBids": "Aukcje z Twoją ofertą naraz",
+      "activeAuctions": "Aktywne aukcje naraz",
+      "maxValue": "Maks. wartość aukcji",
+      "none": "bez limitu",
+      "overridden": "Limity ustawione indywidualnie przez Biddy.",
+      "next": "Poziom „{level}”: oferty do {limit}",
+      "nextSeller": "Następny poziom: „{level}”"
+    },
+    "levels": {
+      "buyer": {
+        "NEW": "Nowe konto",
+        "CHECKED": "Sprawdzone konto",
+        "TRUSTED": "Zaufane konto"
+      },
+      "seller": {
+        "NEW": "Nowe konto",
+        "VERIFIED": "Konto zweryfikowane",
+        "KYC": "Z weryfikacją tożsamości"
+      }
+    },
+    "requirements": {
+      "PAID_ORDERS": "Opłacone zamówienia: {current} z {required}",
+      "COMPLETED_ORDERS": "Zakończone zakupy: {current} z {required}",
+      "ACCOUNT_AGE_DAYS": "Wiek konta: {current} z {required} dni",
+      "COMPLETED_SALES": "Zakończone sprzedaże: {current} z {required}",
+      "NO_LOST_DISPUTES": "Bez przegranych sporów",
+      "KYC": "Weryfikacja tożsamości u operatora płatności"
+    },
+    "reasons": {
+      "UNPAID": "Brak płatności",
+      "NOT_COLLECTED": "Nieodebrana paczka",
+      "NOT_SHIPPED": "Paczka nienadana w terminie",
+      "AUCTION_CANCELLED_WITH_BIDS": "Anulowanie aukcji z ofertami",
+      "DISPUTE_LOST": "Przegrany spór",
+      "COUNTERFEIT": "Podróbka",
+      "OTHER": "Naruszenie regulaminu"
+    },
+    "strikes": {
+      "title": "Strike'i",
+      "role": {
+        "buyer": "Kupowanie",
+        "seller": "Sprzedawanie"
+      },
+      "meter": "{count} z {threshold} w ciągu {days} dni",
+      "empty": "Nie masz żadnych strike'ów. Tak trzymaj.",
+      "dates": "Nadany {issued}, przestaje się liczyć {expires}.",
+      "revoked": "Cofnięty: {note}",
+      "state": {
+        "ACTIVE": "Aktywny",
+        "EXPIRED": "Wygasł",
+        "REVOKED": "Cofnięty"
+      }
+    },
+    "history": {
+      "title": "Wcześniejsze blokady",
+      "forever": "bezterminowo",
+      "kind": {
+        "BIDDING": "Blokada licytowania",
+        "LISTING": "Blokada wystawiania",
+        "PAYOUTS": "Blokada wypłat"
+      },
+      "state": {
+        "ACTIVE": "Trwa",
+        "EXPIRED": "Zakończona",
+        "LIFTED": "Zdjęta"
+      }
+    },
+    "appeal": {
+      "open": "Odwołaj się",
+      "label": "Treść odwołania",
+      "hint": "Opisz, co się stało. Odpowiemy w ciągu 7 dni.",
+      "counter": "{count}/{max}",
+      "submit": "Wyślij odwołanie",
+      "sending": "Wysyłanie…",
+      "cancel": "Anuluj",
+      "tooShort": "Opisz sprawę w co najmniej {min} znakach.",
+      "error": "Nie udało się wysłać odwołania. Spróbuj ponownie.",
+      "decision": "Uzasadnienie decyzji: {note}",
+      "status": {
+        "PENDING": "Odwołanie w toku (wysłane {date}). Odpowiedź dostaniesz w powiadomieniu i e-mailu.",
+        "ACCEPTED": "Odwołanie uwzględnione.",
+        "REJECTED": "Odwołanie nieuwzględnione."
+      }
     }
   }
 }

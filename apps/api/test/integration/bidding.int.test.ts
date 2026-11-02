@@ -210,21 +210,26 @@ describe('odrzucenia', () => {
 
     const blocked = await createUser(api, pool);
     await pool.query(
-      `update users set bidding_blocked_until = now() + interval '3 days' where id = $1`,
-      [blocked.id],
+      `insert into account_blocks (id, user_id, kind, cause, strike_ids, starts_at, ends_at, statement)
+       values ($1, $2, 'BIDDING', 'STRIKES', '{}', now(), now() + interval '3 days', 'Test')`,
+      [newId(), blocked.id],
     );
     expect(problemOf(await bid(blocked, id, 5_000))).toMatchObject({
       code: 'BIDDING_BLOCKED',
       blockedUntil: expect.any(String) as string,
     });
 
-    const tooMuch = await bid(buyer, id, 50_001);
+    const tooMuch = await bid(buyer, id, 250_001);
     expect(tooMuch.statusCode).toBe(403);
     expect(problemOf(tooMuch)).toMatchObject({
       code: 'BID_LIMIT_EXCEEDED',
-      limit: 50_000,
+      limit: 250_000,
       limitKind: 'BID_AMOUNT',
+      level: 'NEW',
     });
+    expect(problemOf(tooMuch).detail.replaceAll('\u00a0', ' ')).toBe(
+      'Jako nowe konto możesz zaoferować najwyżej 2500 zł. Limit rośnie po pierwszym opłaconym zamówieniu.',
+    );
 
     const ended = await auction({ endsInMs: -1_000 });
     expect(problemOf(await bid(buyer, ended, 5_000)).code).toBe('AUCTION_ENDED');
@@ -335,7 +340,7 @@ describe('Kup teraz', () => {
     ]);
     expect(problemOf(await bid(anna, id, 10_000)).code).toBe('AUCTION_ENDED');
 
-    const pricey = await auction({ buyNowPrice: 60_000 });
+    const pricey = await auction({ buyNowPrice: 260_000 });
     expect(problemOf(await buyNow(bartek, pricey)).code).toBe('BID_LIMIT_EXCEEDED');
   });
 });

@@ -94,12 +94,14 @@ export function SellStart({ phoneVerified }: { readonly phoneVerified: boolean }
     }
   };
 
+  const blocked = limits.data?.listingBlocked === true;
   const blockedUntil =
     limits.data?.listingBlockedUntil === null || limits.data === undefined
       ? undefined
       : new Date(limits.data.listingBlockedUntil);
+  const maxActive = limits.data?.maxActiveAuctions ?? null;
   const limitReached =
-    limits.data !== undefined && limits.data.activeAuctions >= limits.data.maxActiveAuctions;
+    limits.data !== undefined && maxActive !== null && limits.data.activeAuctions >= maxActive;
 
   return (
     <div className="space-y-8">
@@ -127,17 +129,16 @@ export function SellStart({ phoneVerified }: { readonly phoneVerified: boolean }
             {limits.data === undefined ? null : (
               <p className="text-body-sm text-foreground-secondary tabular-nums">
                 {limitReached
-                  ? t('limitReached', { max: limits.data.maxActiveAuctions })
-                  : limits.data.maxAuctionValue === null
-                    ? t('limitNoValue', {
-                        active: limits.data.activeAuctions,
-                        max: limits.data.maxActiveAuctions,
-                      })
-                    : t('limit', {
-                        active: limits.data.activeAuctions,
-                        max: limits.data.maxActiveAuctions,
-                        value: zl(limits.data.maxAuctionValue),
-                      })}
+                  ? t('limitReached', { max: maxActive })
+                  : maxActive === null
+                    ? t('activeOnly', { active: limits.data.activeAuctions })
+                    : limits.data.maxAuctionValue === null
+                      ? t('limitNoValue', { active: limits.data.activeAuctions, max: maxActive })
+                      : t('limit', {
+                          active: limits.data.activeAuctions,
+                          max: maxActive,
+                          value: zl(limits.data.maxAuctionValue),
+                        })}
               </p>
             )}
           </div>
@@ -164,11 +165,19 @@ export function SellStart({ phoneVerified }: { readonly phoneVerified: boolean }
           </Button>
         </div>
       )}
-      {blockedUntil !== undefined && blockedUntil > new Date() ? (
+      {blocked ? (
         <p className="rounded-lg bg-destructive-soft px-4 py-3 text-body-sm">
-          {t('blocked', {
-            date: format.dateTime(blockedUntil, { dateStyle: 'long', timeStyle: 'short' }),
-          })}
+          {blockedUntil === undefined
+            ? t('blockedForever')
+            : t('blocked', {
+                date: format.dateTime(blockedUntil, { dateStyle: 'long', timeStyle: 'short' }),
+              })}{' '}
+          <Link
+            href={routes.accountStanding}
+            className="rounded-xs font-semibold text-link underline underline-offset-3 outline-none hover:text-link-hover focus-visible:shadow-focus-ring"
+          >
+            {t('blockedLink')}
+          </Link>
         </p>
       ) : null}
 

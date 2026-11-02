@@ -24,6 +24,8 @@ export const routes = {
   mySales: '/moje-biddy/sprzedane',
   notifications: '/powiadomienia',
   notificationSettings: '/konto/powiadomienia',
+  /** Limity konta, strike'i, blokady i odwołania (F-61). */
+  accountStanding: '/konto/limity',
   unsubscribe: '/wypisz',
   about: '/o-nas',
   contact: '/kontakt',

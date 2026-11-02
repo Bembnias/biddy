@@ -17,6 +17,9 @@ import {
   Lock,
   type LucideIcon,
   Package,
+  Scale,
+  ShieldAlert,
+  ShieldCheck,
   Store,
   TriangleAlert,
   Trophy,
@@ -31,12 +34,22 @@ import { Switch } from '@/components/ui/switch';
 
 /** Grupy ustawień (F-63): licytacje, sprzedaż i obserwowani sprzedawcy. */
 const GROUPS: readonly {
-  readonly key: 'bidding' | 'selling' | 'following';
+  readonly key: 'bidding' | 'selling' | 'following' | 'account';
   readonly types: readonly NotificationType[];
 }[] = [
   { key: 'bidding', types: ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED'] },
   { key: 'selling', types: ['SOLD', 'ORDER_PAID', 'UNSOLD'] },
   { key: 'following', types: ['FOLLOWED_SELLER_NEW_AUCTION'] },
+  {
+    key: 'account',
+    types: [
+      'STRIKE_ISSUED',
+      'STRIKE_REVOKED',
+      'ACCOUNT_BLOCKED',
+      'ACCOUNT_UNBLOCKED',
+      'APPEAL_REJECTED',
+    ],
+  },
 ];
 
 /** Ikona typu w spokojnym tonie (w ustawieniach nic nie wymaga reakcji). */
@@ -52,6 +65,11 @@ const TYPE_TILES: Record<
   ORDER_PAID: { tone: 'success', Icon: Package },
   UNSOLD: { tone: 'danger', Icon: CircleX },
   FOLLOWED_SELLER_NEW_AUCTION: { tone: 'neutral', Icon: Store },
+  STRIKE_ISSUED: { tone: 'neutral', Icon: ShieldAlert },
+  STRIKE_REVOKED: { tone: 'neutral', Icon: ShieldCheck },
+  ACCOUNT_BLOCKED: { tone: 'neutral', Icon: Ban },
+  ACCOUNT_UNBLOCKED: { tone: 'neutral', Icon: ShieldCheck },
+  APPEAL_REJECTED: { tone: 'neutral', Icon: Scale },
 };
 
 /** Typy z opisem pod nazwą (`settings.hints`). */
@@ -64,7 +82,8 @@ function hasHint(type: NotificationType): type is (typeof HINT_TYPES)[number] {
 /**
  * E-maile per typ powiadomienia (F-20, układ F-63): grupy w kartach, przełącznik
  * (`role="switch"`) przy każdym typie. Zmiana zapisuje się od razu; e-maile transakcyjne
- * (wygrana, sprzedaż, opłacone zamówienie) są zawsze włączone i mają kłódkę zamiast przełącznika.
+ * (wygrana, sprzedaż, opłacone zamówienie, decyzje o koncie z F-61) są zawsze włączone i mają
+ * kłódkę zamiast przełącznika.
  * Powiadomienia w aplikacji są zawsze.
  */
 export function NotificationSettings() {

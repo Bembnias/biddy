@@ -1249,9 +1249,12 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), staff_role, bidding_blocked_until, listing_blocked_until, seller_kyc_notice_accepted_at, limits (jsonb, nadpisania §4.1), created_at |
+| `users` | id, email, phone, phone_verified_at, display_name, avatar_media_id, avatar_url, is_adult_declared_at, status (`ACTIVE`/`LIMITED`/`BANNED`), staff_role, seller_kyc_notice_accepted_at, limits (jsonb, nadpisania §4.1), created_at; blokady w `account_blocks` (F-61) |
 | `terms_acceptances` | id, user_id, document (`TERMS`/`PRIVACY`), version, accepted_at, ip |
-| `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, order_id, auction_id, issued_by (system/admin), statement_of_reasons, expires_at, appeal_status, revoked_at, created_at |
+| `strikes` | id, user_id, role (`BUYER`/`SELLER`), reason, source_key (unikalny klucz źródła systemowego), order_id, auction_id, issued_by (null = system), statement (uzasadnienie), note (wewnętrzna), expires_at, revoked_at, revoked_by, revoke_note, appeal_status (`NONE`/`PENDING`/`ACCEPTED`/`REJECTED`), appeal_message, appealed_at, appeal_resolved_at, appeal_resolved_by, appeal_note, created_at (F-61) |
+| `account_blocks` | id, user_id, kind (`BIDDING`/`LISTING`/`PAYOUTS`), cause (`STRIKES`/`COUNTERFEIT`), strike_ids, starts_at, ends_at (null = bezterminowa), statement, lifted_at, lifted_by, lift_note, pola odwołania jak w `strikes`, created_at (F-61) |
+| `trade_records` | order_id (PK, bez FK), buyer_id, seller_id, paid_at, completed_at, seller_dispute_lost_at: historia zamówień do poziomów §4.1, dopisywana przez moduł `orders` (F-61) |
+| `account_policies` | id, policy (jsonb: limity poziomów i reguły strike'ów), created_by, note, created_at; obowiązuje najnowsza wersja (F-61) |
 | `seller_accounts` | id, user_id, provider, provider_account_id, type (`PRIVATE`/`BUSINESS`), kyc_status, payout_method_masked, payouts_blocked_until, dac7_data (szyfrowane), nip, created_at. Unikalne (user_id, provider) i (provider, provider_account_id). Moduł `payments`: F-23 tworzy kolumny do kyc_status, resztę dodadzą F-27 i F-32. |
 | `addresses` | id, user_id, recipient_name, street, postal_code, city, country, phone, is_default, is_sender_default (moduł `identity`; najwyżej jeden domyślny adres dostawy i nadania na konto, F-10) |
 | `payment_methods` (v1) | id, user_id, provider_ref, type, brand, last4, is_default (tylko referencje/tokeny operatora, **żadnych danych kart**) |
@@ -1317,7 +1320,7 @@ erDiagram
 - `orders(status, inspection_ends_at)` oraz `orders(status, payment_due_at)` dla jobów terminów,
 - unikalny `bids(bidder_id, idempotency_key)`,
 - unikalny częściowy `order_items(auction_id) WHERE is_active` (jedno aktywne zamówienie na aukcję; anulowanie zamówienia ustawia `is_active = false` w tej samej transakcji),
-- `strikes(user_id, created_at)` dla reguły „3 w 90 dni”,
+- `strikes(user_id, role, created_at)` dla reguły „3 w 90 dni”, `account_blocks(user_id, kind, starts_at)` dla guardów,
 - `shipments(status, polled_at)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`.
 
 ---
@@ -1338,7 +1341,8 @@ GET    /me/addresses               POST /me/addresses           PATCH|DELETE /me
 POST   /me/terms-acceptances       (akceptacja aktualnej wersji regulaminu / polityki)
 POST   /me/seller-onboarding       → rejestracja sprzedawcy i KYC u operatora
 GET    /me/balance                 POST /me/payouts             PATCH /me/payout-settings
-GET    /me/strikes                 POST /me/strikes/:id/appeal
+GET    /me/standing                (poziomy, limity, blokady, liczniki strike'ów; F-61)
+GET    /me/strikes                 POST /me/strikes/:id/appeal      POST /me/account-blocks/:id/appeal
 PUT    /me/followed-sellers/:userId    DELETE /me/followed-sellers/:userId
 PUT    /me/blocks/:userId          DELETE /me/blocks/:userId
 
@@ -1408,7 +1412,9 @@ POST   /dev/fake-shipping/parcels/:id/advance      POST /dev/fake-shipping/parce
 POST   /admin/bids/:id/cancel      (unieważnienie oferty + replay, §15.6)
 POST   /admin/auctions/:id/cancel  (anulowanie aukcji przez moderację, F-16)
 POST   /admin/disputes/:id/decision
-POST   /admin/strikes              POST /admin/strikes/:id/revoke
+POST   /admin/strikes              POST /admin/strikes/:id/revoke   POST /admin/strikes/:id/appeal-decision
+POST   /admin/account-blocks/:id/lift    POST /admin/account-blocks/:id/appeal-decision    GET /admin/appeals
+GET    /admin/account-policy       PUT /admin/account-policy        PUT /admin/users/:id/limits    GET /admin/users/:id/standing   (F-61)
 POST   /admin/compensations        (rekompensata dla sprzedającego, §7.9)
 ```
 
@@ -1463,7 +1469,7 @@ interface AuctionViewersEvent { auctionId: string; count: number; serverTime: st
 - **Aukcje:** `AuctionPublished`, `AuctionSubmittedForReview`, `AuctionUpdated` (zmiana przed pierwszą ofertą), `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
 - **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`. `ShipmentCreated` i `ShipmentStatusChanged` (F-24) publikuje moduł `shipping`; `ShipmentStatusChanged` niesie czas u przewoźnika, czas wykrycia i przy `RETURNING` powód zwrotu. Kontrakt `OrderPaid` (z `shipBy`) zdefiniował F-24 dla powiadomienia „nadaj paczkę”, a publikuje go F-26.
 - **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
-- **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `ReviewPublished`, `ReportCreated`.
+- **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `AccountBlocked`, `AccountBlockLifted`, `AppealResolved` (F-61), `ReviewPublished`, `ReportCreated`.
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
 
@@ -1960,12 +1966,17 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 98 | Zwrot do nadawcy ma powód `NOT_COLLECTED`, gdy paczka wcześniej czekała na kupującego (w punkcie albo u kuriera), inaczej `OTHER`; Furgonetka ma jeden stan zwrotu, więc `returned` to „zwrot w drodze”, a późniejsze `delivered` to `RETURNED` | Tymczasowa (do potwierdzenia na sandboksie Furgonetki) | §7.4, §8.5 |
 | 99 | Adapter Furgonetki w F-24 obsługuje tylko nadanie w punkcie (`DROP_OFF`) i daje etykietę PDF; zamówienie kuriera po paczkę i kod nadania bez etykiety po odpowiedziach Furgonetki. Token OAuth (logowanie hasłem raz na instalację, jednorazowy refresh token) w bazie, zaszyfrowany kluczem z `BETTER_AUTH_SECRET`, odświeżany pod blokadą doradczą | Tymczasowa | §8.1, §8.5 |
 | 100 | Kontrakt eventu `OrderPaid` (z terminem nadania `shipBy`) i powiadomienie sprzedającego `ORDER_PAID` (e-mail transakcyjny) powstały w F-24, zanim F-26 zacznie publikować event; przesyłka testowa FakeShipping może nie mieć zamówienia (`order_id` null tylko dla `provider = 'fake'`) | Przyjęta | §14.3, §8.6 |
-| 106 | F-25 przejmuje z F-26 przejścia zamówienia wokół płatności: `AWAITING_PAYMENT → PAID` w konsumencie `PaymentSucceeded` (z `paid_at`, `ship_by` = koniec 5. dnia roboczego i eventem `OrderPaid`) oraz `AWAITING_PAYMENT → CANCELLED_UNPAID` w jobie `orders.expire-unpaid` co minutę (płatność w toku założona przed terminem przesuwa anulowanie o 30 min). Strike i druga szansa zostają w F-26 jako konsumenci `OrderCancelled` (`paymentPending` mówi, czy płatność może jeszcze przyjść) | Przyjęta | §6.8, §7.3, §7.4 |
+| 106 | F-25 przejmuje z F-26 przejścia zamówienia wokół płatności: `AWAITING_PAYMENT → PAID` w konsumencie `PaymentSucceeded` (z `paid_at`, `ship_by` = koniec 5. dnia roboczego i eventem `OrderPaid`) oraz `AWAITING_PAYMENT → CANCELLED_UNPAID` w jobie `orders.expire-unpaid` co minutę (płatność w toku założona przed terminem przesuwa anulowanie o 30 min). Strike i druga szansa zostają w F-26 jako konsumenci `OrderCancelled` (`paymentPending` mówi, czy płatność może jeszcze przyjść; strike nadaje od F-61 konsument `orders.strike-unpaid`, nr 113) | Przyjęta | §6.8, §7.3, §7.4 |
 | 107 | Checkout: kwoty liczy backend, a klient wysyła tylko sumę z przycisku (`expectedTotal`; inna = 409 `CHECKOUT_TOTAL_CHANGED`). Zmiana dostawy i nowa płatność blokują wiersz zamówienia (`FOR UPDATE`) do zapisu płatności, także na czas wywołania operatora; płatność w toku albo udana blokuje kolejną, nieudana nie. Klucz płatności `checkout:{orderId}:{Idempotency-Key}` | Przyjęta | §7.2, §7.8 |
 | 108 | Zwroty płatności w module `payments` (tabela `refunds`): zlecenie w transakcji wywołującego z eventem `RefundRequested`, wywołanie operatora w konsumencie z kluczem `refund:{id}`, księgowanie `ORDER_REFUNDED` dopiero po webhooku `REFUND_SUCCEEDED`; nieudany zwrot czeka na support. Udana płatność anulowanego zamówienia (`LATE_PAYMENT`) albo drugiej płatności (`DUPLICATE_PAYMENT`, nowy powód w ledgerze) wraca automatycznie i bez strike'a | Przyjęta | §6.8, §7.7 |
 | 109 | Do F-32 checkout rejestruje sprzedawcę u operatora przed pierwszą płatnością (imię i potwierdzony e-mail z `identity`; zablokowany albo bez e-maila: 409 `SELLER_UNAVAILABLE`). Checkout web: BLIK z kodem, karta i szybki przelew (Apple Pay i Google Pay z prawdziwym operatorem, F-31), punkty odbioru przez wyszukiwarkę bez mapy | Tymczasowa | §7.6, §8.1 |
-| 110 | Maks. oferta nowego kupującego 2500 zł (było 500 zł), sprawdzonego 5000 zł (było 3000 zł), zaufanego bez limitu; limit liczby aukcji z aktywną ofertą bez zmian. Pierwsze zakupy mogą obejmować droższe przedmioty (elektronika, kolekcje), a ryzyko niepłacącego zwycięzcy ograniczają strike'i i blokady (F-61). Do F-61 kod ma stare wartości (`BUYER_LIMITS`) | Przyjęta | §4.1 |
+| 110 | Maks. oferta nowego kupującego 2500 zł (było 500 zł), sprawdzonego 5000 zł (było 3000 zł), zaufanego bez limitu; limit liczby aukcji z aktywną ofertą bez zmian. Pierwsze zakupy mogą obejmować droższe przedmioty (elektronika, kolekcje), a ryzyko niepłacącego zwycięzcy ograniczają strike'i i blokady (F-61). Wartości obowiązują od F-61 (polityka kont, nr 112) | Przyjęta | §4.1 |
 | 111 | SMS-y z kodem weryfikacyjnym na stagingu mogą iść do logu API zamiast do SMSAPI: `SMS_LOG_ONLY=true` włącza atrapę także przy ustawionym `SMSAPI_TOKEN` (wtedy token nie jest wymagany), a na produkcji (`DEPLOYMENT_ENV=production`) konfiguracja ją odrzuca, jak FakeGateway i FakeShipping. Powód: do aktywacji konta SMSAPI odrzuca SMS-y z linią WebOTP `@host #kod` (kod błędu 94, wygląda jak link), a atrapa pozwala sprawdzić weryfikację telefonu bez wysyłki | Tymczasowa | §11.2 |
+| 112 | Limity poziomów i reguły strike'ów jako wersjonowana polityka kont w bazie (`account_policies`, najnowsza obowiązuje; pusta tabela = `DEFAULT_ACCOUNT_POLICY` z `@biddy/shared`), zmieniana przez `PUT /admin/account-policy` (rola `admin`) do panelu F-34; proces trzyma ją w pamięci 30 s. Nadpisania jednego konta w `users.limits` (poziom albo pojedyncze limity, `null` = bez limitu) | Przyjęta | §4.1 |
+| 113 | Moduł `identity` nie importuje innych modułów, więc strike'i i historię zamówień przekazują mu moduły źródłowe w swoich transakcjach (`StrikeService.issue`, `TradeHistoryService`), z kluczem źródła (`UNPAID:{orderId}`) zamiast osobnego wpisu idempotencji: brak płatności, nieodebrana paczka i cofnięcie po spóźnionej płatności w `orders`, anulowanie aukcji z ofertami w `auctions`; brak nadania i przegrany spór dołożą F-26 i F-28. Poziomy liczone z tabeli `trade_records` (backfill opłaconych zamówień w migracji) | Przyjęta | §4.1, §10.3 |
+| 114 | Blokady w tabeli `account_blocks` zamiast kolumn `users.*_blocked_until` (bezterminowa = `ends_at` null, uzasadnienie i odwołanie przy blokadzie). Do progu liczą się strike'i niecofnięte, z okna 90 dni i niezużyte przez niezdjętą blokadę tej roli (po końcu blokady potrzeba trzech nowych). Kolejna blokada z progu strike'ów w ciągu 365 dni jest bezterminowa; zdjęta się nie liczy. Cofnięcie strike'a zdejmuje blokady, które wywołał. Strike i blokada pod blokadą wiersza użytkownika (jedna blokada przy równoległych strike'ach) | Przyjęta | §4.1 |
+| 115 | Strike `UNPAID` nadajemy od razu przy anulowaniu, także gdy płatność jest w toku; spóźniona płatność (`RefundRequested` z `LATE_PAYMENT`) cofa go automatycznie z uzasadnieniem. Anulowanie aukcji z ofertami przez moderatora nie daje strike'a z automatu (moderator nadaje go ręcznie) | Tymczasowa | §4.1, §6.8 |
+| 116 | Odwołanie (DSA): jedno na strike albo blokadę, 20–2000 znaków, do 180 dni od nadania, tylko od decyzji, która nadal obowiązuje; decyzja personelu z uzasadnieniem widocznym dla użytkownika. Strike'i, blokady i odrzucone odwołania to e-maile transakcyjne (bez wypisania), bo niosą uzasadnienie decyzji | Tymczasowa | §4.1, §17 |
 
 ---
 

@@ -531,6 +531,35 @@ Zwycięzca płaci na stronie `/zamowienia/{numer}/zaplac` (link z powiadomienia 
 - **Zwroty:** udana płatność anulowanego albo już opłaconego zamówienia wraca do kupującego automatycznie (tabela `refunds`, event `RefundRequested`, operator, webhook, księgowanie `ORDER_REFUNDED`).
 - **Lokalnie:** kody BLIK FakeGateway `777123` (udana), `111111` (odrzucona), `222222` (zostaje w toku); karta i szybki przelew przechodzą przez testową stronę `/dev/fake-pay/{id}`, która wraca na checkout.
 
+### Limity kont i strike'i (F-61)
+
+Poziomy kont, limity, strike'i i blokady z uzasadnieniem i odwołaniem (PROJECT.md §4.1). Spec: [F-61](docs/features/F-61-limity-i-strike.md).
+
+- **Poziomy z historii zamówień.**
+  - Moduł `identity` trzyma tabelę `trade_records` (jeden wiersz na zamówienie).
+  - Dopisuje ją moduł `orders`: konsument `OrderPaid`, w F-26 zakończenie, w F-28 przegrany spór.
+  - Kupujący po pierwszym opłaconym zamówieniu może licytować do 5000 zł (nowe konto: 2500 zł).
+- **Polityka kont bez deployu.**
+  - Limity poziomów i reguły strike'ów leżą w `account_policies` (najnowsza wersja, bez wersji: `DEFAULT_ACCOUNT_POLICY` z `@biddy/shared`).
+  - Zmiana przez `PUT /v1/admin/account-policy` (rola `admin`) działa w każdym procesie po najwyżej 30 s.
+  - Nadpisania dla jednego konta: `PUT /v1/admin/users/:id/limits` (`users.limits`).
+- **Strike'i.** `StrikeService.issue(tx, …)` w transakcji modułu, który zna zdarzenie, z kluczem źródła (ponowiony event nie daje drugiego strike'a):
+  - `orders`: brak płatności (`OrderCancelled`) i nieodebrana paczka (`ShipmentStatusChanged` z `NOT_COLLECTED`);
+  - spóźniona płatność (`RefundRequested` z `LATE_PAYMENT`) cofa strike;
+  - `auctions`: anulowanie aukcji z ofertami.
+- **Blokady.**
+  - 3 strike'i roli w 90 dni dają blokadę licytowania albo wystawiania na 30 dni (tabela `account_blocks`).
+  - Kolejna blokada w ciągu 365 dni jest bezterminowa (`ends_at` null).
+  - Guardy zwracają `BIDDING_BLOCKED` albo `LISTING_BLOCKED` z `blockedUntil` (null = bezterminowa) i `blockId`.
+  - Cofnięty strike zdejmuje blokadę, którą wywołał.
+- **Web.**
+  - `/konto/limity`: blokady, limity z następnym poziomem, strike'i z uzasadnieniem i formularz odwołania.
+  - Odwołania przez `POST /v1/me/strikes/:id/appeal` i `/v1/me/account-blocks/:id/appeal`.
+- **Personel** (rola ze zwykłej sesji do F-34):
+  - `GET /v1/admin/appeals`, `POST /v1/admin/strikes/:id/appeal-decision`, `POST /v1/admin/strikes/:id/revoke`;
+  - `POST /v1/admin/strikes` (podróbka albo inne naruszenie), `POST /v1/admin/account-blocks/:id/lift`, `GET /v1/admin/users/:id/standing`.
+- **Powiadomienia.** `STRIKE_ISSUED`, `STRIKE_REVOKED`, `ACCOUNT_BLOCKED`, `ACCOUNT_UNBLOCKED` i `APPEAL_REJECTED` to e-maile transakcyjne z uzasadnieniem decyzji.
+
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 
 Web i mobile nie piszą wywołań API ręcznie. Kontrakt powstaje z kodu API, a klient z kontraktu ([PROJECT.md §11.1](docs/PROJECT.md#111-wspólne)):

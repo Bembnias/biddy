@@ -439,6 +439,7 @@ describe('publikacja', () => {
       maxAuctionValue: 500_000,
       kycVerified: false,
       kycRequiredAbove: 500_000,
+      listingBlocked: false,
       listingBlockedUntil: null,
       kycNoticeAccepted: true,
     });
@@ -447,12 +448,21 @@ describe('publikacja', () => {
   it('blokada wystawiania: 403 LISTING_BLOCKED z datą końca', async () => {
     const user = await createUser();
     const until = new Date(Date.now() + 3 * DAY);
-    await pool.query('update users set listing_blocked_until = $2 where id = $1', [user.id, until]);
+    await pool.query(
+      `insert into account_blocks (id, user_id, kind, cause, strike_ids, starts_at, ends_at, statement)
+       values ($1, $2, 'LISTING', 'STRIKES', '{}', now(), $3, 'Test')`,
+      [newId(), user.id, until],
+    );
     const response = await publish(user, (await completeDraft(user)).id);
     expect(response.statusCode).toBe(403);
     expect(problemOf(response)).toMatchObject({
       code: 'LISTING_BLOCKED',
       blockedUntil: until.toISOString(),
+    });
+    const limits = await call('GET', '/v1/me/selling-limits', user);
+    expect(limits.json()).toMatchObject({
+      listingBlocked: true,
+      listingBlockedUntil: until.toISOString(),
     });
   });
 
