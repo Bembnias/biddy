@@ -118,6 +118,9 @@ describe('addBusinessDays', () => {
     const days = [...everyDay('2025-01-01', '2030-12-31')];
     const maxBusinessDays = 12;
 
+    // Przeglądy wyczerpujące (każdy dzień × n do 12): lokalnie ułamek sekundy, ale na
+    // współdzielonym runnerze CI, gdy turbo uruchamia równolegle lint, tsc i testy, przekroczyły
+    // domyślne 5 s.
     it('wynik jest dniem roboczym, a między datami jest dokładnie n dni roboczych', () => {
       for (const date of days) {
         for (let businessDays = 0; businessDays <= maxBusinessDays; businessDays += 1) {
@@ -130,7 +133,7 @@ describe('addBusinessDays', () => {
           expect(countBusinessDaysAfter(date, result)).toBe(businessDays);
         }
       }
-    });
+    }, 30_000);
 
     it('wynik rośnie ściśle wraz z n i składa się z kolejnych nextBusinessDay', () => {
       for (const date of days) {
@@ -142,7 +145,7 @@ describe('addBusinessDays', () => {
           previous = result;
         }
       }
-    });
+    }, 30_000);
   });
 });
 

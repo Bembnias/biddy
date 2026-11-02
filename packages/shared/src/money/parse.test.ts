@@ -183,6 +183,8 @@ describe('parseMoney: bardzo długie dane wejściowe', () => {
 });
 
 describe('parseMoney: właściwości (round-trip)', () => {
+  // Przegląd wyczerpujący 200 tys. kwot: lokalnie ok. 0,25 s, ale na współdzielonym runnerze CI,
+  // gdy turbo uruchamia równolegle lint, tsc i testy, przekroczył domyślne 5 s.
   it('parseMoney(toDecimalString(m)) = m, także z przecinkiem i z „zł”', () => {
     const failures: number[] = [];
     for (let amount = -100_000; amount <= 100_000; amount++) {
@@ -197,7 +199,7 @@ describe('parseMoney: właściwości (round-trip)', () => {
       }
     }
     expect(failures).toEqual([]);
-  });
+  }, 30_000);
 
   it('parseMoney(formatMoney(m)) = m dla pl-PL', () => {
     const amounts = [MAX, MIN, MAX - 1, MIN + 1, 0, 1, -1];
