@@ -5,17 +5,26 @@
  * zamówień, konta sprzedawców u operatora, webhooki i polling zapasowy (F-23); zwroty,
  * chargebacki i wypłaty w kolejnych feature'ach.
  * - PaymentService.createPayment: płatność zamówienia u operatora domyślnego (checkout, F-25).
- * - RefundService.request: zwrot udanej płatności (F-25: spóźniona i zdublowana).
+ * - RefundService.request: zwrot udanej płatności (F-25: spóźniona i zdublowana; F-26:
+ *   nienadanie, zaginięcie, nieodebrana paczka bez kosztu dostawy).
+ * - EscrowService: zwolnienie środków po zakończeniu zamówienia, rekompensata za zaginioną
+ *   paczkę i rozliczenie reklamacji (F-26).
  * - SellerAccountService.register / find: konto sprzedawcy u operatora (rejestracja: F-32).
  * - GatewayRegistry: adapter dla operatora z rekordu i operator domyślny.
  * - PaymentEventProcessor, PendingPaymentsPoller: tor zdarzeń operatora (webhook, polling).
  * - Eventy: PaymentSucceeded, PaymentFailed, RefundRequested, RefundSucceeded,
- *   SellerKycStatusChanged.
+ *   SellerKycStatusChanged, FundsReleaseRequested.
  *
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
  * nigdy przez jego wewnętrzne pliki ani tabele (reguła granic modułów w eslint.config.js).
  */
 export { FAKE_BLIK_CODES } from './adapters/fake/fake-scenarios.js';
+export {
+  type CompensateLostParcelCommand,
+  EscrowService,
+  type ReleaseFundsCommand,
+  type SettleCarrierClaimCommand,
+} from './application/escrow.service.js';
 export { GatewayRegistry, UnknownPaymentProviderError } from './application/gateway-registry.js';
 export {
   PaymentEventProcessor,
@@ -39,7 +48,10 @@ export {
   type SellerAccount,
   SellerAccountService,
 } from './application/seller-account.service.js';
+export type { FundReleaseRow, RefundOrderAmounts, RefundRow } from './db/payments.schema.js';
 export {
+  FUND_RELEASE_STATUSES,
+  type FundReleaseStatus,
   PAYMENT_FAILURE_REASONS,
   PAYMENT_METHODS,
   PAYMENT_PROVIDERS,
@@ -65,6 +77,7 @@ export {
 } from './fees/fee-schedule.service.js';
 export { PaymentsModule } from './payments.module.js';
 export {
+  FundsReleaseRequested,
   PaymentFailed,
   PaymentSucceeded,
   RefundRequested,

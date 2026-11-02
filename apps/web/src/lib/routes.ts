@@ -46,6 +46,16 @@ export function checkoutUrl(orderPublicId: string): string {
   return `/zamowienia/${encodeURIComponent(orderPublicId)}/zaplac`;
 }
 
+/** Strona zamówienia dla obu stron (F-26), np. `/zamowienia/k3x9qa7m`. */
+export function orderUrl(orderPublicId: string): string {
+  return `/zamowienia/${encodeURIComponent(orderPublicId)}`;
+}
+
+/** Oferta drugiej szansy dla licytującego (F-26). */
+export function secondChanceUrl(offerId: string): string {
+  return `/druga-szansa/${encodeURIComponent(offerId)}`;
+}
+
 /** Strona nadania paczki zamówienia dla sprzedającego (F-24), np. `/zamowienia/k3x9qa7m/nadaj`. */
 export function dispatchUrl(orderPublicId: string): string {
   return `/zamowienia/${encodeURIComponent(orderPublicId)}/nadaj`;

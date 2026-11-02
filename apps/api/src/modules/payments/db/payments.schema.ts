@@ -1,12 +1,12 @@
 // Tabele modułu payments: cenniki POK (F-13), płatności u operatora, konta sprzedawców
-// u operatora i idempotencja webhooków (F-23), zwroty (F-25); wypłaty i chargebacki dojdą
-// w F-27 i F-28 (PROJECT.md §7.8). ID to UUIDv7 nadawane przez aplikację (ADR-10). Tabele FakeGateway są
+// u operatora i idempotencja webhooków (F-23), zwroty (F-25), zwolnienia środków (F-26); wypłaty
+// i chargebacki dojdą w F-27 i F-28 (PROJECT.md §7.8). ID to UUIDv7 nadawane przez aplikację (ADR-10). Tabele FakeGateway są
 // w fake-gateway.schema.ts.
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts). Ograniczenie
 // wykluczające nakładanie się okresów i trigger niezmienności cenników są w migracji
 // 0008_fee_schedules (Drizzle ich nie opisuje).
-import type { CurrencyCode, FeeTier } from '@biddy/shared';
+import type { CurrencyCode, FeeTier, Money } from '@biddy/shared';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -25,6 +25,8 @@ import {
 
 import { idColumn } from '../../../infra/db/ids.js';
 import {
+  FUND_RELEASE_STATUSES,
+  type FundReleaseStatus,
   PAYMENT_FAILURE_REASONS,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
@@ -147,10 +149,19 @@ export const payments = pgTable(
 
 export type PaymentRow = typeof payments.$inferSelect;
 
+/** Kwoty zamówienia do księgowania zwrotu nieodebranej paczki (szablon NOT_PICKED_UP_REFUNDED). */
+export interface RefundOrderAmounts {
+  readonly itemsTotal: Money;
+  readonly pokFee: Money;
+  readonly pokVat: Money;
+  readonly shippingFee: Money;
+}
+
 /**
- * Zwrot płatności u operatora (F-25: spóźniona i zdublowana płatność; kolejne powody w F-26–F-28).
- * Wiersz powstaje w transakcji zlecającej (z eventem RefundRequested), operatora woła konsument
- * eventu, a stan końcowy i księgowanie przychodzą webhookiem.
+ * Zwrot płatności u operatora (F-25: spóźniona i zdublowana płatność; F-26: nienadanie,
+ * nieodebranie i zaginięcie; spory i chargebacki w F-28). Wiersz powstaje w transakcji zlecającej
+ * (z eventem RefundRequested), operatora woła konsument eventu, a stan końcowy i księgowanie
+ * przychodzą webhookiem.
  */
 export const refunds = pgTable(
   'refunds',
@@ -170,6 +181,8 @@ export const refunds = pgTable(
     status: text().$type<RefundStatus>().notNull().default('PENDING'),
     /** Klucz wywołującego, np. `refund:payment:{id}:late`. */
     idempotencyKey: text().notNull(),
+    /** Kwoty zamówienia, tylko przy `NOT_PICKED_UP` (dostawa zostaje w Biddy, F-26). */
+    orderAmounts: jsonb().$type<RefundOrderAmounts>(),
     succeededAt: timestamp({ withTimezone: true }),
     failedAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -183,10 +196,49 @@ export const refunds = pgTable(
     check('refunds_reason_check', sql.raw(`reason in (${sqlList(REFUND_REASONS)})`)),
     check('refunds_amount_check', sql`${table.amount} > 0`),
     check('refunds_idempotency_key_check', sql`length(${table.idempotencyKey}) between 1 and 200`),
+    check(
+      'refunds_order_amounts_check',
+      sql`(${table.reason} = 'NOT_PICKED_UP') = (${table.orderAmounts} is not null)`,
+    ),
   ],
 );
 
 export type RefundRow = typeof refunds.$inferSelect;
+
+/**
+ * Zwolnienie środków sprzedającego u operatora po zakończeniu zamówienia (F-26). Ledger zwalnia
+ * środki w transakcji zakończenia (EscrowService.release), a ten wiersz śledzi wykonanie
+ * u operatora: wywołuje go konsument eventu FundsReleaseRequested z kluczem `release:{id}`.
+ */
+export const fundReleases = pgTable(
+  'fund_releases',
+  {
+    id: idColumn(),
+    /** Zamówienie (moduł orders; uuid bez FK): najwyżej jedno zwolnienie. */
+    orderId: uuid().notNull(),
+    paymentId: uuid()
+      .notNull()
+      .references(() => payments.id),
+    provider: text().notNull(),
+    /** ID transferu u operatora; null przy `NOT_REQUIRED` i do czasu odpowiedzi. */
+    providerTransferId: text(),
+    currency: char({ length: 3 }).$type<CurrencyCode>().notNull(),
+    /** Część sprzedającego (cena). */
+    amount: money().notNull(),
+    status: text().$type<FundReleaseStatus>().notNull().default('PENDING'),
+    releasedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('fund_releases_order_id_key').on(table.orderId),
+    index().on(table.paymentId),
+    check('fund_releases_status_check', sql.raw(`status in (${sqlList(FUND_RELEASE_STATUSES)})`)),
+    check('fund_releases_amount_check', sql`${table.amount} > 0`),
+  ],
+);
+
+export type FundReleaseRow = typeof fundReleases.$inferSelect;
 
 /**
  * Konto sprzedawcy u operatora (F-23, minimalne kolumny). Na jednego użytkownika najwyżej jedno

@@ -42,10 +42,34 @@ export interface NotificationPayload {
   readonly paymentDueAt?: string;
   /** Termin nadania paczki (opłacone zamówienie, F-24). */
   readonly shipBy?: string;
+  /** Etapy zamówienia (F-26): kto dostaje powiadomienie i szczegóły etapu. */
+  readonly recipientRole?: 'BUYER' | 'SELLER';
+  readonly cancelReason?: 'UNPAID' | 'NOT_SHIPPED';
+  readonly carrierName?: string;
+  readonly trackingNumber?: string | null;
+  readonly inspectionEndsAt?: string;
+  readonly refund?: Money;
+  readonly refundReason?: RefundReasonCode;
+  readonly compensation?: Money;
+  readonly compensationDueAt?: string;
+  /** Oferta drugiej szansy (F-26). */
+  readonly offerId?: string;
+  readonly offerStatus?: 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+  readonly expiresAt?: string;
   readonly reason?: 'NO_BIDS' | 'RESERVE_NOT_MET';
   readonly cancelledBy?: 'SELLER' | 'MODERATOR';
   readonly sellerName?: string;
 }
+
+/** Powód zwrotu w migawce (lista z modułu payments; plik treści nie zależy od modułów). */
+export type RefundReasonCode =
+  | 'NOT_SHIPPED'
+  | 'LOST'
+  | 'DISPUTE'
+  | 'LATE_PAYMENT'
+  | 'DUPLICATE_PAYMENT'
+  | 'CHARGEBACK'
+  | 'NOT_PICKED_UP';
 
 export interface NotificationContent {
   readonly title: string;
@@ -70,6 +94,27 @@ export const ACCOUNT_STANDING_PATH = '/konto/limity';
 export function dispatchPath(orderPublicId: string): string {
   return `/zamowienia/${orderPublicId}/nadaj`;
 }
+
+/** Strona zamówienia dla obu stron (F-26). */
+export function orderPath(orderPublicId: string): string {
+  return `/zamowienia/${orderPublicId}`;
+}
+
+/** Oferta drugiej szansy dla licytującego (F-26). */
+export function secondChancePath(offerId: string): string {
+  return `/druga-szansa/${offerId}`;
+}
+
+/** Dlaczego zwracamy pieniądze (zdanie w powiadomieniu o zwrocie). */
+const REFUND_REASON_TEXT: Readonly<Record<RefundReasonCode, string>> = {
+  LATE_PAYMENT: 'Płatność dotarła po terminie.',
+  DUPLICATE_PAYMENT: 'Zamówienie było już opłacone.',
+  NOT_SHIPPED: 'Sprzedający nie nadał paczki w terminie.',
+  NOT_PICKED_UP: 'Paczka nie została odebrana, więc zwrot nie obejmuje dostawy.',
+  LOST: 'Paczka zaginęła.',
+  DISPUTE: 'Spór rozstrzygnięto na Twoją korzyść.',
+  CHARGEBACK: 'Zwrot po reklamacji płatności w banku.',
+};
 
 const dateTime = new Intl.DateTimeFormat('pl-PL', {
   timeZone: 'Europe/Warsaw',
@@ -147,6 +192,7 @@ export function notificationContent(
   const auction = payload.auction ?? { id: '', publicId: '', slug: '', title: '' };
   const path = auctionPath(auction.slug, auction.publicId);
   const title = `„${auction.title}”`;
+  const number = payload.orderPublicId ?? '';
   switch (type) {
     case 'OUTBID':
       return {
@@ -217,6 +263,101 @@ export function notificationContent(
         path: dispatchPath(payload.orderPublicId ?? ''),
         actionLabel: 'Nadaj paczkę',
       };
+    case 'PAYMENT_REMINDER':
+      return {
+        title: `Zapłać za: ${auction.title}`,
+        lines: [
+          `Zamówienie nr ${number} czeka na płatność do ${date(payload.paymentDueAt)}. Do zapłaty z Pakietem Ochrony Kupujących: ${money(payload.total)} (bez dostawy).`,
+          'Bez płatności w terminie zamówienie zostanie anulowane, a konto dostanie strike.',
+        ],
+        path: checkoutPath(number),
+        actionLabel: 'Zapłać',
+      };
+    case 'SHIP_REMINDER':
+      return {
+        title: `Nadaj paczkę: ${auction.title}`,
+        lines: [
+          `Termin nadania paczki z zamówienia nr ${number} mija ${date(payload.shipBy)}.`,
+          'Bez nadania w terminie zamówienie zostanie anulowane, kupujący dostanie zwrot, a konto strike.',
+        ],
+        path: dispatchPath(number),
+        actionLabel: 'Nadaj paczkę',
+      };
+    case 'ORDER_CANCELLED':
+      return cancelledContent(payload, auction.title, number);
+    case 'ORDER_SHIPPED':
+      return {
+        title: `Paczka w drodze: ${auction.title}`,
+        lines: [
+          payload.trackingNumber === undefined || payload.trackingNumber === null
+            ? `Sprzedający nadał paczkę (${payload.carrierName ?? 'przewoźnik'}).`
+            : `Sprzedający nadał paczkę: ${payload.carrierName ?? 'przewoźnik'}, numer przesyłki ${payload.trackingNumber}.`,
+          'Po odbiorze będziesz mieć 36 godzin na sprawdzenie przedmiotu.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Śledź przesyłkę',
+      };
+    case 'ORDER_DELIVERED':
+      return {
+        title: `Odebrano: ${auction.title}`,
+        lines: [
+          `Sprawdź przedmiot do ${date(payload.inspectionEndsAt)}. Jeśli wszystko się zgadza, potwierdź odbiór.`,
+          'Po tym czasie zamówienie zakończy się samo, a sprzedający dostanie pieniądze.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Sprawdź i potwierdź',
+      };
+    case 'ORDER_COMPLETED':
+      return {
+        title: `Zakończono: ${auction.title}`,
+        lines: [
+          `Zamówienie nr ${number} jest zakończone. ${money(payload.itemsTotal)} trafia na Twoje saldo.`,
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'ORDER_NOT_PICKED_UP':
+      return {
+        title: `Paczka wraca: ${auction.title}`,
+        lines: [
+          `Kupujący nie odebrał paczki z zamówienia nr ${number}, więc wraca ona do Ciebie.`,
+          'Gdy paczka dotrze, kupujący dostanie zwrot ceny i Pakietu Ochrony Kupujących, bez kosztu dostawy.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'ORDER_LOST':
+      return {
+        title: `Zaginiona paczka: ${auction.title}`,
+        lines: [
+          `Kupujący zgłosił, że paczka z zamówienia nr ${number} nie dotarła. Biddy składa reklamację u przewoźnika, a kupujący dostaje zwrot.`,
+          `Dostaniesz rekompensatę ${money(payload.compensation)} najpóźniej ${date(payload.compensationDueAt)}.`,
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'ORDER_REFUNDED':
+      return {
+        title: `Zwrot: ${auction.title}`,
+        lines: [
+          `Zwróciliśmy ${money(payload.refund)} za zamówienie nr ${number}. ${payload.refundReason === undefined ? '' : REFUND_REASON_TEXT[payload.refundReason]}`.trim(),
+          'Pieniądze wracają tą samą metodą płatności; bank może potrzebować kilku dni.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'SECOND_CHANCE_OFFER':
+      return {
+        title: `Druga szansa: ${auction.title}`,
+        lines: [
+          `Zwycięzca nie zapłacił. Sprzedający proponuje Ci ten przedmiot za Twoją najwyższą ofertę: ${money(payload.price)}.`,
+          `Oferta jest ważna do ${date(payload.expiresAt)} i nie jest wiążąca.`,
+        ],
+        path: secondChancePath(payload.offerId ?? ''),
+        actionLabel: 'Zobacz ofertę',
+      };
+    case 'SECOND_CHANCE_ANSWERED':
+      return answeredContent(payload, auction.title, number);
     case 'FOLLOWED_SELLER_NEW_AUCTION':
       return {
         title: `Nowa aukcja: ${payload.sellerName ?? 'obserwowany sprzedawca'}`,
@@ -225,6 +366,72 @@ export function notificationContent(
         ],
         path,
         actionLabel: 'Zobacz aukcję',
+      };
+  }
+}
+
+/** Anulowane zamówienie (F-26): po braku płatności tylko sprzedający, po braku nadania obie strony. */
+function cancelledContent(
+  payload: NotificationPayload,
+  title: string,
+  number: string,
+): NotificationContent {
+  if (payload.cancelReason === 'UNPAID') {
+    return {
+      title: `Kupujący nie zapłacił: ${title}`,
+      lines: [
+        `Zamówienie nr ${number} zostało anulowane, bo kupujący nie zapłacił w terminie.`,
+        'Możesz wysłać ofertę drugiej szansy kolejnej osobie z licytacji albo wystawić przedmiot ponownie.',
+      ],
+      path: orderPath(number),
+      actionLabel: 'Co dalej',
+    };
+  }
+  return {
+    title: `Zamówienie anulowane: ${title}`,
+    lines:
+      payload.recipientRole === 'SELLER'
+        ? [
+            `Paczka z zamówienia nr ${number} nie została nadana w terminie, więc zamówienie zostało anulowane, a kupujący dostaje zwrot.`,
+          ]
+        : [
+            `Sprzedający nie nadał paczki w terminie, więc zamówienie nr ${number} zostało anulowane.`,
+            'Zwracamy pełną kwotę tą samą metodą płatności.',
+          ],
+    path: orderPath(number),
+    actionLabel: 'Zobacz zamówienie',
+  };
+}
+
+/** Odpowiedź na ofertę drugiej szansy (sprzedający). */
+function answeredContent(
+  payload: NotificationPayload,
+  title: string,
+  number: string,
+): NotificationContent {
+  switch (payload.offerStatus) {
+    case 'ACCEPTED':
+      return {
+        title: `Druga szansa przyjęta: ${title}`,
+        lines: [
+          `Licytujący kupuje przedmiot za ${money(payload.price)}. Zamówienie nr ${number} czeka na płatność do ${date(payload.paymentDueAt)}.`,
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'DECLINED':
+    case 'EXPIRED':
+    case undefined:
+      return {
+        title:
+          payload.offerStatus === 'DECLINED'
+            ? `Druga szansa odrzucona: ${title}`
+            : `Oferta drugiej szansy wygasła: ${title}`,
+        lines: [
+          'Licytujący nie skorzystał z oferty. Możesz wysłać ofertę kolejnej osobie albo wystawić przedmiot ponownie.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Co dalej',
       };
   }
 }

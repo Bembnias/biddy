@@ -3,7 +3,7 @@
 // i sweeper co 10 s dla aukcji, których job zaginął. Sprzedana aukcja dostaje zamówienie w tej
 // samej transakcji (także przy Kup teraz, F-15).
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, asc, eq, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, lte, max, min, ne, sql } from 'drizzle-orm';
 
 import { type Database, DRIZZLE, type Transaction } from '../../../infra/db/index.js';
 import { type DomainEventOf, OnDomainEvent, Outbox } from '../../../infra/outbox/index.js';
@@ -16,11 +16,16 @@ import {
 } from '../../../infra/queues/index.js';
 import { CategoryService, ItemService } from '../../catalog/index.js';
 import { MediaService } from '../../media/index.js';
-import { type Order, type OrderItemSnapshot, OrderService } from '../../orders/index.js';
+import {
+  type Order,
+  type OrderItemSnapshot,
+  OrderService,
+  type RunnerUp,
+} from '../../orders/index.js';
 import { type RealtimeMessage } from '../../../infra/realtime/index.js';
 import { AuctionEnded, AuctionExtended, AuctionPublished } from '../auctions.events.js';
 import { AuctionLiveEvents } from '../live/auction-live-events.js';
-import { type Auction, auctions } from '../db/auctions.schema.js';
+import { type Auction, auctions, bids } from '../db/auctions.schema.js';
 
 export const CLOSE_JOB = 'auction.close';
 /** Sweeper zamyka aukcje spóźnione o więcej niż 5 s (job zwykle zdąży wcześniej). */
@@ -28,6 +33,9 @@ const SWEEP_GRACE_MS = 5_000;
 const SWEEP_BATCH = 100;
 
 export type CloseResult = 'NOT_ACTIVE' | 'RESCHEDULED' | 'SOLD' | 'UNSOLD';
+
+/** Ilu licytujących zapamiętujemy jako kandydatów do drugiej szansy. */
+const RUNNER_UPS = 5;
 
 @Injectable()
 export class AuctionClosingService {
@@ -197,7 +205,31 @@ export class AuctionClosingService {
       hammerPrice: auction.currentPrice,
       endedAt,
       snapshot: await this.snapshot(tx, auction, endedBy, endedAt),
+      runnerUps: await this.runnerUps(tx, auction.id, auction.leaderId),
     });
+  }
+
+  /**
+   * Kandydaci do drugiej szansy (F-26, §6.8): pozostali licytujący z ważnymi ofertami, najwyższe
+   * maksimum najpierw, przy remisie wcześniejsza oferta. Po zakończeniu oferty się nie zmieniają.
+   */
+  private async runnerUps(
+    tx: Transaction,
+    auctionId: string,
+    winnerId: string,
+  ): Promise<RunnerUp[]> {
+    const maxAmount = max(bids.maxAmount);
+    const firstSequence = min(bids.sequence);
+    const rows = await tx
+      .select({ bidderId: bids.bidderId, maxAmount, firstSequence })
+      .from(bids)
+      .where(
+        and(eq(bids.auctionId, auctionId), eq(bids.status, 'VALID'), ne(bids.bidderId, winnerId)),
+      )
+      .groupBy(bids.bidderId)
+      .orderBy(desc(maxAmount), asc(firstSequence))
+      .limit(RUNNER_UPS);
+    return rows.map((row) => ({ bidderId: row.bidderId, maxAmount: row.maxAmount ?? 0 }));
   }
 
   private async snapshot(

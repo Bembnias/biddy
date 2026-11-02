@@ -49,7 +49,7 @@ function strikeFact(reason: StrikeReason, context: StrikeContext, note?: string)
     case 'NOT_COLLECTED':
       return `Paczka z zamówienia${context.orderPublicId === undefined ? '' : ` ${context.orderPublicId}`} nie została odebrana i wraca do sprzedającego.`;
     case 'NOT_SHIPPED':
-      return `Paczka z zamówienia${context.orderPublicId === undefined ? '' : ` ${context.orderPublicId}`} nie została nadana w terminie, więc zamówienie zostało anulowane, a kupujący dostał zwrot.`;
+      return `Paczka z zamówienia${context.orderPublicId === undefined ? '' : ` ${context.orderPublicId}`} nie została nadana w terminie, więc zamówienie zostało anulowane, a kupujący dostaje pełny zwrot.`;
     case 'AUCTION_CANCELLED_WITH_BIDS': {
       const label = auctionLabel(context);
       return `${label.charAt(0).toUpperCase()}${label.slice(1)} została anulowana, choć miała już oferty.`;

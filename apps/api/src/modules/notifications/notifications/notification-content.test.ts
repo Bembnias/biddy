@@ -65,6 +65,89 @@ describe('notificationContent', () => {
 });
 
 describe('powiadomienia o koncie (F-61)', () => {
+  it('etapy zamówienia (F-26): przypomnienia, nadanie, odbiór, zakończenie i zwrot', () => {
+    const base = { auction: AUCTION, orderPublicId: 'p7q2m4nx' };
+    const reminder = notificationContent('PAYMENT_REMINDER', {
+      ...base,
+      total: money(10_999),
+      paymentDueAt: '2026-10-21T18:00:00.000Z',
+    });
+    expect(reminder).toMatchObject({
+      title: 'Zapłać za: Wazon ceramiczny',
+      path: '/zamowienia/p7q2m4nx/zaplac',
+      actionLabel: 'Zapłać',
+    });
+    expect(text(reminder.lines[0] ?? '')).toContain('do 21 paź 2026, 20:00');
+    expect(
+      notificationContent('SHIP_REMINDER', { ...base, shipBy: '2026-10-28T22:59:59.999Z' }),
+    ).toMatchObject({ path: '/zamowienia/p7q2m4nx/nadaj', actionLabel: 'Nadaj paczkę' });
+    expect(
+      notificationContent('ORDER_SHIPPED', {
+        ...base,
+        carrierName: 'InPost Paczkomat',
+        trackingNumber: 'FAKE123',
+      }).lines[0],
+    ).toBe('Sprzedający nadał paczkę: InPost Paczkomat, numer przesyłki FAKE123.');
+    const delivered = notificationContent('ORDER_DELIVERED', {
+      ...base,
+      inspectionEndsAt: '2026-10-23T06:15:00.000Z',
+    });
+    expect(delivered).toMatchObject({
+      path: '/zamowienia/p7q2m4nx',
+      actionLabel: 'Sprawdź i potwierdź',
+    });
+    expect(text(delivered.lines[0] ?? '')).toContain('do 23 paź 2026, 08:15');
+    expect(
+      text(
+        notificationContent('ORDER_COMPLETED', { ...base, itemsTotal: money(10_000) }).lines[0] ??
+          '',
+      ),
+    ).toContain('100 zł trafia na Twoje saldo');
+    const refunded = notificationContent('ORDER_REFUNDED', {
+      ...base,
+      refund: money(10_999),
+      refundReason: 'NOT_PICKED_UP',
+    });
+    expect(text(refunded.lines[0] ?? '')).toBe(
+      'Zwróciliśmy 109,99 zł za zamówienie nr p7q2m4nx. Paczka nie została odebrana, więc zwrot nie obejmuje dostawy.',
+    );
+  });
+
+  it('anulowanie i druga szansa (F-26): treść zależy od powodu, roli i odpowiedzi', () => {
+    const base = { auction: AUCTION, orderPublicId: 'p7q2m4nx' };
+    expect(
+      notificationContent('ORDER_CANCELLED', { ...base, cancelReason: 'UNPAID' }),
+    ).toMatchObject({
+      title: 'Kupujący nie zapłacił: Wazon ceramiczny',
+      actionLabel: 'Co dalej',
+    });
+    const buyer = notificationContent('ORDER_CANCELLED', {
+      ...base,
+      cancelReason: 'NOT_SHIPPED',
+      recipientRole: 'BUYER',
+    });
+    expect(buyer.lines[1]).toBe('Zwracamy pełną kwotę tą samą metodą płatności.');
+    const offer = notificationContent('SECOND_CHANCE_OFFER', {
+      auction: AUCTION,
+      offerId: 'oferta-1',
+      price: money(4_500),
+      expiresAt: '2026-10-22T18:00:00.000Z',
+    });
+    expect(offer).toMatchObject({ path: '/druga-szansa/oferta-1', actionLabel: 'Zobacz ofertę' });
+    expect(text(offer.lines[0] ?? '')).toContain('Twoją najwyższą ofertę: 45 zł');
+    expect(
+      notificationContent('SECOND_CHANCE_ANSWERED', { ...base, offerStatus: 'EXPIRED' }).title,
+    ).toBe('Oferta drugiej szansy wygasła: Wazon ceramiczny');
+    expect(
+      notificationContent('SECOND_CHANCE_ANSWERED', {
+        ...base,
+        offerStatus: 'ACCEPTED',
+        price: money(4_500),
+        paymentDueAt: '2026-10-22T18:00:00.000Z',
+      }).path,
+    ).toBe('/zamowienia/p7q2m4nx');
+  });
+
   it('strike: uzasadnienie i link do limitów', () => {
     const content = notificationContent('STRIKE_ISSUED', {
       account: { reason: 'UNPAID', statement: 'Nie zapłacono w terminie.' },

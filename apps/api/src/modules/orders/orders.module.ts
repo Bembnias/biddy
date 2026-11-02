@@ -5,20 +5,38 @@ import { ShippingModule } from '../shipping/index.js';
 import { CheckoutController } from './checkout/checkout.controller.js';
 import { CheckoutService } from './checkout/checkout.service.js';
 import { OrderPaymentLifecycle } from './checkout/order-payment-lifecycle.js';
+import { OrderLifecycle } from './lifecycle/order-lifecycle.js';
+import { OrderDetailsService } from './orders/order-details.service.js';
 import { OrderShippingController } from './orders/order-shipping.controller.js';
 import { OrderStandingSources } from './orders/order-standing-sources.js';
 import { OrderService } from './orders/order.service.js';
+import { OrdersController } from './orders/orders.controller.js';
+import { SecondChanceController } from './second-chance/second-chance.controller.js';
+import { SecondChanceService } from './second-chance/second-chance.service.js';
 
 /**
  * Moduł domenowy `orders` (PROJECT.md §10.3): zamówienia ze sprzedanych aukcji (F-16), dostawa
  * zamówienia i „Nadaj” (F-24), checkout z opłaceniem i anulowaniem nieopłaconych (F-25),
- * historia zamówień i strike'i kupującego w stanie konta (F-61); pozostałe przejścia stanów
- * i terminy w F-26. Publiczne API: ./index.ts.
+ * historia zamówień i strike'i w stanie konta (F-61), cykl życia z terminami, widok zamówienia
+ * i oferty drugiej szansy (F-26). Publiczne API: ./index.ts.
  */
 @Module({
   imports: [PaymentsModule, ShippingModule],
-  controllers: [OrderShippingController, CheckoutController],
-  providers: [OrderService, CheckoutService, OrderPaymentLifecycle, OrderStandingSources],
+  controllers: [
+    OrdersController,
+    OrderShippingController,
+    CheckoutController,
+    SecondChanceController,
+  ],
+  providers: [
+    OrderService,
+    CheckoutService,
+    OrderPaymentLifecycle,
+    OrderStandingSources,
+    OrderLifecycle,
+    OrderDetailsService,
+    SecondChanceService,
+  ],
   exports: [OrderService],
 })
 export class OrdersModule {}

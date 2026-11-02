@@ -1,8 +1,9 @@
 // Zamówienia w stanie konta (F-61, PROJECT.md §4.1): historia do poziomów i strike'i kupującego.
 // Moduł identity nie czyta tabel zamówień, więc konsumenci w module orders przekazują mu fakty
 // przez publiczne API w transakcji obsługi eventu (idempotentnie: upsert i klucz źródła).
-// - OrderPaid → historia (poziom „sprawdzony”);
-// - OrderCancelled (UNPAID) → strike za brak płatności;
+// - OrderPaid → historia (poziom „sprawdzony”), OrderCompleted → historia (poziom „zaufany”, F-26);
+// - OrderCancelled (UNPAID) → strike za brak płatności, (NOT_SHIPPED) → strike sprzedającego
+//   za brak nadania (F-26);
 // - RefundRequested (LATE_PAYMENT) → cofnięcie tego strike'a (§6.8: spóźniona płatność wraca
 //   bez strike'a);
 // - ShipmentStatusChanged (RETURNING, NOT_COLLECTED, paczka do kupującego) → strike za
@@ -25,7 +26,7 @@ import {
 import { RefundRequested } from '../../payments/index.js';
 import { ShipmentStatusChanged } from '../../shipping/index.js';
 import { orderItems, orders } from '../db/orders.schema.js';
-import { OrderCancelled, OrderPaid } from '../orders.events.js';
+import { OrderCancelled, OrderCompleted, OrderPaid } from '../orders.events.js';
 
 @Injectable()
 export class OrderStandingSources {
@@ -61,6 +62,40 @@ export class OrderStandingSources {
       userId: event.payload.buyerId,
       reason: 'UNPAID',
       sourceKey: strikeSourceKey('UNPAID', event.aggregateId),
+      orderId: event.aggregateId,
+      auctionId: event.payload.auctionId,
+      context: {
+        orderPublicId: event.payload.publicId,
+        ...(await this.titleOf(tx, event.aggregateId)),
+      },
+    });
+  }
+
+  @OnDomainEvent(OrderCompleted, { consumer: 'orders.trade-history-completed' })
+  async onOrderCompleted(
+    event: DomainEventOf<typeof OrderCompleted>,
+    { tx }: DomainEventContext,
+  ): Promise<void> {
+    const { buyerId, sellerId, completedAt } = event.payload;
+    await this.trades.recordCompleted(
+      tx,
+      { orderId: event.aggregateId, buyerId, sellerId },
+      new Date(completedAt),
+    );
+  }
+
+  @OnDomainEvent(OrderCancelled, { consumer: 'orders.strike-not-shipped' })
+  async onOrderNotShipped(
+    event: DomainEventOf<typeof OrderCancelled>,
+    { tx }: DomainEventContext,
+  ): Promise<void> {
+    if (event.payload.reason !== 'NOT_SHIPPED') {
+      return;
+    }
+    await this.strikes.issue(tx, {
+      userId: event.payload.sellerId,
+      reason: 'NOT_SHIPPED',
+      sourceKey: strikeSourceKey('NOT_SHIPPED', event.aggregateId),
       orderId: event.aggregateId,
       auctionId: event.payload.auctionId,
       context: {

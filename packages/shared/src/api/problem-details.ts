@@ -112,6 +112,20 @@ export const ERROR_CODES = {
   CHECKOUT_TOTAL_CHANGED: 'CHECKOUT_TOTAL_CHANGED',
   /** Sprzedający nie może przyjąć płatności (konto zablokowane albo bez e-maila, F-25). */
   SELLER_UNAVAILABLE: 'SELLER_UNAVAILABLE',
+  /** Zamówienie nie jest odebrane, więc nie da się potwierdzić odbioru (F-26). */
+  ORDER_NOT_DELIVERED: 'ORDER_NOT_DELIVERED',
+  /** Zamówienie wstrzymane do wyjaśnienia chargebacku (F-26). */
+  ORDER_ON_HOLD: 'ORDER_ON_HOLD',
+  /** Paczka nie została jeszcze nadana (F-26). */
+  ORDER_NOT_SHIPPED_YET: 'ORDER_NOT_SHIPPED_YET',
+  /** Brak paczki można zgłosić dopiero 14 dni po nadaniu (F-26). */
+  NOT_RECEIVED_TOO_EARLY: 'NOT_RECEIVED_TOO_EARLY',
+  /** Przesyłka jest już doręczona albo zwrócona, albo zamówienie nie czeka na paczkę (F-26). */
+  SHIPMENT_FINISHED: 'SHIPMENT_FINISHED',
+  /** Oferty drugiej szansy nie da się teraz wysłać (przyczyna w `reason`, F-26). */
+  SECOND_CHANCE_UNAVAILABLE: 'SECOND_CHANCE_UNAVAILABLE',
+  /** Oferta drugiej szansy jest już przyjęta, odrzucona albo wygasła (F-26). */
+  SECOND_CHANCE_CLOSED: 'SECOND_CHANCE_CLOSED',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

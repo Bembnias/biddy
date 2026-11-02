@@ -1075,6 +1075,17 @@
         "AUCTION_CANCELLED": "Anulowana aukcja",
         "FOLLOWED_SELLER_NEW_AUCTION": "Nowa aukcja obserwowanego sprzedawcy",
         "ORDER_PAID": "Opłacone zamówienie: nadaj paczkę",
+        "PAYMENT_REMINDER": "Przypomnienie o płatności",
+        "SHIP_REMINDER": "Przypomnienie o nadaniu paczki",
+        "ORDER_CANCELLED": "Anulowane zamówienie",
+        "ORDER_SHIPPED": "Paczka w drodze",
+        "ORDER_DELIVERED": "Odebrana paczka: czas na sprawdzenie",
+        "ORDER_COMPLETED": "Zakończone zamówienie: pieniądze na saldzie",
+        "ORDER_NOT_PICKED_UP": "Nieodebrana paczka wraca",
+        "ORDER_LOST": "Zaginiona paczka",
+        "ORDER_REFUNDED": "Zwrot pieniędzy",
+        "SECOND_CHANCE_OFFER": "Oferta drugiej szansy",
+        "SECOND_CHANCE_ANSWERED": "Odpowiedź na ofertę drugiej szansy",
         "STRIKE_ISSUED": "Nowy strike",
         "STRIKE_REVOKED": "Cofnięty strike",
         "ACCOUNT_BLOCKED": "Blokada konta",
@@ -1083,6 +1094,7 @@
       },
       "groups": {
         "bidding": "Licytacje",
+        "buying": "Zakupy",
         "selling": "Sprzedaż",
         "following": "Obserwowani sprzedawcy",
         "account": "Konto: strike'i, blokady i odwołania"
@@ -1174,7 +1186,9 @@
       "similar": "Szukaj podobnych",
       "bid": "Licytuj",
       "unwatch": "Przestań obserwować",
-      "ship": "Nadaj paczkę"
+      "ship": "Nadaj paczkę",
+      "details": "Szczegóły zamówienia",
+      "secondChance": "Druga szansa"
     },
     "empty": {
       "bidding": "Nie licytujesz teraz żadnej aukcji.",
@@ -1655,5 +1669,166 @@
         "REJECTED": "Odwołanie nieuwzględnione."
       }
     }
+  },
+  "order": {
+    "metaTitle": "Zamówienie",
+    "backWins": "Wygrane",
+    "backSales": "Sprzedane",
+    "number": "Zamówienie nr {number}",
+    "loading": "Wczytujemy zamówienie…",
+    "notFound": "Nie znaleziono zamówienia.",
+    "error": "Nie udało się wczytać zamówienia.",
+    "retry": "Spróbuj ponownie",
+    "statuses": {
+      "AWAITING_PAYMENT": "Czeka na płatność",
+      "PAID": "Opłacone",
+      "SHIPPED": "W drodze",
+      "DELIVERED": "Odebrane",
+      "COMPLETED": "Zakończone",
+      "DISPUTED": "Zgłoszony problem",
+      "NOT_PICKED_UP": "Nieodebrane",
+      "LOST": "Zaginione",
+      "REFUNDED": "Zwrócone",
+      "PARTIALLY_REFUNDED": "Częściowo zwrócone",
+      "CANCELLED_UNPAID": "Nie zapłacono w terminie",
+      "CANCELLED_NOT_SHIPPED": "Nienadane w terminie"
+    },
+    "now": "Co teraz",
+    "buyer": {
+      "AWAITING_PAYMENT": "Zapłać do {date}.",
+      "PAID": "Sprzedający ma czas na nadanie do {date}. Dostaniesz numer przesyłki.",
+      "SHIPPED": "Paczka jest w drodze.",
+      "DELIVERED": "Masz czas na sprawdzenie przedmiotu do {date}. Potem zamówienie zakończy się samo, a sprzedający dostanie pieniądze.",
+      "COMPLETED": "Zamówienie zakończone. Dziękujemy!",
+      "DISPUTED": "Zgłoszony problem rozpatruje zespół Biddy.",
+      "NOT_PICKED_UP": "Paczka wraca do sprzedającego, bo nie została odebrana. Gdy wróci, zwrócimy cenę i Pakiet Ochrony Kupujących (bez dostawy).",
+      "LOST": "Zgłoszenie przyjęte. Zwracamy pełną kwotę, a reklamację u przewoźnika składa Biddy.",
+      "REFUNDED": "Zamówienie zakończone zwrotem pieniędzy.",
+      "PARTIALLY_REFUNDED": "Zamówienie zakończone częściowym zwrotem pieniędzy.",
+      "CANCELLED_UNPAID": "Zamówienie anulowane, bo płatność nie dotarła w terminie.",
+      "CANCELLED_NOT_SHIPPED": "Zamówienie anulowane, bo sprzedający nie nadał paczki w terminie. Zwracamy pełną kwotę."
+    },
+    "seller": {
+      "AWAITING_PAYMENT": "Kupujący ma czas na płatność do {date}.",
+      "PAID": "Nadaj paczkę do {date}.",
+      "SHIPPED": "Paczka jest w drodze do kupującego.",
+      "DELIVERED": "Kupujący sprawdza przedmiot do {date}. Potem pieniądze trafią na Twoje saldo.",
+      "COMPLETED": "{amount} jest na Twoim saldzie.",
+      "DISPUTED": "Zgłoszony problem rozpatruje zespół Biddy.",
+      "NOT_PICKED_UP": "Kupujący nie odebrał paczki, więc wraca ona do Ciebie.",
+      "LOST": "Paczka zaginęła. Dostaniesz rekompensatę {amount} najpóźniej {date}.",
+      "LOST_COMPENSATED": "Paczka zaginęła. Rekompensata {amount} jest na Twoim saldzie.",
+      "REFUNDED": "Zamówienie zakończone zwrotem pieniędzy dla kupującego.",
+      "PARTIALLY_REFUNDED": "Zamówienie zakończone częściowym zwrotem pieniędzy dla kupującego.",
+      "CANCELLED_UNPAID": "Kupujący nie zapłacił w terminie, więc zamówienie zostało anulowane.",
+      "CANCELLED_NOT_SHIPPED": "Zamówienie anulowane, bo paczka nie została nadana w terminie. Kupujący dostaje zwrot."
+    },
+    "refund": {
+      "pending": "Zwrot {amount} jest w drodze.",
+      "done": "Zwróciliśmy {amount} {date}.",
+      "failed": "Zwrot {amount} wymaga sprawdzenia przez zespół Biddy. Odezwiemy się."
+    },
+    "onHold": "Zamówienie jest wstrzymane do wyjaśnienia płatności z bankiem kupującego.",
+    "actions": {
+      "pay": "Zapłać",
+      "ship": "Nadaj paczkę",
+      "confirm": "Wszystko OK",
+      "help": "Napisz do pomocy",
+      "relist": "Wystaw ponownie"
+    },
+    "problem": "Coś jest nie tak? Napisz do pomocy, zanim minie czas na sprawdzenie.",
+    "confirm": {
+      "title": "Potwierdzić odbiór?",
+      "text": "Sprzedający od razu dostanie pieniądze. Potwierdź tylko, jeśli przedmiot jest zgodny z opisem.",
+      "cancel": "Jeszcze nie",
+      "submit": "Wszystko OK",
+      "sending": "Zapisujemy…"
+    },
+    "notReceived": {
+      "later": "Paczka nie dotarła? Możesz to zgłosić od {date}.",
+      "available": "Paczka nie dotarła? Możesz to zgłosić.",
+      "open": "Zgłoś brak paczki",
+      "title": "Zgłosić brak paczki?",
+      "text": "Zwrócimy pełną kwotę, a reklamację u przewoźnika złoży Biddy. Jeśli paczka jednak dotrze, napisz do nas.",
+      "cancel": "Anuluj",
+      "submit": "Zgłoś brak paczki",
+      "sending": "Zgłaszamy…"
+    },
+    "actionError": "Nie udało się. Spróbuj ponownie.",
+    "steps": {
+      "title": "Postęp zamówienia",
+      "paid": "Opłacone",
+      "shipped": "Nadane",
+      "delivered": "Odebrane",
+      "completed": "Zakończone"
+    },
+    "shipment": {
+      "title": "Przesyłka",
+      "trackingNumber": "Numer przesyłki",
+      "history": "Historia przesyłki",
+      "none": "Numer przesyłki pojawi się po nadaniu."
+    },
+    "summary": {
+      "title": "Podsumowanie",
+      "price": "Cena",
+      "pok": "Pakiet Ochrony Kupujących",
+      "shipping": "Dostawa",
+      "total": "Razem",
+      "seller": "Sprzedaje: {name}",
+      "buyer": "Kupuje: {name}",
+      "auction": "Zobacz aukcję"
+    },
+    "secondChance": {
+      "title": "Druga szansa",
+      "lead": "Możesz zaproponować przedmiot kolejnej osobie z licytacji za jej najwyższą ofertę. Oferta jest ważna 24 h i nie jest wiążąca.",
+      "next": "Następna osoba: {bidder}, najwyższa oferta {amount}",
+      "send": "Wyślij ofertę",
+      "sending": "Wysyłamy…",
+      "sendBy": "Ofertę możesz wysłać do {date}.",
+      "offers": "Wysłane oferty",
+      "statuses": {
+        "PENDING": "czeka na odpowiedź do {date}",
+        "ACCEPTED": "przyjęta, zamówienie {number}",
+        "DECLINED": "odrzucona",
+        "EXPIRED": "wygasła"
+      },
+      "reasons": {
+        "NOT_CANCELLED_UNPAID": "Druga szansa jest dostępna po anulowaniu nieopłaconego zamówienia.",
+        "NOT_LATEST_ORDER": "Przedmiot kupuje już kolejna osoba.",
+        "OFFER_PENDING": "Oferta czeka na odpowiedź. Następną możesz wysłać po odrzuceniu albo wygaśnięciu.",
+        "WINDOW_PASSED": "Termin na drugą szansę minął.",
+        "NO_CANDIDATES": "Nie ma już kolejnych licytujących."
+      },
+      "relistHint": "Możesz też wystawić przedmiot ponownie jako nową aukcję.",
+      "relist": "Wystaw ponownie"
+    }
+  },
+  "secondChanceOffer": {
+    "metaTitle": "Oferta drugiej szansy",
+    "back": "Powiadomienia",
+    "title": "Druga szansa",
+    "lead": "Zwycięzca nie zapłacił. Sprzedający proponuje Ci ten przedmiot za Twoją najwyższą ofertę.",
+    "price": "Cena",
+    "pok": "Pakiet Ochrony Kupujących",
+    "total": "Do zapłaty (bez dostawy)",
+    "validUntil": "Oferta ważna do {date}",
+    "buy": "Kup za {amount}",
+    "buying": "Kupujemy…",
+    "decline": "Nie, dziękuję",
+    "hint": "Oferta nie jest wiążąca. Jeśli jej nie przyjmiesz, nic się nie stanie.",
+    "accepted": "Oferta przyjęta",
+    "acceptedText": "Zamówienie {number} czeka na płatność w ciągu 24 godzin.",
+    "pay": "Przejdź do płatności",
+    "declined": "Oferta odrzucona",
+    "declinedText": "Dziękujemy za odpowiedź. Sprzedający może zaproponować przedmiot innej osobie.",
+    "expired": "Oferta wygasła",
+    "expiredText": "Czas na odpowiedź minął.",
+    "similar": "Szukaj podobnych",
+    "auction": "Zobacz aukcję",
+    "loading": "Wczytujemy ofertę…",
+    "notFound": "Nie znaleziono oferty.",
+    "error": "Nie udało się wczytać oferty.",
+    "retry": "Spróbuj ponownie",
+    "actionError": "Nie udało się. Spróbuj ponownie."
   }
 }

@@ -141,6 +141,13 @@
       "when": 1793644180590,
       "tag": "0019_account_standing",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793647571447,
+      "tag": "0020_order_lifecycle",
+      "breakpoints": true
     }
   ]
 }

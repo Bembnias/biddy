@@ -11,18 +11,26 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   Ban,
   BadgeCheck,
+  BellRing,
   CircleCheck,
   CircleX,
   Clock,
+  Gift,
   Lock,
   type LucideIcon,
   Package,
+  PackageCheck,
+  PackageSearch,
+  PackageX,
+  RotateCcw,
   Scale,
   ShieldAlert,
   ShieldCheck,
   Store,
   TriangleAlert,
   Trophy,
+  Truck,
+  Undo2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ComponentProps, useState } from 'react';
@@ -32,13 +40,33 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
-/** Grupy ustawień (F-63): licytacje, sprzedaż i obserwowani sprzedawcy. */
+/** Grupy ustawień (F-63): licytacje, zakupy, sprzedaż, obserwowani sprzedawcy i konto. */
 const GROUPS: readonly {
-  readonly key: 'bidding' | 'selling' | 'following' | 'account';
+  readonly key: 'bidding' | 'buying' | 'selling' | 'following' | 'account';
   readonly types: readonly NotificationType[];
 }[] = [
-  { key: 'bidding', types: ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED'] },
-  { key: 'selling', types: ['SOLD', 'ORDER_PAID', 'UNSOLD'] },
+  {
+    key: 'bidding',
+    types: ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED', 'SECOND_CHANCE_OFFER'],
+  },
+  {
+    key: 'buying',
+    types: ['PAYMENT_REMINDER', 'ORDER_SHIPPED', 'ORDER_DELIVERED', 'ORDER_REFUNDED'],
+  },
+  {
+    key: 'selling',
+    types: [
+      'SOLD',
+      'ORDER_PAID',
+      'SHIP_REMINDER',
+      'ORDER_COMPLETED',
+      'ORDER_CANCELLED',
+      'ORDER_NOT_PICKED_UP',
+      'ORDER_LOST',
+      'SECOND_CHANCE_ANSWERED',
+      'UNSOLD',
+    ],
+  },
   { key: 'following', types: ['FOLLOWED_SELLER_NEW_AUCTION'] },
   {
     key: 'account',
@@ -63,6 +91,17 @@ const TYPE_TILES: Record<
   AUCTION_CANCELLED: { tone: 'neutral', Icon: Ban },
   SOLD: { tone: 'success', Icon: BadgeCheck },
   ORDER_PAID: { tone: 'success', Icon: Package },
+  PAYMENT_REMINDER: { tone: 'brand', Icon: BellRing },
+  SHIP_REMINDER: { tone: 'brand', Icon: BellRing },
+  ORDER_CANCELLED: { tone: 'neutral', Icon: PackageX },
+  ORDER_SHIPPED: { tone: 'info', Icon: Truck },
+  ORDER_DELIVERED: { tone: 'success', Icon: PackageCheck },
+  ORDER_COMPLETED: { tone: 'success', Icon: CircleCheck },
+  ORDER_NOT_PICKED_UP: { tone: 'neutral', Icon: RotateCcw },
+  ORDER_LOST: { tone: 'neutral', Icon: PackageSearch },
+  ORDER_REFUNDED: { tone: 'neutral', Icon: Undo2 },
+  SECOND_CHANCE_OFFER: { tone: 'brand', Icon: Gift },
+  SECOND_CHANCE_ANSWERED: { tone: 'neutral', Icon: Gift },
   UNSOLD: { tone: 'danger', Icon: CircleX },
   FOLLOWED_SELLER_NEW_AUCTION: { tone: 'neutral', Icon: Store },
   STRIKE_ISSUED: { tone: 'neutral', Icon: ShieldAlert },

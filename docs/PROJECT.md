@@ -1275,17 +1275,18 @@ erDiagram
 | `bids` | id, auction_id, bidder_id, sequence (kolejność w aukcji, replay §15.6), amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, cancelled_at, idempotency_key (unique per bidder), created_at (F-15; ip i device_id dojdą z antyfraudem F-36) |
 | `watchlist` | user_id, auction_id, created_at |
 | `saved_searches` (v1) | id, user_id, query (jsonb), notify, created_at |
-| `second_chance_offers` | id, auction_id, bidder_id, amount, status (`PENDING`/`ACCEPTED`/`DECLINED`/`EXPIRED`), expires_at, order_id, created_at |
+| `second_chance_offers` | id, auction_id, source_order_id, seller_id, bidder_id, currency, amount, status (`PENDING`/`ACCEPTED`/`DECLINED`/`EXPIRED`), expires_at, responded_at, order_id, created_at (F-26; unikalne `(auction_id, bidder_id)` i jedna `PENDING` na aukcję) |
 
 **Transakcje**
 
 | Tabela | Kolumny |
 |---|---|
-| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, ship_by, delivered_at, inspection_ends_at, completed_at, cancelled_at, chargeback_status, second_chance_offer_id, created_at (F-16 tworzy kolumny do payment_due_at; pozostałe dodadzą F-25 i F-26) |
-| `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb), is_active (false po anulowaniu zamówienia) |
+| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, paid_at, ship_by, payment_id, shipped_at, delivered_at, inspection_ends_at, buyer_confirmed_at, completed_at, cancelled_at, not_picked_up_at, lost_at, refunded_at, seller_compensated_at, chargeback_status, second_chance_offer_id, created_at (F-16, F-25, F-26; trigger `orders_status_transition` dopuszcza tylko przejścia z §7.3) |
+| `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb), runner_ups (jsonb: kandydaci do drugiej szansy, F-26), is_active (false, gdy aukcja ma nowsze zamówienie z drugiej szansy) |
 | `fee_schedules` | id, currency, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), vat_rate_bp, valid_from, valid_to, note (moduł `payments`, F-13; okresy bez nakładania, wiersz niezmienny poza zamknięciem; category_id dojdzie z cennikami per kategoria) |
 | `payments` | id, order_id, buyer_id, seller_id, provider, provider_payment_id (unikalne z provider), method, currency, amount, seller_amount, platform_amount (split, suma = amount), status (`PENDING`/`SUCCEEDED`/`FAILED`), failure_reason, redirect_url, idempotency_key (unikalny), raw (jsonb), polled_at, succeeded_at, failed_at, created_at, updated_at (moduł `payments`, F-23) |
-| `refunds` | id, order_id, payment_id, dispute_id, reason (`DISPUTE`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, raw (jsonb), created_at |
+| `refunds` | id, order_id, payment_id, dispute_id, reason (`DISPUTE`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`DUPLICATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, order_amounts (jsonb, tylko `NOT_PICKED_UP`, F-26), raw (jsonb), created_at |
+| `fund_releases` | id, order_id (unikalne), payment_id, provider, provider_transfer_id, currency, amount, status (`PENDING`/`SUCCEEDED`/`NOT_REQUIRED`), released_at, created_at (F-26: zwolnienie środków u operatora po zakończeniu) |
 | `chargebacks` | id, payment_id, order_id, amount, reason, status, liable_party (`PLATFORM`/`SELLER`), provider_ref, evidence_submitted_at, opened_at, closed_at |
 | `ledger_accounts` | id, code (konto planu §7.7), subject (operator albo ID sprzedającego, zamówienia lub wypłaty; null dla kont platformy), currency, seller_id, seller_amount (tylko `buyer_funds_held`: część dla sprzedającego, saldo „w trakcie”), balance (= suma wpisów, zmienia je tylko trigger), created_at. Unikalne (code, subject, currency) (moduł `ledger`, F-22) |
 | `ledger_transactions` | id, type (szablon księgowania albo `REVERSAL`), idempotency_key (unikalny), currency, order_id, payout_id, reverses_transaction_id (storno, najwyżej jedno), payload (jsonb: dane wejściowe), created_at |
@@ -1317,9 +1318,9 @@ erDiagram
 
 - `auctions(status, ends_at)` dla sweepera i sortowania „kończące się”,
 - `bids(auction_id, created_at)`,
-- `orders(status, inspection_ends_at)` oraz `orders(status, payment_due_at)` dla jobów terminów,
+- `orders(status, payment_due_at)` oraz częściowe `orders(ship_by) WHERE status = 'PAID'`, `orders(inspection_ends_at) WHERE status = 'DELIVERED'` i `orders(lost_at)` bez rekompensaty dla jobów terminów (F-26),
 - unikalny `bids(bidder_id, idempotency_key)`,
-- unikalny częściowy `order_items(auction_id) WHERE is_active` (jedno aktywne zamówienie na aukcję; anulowanie zamówienia ustawia `is_active = false` w tej samej transakcji),
+- unikalny częściowy `order_items(auction_id) WHERE is_active` (jedno aktywne zamówienie na aukcję; akceptacja drugiej szansy ustawia `is_active = false` poprzedniemu w tej samej transakcji, F-26),
 - `strikes(user_id, role, created_at)` dla reguły „3 w 90 dni”, `account_blocks(user_id, kind, starts_at)` dla guardów,
 - `shipments(status, polled_at)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`.
 
@@ -1375,16 +1376,17 @@ PUT    /me/watchlist/:auctionId    DELETE /me/watchlist/:auctionId
 
 # Zamówienia
 GET    /me/orders?role=buyer|seller
-GET    /orders/:id
+GET    /orders/:id                 (obie strony: stan, daty etapów, przesyłka, zwrot, akcje i druga szansa, F-26)
 GET    /orders/:id/shipping-options   (kupujący; ceny z cennika Biddy, F-24)
 POST   /orders/:id/checkout        { carrier, service, pickupPointId | addressId, paymentMethod, blikCode? }
 GET    /orders/:id/shipment        (obie strony: zamówienie i przesyłka; kod nadania i nadawca tylko dla sprzedającego, F-24)
 POST   /orders/:id/shipment        (sprzedający: „Nadaj” — dane nadawcy, sposób nadania → 202, worker tworzy przesyłkę, F-24)
 GET    /orders/:id/label           (sprzedający: etykieta PDF, F-24)
-POST   /orders/:id/confirm-receipt
+POST   /orders/:id/confirm-receipt (kupujący: „Wszystko OK”, F-26)
 POST   /orders/:id/disputes        (w oknie 36 h)
-POST   /orders/:id/not-received    (po 14 dniach bez statusu końcowego → ścieżka LOST)
-POST   /orders/:id/second-chance   (sprzedający, po CANCELLED_UNPAID)
+POST   /orders/:id/report-not-received (kupujący, 14 dni po nadaniu bez statusu końcowego → LOST, F-26)
+POST   /orders/:id/second-chance-offers (sprzedający, po CANCELLED_UNPAID: oferta do kolejnej osoby, F-26)
+GET    /second-chance-offers/:id   (licytujący, F-26)
 POST   /second-chance-offers/:id/accept | /decline
 GET    /shipping/points?carrier=&lat=&lng= | &q=   (sesja; punkty odbioru u dostawcy, F-24)
 
@@ -1467,8 +1469,11 @@ interface AuctionViewersEvent { auctionId: string; count: number; serverTime: st
 ### 14.3 Eventy domenowe (outbox)
 
 - **Aukcje:** `AuctionPublished`, `AuctionSubmittedForReview`, `AuctionUpdated` (zmiana przed pierwszą ofertą), `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
-- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`. `ShipmentCreated` i `ShipmentStatusChanged` (F-24) publikuje moduł `shipping`; `ShipmentStatusChanged` niesie czas u przewoźnika, czas wykrycia i przy `RETURNING` powód zwrotu. Kontrakt `OrderPaid` (z `shipBy`) zdefiniował F-24 dla powiadomienia „nadaj paczkę”, a publikuje go F-26.
-- **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
+- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `SecondChanceOfferResolved`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderShipped`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`.
+  - `ShipmentCreated` i `ShipmentStatusChanged` (F-24) publikuje moduł `shipping`; `ShipmentStatusChanged` niesie czas u przewoźnika, czas wykrycia i przy `RETURNING` powód zwrotu.
+  - Kontrakt `OrderPaid` (z `shipBy`) zdefiniował F-24 dla powiadomienia „nadaj paczkę”, a publikuje go F-25.
+  - Eventy cyklu życia (F-26) niosą numer zamówienia, aukcję i obie strony. `OrderCancelled.reason` to `UNPAID` albo `NOT_SHIPPED`, a `OrderCreated.secondChanceOfferId` oznacza zamówienie z drugiej szansy.
+- **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutCompleted`, `PayoutFailed`, `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika), `FundsReleaseRequested` (F-26, zwolnienie środków u operatora). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
 - **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `AccountBlocked`, `AccountBlockLifted`, `AppealResolved` (F-61), `ReviewPublished`, `ReportCreated`.
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
@@ -1536,6 +1541,8 @@ Niezmienniki do testów property-based:
 ### 15.3 Terminy zamówień
 
 Każda zmiana statusu planuje odpowiedni job (`order.payment-deadline`, `order.ship-deadline`, `order.inspection-deadline`, …) z jobId zawierającym typ terminu i jego czas, jak w §15.2. Job przy wykonaniu **sprawdza aktualny status**, więc nieaktualne joby są no-op. Uzupełnia to sweeper cykliczny (co 1 min).
+
+**Implementacja (F-25, F-26, decyzja nr 117):** przejścia stanu pilnuje sam sweeper co minutę (`orders.expire-unpaid`, `orders.expire-unshipped`, `orders.complete-inspected`, `orders.expire-second-chance`; rekompensata `orders.compensate-lost` co godzinę), który blokuje wiersz i sprawdza status. Joby z terminem w ID mają tylko przypomnienia (`notifications.payment-reminder`, `notifications.ship-reminder`).
 
 ### 15.4 Synchronizacja czasu
 
@@ -1966,17 +1973,22 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 98 | Zwrot do nadawcy ma powód `NOT_COLLECTED`, gdy paczka wcześniej czekała na kupującego (w punkcie albo u kuriera), inaczej `OTHER`; Furgonetka ma jeden stan zwrotu, więc `returned` to „zwrot w drodze”, a późniejsze `delivered` to `RETURNED` | Tymczasowa (do potwierdzenia na sandboksie Furgonetki) | §7.4, §8.5 |
 | 99 | Adapter Furgonetki w F-24 obsługuje tylko nadanie w punkcie (`DROP_OFF`) i daje etykietę PDF; zamówienie kuriera po paczkę i kod nadania bez etykiety po odpowiedziach Furgonetki. Token OAuth (logowanie hasłem raz na instalację, jednorazowy refresh token) w bazie, zaszyfrowany kluczem z `BETTER_AUTH_SECRET`, odświeżany pod blokadą doradczą | Tymczasowa | §8.1, §8.5 |
 | 100 | Kontrakt eventu `OrderPaid` (z terminem nadania `shipBy`) i powiadomienie sprzedającego `ORDER_PAID` (e-mail transakcyjny) powstały w F-24, zanim F-26 zacznie publikować event; przesyłka testowa FakeShipping może nie mieć zamówienia (`order_id` null tylko dla `provider = 'fake'`) | Przyjęta | §14.3, §8.6 |
-| 106 | F-25 przejmuje z F-26 przejścia zamówienia wokół płatności: `AWAITING_PAYMENT → PAID` w konsumencie `PaymentSucceeded` (z `paid_at`, `ship_by` = koniec 5. dnia roboczego i eventem `OrderPaid`) oraz `AWAITING_PAYMENT → CANCELLED_UNPAID` w jobie `orders.expire-unpaid` co minutę (płatność w toku założona przed terminem przesuwa anulowanie o 30 min). Strike i druga szansa zostają w F-26 jako konsumenci `OrderCancelled` (`paymentPending` mówi, czy płatność może jeszcze przyjść; strike nadaje od F-61 konsument `orders.strike-unpaid`, nr 113) | Przyjęta | §6.8, §7.3, §7.4 |
+| 106 | F-25 przejmuje z F-26 przejścia zamówienia wokół płatności: `AWAITING_PAYMENT → PAID` w konsumencie `PaymentSucceeded` (z `paid_at`, `ship_by` = koniec 5. dnia roboczego i eventem `OrderPaid`) oraz `AWAITING_PAYMENT → CANCELLED_UNPAID` w jobie `orders.expire-unpaid` co minutę (płatność w toku założona przed terminem przesuwa anulowanie o 30 min). Strike i druga szansa zostają w F-26 jako konsumenci `OrderCancelled` (`paymentPending` mówi, czy płatność może jeszcze przyjść; strike nadaje od F-61 konsument `orders.strike-unpaid`, nr 113; drugą szansę daje F-26, nr 119) | Przyjęta | §6.8, §7.3, §7.4 |
 | 107 | Checkout: kwoty liczy backend, a klient wysyła tylko sumę z przycisku (`expectedTotal`; inna = 409 `CHECKOUT_TOTAL_CHANGED`). Zmiana dostawy i nowa płatność blokują wiersz zamówienia (`FOR UPDATE`) do zapisu płatności, także na czas wywołania operatora; płatność w toku albo udana blokuje kolejną, nieudana nie. Klucz płatności `checkout:{orderId}:{Idempotency-Key}` | Przyjęta | §7.2, §7.8 |
 | 108 | Zwroty płatności w module `payments` (tabela `refunds`): zlecenie w transakcji wywołującego z eventem `RefundRequested`, wywołanie operatora w konsumencie z kluczem `refund:{id}`, księgowanie `ORDER_REFUNDED` dopiero po webhooku `REFUND_SUCCEEDED`; nieudany zwrot czeka na support. Udana płatność anulowanego zamówienia (`LATE_PAYMENT`) albo drugiej płatności (`DUPLICATE_PAYMENT`, nowy powód w ledgerze) wraca automatycznie i bez strike'a | Przyjęta | §6.8, §7.7 |
 | 109 | Do F-32 checkout rejestruje sprzedawcę u operatora przed pierwszą płatnością (imię i potwierdzony e-mail z `identity`; zablokowany albo bez e-maila: 409 `SELLER_UNAVAILABLE`). Checkout web: BLIK z kodem, karta i szybki przelew (Apple Pay i Google Pay z prawdziwym operatorem, F-31), punkty odbioru przez wyszukiwarkę bez mapy | Tymczasowa | §7.6, §8.1 |
 | 110 | Maks. oferta nowego kupującego 2500 zł (było 500 zł), sprawdzonego 5000 zł (było 3000 zł), zaufanego bez limitu; limit liczby aukcji z aktywną ofertą bez zmian. Pierwsze zakupy mogą obejmować droższe przedmioty (elektronika, kolekcje), a ryzyko niepłacącego zwycięzcy ograniczają strike'i i blokady (F-61). Wartości obowiązują od F-61 (polityka kont, nr 112) | Przyjęta | §4.1 |
 | 111 | SMS-y z kodem weryfikacyjnym na stagingu mogą iść do logu API zamiast do SMSAPI: `SMS_LOG_ONLY=true` włącza atrapę także przy ustawionym `SMSAPI_TOKEN` (wtedy token nie jest wymagany), a na produkcji (`DEPLOYMENT_ENV=production`) konfiguracja ją odrzuca, jak FakeGateway i FakeShipping. Powód: do aktywacji konta SMSAPI odrzuca SMS-y z linią WebOTP `@host #kod` (kod błędu 94, wygląda jak link), a atrapa pozwala sprawdzić weryfikację telefonu bez wysyłki | Tymczasowa | §11.2 |
 | 112 | Limity poziomów i reguły strike'ów jako wersjonowana polityka kont w bazie (`account_policies`, najnowsza obowiązuje; pusta tabela = `DEFAULT_ACCOUNT_POLICY` z `@biddy/shared`), zmieniana przez `PUT /admin/account-policy` (rola `admin`) do panelu F-34; proces trzyma ją w pamięci 30 s. Nadpisania jednego konta w `users.limits` (poziom albo pojedyncze limity, `null` = bez limitu) | Przyjęta | §4.1 |
-| 113 | Moduł `identity` nie importuje innych modułów, więc strike'i i historię zamówień przekazują mu moduły źródłowe w swoich transakcjach (`StrikeService.issue`, `TradeHistoryService`), z kluczem źródła (`UNPAID:{orderId}`) zamiast osobnego wpisu idempotencji: brak płatności, nieodebrana paczka i cofnięcie po spóźnionej płatności w `orders`, anulowanie aukcji z ofertami w `auctions`; brak nadania i przegrany spór dołożą F-26 i F-28. Poziomy liczone z tabeli `trade_records` (backfill opłaconych zamówień w migracji) | Przyjęta | §4.1, §10.3 |
+| 113 | Moduł `identity` nie importuje innych modułów, więc strike'i i historię zamówień przekazują mu moduły źródłowe w swoich transakcjach (`StrikeService.issue`, `TradeHistoryService`), z kluczem źródła (`UNPAID:{orderId}`) zamiast osobnego wpisu idempotencji: brak płatności, nieodebrana paczka i cofnięcie po spóźnionej płatności w `orders`, anulowanie aukcji z ofertami w `auctions`; brak nadania i historia zakończonych dołożył F-26, przegrany spór dołoży F-28. Poziomy liczone z tabeli `trade_records` (backfill opłaconych zamówień w migracji) | Przyjęta | §4.1, §10.3 |
 | 114 | Blokady w tabeli `account_blocks` zamiast kolumn `users.*_blocked_until` (bezterminowa = `ends_at` null, uzasadnienie i odwołanie przy blokadzie). Do progu liczą się strike'i niecofnięte, z okna 90 dni i niezużyte przez niezdjętą blokadę tej roli (po końcu blokady potrzeba trzech nowych). Kolejna blokada z progu strike'ów w ciągu 365 dni jest bezterminowa; zdjęta się nie liczy. Cofnięcie strike'a zdejmuje blokady, które wywołał. Strike i blokada pod blokadą wiersza użytkownika (jedna blokada przy równoległych strike'ach) | Przyjęta | §4.1 |
 | 115 | Strike `UNPAID` nadajemy od razu przy anulowaniu, także gdy płatność jest w toku; spóźniona płatność (`RefundRequested` z `LATE_PAYMENT`) cofa go automatycznie z uzasadnieniem. Anulowanie aukcji z ofertami przez moderatora nie daje strike'a z automatu (moderator nadaje go ręcznie) | Tymczasowa | §4.1, §6.8 |
 | 116 | Odwołanie (DSA): jedno na strike albo blokadę, 20–2000 znaków, do 180 dni od nadania, tylko od decyzji, która nadal obowiązuje; decyzja personelu z uzasadnieniem widocznym dla użytkownika. Strike'i, blokady i odrzucone odwołania to e-maile transakcyjne (bez wypisania), bo niosą uzasadnienie decyzji | Tymczasowa | §4.1, §17 |
+| 117 | Terminy przejść zamówienia pilnuje sweeper co minutę (nienadane, okno 36 h, oferty drugiej szansy; rekompensata co godzinę), który blokuje wiersz i sprawdza status, jak anulowanie nieopłaconych w F-25. Joby per zamówienie z §15.3 dodamy, gdy minuta opóźnienia okaże się za długa. Joby z terminem w ID mają tylko przypomnienia (płatność po 1 h, 12 h, 20 h; nadanie dobę przed terminem) | Przyjęta | §7.4, §15.3 |
+| 118 | Każda zmiana stanu zamówienia idzie przez jeden helper (blokada wiersza, para z `ORDER_TRANSITIONS`, czasy etapów, event), a trigger `orders_status_transition` odrzuca niedozwoloną parę w bazie. `REFUNDED` dopiero po potwierdzeniu zwrotu przez operatora (`RefundSucceeded`): `CANCELLED_NOT_SHIPPED`, `LOST` i `NOT_PICKED_UP` trwają w czasie zwrotu, więc w stanie końcowym `buyer_funds_held` = 0. Opłacenie zapisuje `orders.payment_id` (płatność do zwrotów i zwolnienia) | Przyjęta | §7.3, §7.7 |
+| 119 | Druga szansa: kandydaci to do 5 licytujących z najwyższą ważną ofertą maksymalną zapisanych przy zakończeniu aukcji (`order_items.runner_ups`). Oferta trafia zawsze do kolejnego kandydata (bez wyboru), jedna na osobę i aukcję, najwyżej jedna oczekująca; wysłanie do 14 dni od anulowania. Sprzedający widzi zanonimizowaną nazwę. Akceptacja wymaga braku blokady licytowania (limit maks. oferty nie obowiązuje) i tworzy zamówienie bez powiadomień `WON`/`SOLD`; nieopłacone daje strike jak zwykłe | Tymczasowa | §6.8 |
+| 120 | Zwolnienie środków: księgowanie `ORDER_COMPLETED` w transakcji zakończenia (ledger jest źródłem prawdy dla wypłat), wywołanie operatora w konsumencie `FundsReleaseRequested` z kluczem `release:{id}` (tabela `fund_releases`, `NOT_REQUIRED` w modelu `SELLER_BALANCE`). Zwrot nieodebranej paczki to powód `NOT_PICKED_UP` w `refunds` z kwotami zamówienia, księgowany jako `NOT_PICKED_UP_REFUNDED` | Przyjęta | §7.4, §7.7, §7.8 |
+| 121 | Zaginiona paczka: kupujący zgłasza brak paczki 14 dni po nadaniu, gdy przesyłka nie ma statusu końcowego; pełny zwrot i reklamacja (kwota = cena) od razu. Rekompensata = cena (do czasu poznania limitów przewoźnika) na saldo, gdy operator ma `internalTransfers`, inaczej przelewem działu finansów; po rozstrzygnięciu reklamacji, najpóźniej 30 dni od zgłoszenia. Okno 36 h liczymy od chwili wykrycia odbioru (`detectedAt`). Teksty w UI neutralne płciowo („Zgłoś brak paczki” zamiast „Nie otrzymałem”) | Tymczasowa | §7.4, §7.9 |
 
 ---
 

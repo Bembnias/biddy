@@ -30,9 +30,10 @@ export const PAYMENT_FAILURE_REASONS = [
 export type PaymentFailureReason = (typeof PAYMENT_FAILURE_REASONS)[number];
 
 /**
- * Powód pełnego zwrotu płatności (F-25); ta sama lista co `FULL_REFUND_REASONS` w ledgerze
- * (plik tabel nie importuje ledgera). Checkout zwraca płatności spóźnione i zdublowane, a powody
- * nienadania, zaginięcia, sporu i chargebacku dojdą z F-26–F-28.
+ * Powód zwrotu płatności: `FULL_REFUND_REASONS` z ledgera (plik tabel nie importuje ledgera)
+ * i `NOT_PICKED_UP`, czyli zwrot ceny i POK bez dostawy (osobny szablon księgowania, §7.4).
+ * Checkout zwraca płatności spóźnione i zdublowane (F-25), cykl zamówienia nienadane,
+ * nieodebrane i zaginione (F-26), a spory i chargebacki dojdą w F-28.
  */
 export const REFUND_REASONS = [
   'NOT_SHIPPED',
@@ -41,12 +42,20 @@ export const REFUND_REASONS = [
   'LATE_PAYMENT',
   'DUPLICATE_PAYMENT',
   'CHARGEBACK',
+  'NOT_PICKED_UP',
 ] as const;
 export type RefundReason = (typeof REFUND_REASONS)[number];
 
 /** Stan zwrotu: PENDING do potwierdzenia przez operatora (webhook). */
 export const REFUND_STATUSES = ['PENDING', 'SUCCEEDED', 'FAILED'] as const;
 export type RefundStatus = (typeof REFUND_STATUSES)[number];
+
+/**
+ * Zwolnienie środków sprzedającego u operatora (F-26): `NOT_REQUIRED` w modelu `SELLER_BALANCE`,
+ * gdzie zwolnienie robi tylko ledger.
+ */
+export const FUND_RELEASE_STATUSES = ['PENDING', 'SUCCEEDED', 'NOT_REQUIRED'] as const;
+export type FundReleaseStatus = (typeof FUND_RELEASE_STATUSES)[number];
 
 /** Status weryfikacji (KYC) sprzedawcy u operatora. */
 export const SELLER_STATUSES = ['PENDING', 'VERIFIED', 'REJECTED'] as const;

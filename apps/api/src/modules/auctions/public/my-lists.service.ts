@@ -2,7 +2,7 @@
 // z jego maksimum i zamówieniem zwycięzcy, oraz obserwowane aukcje.
 import { SOON_WINDOW_MS } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, countDistinct, desc, eq, inArray, max, ne, or, sql } from 'drizzle-orm';
+import { and, asc, countDistinct, desc, eq, inArray, max, ne, not, or, sql } from 'drizzle-orm';
 
 import { type Database, DRIZZLE } from '../../../infra/db/index.js';
 import { type Order, OrderService } from '../../orders/index.js';
@@ -33,10 +33,10 @@ export interface MyBidsSummary {
   readonly endingSoon: number;
 }
 
-function outcomeOf(auction: Auction, userId: string): BiddingOutcome {
+function outcomeOf(auction: Auction, userId: string, boughtLater: boolean): BiddingOutcome {
   const leading = auction.leaderId === userId;
   if (auction.status === 'ENDED_SOLD') {
-    return leading ? 'WON' : 'LOST';
+    return leading || boughtLater ? 'WON' : 'LOST';
   }
   if (auction.status === 'ENDED_UNSOLD') {
     return leading ? 'RESERVE_NOT_MET' : 'LOST';
@@ -59,12 +59,15 @@ export class MyListsService {
     page: number,
   ): Promise<{ items: MyBidEntry[]; total: number; summary: MyBidsSummary | null }> {
     const mine = and(eq(bids.bidderId, userId), eq(bids.status, 'VALID'));
+    // Zakupy z drugiej szansy (F-26) są wygranymi, choć liderem aukcji był ktoś inny.
+    const secondChance = filter === 'ACTIVE' ? [] : await this.orders.secondChanceAuctions(userId);
+    const bought = secondChance.length === 0 ? sql`false` : inArray(auctions.id, secondChance);
     const condition = {
       ACTIVE: eq(auctions.status, 'ACTIVE'),
-      WON: and(eq(auctions.status, 'ENDED_SOLD'), eq(auctions.leaderId, userId)),
+      WON: and(eq(auctions.status, 'ENDED_SOLD'), or(eq(auctions.leaderId, userId), bought)),
       LOST: or(
         inArray(auctions.status, ['ENDED_UNSOLD', 'CANCELLED']),
-        and(eq(auctions.status, 'ENDED_SOLD'), ne(auctions.leaderId, userId)),
+        and(eq(auctions.status, 'ENDED_SOLD'), ne(auctions.leaderId, userId), not(bought)),
       ),
     }[filter];
     const soon = new Date(Date.now() + SOON_WINDOW_MS);
@@ -94,9 +97,14 @@ export class MyListsService {
       .limit(MY_BIDS_PAGE)
       .offset((page - 1) * MY_BIDS_PAGE);
     const cards = await this.cards.cards(rows.map((row) => row.auction));
+    // Najnowsze zamówienie użytkownika: zwycięzca, który nie zapłacił, widzi swoje anulowane
+    // zamówienie, a nie zamówienie z drugiej szansy innej osoby.
     const orders =
       filter === 'WON'
-        ? await this.orders.activeForAuctions(rows.map((row) => row.auction.id))
+        ? await this.orders.latestForBuyer(
+            userId,
+            rows.map((row) => row.auction.id),
+          )
         : new Map<string, Order>();
     const total = totals?.total ?? 0;
     const leading = totals?.leading ?? 0;
@@ -112,8 +120,8 @@ export class MyListsService {
           card: cards[index] as AuctionCard,
           maxAmount: row.maxAmount ?? 0,
           leading: row.auction.leaderId === userId,
-          outcome: outcomeOf(row.auction, userId),
-          order: order?.buyerId === userId ? order : undefined,
+          outcome: outcomeOf(row.auction, userId, secondChance.includes(row.auction.id)),
+          order,
         };
       }),
     };

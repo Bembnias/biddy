@@ -771,6 +771,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-26 · Cykl życia zamówienia · `L`
 
+> Pełny spec: [docs/features/F-26-cykl-zamowienia.md](features/F-26-cykl-zamowienia.md).
+
 **Cel:** zamówienie przechodzi od wygranej do wypłaty automatycznie, z obsługą wyjątków.
 
 > Opłacenie (`PAID` z `ship_by` i `OrderPaid`), anulowanie nieopłaconego (`CANCELLED_UNPAID`, event `OrderCancelled`) i tabela `refunds` ze zwrotem przez operatora są już w F-25. Strike'i za brak płatności i nieodebraną paczkę (oraz cofnięcie po spóźnionej płatności) nadają już konsumenci z F-61. F-26 dodaje przypomnienia, drugą szansę, strike za brak nadania (`StrikeService.issue` z powodem `NOT_SHIPPED`) i historię zakończonych zamówień (`TradeHistoryService.recordCompleted`).

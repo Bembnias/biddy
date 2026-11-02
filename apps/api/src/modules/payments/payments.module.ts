@@ -15,6 +15,7 @@ import {
 } from './adapters/fake/fake-gateway-schedule.js';
 import { FakeGatewaySimulator } from './adapters/fake/fake-gateway-simulator.js';
 import { FakeGateway } from './adapters/fake/fake-gateway.js';
+import { EscrowService } from './application/escrow.service.js';
 import { GatewayRegistry, PAYMENT_GATEWAYS } from './application/gateway-registry.js';
 import { PaymentEventProcessor } from './application/payment-event-processor.js';
 import { PaymentTransitions } from './application/payment-transitions.js';
@@ -30,7 +31,8 @@ import { registerPaymentWebhookRoutes } from './webhooks/payment-webhook-routes.
 /**
  * Moduł domenowy `payments` (PROJECT.md §10.3, §7.8): cenniki POK (F-13), port płatności,
  * rejestr adapterów, FakeGateway, płatności, konta sprzedawców u operatora, webhooki i polling
- * zapasowy (F-23), zwroty (F-25); wypłaty i chargebacki w kolejnych feature'ach. Publiczne API:
+ * zapasowy (F-23), zwroty (F-25), zwolnienie środków i rekompensaty (F-26); wypłaty i chargebacki
+ * w kolejnych feature'ach. Publiczne API:
  * ./index.ts. Trasę webhooków (surowe body) rejestruje tylko w procesie HTTP.
  */
 @Module({
@@ -55,10 +57,12 @@ import { registerPaymentWebhookRoutes } from './webhooks/payment-webhook-routes.
     SellerAccountService,
     PaymentService,
     RefundService,
+    EscrowService,
     PaymentEventProcessor,
     PendingPaymentsPoller,
   ],
   exports: [
+    EscrowService,
     FeeScheduleService,
     GatewayRegistry,
     PaymentService,

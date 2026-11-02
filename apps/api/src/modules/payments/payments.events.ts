@@ -71,7 +71,7 @@ export const RefundRequested = defineDomainEvent({
   }),
 });
 
-/** Operator potwierdził zwrot; ledger ma już ORDER_REFUNDED. */
+/** Operator potwierdził zwrot; ledger ma już ORDER_REFUNDED (albo NOT_PICKED_UP_REFUNDED). */
 export const RefundSucceeded = defineDomainEvent({
   type: 'RefundSucceeded',
   version: 1,
@@ -82,5 +82,20 @@ export const RefundSucceeded = defineDomainEvent({
     buyerId: z.uuid(),
     amount: money,
     reason: z.enum(REFUND_REASONS),
+  }),
+});
+
+/**
+ * Zlecone zwolnienie środków sprzedającego u operatora (F-26, wiersz `fund_releases` w PENDING).
+ * Ledger zwolnił je już w transakcji zakończenia zamówienia; konsument wywołuje operatora.
+ */
+export const FundsReleaseRequested = defineDomainEvent({
+  type: 'FundsReleaseRequested',
+  version: 1,
+  aggregateType: 'fund-release',
+  payload: z.object({
+    orderId: z.uuid(),
+    paymentId: z.uuid(),
+    amount: money,
   }),
 });

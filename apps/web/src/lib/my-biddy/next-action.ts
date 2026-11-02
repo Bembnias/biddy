@@ -1,9 +1,10 @@
 // Następna akcja w listach Moje Biddy (F-21): każda pozycja mówi, co zrobić dalej. „Zapłać”
-// prowadzi do checkoutu (F-25), a nadanie paczki do strony nadania (F-24).
+// prowadzi do checkoutu (F-25), nadanie paczki do strony nadania (F-24), a opłacone zamówienia
+// i druga szansa po braku płatności do strony zamówienia (F-26).
 import type { AuctionSummaryDto, MyBidsDto, MyWatchlistDto } from '@biddy/api-client';
 import { formatMoney, money } from '@biddy/shared';
 
-import { auctionUrl, checkoutUrl, dispatchUrl, searchUrl } from '@/lib/routes';
+import { auctionUrl, checkoutUrl, dispatchUrl, orderUrl, searchUrl } from '@/lib/routes';
 
 export type MyBidEntry = MyBidsDto['items'][number];
 export type WatchedAuction = MyWatchlistDto['items'][number];
@@ -32,7 +33,8 @@ export interface RowStatus {
 export type RowAction =
   | {
       readonly kind: 'link';
-      readonly label: 'view' | 'rebid' | 'similar' | 'bid' | 'ship' | 'pay';
+      readonly label:
+        'view' | 'rebid' | 'similar' | 'bid' | 'ship' | 'pay' | 'details' | 'secondChance';
       readonly href: string;
       readonly primary: boolean;
     }
@@ -66,7 +68,12 @@ export function bidRow(
       if (order !== null && order.status !== 'AWAITING_PAYMENT') {
         return {
           status: { key: 'wonPaid', values: { number: order.publicId }, tone: 'positive' },
-          action: { kind: 'link', label: 'view', href, primary: false },
+          action: {
+            kind: 'link',
+            label: 'details',
+            href: orderUrl(order.publicId),
+            primary: false,
+          },
         };
       }
       return {
@@ -156,7 +163,7 @@ export function saleRow(
         values: { date: date(order.paymentDueAt), number: order.publicId },
         tone: 'warning',
       },
-      action: { kind: 'none' },
+      action: { kind: 'link', label: 'details', href: orderUrl(order.publicId), primary: false },
     };
   }
   if (order.status === 'PAID') {
@@ -175,7 +182,16 @@ export function saleRow(
           ? 'positive'
           : 'neutral',
     },
-    action: { kind: 'none' },
+    // Po braku płatności strona zamówienia ma drugą szansę i „Wystaw ponownie” (F-26).
+    action:
+      order.status === 'CANCELLED_UNPAID'
+        ? {
+            kind: 'link',
+            label: 'secondChance',
+            href: orderUrl(order.publicId),
+            primary: true,
+          }
+        : { kind: 'link', label: 'details', href: orderUrl(order.publicId), primary: false },
   };
 }
 

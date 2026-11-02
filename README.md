@@ -506,7 +506,7 @@ Domena rozmawia z przewoźnikami wyłącznie przez port `ShippingProvider` ([PRO
 - **Tracking:**
   - webhook `POST /v1/webhooks/shipping/:provider` jest tylko wskazówką, a job `shipping.sync-tracking` pobiera historię z API dostawcy;
   - polling zapasowy `shipping.poll-tracking` co 10 minut obejmuje przesyłki niesprawdzane od 2 godzin;
-  - każda zmiana statusu to event `ShipmentStatusChanged` (przy zwrocie z powodem `NOT_COLLECTED` albo `OTHER`), który konsumuje F-26.
+  - każda zmiana statusu to event `ShipmentStatusChanged` (przy zwrocie z powodem `NOT_COLLECTED` albo `OTHER`), który prowadzi cykl zamówienia (F-26).
 - **FakeShipping lokalnie** (`pnpm dev` + `pnpm dev:worker`): automat dodaje kolejny status co `SHIPPING_FAKE_STEP_DELAY_MS` (20 s) i wysyła podpisany webhook na API, więc cały cykl trwa około 2 minut.
   - Punkty `…-NOPICKUP` i `…-LOST` prowadzą paczkę ścieżką nieodebranej albo zagubionej przesyłki.
   - Telefon nadawcy `500 000 000`: przewoźnik odrzuca dane; `500 000 001`: przewoźnik niedostępny.
@@ -531,20 +531,53 @@ Zwycięzca płaci na stronie `/zamowienia/{numer}/zaplac` (link z powiadomienia 
 - **Zwroty:** udana płatność anulowanego albo już opłaconego zamówienia wraca do kupującego automatycznie (tabela `refunds`, event `RefundRequested`, operator, webhook, księgowanie `ORDER_REFUNDED`).
 - **Lokalnie:** kody BLIK FakeGateway `777123` (udana), `111111` (odrzucona), `222222` (zostaje w toku); karta i szybki przelew przechodzą przez testową stronę `/dev/fake-pay/{id}`, która wraca na checkout.
 
+### Cykl życia zamówienia (F-26)
+
+Zamówienie przechodzi od wygranej do zakończenia samo, według maszyny stanów i terminów z PROJECT.md §7.3–7.4. Spec: [F-26](docs/features/F-26-cykl-zamowienia.md).
+
+- **Maszyna stanów.**
+  - Każde przejście idzie przez `transitionOrder` (blokada wiersza, para z `ORDER_TRANSITIONS`, czasy etapów i event w jednej transakcji).
+  - Trigger `orders_status_transition` odrzuca niedozwoloną parę także przy ręcznym `UPDATE`.
+- **Przesyłka prowadzi zamówienie** (konsument `orders.shipment-lifecycle`):
+  - pierwszy status u przewoźnika: `PAID → SHIPPED`;
+  - odbiór: `DELIVERED` z oknem 36 h od chwili wykrycia;
+  - zwrot nieodebranej: `NOT_PICKED_UP`, a `RETURNED` zleca zwrot ceny i POK bez dostawy.
+- **Zakończenie:** „Wszystko OK” (`POST /v1/orders/:id/confirm-receipt`) albo job `orders.complete-inspected` po 36 h.
+  - `EscrowService.release` księguje `ORDER_COMPLETED` (cena na saldo dostępne) i zleca zwolnienie u operatora (`fund_releases`).
+  - Otwarty chargeback (`orders.chargeback_status = 'OPEN'`) wstrzymuje zakończenie.
+- **Terminy** (kolejka `orders`, co minutę):
+  - `orders.expire-unshipped`: po `ship_by` najpierw synchronizacja trackingu, potem anulowanie przesyłki, `CANCELLED_NOT_SHIPPED`, pełny zwrot i strike `NOT_SHIPPED` sprzedającego;
+  - `orders.expire-second-chance`: wygaszenie ofert po 24 h;
+  - `orders.compensate-lost` (co godzinę): rekompensata 30 dni po zgłoszeniu zaginięcia.
+    Po potwierdzeniu zwrotu przez operatora zamówienie jest `REFUNDED`, a wstrzymane środki wynoszą 0.
+- **Zaginiona paczka:** „Zgłoś brak paczki” (`POST /v1/orders/:id/report-not-received`) 14 dni po nadaniu.
+  - Zamówienie przechodzi w `LOST`, dostaje pełny zwrot i reklamację u przewoźnika (`carrier_claims`).
+  - Sprzedający dostaje rekompensatę = cena po rozstrzygnięciu reklamacji (`CarrierClaimResolved`) albo po 30 dniach.
+- **Druga szansa** (§6.8):
+  - przy zakończeniu aukcji zamówienie zapamiętuje do 5 pozostałych licytujących (`order_items.runner_ups`);
+  - po `CANCELLED_UNPAID` sprzedający wysyła ofertę do kolejnej osoby (`POST /v1/orders/:id/second-chance-offers`, do 14 dni);
+  - licytujący przyjmuje ją albo odrzuca na `/druga-szansa/{id}` (`POST /v1/second-chance-offers/:id/accept|decline`);
+  - akceptacja tworzy nowe zamówienie `AWAITING_PAYMENT` za jej maksimum.
+- **Powiadomienia:**
+  - przypomnienia o płatności (1 h, 12 h, 20 h) i o nadaniu (dobę przed terminem) to joby z terminem w ID;
+  - dalej anulowanie, nadanie, odbiór, zakończenie, nieodebrana i zaginiona paczka, zwrot i oferty drugiej szansy.
+- **Web:** `/zamowienia/{numer}` dla obu stron (stan, „Co teraz” z akcją, postęp, przesyłka z historią, podsumowanie, druga szansa); linki z Moje Biddy i z powiadomień.
+- **Lokalnie:** paczkę prowadzi automat FakeShipping (punkty `…-NOPICKUP` i `…-LOST`). Termin nadania czy okno 36 h skrócisz w bazie (`ship_by`, `inspection_ends_at`), a job zadziała w ciągu minuty.
+
 ### Limity kont i strike'i (F-61)
 
 Poziomy kont, limity, strike'i i blokady z uzasadnieniem i odwołaniem (PROJECT.md §4.1). Spec: [F-61](docs/features/F-61-limity-i-strike.md).
 
 - **Poziomy z historii zamówień.**
   - Moduł `identity` trzyma tabelę `trade_records` (jeden wiersz na zamówienie).
-  - Dopisuje ją moduł `orders`: konsument `OrderPaid`, w F-26 zakończenie, w F-28 przegrany spór.
+  - Dopisuje ją moduł `orders`: konsumenci `OrderPaid` i `OrderCompleted` (F-26), w F-28 przegrany spór.
   - Kupujący po pierwszym opłaconym zamówieniu może licytować do 5000 zł (nowe konto: 2500 zł).
 - **Polityka kont bez deployu.**
   - Limity poziomów i reguły strike'ów leżą w `account_policies` (najnowsza wersja, bez wersji: `DEFAULT_ACCOUNT_POLICY` z `@biddy/shared`).
   - Zmiana przez `PUT /v1/admin/account-policy` (rola `admin`) działa w każdym procesie po najwyżej 30 s.
   - Nadpisania dla jednego konta: `PUT /v1/admin/users/:id/limits` (`users.limits`).
 - **Strike'i.** `StrikeService.issue(tx, …)` w transakcji modułu, który zna zdarzenie, z kluczem źródła (ponowiony event nie daje drugiego strike'a):
-  - `orders`: brak płatności (`OrderCancelled`) i nieodebrana paczka (`ShipmentStatusChanged` z `NOT_COLLECTED`);
+  - `orders`: brak płatności i brak nadania (`OrderCancelled`, F-26) oraz nieodebrana paczka (`ShipmentStatusChanged` z `NOT_COLLECTED`);
   - spóźniona płatność (`RefundRequested` z `LATE_PAYMENT`) cofa strike;
   - `auctions`: anulowanie aukcji z ofertami.
 - **Blokady.**

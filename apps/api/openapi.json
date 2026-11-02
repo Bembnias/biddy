@@ -3011,6 +3011,218 @@
         ]
       }
     },
+    "/v1/orders/{id}": {
+      "get": {
+        "description": "Stan z datami etapów, kwoty, przesyłka z trackingiem, zwrot i dostępne akcje.",
+        "operationId": "getOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zamówienie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zamówienie (kupujący albo sprzedający)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/v1/orders/{id}/confirm-receipt": {
+      "post": {
+        "description": "Kończy odebrane zamówienie i zwalnia środki sprzedającemu. Ponowienie po zakończeniu zwraca zamówienie.",
+        "operationId": "confirmReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zamówienie zakończone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "„Wszystko OK” (kupujący)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/v1/orders/{id}/report-not-received": {
+      "post": {
+        "description": "14 dni po nadaniu bez statusu końcowego: zamówienie zaginione, pełny zwrot i reklamacja u przewoźnika.",
+        "operationId": "reportNotReceived",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zgłoszenie przyjęte",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zgłoszenie braku paczki (kupujący)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/v1/orders/{id}/second-chance-offers": {
+      "post": {
+        "description": "Do kolejnego licytującego za jego maksimum, ważna 24 h. Tylko po anulowaniu nieopłaconego zamówienia, do 14 dni.",
+        "operationId": "sendSecondChance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Oferta wysłana",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetailsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Oferta drugiej szansy (sprzedający)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
     "/v1/orders/{id}/shipping-options": {
       "get": {
         "description": "Usługi zaakceptowane przez sprzedającego, pasujące do gabarytu i z ceną w cenniku Biddy.",
@@ -3417,6 +3629,163 @@
           }
         ],
         "summary": "Płatność za zamówienie (kupujący)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/v1/second-chance-offers/{id}": {
+      "get": {
+        "operationId": "getSecondChanceOffer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID oferty",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Oferta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecondChanceOfferDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Oferta drugiej szansy (licytujący)",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/v1/second-chance-offers/{id}/accept": {
+      "post": {
+        "description": "Tworzy zamówienie do zapłaty w 24 h. Ponowienie zwraca to samo zamówienie.",
+        "operationId": "acceptSecondChanceOffer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID oferty",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Oferta przyjęta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecondChanceOfferDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Przyjęcie oferty drugiej szansy",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/v1/second-chance-offers/{id}/decline": {
+      "post": {
+        "operationId": "declineSecondChanceOffer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID oferty",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Oferta odrzucona",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecondChanceOfferDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odrzucenie oferty drugiej szansy (bez konsekwencji)",
         "tags": [
           "orders"
         ]
@@ -10710,6 +11079,753 @@
         ],
         "additionalProperties": false
       },
+      "OrderDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "publicId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AWAITING_PAYMENT",
+              "PAID",
+              "SHIPPED",
+              "DELIVERED",
+              "COMPLETED",
+              "DISPUTED",
+              "NOT_PICKED_UP",
+              "LOST",
+              "REFUNDED",
+              "PARTIALLY_REFUNDED",
+              "CANCELLED_UNPAID",
+              "CANCELLED_NOT_SHIPPED"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER"
+            ],
+            "description": "Kim jest zalogowana osoba w zamówieniu"
+          },
+          "title": {
+            "type": "string",
+            "description": "Tytuł przedmiotu ze snapshotu"
+          },
+          "photoUrl": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "auction": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "publicId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "slug": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "publicId",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          "counterpart": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Druga strona zamówienia"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "itemsTotal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "pokFee": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "shippingFee": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "paymentDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "shipBy": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "shippedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "deliveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "inspectionEndsAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Koniec okna 36 h na sprawdzenie przedmiotu",
+            "nullable": true
+          },
+          "buyerConfirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "notPickedUpAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "lostAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "refundedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "compensation": {
+            "type": "object",
+            "properties": {
+              "dueAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "paidAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              }
+            },
+            "required": [
+              "dueAt",
+              "paidAt"
+            ],
+            "additionalProperties": false,
+            "description": "Rekompensata za zaginioną paczkę (tylko sprzedający)",
+            "nullable": true
+          },
+          "onHold": {
+            "type": "boolean",
+            "description": "Zakończenie wstrzymane przez chargeback"
+          },
+          "fromSecondChance": {
+            "type": "boolean"
+          },
+          "shipment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "OUTBOUND",
+                  "RETURN"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "REQUESTED",
+                  "CREATED",
+                  "DROPPED_OFF",
+                  "IN_TRANSIT",
+                  "OUT_FOR_DELIVERY",
+                  "READY_FOR_PICKUP",
+                  "DELIVERED",
+                  "EXCEPTION",
+                  "RETURNING",
+                  "RETURNED",
+                  "CANCELLED"
+                ]
+              },
+              "carrier": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "LOCKER",
+                      "PICKUP_POINT",
+                      "COURIER"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              "packageSize": {
+                "type": "string",
+                "enum": [
+                  "S",
+                  "M",
+                  "L",
+                  "XL"
+                ]
+              },
+              "pickupPoint": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "address": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "address"
+                ],
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "recipient": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "city": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Miejscowość (kurier); null dla punktu odbioru",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "name",
+                  "city"
+                ],
+                "additionalProperties": false
+              },
+              "sender": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 100,
+                    "description": "Imię i nazwisko albo nazwa firmy"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 32,
+                    "description": "Polski numer komórkowy (dla przewoźnika)"
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "nullable": true
+                  },
+                  "address": {
+                    "type": "object",
+                    "properties": {
+                      "street": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 100,
+                        "description": "Ulica z numerem domu i lokalu"
+                      },
+                      "postalCode": {
+                        "type": "string",
+                        "maxLength": 10,
+                        "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+                      },
+                      "city": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 60
+                      }
+                    },
+                    "required": [
+                      "street",
+                      "postalCode",
+                      "city"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "name",
+                  "phone",
+                  "address"
+                ],
+                "additionalProperties": false,
+                "description": "Dane nadawcy (tylko sprzedający); null przed „Nadaj”",
+                "nullable": true
+              },
+              "dispatchMethod": {
+                "type": "string",
+                "enum": [
+                  "DROP_OFF",
+                  "COURIER_PICKUP",
+                  null
+                ],
+                "nullable": true
+              },
+              "dispatchMethods": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "DROP_OFF",
+                    "COURIER_PICKUP"
+                  ]
+                },
+                "description": "Sposoby nadania dostępne dla tej przesyłki"
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "PLN"
+                ]
+              },
+              "price": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Cena dostawy zapłacona przez kupującego"
+              },
+              "trackingNumber": {
+                "type": "string",
+                "minLength": 1,
+                "nullable": true
+              },
+              "dropoffCode": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Kod nadania w paczkomacie lub punkcie (tylko sprzedający)",
+                "nullable": true
+              },
+              "labelAvailable": {
+                "type": "boolean",
+                "description": "Etykieta PDF gotowa do pobrania"
+              },
+              "lastError": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Ostatni błąd utworzenia u przewoźnika (tylko sprzedający)",
+                "nullable": true
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "REQUESTED",
+                        "CREATED",
+                        "DROPPED_OFF",
+                        "IN_TRANSIT",
+                        "OUT_FOR_DELIVERY",
+                        "READY_FOR_PICKUP",
+                        "DELIVERED",
+                        "EXCEPTION",
+                        "RETURNING",
+                        "RETURNED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Opis przewoźnika",
+                      "nullable": true
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "description",
+                    "occurredAt"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "requestedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "deliveredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "id",
+              "direction",
+              "status",
+              "carrier",
+              "packageSize",
+              "pickupPoint",
+              "recipient",
+              "sender",
+              "dispatchMethod",
+              "dispatchMethods",
+              "currency",
+              "price",
+              "trackingNumber",
+              "dropoffCode",
+              "labelAvailable",
+              "lastError",
+              "events",
+              "requestedAt",
+              "deliveredAt",
+              "createdAt"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "refund": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "NOT_SHIPPED",
+                  "LOST",
+                  "DISPUTE",
+                  "LATE_PAYMENT",
+                  "DUPLICATE_PAYMENT",
+                  "CHARGEBACK",
+                  "NOT_PICKED_UP"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "SUCCEEDED",
+                  "FAILED"
+                ]
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "succeededAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              }
+            },
+            "required": [
+              "amount",
+              "reason",
+              "status",
+              "createdAt",
+              "succeededAt"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "actions": {
+            "type": "object",
+            "properties": {
+              "confirmReceipt": {
+                "type": "boolean",
+                "description": "„Wszystko OK” (kupujący, paczka odebrana)"
+              },
+              "reportNotReceived": {
+                "type": "object",
+                "properties": {
+                  "availableAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "allowed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "availableAt",
+                  "allowed"
+                ],
+                "additionalProperties": false,
+                "description": "Zgłoszenie braku paczki (kupujący, paczka w drodze)",
+                "nullable": true
+              }
+            },
+            "required": [
+              "confirmReceipt",
+              "reportNotReceived"
+            ],
+            "additionalProperties": false
+          },
+          "secondChance": {
+            "type": "object",
+            "properties": {
+              "next": {
+                "type": "object",
+                "properties": {
+                  "bidder": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "bidder",
+                  "amount"
+                ],
+                "additionalProperties": false,
+                "nullable": true
+              },
+              "offers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "bidder": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "ACCEPTED",
+                        "DECLINED",
+                        "EXPIRED"
+                      ]
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "respondedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                      "nullable": true
+                    },
+                    "orderPublicId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "bidder",
+                    "amount",
+                    "status",
+                    "expiresAt",
+                    "respondedAt",
+                    "orderPublicId"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "unavailableReason": {
+                "type": "string",
+                "enum": [
+                  "NOT_CANCELLED_UNPAID",
+                  "NOT_LATEST_ORDER",
+                  "OFFER_PENDING",
+                  "WINDOW_PASSED",
+                  "NO_CANDIDATES",
+                  null
+                ],
+                "nullable": true
+              },
+              "sendBy": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              }
+            },
+            "required": [
+              "next",
+              "offers",
+              "unavailableReason",
+              "sendBy"
+            ],
+            "additionalProperties": false,
+            "description": "Druga szansa (tylko sprzedający zamówienia anulowanego po braku płatności)",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "publicId",
+          "status",
+          "role",
+          "title",
+          "photoUrl",
+          "auction",
+          "counterpart",
+          "currency",
+          "itemsTotal",
+          "pokFee",
+          "shippingFee",
+          "total",
+          "paymentDueAt",
+          "paidAt",
+          "shipBy",
+          "shippedAt",
+          "deliveredAt",
+          "inspectionEndsAt",
+          "buyerConfirmedAt",
+          "completedAt",
+          "cancelledAt",
+          "notPickedUpAt",
+          "lostAt",
+          "refundedAt",
+          "compensation",
+          "onHold",
+          "fromSecondChance",
+          "shipment",
+          "refund",
+          "actions",
+          "secondChance"
+        ],
+        "additionalProperties": false
+      },
       "ShippingOptionDto": {
         "type": "object",
         "properties": {
@@ -11681,6 +12797,106 @@
           "method",
           "expectedTotal"
         ]
+      },
+      "SecondChanceOfferDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ACCEPTED",
+              "DECLINED",
+              "EXPIRED"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "photoUrl": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "auction": {
+            "type": "object",
+            "properties": {
+              "publicId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "slug": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "publicId",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Cena: najwyższa oferta licytującego"
+          },
+          "pokFee": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Do zapłaty bez dostawy"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "respondedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "orderPublicId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Zamówienie po akceptacji",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "title",
+          "photoUrl",
+          "auction",
+          "currency",
+          "amount",
+          "pokFee",
+          "total",
+          "expiresAt",
+          "respondedAt",
+          "orderPublicId"
+        ],
+        "additionalProperties": false
       },
       "FeeScheduleDto": {
         "type": "object",
@@ -13358,6 +14574,17 @@
                     "AUCTION_CANCELLED",
                     "FOLLOWED_SELLER_NEW_AUCTION",
                     "ORDER_PAID",
+                    "PAYMENT_REMINDER",
+                    "SHIP_REMINDER",
+                    "ORDER_CANCELLED",
+                    "ORDER_SHIPPED",
+                    "ORDER_DELIVERED",
+                    "ORDER_COMPLETED",
+                    "ORDER_NOT_PICKED_UP",
+                    "ORDER_LOST",
+                    "ORDER_REFUNDED",
+                    "SECOND_CHANCE_OFFER",
+                    "SECOND_CHANCE_ANSWERED",
                     "STRIKE_ISSUED",
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
@@ -13473,6 +14700,17 @@
                     "AUCTION_CANCELLED",
                     "FOLLOWED_SELLER_NEW_AUCTION",
                     "ORDER_PAID",
+                    "PAYMENT_REMINDER",
+                    "SHIP_REMINDER",
+                    "ORDER_CANCELLED",
+                    "ORDER_SHIPPED",
+                    "ORDER_DELIVERED",
+                    "ORDER_COMPLETED",
+                    "ORDER_NOT_PICKED_UP",
+                    "ORDER_LOST",
+                    "ORDER_REFUNDED",
+                    "SECOND_CHANCE_OFFER",
+                    "SECOND_CHANCE_ANSWERED",
                     "STRIKE_ISSUED",
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
@@ -13531,6 +14769,17 @@
                     "AUCTION_CANCELLED",
                     "FOLLOWED_SELLER_NEW_AUCTION",
                     "ORDER_PAID",
+                    "PAYMENT_REMINDER",
+                    "SHIP_REMINDER",
+                    "ORDER_CANCELLED",
+                    "ORDER_SHIPPED",
+                    "ORDER_DELIVERED",
+                    "ORDER_COMPLETED",
+                    "ORDER_NOT_PICKED_UP",
+                    "ORDER_LOST",
+                    "ORDER_REFUNDED",
+                    "SECOND_CHANCE_OFFER",
+                    "SECOND_CHANCE_ANSWERED",
                     "STRIKE_ISSUED",
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
@@ -13576,6 +14825,17 @@
               "AUCTION_CANCELLED",
               "FOLLOWED_SELLER_NEW_AUCTION",
               "ORDER_PAID",
+              "PAYMENT_REMINDER",
+              "SHIP_REMINDER",
+              "ORDER_CANCELLED",
+              "ORDER_SHIPPED",
+              "ORDER_DELIVERED",
+              "ORDER_COMPLETED",
+              "ORDER_NOT_PICKED_UP",
+              "ORDER_LOST",
+              "ORDER_REFUNDED",
+              "SECOND_CHANCE_OFFER",
+              "SECOND_CHANCE_ANSWERED",
               "STRIKE_ISSUED",
               "STRIKE_REVOKED",
               "ACCOUNT_BLOCKED",
@@ -13598,6 +14858,17 @@
                 "AUCTION_CANCELLED",
                 "FOLLOWED_SELLER_NEW_AUCTION",
                 "ORDER_PAID",
+                "PAYMENT_REMINDER",
+                "SHIP_REMINDER",
+                "ORDER_CANCELLED",
+                "ORDER_SHIPPED",
+                "ORDER_DELIVERED",
+                "ORDER_COMPLETED",
+                "ORDER_NOT_PICKED_UP",
+                "ORDER_LOST",
+                "ORDER_REFUNDED",
+                "SECOND_CHANCE_OFFER",
+                "SECOND_CHANCE_ANSWERED",
                 "STRIKE_ISSUED",
                 "STRIKE_REVOKED",
                 "ACCOUNT_BLOCKED",

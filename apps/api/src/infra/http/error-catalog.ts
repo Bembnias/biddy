@@ -236,6 +236,41 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Sprzedający niedostępny',
     detail: 'Sprzedający nie może teraz przyjąć płatności. Napisz do nas przez Centrum pomocy.',
   },
+  ORDER_NOT_DELIVERED: {
+    status: 409,
+    title: 'Paczka nieodebrana',
+    detail: 'Odbiór możesz potwierdzić, gdy paczka zostanie odebrana.',
+  },
+  ORDER_ON_HOLD: {
+    status: 409,
+    title: 'Zamówienie wstrzymane',
+    detail: 'Zamówienie jest wstrzymane do wyjaśnienia płatności z bankiem kupującego.',
+  },
+  ORDER_NOT_SHIPPED_YET: {
+    status: 409,
+    title: 'Paczka jeszcze nienadana',
+    detail: 'Sprzedający jeszcze nie nadał paczki.',
+  },
+  NOT_RECEIVED_TOO_EARLY: {
+    status: 409,
+    title: 'Za wcześnie na zgłoszenie',
+    detail: 'Brak paczki możesz zgłosić 14 dni po nadaniu.',
+  },
+  SHIPMENT_FINISHED: {
+    status: 409,
+    title: 'Przesyłka zakończona',
+    detail: 'To zamówienie nie czeka już na paczkę.',
+  },
+  SECOND_CHANCE_UNAVAILABLE: {
+    status: 409,
+    title: 'Druga szansa niedostępna',
+    detail: 'Nie możesz teraz wysłać oferty drugiej szansy.',
+  },
+  SECOND_CHANCE_CLOSED: {
+    status: 409,
+    title: 'Oferta nieaktualna',
+    detail: 'Ta oferta jest już nieaktualna.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',
