@@ -877,6 +877,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 **Zakres:**
 - Poziomy kupujących i sprzedających z §4.1 liczone z historii zamówień, nadpisania w `users.limits`, wartości domyślne w konfiguracji.
+- Nowe maksimum oferty kupującego z §4.1 (decyzja nr 110 w §22): nowy 2500 zł, sprawdzony 5000 zł, zaufany bez limitu. Dotąd kod ma 500 i 3000 zł (`BUYER_LIMITS` w `packages/shared`, komunikat `BID_LIMIT_EXCEEDED`).
 - Tabela `strikes`. Strike'i nadaje system (konsumenci eventów: brak płatności, nieodebrana przesyłka, brak nadania, anulowanie aukcji z ofertami, przegrany spór) albo admin.
 - Reguły blokad: 3 strike'i w 90 dni → blokada na 30 dni, druga blokada w ciągu 12 miesięcy → bezterminowa, potwierdzona podróbka → natychmiastowa blokada.
 - `bidding_blocked_until` i `listing_blocked_until`, guardy w API licytacji i wystawiania.

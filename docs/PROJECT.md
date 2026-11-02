@@ -198,8 +198,8 @@ Role wewnętrzne (panel admina): `support`, `moderator`, `finance`, `admin`, z p
 
 | Poziom | Warunek | Maks. kwota oferty (maksimum proxy) | Aukcje z aktywną ofertą |
 |---|---|---:|---:|
-| Nowy | 0 opłaconych zamówień | 500 zł | 10 |
-| Sprawdzony | ≥ 1 opłacone zamówienie | 3000 zł | 50 |
+| Nowy | 0 opłaconych zamówień | 2500 zł | 10 |
+| Sprawdzony | ≥ 1 opłacone zamówienie | 5000 zł | 50 |
 | Zaufany | ≥ 3 zakończone zamówienia i konto ≥ 30 dni | bez limitu | bez limitu |
 
 **Limity sprzedającego:**
@@ -1964,6 +1964,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 107 | Checkout: kwoty liczy backend, a klient wysyła tylko sumę z przycisku (`expectedTotal`; inna = 409 `CHECKOUT_TOTAL_CHANGED`). Zmiana dostawy i nowa płatność blokują wiersz zamówienia (`FOR UPDATE`) do zapisu płatności, także na czas wywołania operatora; płatność w toku albo udana blokuje kolejną, nieudana nie. Klucz płatności `checkout:{orderId}:{Idempotency-Key}` | Przyjęta | §7.2, §7.8 |
 | 108 | Zwroty płatności w module `payments` (tabela `refunds`): zlecenie w transakcji wywołującego z eventem `RefundRequested`, wywołanie operatora w konsumencie z kluczem `refund:{id}`, księgowanie `ORDER_REFUNDED` dopiero po webhooku `REFUND_SUCCEEDED`; nieudany zwrot czeka na support. Udana płatność anulowanego zamówienia (`LATE_PAYMENT`) albo drugiej płatności (`DUPLICATE_PAYMENT`, nowy powód w ledgerze) wraca automatycznie i bez strike'a | Przyjęta | §6.8, §7.7 |
 | 109 | Do F-32 checkout rejestruje sprzedawcę u operatora przed pierwszą płatnością (imię i potwierdzony e-mail z `identity`; zablokowany albo bez e-maila: 409 `SELLER_UNAVAILABLE`). Checkout web: BLIK z kodem, karta i szybki przelew (Apple Pay i Google Pay z prawdziwym operatorem, F-31), punkty odbioru przez wyszukiwarkę bez mapy | Tymczasowa | §7.6, §8.1 |
+| 110 | Maks. oferta nowego kupującego 2500 zł (było 500 zł), sprawdzonego 5000 zł (było 3000 zł), zaufanego bez limitu; limit liczby aukcji z aktywną ofertą bez zmian. Pierwsze zakupy mogą obejmować droższe przedmioty (elektronika, kolekcje), a ryzyko niepłacącego zwycięzcy ograniczają strike'i i blokady (F-61). Do F-61 kod ma stare wartości (`BUYER_LIMITS`) | Przyjęta | §4.1 |
 
 ---
 
