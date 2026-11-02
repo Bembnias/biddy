@@ -1,7 +1,7 @@
 'use client';
 
-import type { MyBiddingDto, PublicAuctionDto } from '@biddy/api-client';
-import { Trophy } from 'lucide-react';
+import type { MyBiddingDto, MyBiddingDtoOrderStatus, PublicAuctionDto } from '@biddy/api-client';
+import { Check, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect } from 'react';
@@ -25,6 +25,33 @@ const CONFETTI = [
 ] as const;
 
 /**
+ * Bieżący krok „Co dalej”: 0 płatność, 1 nadanie, 2 odbiór, 3 wszystkie za nami. Null: zamówienie
+ * poza zwykłą ścieżką (anulowane, spór, zwrot); jego stan pokazuje Moje Biddy.
+ */
+export function winStep(status: MyBiddingDtoOrderStatus | null): number | null {
+  switch (status) {
+    case null:
+    case 'AWAITING_PAYMENT':
+      return 0;
+    case 'PAID':
+      return 1;
+    case 'SHIPPED':
+    case 'DELIVERED':
+      return 2;
+    case 'COMPLETED':
+      return 3;
+    case 'DISPUTED':
+    case 'NOT_PICKED_UP':
+    case 'LOST':
+    case 'REFUNDED':
+    case 'PARTIALLY_REFUNDED':
+    case 'CANCELLED_UNPAID':
+    case 'CANCELLED_NOT_SHIPPED':
+      return null;
+  }
+}
+
+/**
  * Moment wygranej (F-63, decyzja D2): panel na stronie aukcji zamiast osobnego ekranu. Pełny
  * fiolet z konfetti, „Wygrana!”, cena końcowa i trzy kroki „Co dalej”. Akcja prowadzi do checkoutu
  * (F-25), a przed utworzeniem zamówienia do Moje Biddy.
@@ -40,6 +67,7 @@ export function WinPanel({
   const format = useFormatter();
   const finalPrice = auction.currentPrice ?? auction.startPrice;
   const order = bidding.order;
+  const current = winStep(order?.status ?? null);
 
   useEffect(() => {
     track('win_viewed', { auctionId: auction.id });
@@ -113,49 +141,72 @@ export function WinPanel({
           )}
           <h3 className="text-h3">{t('nextTitle')}</h3>
         </div>
-        <ol className="space-y-0">
-          {[
-            {
-              title:
-                order === null
-                  ? t('payTitlePending')
-                  : t('payTitle', {
-                      date: format.dateTime(new Date(order.paymentDueAt), {
-                        dateStyle: 'long',
-                        timeStyle: 'short',
-                      }),
-                    }),
-              text: t('payText'),
-            },
-            { title: t('shipTitle'), text: t('shipText') },
-            { title: t('confirmTitle'), text: t('confirmText') },
-          ].map((step, index, steps) => (
-            <li key={step.title} className="flex gap-4">
-              <div className="flex flex-col items-center">
-                <span
-                  aria-hidden
-                  className={cn(
-                    'grid size-9 shrink-0 place-items-center rounded-full text-label font-extrabold',
-                    index === 0
-                      ? 'border-2 border-amber-500 bg-warning-soft text-warning'
-                      : 'bg-muted text-foreground-secondary',
-                  )}
-                >
-                  {index + 1}
-                </span>
-                {index < steps.length - 1 ? (
-                  <span aria-hidden className="min-h-6 w-0.5 flex-1 bg-border" />
-                ) : null}
-              </div>
-              <div className={cn('flex flex-col', index < steps.length - 1 && 'pb-5')}>
-                <span className={cn('text-title', index === 0 && 'font-extrabold')}>
-                  {step.title}
-                </span>
-                <span className="text-body-sm text-foreground-secondary">{step.text}</span>
-              </div>
-            </li>
-          ))}
-        </ol>
+        {current === null ? null : (
+          <ol className="space-y-0">
+            {[
+              {
+                id: 'pay',
+                title:
+                  current > 0
+                    ? t('payTitleDone')
+                    : order === null
+                      ? t('payTitlePending')
+                      : t('payTitle', {
+                          date: format.dateTime(new Date(order.paymentDueAt), {
+                            dateStyle: 'long',
+                            timeStyle: 'short',
+                          }),
+                        }),
+                text: t('payText'),
+              },
+              {
+                id: 'ship',
+                title: current > 1 ? t('shipTitleDone') : t('shipTitle'),
+                text: t('shipText'),
+              },
+              {
+                id: 'confirm',
+                title: current > 2 ? t('confirmTitleDone') : t('confirmTitle'),
+                text: t('confirmText'),
+              },
+            ].map((step, index, steps) => (
+              <li
+                key={step.id}
+                aria-current={index === current ? 'step' : undefined}
+                className="flex gap-4"
+              >
+                <div className="flex flex-col items-center">
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'grid size-9 shrink-0 place-items-center rounded-full text-label font-extrabold',
+                      index < current && 'bg-success-soft text-success',
+                      index === current && 'border-2 border-amber-500 bg-warning-soft text-warning',
+                      index > current && 'bg-muted text-foreground-secondary',
+                    )}
+                  >
+                    {index < current ? <Check className="size-4" /> : index + 1}
+                  </span>
+                  {index < steps.length - 1 ? (
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'min-h-6 w-0.5 flex-1',
+                        index < current ? 'bg-success' : 'bg-border',
+                      )}
+                    />
+                  ) : null}
+                </div>
+                <div className={cn('flex flex-col', index < steps.length - 1 && 'pb-5')}>
+                  <span className={cn('text-title', index === current && 'font-extrabold')}>
+                    {step.title}
+                  </span>
+                  <span className="text-body-sm text-foreground-secondary">{step.text}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
 
         {order === null ? null : (
           <dl className="space-y-2 rounded-xl border border-border bg-canvas px-5 py-4 text-body-sm">

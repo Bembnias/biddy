@@ -20,6 +20,7 @@ import { fakeRealtimeClient } from '@/test/realtime';
 import { AuctionGallery } from './auction-gallery';
 import { BidHistory } from './bid-history';
 import { BidPanel } from './bid-panel';
+import { winStep } from './win-panel';
 
 const SCHEDULE: FeeScheduleDto = {
   id: '019b76da-a800-7473-8d63-395c20bf8898',
@@ -463,6 +464,48 @@ describe('BidPanel: na żywo i stany', () => {
       '/moje-biddy/wygrane',
     );
     expect(screen.queryByRole('region', { name: 'Licytacja' })).toBeNull();
+    expect(text(screen.getByRole('listitem', { current: 'step' }))).toContain('Zapłać do');
+  });
+
+  it('wygrana po opłaceniu: bieżący krok to nadanie, bez przycisku płatności', async () => {
+    setup(publicAuction({ status: 'ENDED_SOLD', currentPrice: 10_000, bidCount: 1 }), {
+      user: BUYER,
+      bidding: myBidding({
+        hasBid: true,
+        leading: true,
+        maxAmount: 10_000,
+        outcome: 'WON',
+        order: {
+          id: '01960000-0000-7000-8000-000000000101',
+          publicId: 'p7q2m4nx',
+          status: 'PAID',
+          currency: 'PLN',
+          total: 10_999,
+          paymentDueAt: '2026-10-16T12:00:00.000Z',
+        },
+      }),
+    });
+    expect(await screen.findByRole('heading', { name: 'Wygrana!' })).toBeDefined();
+    const win = text(screen.getByTestId('bidder-status'));
+    expect(win).toContain('Opłacone');
+    expect(win).not.toContain('Zapłać do');
+    expect(text(screen.getByRole('listitem', { current: 'step' }))).toContain(
+      'Sprzedawca nada paczkę',
+    );
+    expect(screen.queryByRole('link', { name: /^Zapłać/u })).toBeNull();
+  });
+
+  it.each([
+    [null, 0],
+    ['AWAITING_PAYMENT', 0],
+    ['PAID', 1],
+    ['SHIPPED', 2],
+    ['DELIVERED', 2],
+    ['COMPLETED', 3],
+    ['CANCELLED_UNPAID', null],
+    ['DISPUTED', null],
+  ] as const)('krok „Co dalej” dla zamówienia %s: %s', (status, step) => {
+    expect(winStep(status)).toBe(step);
   });
 
   it('przegrana i nieosiągnięta cena minimalna', async () => {
