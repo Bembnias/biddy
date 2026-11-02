@@ -81,8 +81,9 @@ export class SmsapiSmsSender implements SmsSender {
 }
 
 /**
- * Atrapa lokalnie i w testach: SMS trafia do logu API (tam deweloper znajdzie kod), a ostatnie
- * wiadomości zostają w pamięci. Na produkcji niedostępna (konfiguracja wymaga SMSAPI_TOKEN).
+ * Atrapa lokalnie, w testach i na stagingu z SMS_LOG_ONLY=true: SMS trafia do logu API (tam
+ * znajdziesz kod), a ostatnie wiadomości zostają w pamięci. Na produkcji niedostępna
+ * (konfiguracja wymaga SMSAPI_TOKEN i odrzuca SMS_LOG_ONLY).
  */
 export class LoggingSmsSender implements SmsSender {
   private static readonly KEEP = 100;
@@ -108,6 +109,6 @@ export function createSmsSender(config: SmsTransportConfig): SmsSender {
     logger.log('SMS-y wysyła SMSAPI');
     return new SmsapiSmsSender(config.token, config.sender);
   }
-  logger.log('SMS-y trafiają do logu (atrapa, brak SMSAPI_TOKEN)');
+  logger.log('SMS-y trafiają do logu, bez wysyłki (atrapa: brak SMSAPI_TOKEN albo SMS_LOG_ONLY)');
   return new LoggingSmsSender();
 }

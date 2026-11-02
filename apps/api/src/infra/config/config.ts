@@ -243,6 +243,9 @@ export const envSchema = z.object({
   SMSAPI_SENDER: text()
     .regex(/^[A-Za-z0-9 .-]{1,11}$/, 'oczekiwano nazwy nadawcy do 11 znaków (litery, cyfry)')
     .optional(),
+  // Atrapa SMS-ów (F-08): kod trafia do logu API zamiast do SMSAPI, także przy ustawionym
+  // SMSAPI_TOKEN. Na stagingu do czasu aktywacji konta w SMSAPI; na produkcji zablokowana.
+  SMS_LOG_ONLY: boolean().optional(),
   // Magazyn plików S3 (F-12): Cloudflare R2 na produkcji, lokalnie RustFS (te same zmienne co
   // `pnpm storage:setup`).
   S3_ENDPOINT: url(['https:', 'http:'], 'https://<konto>.r2.cloudflarestorage.com').optional(),
@@ -385,7 +388,10 @@ export interface StorageConfig {
   readonly mediaPublicUrl: string;
 }
 
-/** Wysyłka SMS-ów: SMSAPI albo atrapa (lokalnie i w testach; kod trafia do logu). */
+/**
+ * Wysyłka SMS-ów: SMSAPI albo atrapa (lokalnie, w testach i na stagingu z SMS_LOG_ONLY=true;
+ * kod trafia do logu, a SMS nie jest wysyłany).
+ */
 export type SmsTransportConfig =
   | { readonly kind: 'smsapi'; readonly token: string; readonly sender: string | undefined }
   | { readonly kind: 'log' };
@@ -610,6 +616,11 @@ function isLoopbackHost(host: string): boolean {
   return host === 'localhost' || host === '::1' || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host);
 }
 
+/** Czy SMS_LOG_ONLY jest włączone (wartość błędna zgłasza już schemat). */
+function smsLogOnly(input: Readonly<Record<string, string>>): boolean {
+  return ['true', '1'].includes(input['SMS_LOG_ONLY']?.toLowerCase() ?? '');
+}
+
 /** Problemy, które zależą od kilku zmiennych naraz (np. od NODE_ENV). */
 function crossFieldIssues(
   input: Readonly<Record<string, string>>,
@@ -652,8 +663,13 @@ function crossFieldIssues(
       ['WEB_URL', 'adres aplikacji web, np. https://biddy.pl'],
       ['TURNSTILE_SITE_KEY', 'klucz witryny Cloudflare Turnstile'],
       ['TURNSTILE_SECRET_KEY', 'klucz tajny Cloudflare Turnstile'],
-      ['SMSAPI_TOKEN', 'token API SMSAPI (kody weryfikacji telefonu)'],
     );
+    if (!smsLogOnly(input)) {
+      required.push([
+        'SMSAPI_TOKEN',
+        'token API SMSAPI (kody weryfikacji telefonu); na stagingu do czasu aktywacji konta można ustawić SMS_LOG_ONLY=true',
+      ]);
+    }
   } else {
     required.push(
       ['WEB_URL', 'adres aplikacji web, np. https://biddy.pl (rewalidacja stron aukcji)'],
@@ -784,6 +800,20 @@ function shippingIssues(input: Readonly<Record<string, string>>, role: ProcessRo
   return issues;
 }
 
+/** SMS-y (F-08): atrapa z kodem w logu działa tylko poza produkcją, jak FakeGateway i FakeShipping. */
+function smsIssues(input: Readonly<Record<string, string>>): ConfigIssue[] {
+  if (deploymentOf(input) === 'production' && smsLogOnly(input)) {
+    return [
+      {
+        variable: 'SMS_LOG_ONLY',
+        message:
+          'atrapa SMS (kod w logu, bez wysyłki) nie może działać na produkcji (DEPLOYMENT_ENV=production); usuń zmienną i podaj SMSAPI_TOKEN, a na stagingu ustaw DEPLOYMENT_ENV=staging',
+      },
+    ];
+  }
+  return [];
+}
+
 /** Klucze dostawcy OAuth podaje się parami: sam identyfikator albo sam sekret to błąd. */
 function oauthPairIssues(input: Readonly<Record<string, string>>): ConfigIssue[] {
   const issues: ConfigIssue[] = [];
@@ -826,6 +856,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     ...oauthPairIssues(input),
     ...paymentIssues(input, role),
     ...shippingIssues(input, role),
+    ...smsIssues(input),
   ];
   if (!result.success || issues.length > 0) {
     throw new ConfigError(issues.sort(byVariableOrder));
@@ -924,7 +955,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
       revalidateSecret: vars.WEB_REVALIDATE_SECRET,
     },
     sms:
-      vars.SMSAPI_TOKEN === undefined
+      vars.SMS_LOG_ONLY === true || vars.SMSAPI_TOKEN === undefined
         ? { kind: 'log' }
         : { kind: 'smsapi', token: vars.SMSAPI_TOKEN, sender: vars.SMSAPI_SENDER },
     payments: {

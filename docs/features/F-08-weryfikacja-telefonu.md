@@ -24,7 +24,8 @@ Licytować i wystawiać może tylko konto ze zweryfikowanym numerem telefonu ([P
 - **Warunki rozpoczęcia:** sesja, potwierdzony e-mail (`EMAIL_NOT_VERIFIED`), oświadczenie 18+ (`TERMS_NOT_ACCEPTED`). Wymóg potwierdzonego e-maila to dodatkowa bariera dla botów przed wysłaniem płatnego SMS-a.
 - **Jeden numer = jedno konto:** unikalny indeks na `users.phone_number`. Numer innego konta: 409 `PHONE_NUMBER_TAKEN` już przy wysyłce (bez SMS-a) i ponownie przy potwierdzeniu (wyścig dwóch kont).
 - **Zmiana numeru:** nowy zweryfikowany numer zastępuje stary, a stary wraca do puli. Historia zweryfikowanych numerów zostaje w `phone_verifications` (sygnał dla F-36).
-- **SMS:** adapter `SmsSender` (ADR-7) w `infra/sms`: SMSAPI (`SMSAPI_TOKEN`, na produkcji wymagany) albo atrapa lokalnie i w testach (kod w logu API, wiadomości w pamięci dla testów). Wysyłka synchroniczna w żądaniu, bez kolejki: kod żyje 5 minut, więc ponawianie w workerze nie ma sensu, a użytkownik od razu widzi błąd dostawcy (503 `SERVICE_UNAVAILABLE`, może spróbować ponownie).
+- **SMS:** adapter `SmsSender` (ADR-7) w `infra/sms`: SMSAPI (`SMSAPI_TOKEN`, na produkcji wymagany) albo atrapa lokalnie, w testach i na stagingu z `SMS_LOG_ONLY=true` (kod w logu API, wiadomości w pamięci dla testów). Wysyłka synchroniczna w żądaniu, bez kolejki: kod żyje 5 minut, więc ponawianie w workerze nie ma sensu, a użytkownik od razu widzi błąd dostawcy (503 `SERVICE_UNAVAILABLE`, może spróbować ponownie).
+- **Atrapa na stagingu (`SMS_LOG_ONLY=true`):** do czasu aktywacji konta w SMSAPI staging może działać bez wysyłki. Konto bez zgody na linki odrzuca SMS-y z kodem błędu 94, bo linia WebOTP `@staging.biddy.pl #123456` wygląda jak link. Z `SMS_LOG_ONLY=true` API zapisuje SMS w logu (`SMS (atrapa) do +48…`, w Dokploy: Logs → `api`) i niczego nie wysyła. Zmienna działa także przy ustawionym `SMSAPI_TOKEN`, a wtedy token nie jest wymagany. Na produkcji (`DEPLOYMENT_ENV=production`) konfiguracja ją odrzuca, jak FakeGateway i FakeShipping (decyzja nr 111 w [PROJECT.md §22](../PROJECT.md#22-rejestr-decyzji)).
 - **Treść SMS-a** bez polskich znaków (jeden segment GSM-7, 160 znaków, zamiast 70 w UCS-2) i z linią WebOTP `@biddy.pl #123456` (autouzupełnianie kodu w przeglądarkach na Androidzie): `Biddy: Twoj kod weryfikacyjny to 123456. Wazny 5 minut. Nie podawaj go nikomu.`
 - **Oświadczenie 18+:** `POST /v1/me/terms-acceptances` przyjmuje `{ adultDeclaration: true }` i zapisuje `is_adult_declared_at` (F-07 pytało o 18+ w formularzu, ale go nie zapisywało). Rejestracja e-mailem zapisuje je jak dotąd.
 - **Guard `@RequireVerifiedPhone()`:** sesja (401), konto niezablokowane (403), potwierdzony e-mail (403 `EMAIL_NOT_VERIFIED`), oświadczenie 18+ (403 `TERMS_NOT_ACCEPTED`), zweryfikowany telefon (403 `PHONE_NOT_VERIFIED`). Licytowanie (F-15) i wystawianie (F-14) używają go zamiast `@RequireVerifiedEmail()`.
@@ -105,8 +106,8 @@ Migracja `0003_phone_verification` (moduł `identity`):
 ## Bezpieczeństwo i prywatność
 
 - Kod w bazie tylko jako HMAC; porównanie w czasie stałym (`timingSafeEqual`).
-- Numer telefonu to dane osobowe: widoczny tylko dla właściciela (`/v1/me`) i panelu admina. Nie trafia do logów poza atrapą SMS-ów lokalnie. W Sentry tylko ID użytkownika.
-- `SMSAPI_TOKEN` tylko w zmiennych środowiskowych; na produkcji wymagany (bez niego API nie startuje, żeby nie wysyłać „atrapą”).
+- Numer telefonu to dane osobowe: widoczny tylko dla właściciela (`/v1/me`) i panelu admina. Nie trafia do logów poza atrapą SMS-ów (lokalnie i na stagingu z `SMS_LOG_ONLY`). W Sentry tylko ID użytkownika.
+- `SMSAPI_TOKEN` tylko w zmiennych środowiskowych; na produkcji wymagany (bez niego API nie startuje, żeby nie wysyłać „atrapą”). `SMS_LOG_ONLY` jest na produkcji odrzucane, więc produkcja nie wystartuje z atrapą.
 - Retencja: historia weryfikacji razem z kontem (F-41).
 - Formularze kont w web wysyłają się metodą POST, jeśli użytkownik zatwierdzi je przed załadowaniem JavaScriptu (wolne łącze). Natywne wysłanie metodą GET wstawiłoby numer telefonu (a w F-07 e-mail i hasło) do adresu URL, historii przeglądarki i logów.
 
@@ -125,7 +126,7 @@ PostHog (po zgodzie): `phone_verification_started`, `phone_verified`.
 
 ## Plan testów
 
-- **API, jednostkowe:** normalizacja numerów (polskie komórkowe, stacjonarne, zagraniczne, formaty), treść SMS-a (ASCII, ≤ 160 znaków, linia WebOTP), decyzja limitów (czysta funkcja), HMAC kodu, adapter SMSAPI (format żądania, błędy), konfiguracja.
+- **API, jednostkowe:** normalizacja numerów (polskie komórkowe, stacjonarne, zagraniczne, formaty), treść SMS-a (ASCII, ≤ 160 znaków, linia WebOTP), decyzja limitów (czysta funkcja), HMAC kodu, adapter SMSAPI (format żądania, błędy), konfiguracja (w tym `SMS_LOG_ONLY`: atrapa mimo tokenu, odrzucenie na produkcji).
 - **API, integracyjne:** pełna ścieżka (wysyłka → atrapa SMS → potwierdzenie → `/v1/me` → trasa z guardem), zły kod i limit prób, wygaśnięcie, numer zajęty (wysyłka i wyścig przy potwierdzeniu), limity numeru, IP i odstępu, wymagany e-mail, 18+ przy akceptacji regulaminu, seed, sprzątanie.
 - **Web, jednostkowe:** formularz numeru i kodu (walidacja, błędy z API, odliczanie ponownej wysyłki).
 - **Web, e2e:** `/weryfikacja-telefonu` na atrapie API (numer → zły i dobry kod → konto), wymagany e-mail i sesja, sekcja telefonu na `/konto`, limit wysyłki, axe-core na obu krokach; formularz logowania wysłany bez JavaScriptu nie wstawia danych do adresu.

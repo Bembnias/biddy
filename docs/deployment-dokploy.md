@@ -239,6 +239,7 @@ Projekt `Biddy` → **Create Service → Compose**:
    - `DATABASE_URL`: Internal Connection URL z kroku 5.
    - `BETTER_AUTH_SECRET`, `WEB_REVALIDATE_SECRET`, `MEILI_MASTER_KEY`: każdy z `openssl rand -base64 32`.
    - R2 aplikacji, Resend, Turnstile, SMSAPI, Sentry: jak w [deployment.md](deployment.md#1-usługi-zewnętrzne).
+   - SMS: prawdziwy `SMSAPI_TOKEN` albo, do czasu aktywacji konta w SMSAPI, `SMS_LOG_ONLY=true`: kod weryfikacyjny trafia do logu API (Dokploy → Logs → `api`, linia `SMS (atrapa)`), a SMS nie jest wysyłany. Na produkcji `SMS_LOG_ONLY` jest odrzucane.
    - `MEDIA_PUBLIC_URL`: przy DNS w OVH adres `r2.dev` kubełka media (krok 8, „Zdjęcia z R2 a DNS w OVH”), nie `media.staging.biddy.pl`.
    - `BIDDY_TAG=staging`.
 
