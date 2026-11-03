@@ -30,10 +30,11 @@ export const PAYMENT_FAILURE_REASONS = [
 export type PaymentFailureReason = (typeof PAYMENT_FAILURE_REASONS)[number];
 
 /**
- * Powód zwrotu płatności: `FULL_REFUND_REASONS` z ledgera (plik tabel nie importuje ledgera)
- * i `NOT_PICKED_UP`, czyli zwrot ceny i POK bez dostawy (osobny szablon księgowania, §7.4).
+ * Powód zwrotu płatności: `FULL_REFUND_REASONS` z ledgera (plik tabel nie importuje ledgera),
+ * `NOT_PICKED_UP`, czyli zwrot ceny i POK bez dostawy (osobny szablon księgowania, §7.4),
+ * i `DISPUTE_PARTIAL`, czyli zwrot części ceny w sporze (ORDER_PARTIALLY_REFUNDED, §7.5).
  * Checkout zwraca płatności spóźnione i zdublowane (F-25), cykl zamówienia nienadane,
- * nieodebrane i zaginione (F-26), a spory i chargebacki dojdą w F-28.
+ * nieodebrane i zaginione (F-26), spory pełne i częściowe (F-28), a chargebacki dojdą w F-31.
  */
 export const REFUND_REASONS = [
   'NOT_SHIPPED',
@@ -43,6 +44,7 @@ export const REFUND_REASONS = [
   'DUPLICATE_PAYMENT',
   'CHARGEBACK',
   'NOT_PICKED_UP',
+  'DISPUTE_PARTIAL',
 ] as const;
 export type RefundReason = (typeof REFUND_REASONS)[number];
 

@@ -56,6 +56,7 @@ export type TransitionColumns = Partial<
     | 'completedAt'
     | 'notPickedUpAt'
     | 'lostAt'
+    | 'disputedAt'
     | 'refundedAt'
   >
 >;

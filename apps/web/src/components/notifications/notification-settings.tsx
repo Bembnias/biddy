@@ -9,19 +9,23 @@ import {
 import type { NotificationType } from '@biddy/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Ban,
   BadgeCheck,
+  Ban,
   Banknote,
   BellRing,
   CircleCheck,
   CircleX,
   Clock,
+  Gavel,
   Gift,
+  HandCoins,
   Landmark,
   Lock,
   type LucideIcon,
+  MessageSquareWarning,
   Package,
   PackageCheck,
+  PackageOpen,
   PackageSearch,
   PackageX,
   RotateCcw,
@@ -42,9 +46,12 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
-/** Grupy ustawień (F-63): licytacje, zakupy, sprzedaż, wypłaty, obserwowani sprzedawcy i konto. */
+/**
+ * Grupy ustawień (F-63): licytacje, zakupy, sprzedaż, wypłaty, spory, obserwowani sprzedawcy
+ * i konto.
+ */
 const GROUPS: readonly {
-  readonly key: 'bidding' | 'buying' | 'selling' | 'payouts' | 'following' | 'account';
+  readonly key: 'bidding' | 'buying' | 'selling' | 'payouts' | 'disputes' | 'following' | 'account';
   readonly types: readonly NotificationType[];
 }[] = [
   {
@@ -70,6 +77,17 @@ const GROUPS: readonly {
     ],
   },
   { key: 'payouts', types: ['PAYOUT_PAID', 'PAYOUT_FAILED', 'PAYOUT_ACCOUNT_CHANGED'] },
+  {
+    key: 'disputes',
+    types: [
+      'DISPUTE_OPENED',
+      'DISPUTE_PARTIAL_OFFERED',
+      'DISPUTE_ESCALATED',
+      'DISPUTE_RETURN_REQUESTED',
+      'DISPUTE_RETURN_DELIVERED',
+      'DISPUTE_RESOLVED',
+    ],
+  },
   { key: 'following', types: ['FOLLOWED_SELLER_NEW_AUCTION'] },
   {
     key: 'account',
@@ -108,6 +126,12 @@ const TYPE_TILES: Record<
   PAYOUT_PAID: { tone: 'success', Icon: Banknote },
   PAYOUT_FAILED: { tone: 'neutral', Icon: TriangleAlert },
   PAYOUT_ACCOUNT_CHANGED: { tone: 'neutral', Icon: Landmark },
+  DISPUTE_OPENED: { tone: 'neutral', Icon: MessageSquareWarning },
+  DISPUTE_PARTIAL_OFFERED: { tone: 'neutral', Icon: HandCoins },
+  DISPUTE_ESCALATED: { tone: 'neutral', Icon: Scale },
+  DISPUTE_RETURN_REQUESTED: { tone: 'neutral', Icon: PackageOpen },
+  DISPUTE_RETURN_DELIVERED: { tone: 'neutral', Icon: PackageCheck },
+  DISPUTE_RESOLVED: { tone: 'neutral', Icon: Gavel },
   UNSOLD: { tone: 'danger', Icon: CircleX },
   FOLLOWED_SELLER_NEW_AUCTION: { tone: 'neutral', Icon: Store },
   STRIKE_ISSUED: { tone: 'neutral', Icon: ShieldAlert },

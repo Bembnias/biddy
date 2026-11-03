@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ORDER_TONES, orderProgress } from '@/lib/orders/order-view';
-import { auctionUrl, checkoutUrl, dispatchUrl, routes } from '@/lib/routes';
+import { auctionUrl, checkoutUrl, dispatchUrl, disputeUrl, routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 import { ConfirmReceipt, ReportNotReceived } from './order-actions';
@@ -87,7 +87,7 @@ export function OrderPanel({ publicId }: { readonly publicId: string }) {
           <Progress order={view} />
           <Shipment order={view} />
         </div>
-        <Summary order={view} />
+        <OrderSummary order={view} />
       </div>
     </div>
   );
@@ -160,7 +160,18 @@ function NowCard({ order }: { readonly order: Order }) {
 
 function NowActions({ order }: { readonly order: Order }) {
   const t = useTranslations('order');
+  const format = useFormatter();
   const buyer = order.role === 'BUYER';
+  // Spór (F-28): w toku główna akcja, po rozstrzygnięciu link obok innych akcji.
+  const disputeLink =
+    order.disputedAt === null ? null : (
+      <Button asChild variant={order.status === 'DISPUTED' ? 'cta' : 'outline'}>
+        <Link href={disputeUrl(order.publicId)}>{t('actions.viewDispute')}</Link>
+      </Button>
+    );
+  if (order.status === 'DISPUTED') {
+    return disputeLink;
+  }
   if (buyer && order.status === 'AWAITING_PAYMENT') {
     return (
       <Button asChild variant="cta">
@@ -179,27 +190,41 @@ function NowActions({ order }: { readonly order: Order }) {
   if (
     !buyer &&
     (order.status === 'COMPLETED' ||
+      order.status === 'PARTIALLY_REFUNDED' ||
       (order.status === 'LOST' && (order.compensation?.paidAt ?? null) !== null))
   ) {
     return (
-      <Button asChild variant="outline">
-        <Link href={routes.balance}>{t('actions.balance')}</Link>
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button asChild variant="outline">
+          <Link href={routes.balance}>{t('actions.balance')}</Link>
+        </Button>
+        {disputeLink}
+      </div>
     );
   }
   if (buyer && order.actions.confirmReceipt) {
+    const open = order.actions.openDispute;
     return (
       <div className="space-y-3">
         <ConfirmReceipt publicId={order.publicId} />
-        <p className="text-body-sm text-foreground-secondary">
-          {t('problem')}{' '}
-          <Link
-            href={routes.helpCenter}
-            className="font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
-          >
-            {t('actions.help')}
-          </Link>
-        </p>
+        {open?.allowed === true ? (
+          <p className="text-body-sm text-foreground-secondary">
+            {t('problem', {
+              date: format.dateTime(new Date(open.until), {
+                day: 'numeric',
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            })}{' '}
+            <Link
+              href={disputeUrl(order.publicId)}
+              className="font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
+            >
+              {t('actions.dispute')}
+            </Link>
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -212,7 +237,7 @@ function NowActions({ order }: { readonly order: Order }) {
       />
     );
   }
-  return null;
+  return disputeLink;
 }
 
 /** Postęp: Opłacone · Nadane · Odebrane · Zakończone, z datami zrobionych kroków. */
@@ -338,8 +363,11 @@ function Shipment({ order }: { readonly order: Order }) {
   );
 }
 
-/** Podsumowanie: przedmiot, kwoty i druga strona; od 1024 px przyklejone obok treści. */
-function Summary({ order }: { readonly order: Order }) {
+/**
+ * Podsumowanie: przedmiot, kwoty i druga strona; od 1024 px przyklejone obok treści. Także na
+ * stronie sporu (F-28).
+ */
+export function OrderSummary({ order }: { readonly order: Order }) {
   const t = useTranslations('order.summary');
   const zl = (amount: number) => formatMoney(money(amount, order.currency));
   return (

@@ -51,6 +51,30 @@ export class ShippingQuoteService {
     return options.find((option) => option.carrierId === carrierId);
   }
 
+  /**
+   * Usługa zwrotu w sporze (F-28): kurier na adres sprzedającego. Usługa przesyłki do kupującego,
+   * jeśli jest kurierska i pasuje, inaczej najtańszy kurier z cennika dla paczki; undefined, gdy
+   * żaden nie pasuje. Akceptacja usług przez sprzedającego nie ma tu znaczenia.
+   */
+  async returnOption(
+    parcel: Omit<ParcelSpec, 'allowedCarriers'>,
+    currency: CurrencyCode,
+    preferredCarrierId: string,
+    at: Date = new Date(),
+  ): Promise<ShippingOption | undefined> {
+    const couriers = (await this.carriers.configs()).filter(
+      (carrier) => carrier.kind === 'COURIER',
+    );
+    const options = await this.options(
+      { ...parcel, allowedCarriers: couriers.map((carrier) => carrier.id) },
+      currency,
+      at,
+    );
+    return (
+      options.find((option) => option.carrierId === preferredCarrierId) ?? cheapestOption(options)
+    );
+  }
+
   /** Najtańsza opcja („dostawa od”). */
   async cheapest(
     parcel: ParcelSpec,

@@ -1,5 +1,7 @@
 // Zdjęcia (F-12): upload przez presigned PUT do prywatnego kubełka, przetwarzanie w workerze
-// (kolejka `media`), moderacja, publikacja wariantów w publicznym kubełku i sprzątanie.
+// (kolejka `media`), moderacja, publikacja wariantów w publicznym kubełku i sprzątanie. Zdjęcia ze
+// sporu (F-28) nie mają publicznych adresów: ich warianty zostają w prywatnym kubełku, a wydaje je
+// moduł disputes (`privateVariant`) stronom sporu.
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, gte, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 
@@ -9,7 +11,13 @@ import { DomainError } from '../../infra/http/index.js';
 import { Outbox } from '../../infra/outbox/index.js';
 import { JobHandler, JobQueues, type JobRun, ScheduledJob } from '../../infra/queues/index.js';
 import { OBJECT_STORAGE, type ObjectStorage } from '../../infra/storage/index.js';
-import { type Media, type MediaPurpose, type MediaStatus, media } from './db/media.schema.js';
+import {
+  type Media,
+  type MediaPurpose,
+  type MediaStatus,
+  media,
+  PRIVATE_MEDIA_PURPOSES,
+} from './db/media.schema.js';
 import { MediaFlagged } from './media.events.js';
 import { incomingKey, quarantineKey, variantKey } from './media-keys.js';
 import { IMAGE_MODERATOR, type ImageModerator } from './processing/image-moderator.js';
@@ -159,9 +167,9 @@ export class MediaService {
     return item;
   }
 
-  /** Publiczne adresy wariantów; tylko dla zdjęć READY. */
+  /** Publiczne adresy wariantów; tylko dla zdjęć READY, które nie są prywatne. */
   publicUrls(item: Pick<Media, 'id' | 'purpose' | 'status'>): Record<string, string> | null {
-    if (item.status !== 'READY') {
+    if (item.status !== 'READY' || PRIVATE_MEDIA_PURPOSES.has(item.purpose)) {
       return null;
     }
     return Object.fromEntries(
@@ -266,6 +274,32 @@ export class MediaService {
     });
   }
 
+  /**
+   * Wariant prywatnego zdjęcia READY (np. dowód w sporze) albo undefined. Bez sprawdzania
+   * właściciela: dostęp sprawdza moduł, który zdjęcie przypisał (strony sporu).
+   */
+  async privateVariant(
+    mediaId: string,
+    variant: string,
+  ): Promise<{ readonly data: Buffer; readonly contentType: string } | undefined> {
+    const [item] = await this.db
+      .select({ id: media.id, purpose: media.purpose, status: media.status })
+      .from(media)
+      .where(eq(media.id, mediaId));
+    if (
+      item?.status !== 'READY' ||
+      !PRIVATE_MEDIA_PURPOSES.has(item.purpose) ||
+      !PURPOSE_SPECS[item.purpose].variants.some((spec) => spec.name === variant)
+    ) {
+      return undefined;
+    }
+    const data = await this.storage.get(
+      this.config.storage.uploadsBucket,
+      variantKey(item.purpose, item.id, variant),
+    );
+    return data === undefined ? undefined : { data, contentType: 'image/webp' };
+  }
+
   @JobHandler('media', PROCESS_MEDIA_JOB)
   async process(job: JobRun<{ mediaId: string }>): Promise<void> {
     const [item] = await this.db.select().from(media).where(eq(media.id, job.data.mediaId));
@@ -319,15 +353,15 @@ export class MediaService {
       });
       this.logger.warn({ mediaId: item.id, labels }, 'Zdjęcie zatrzymane przez moderację');
     } else {
+      const isPrivate = PRIVATE_MEDIA_PURPOSES.has(item.purpose);
       for (const variant of processed.variants) {
         await this.storage.put(
-          mediaBucket,
+          isPrivate ? uploadsBucket : mediaBucket,
           variantKey(item.purpose, item.id, variant.name),
           variant.data,
-          {
-            contentType: 'image/webp',
-            cacheControl: IMMUTABLE,
-          },
+          isPrivate
+            ? { contentType: 'image/webp' }
+            : { contentType: 'image/webp', cacheControl: IMMUTABLE },
         );
       }
       await this.db
@@ -386,17 +420,21 @@ export class MediaService {
   /** Pliki zdjęć we wszystkich miejscach: oryginał, kwarantanna, warianty. */
   private async removeFiles(items: readonly Media[]): Promise<void> {
     const { uploadsBucket, mediaBucket } = this.config.storage;
+    const variants = (item: Media) =>
+      PURPOSE_SPECS[item.purpose].variants.map((variant) =>
+        variantKey(item.purpose, item.id, variant.name),
+      );
     await this.storage.delete(
       uploadsBucket,
-      items.flatMap((item) => [incomingKey(item.ownerId, item.id), quarantineKey(item.id)]),
+      items.flatMap((item) => [
+        incomingKey(item.ownerId, item.id),
+        quarantineKey(item.id),
+        ...(PRIVATE_MEDIA_PURPOSES.has(item.purpose) ? variants(item) : []),
+      ]),
     );
     await this.storage.delete(
       mediaBucket,
-      items.flatMap((item) =>
-        PURPOSE_SPECS[item.purpose].variants.map((variant) =>
-          variantKey(item.purpose, item.id, variant.name),
-        ),
-      ),
+      items.flatMap((item) => (PRIVATE_MEDIA_PURPOSES.has(item.purpose) ? [] : variants(item))),
     );
   }
 }

@@ -1,12 +1,13 @@
-// Zwroty płatności (PROJECT.md §6.8, §7.4, §7.8): spóźniona płatność anulowanego zamówienia
-// i płatność zdublowana (F-25), nienadanie, zaginięcie i nieodebrana paczka (F-26); spory
-// i chargebacki dojdą w F-28. Przebieg:
+// Zwroty płatności (PROJECT.md §6.8, §7.4, §7.5, §7.8): spóźniona płatność anulowanego zamówienia
+// i płatność zdublowana (F-25), nienadanie, zaginięcie i nieodebrana paczka (F-26), spory pełne
+// i częściowe (F-28); chargebacki dojdą w F-31. Przebieg:
 // 1. `request` w transakcji wywołującego: wiersz PENDING (idempotentny po kluczu) i event
 //    RefundRequested w outboxie, więc zlecenie zwrotu jest atomowe ze zmianą stanu u wywołującego,
 // 2. konsument eventu woła operatora z kluczem `refund:{id}` (ponowienie nie robi drugiego zwrotu)
 //    i zapisuje ID zwrotu u operatora,
 // 3. webhook REFUND_SUCCEEDED: stan SUCCEEDED, księgowanie ORDER_REFUNDED (przy nieodebranej
-//    paczce NOT_PICKED_UP_REFUNDED: dostawa zostaje w Biddy) i event RefundSucceeded;
+//    paczce NOT_PICKED_UP_REFUNDED: dostawa zostaje w Biddy; przy zwrocie częściowym w sporze
+//    ORDER_PARTIALLY_REFUNDED: reszta ceny na saldo sprzedającego) i event RefundSucceeded;
 //    REFUND_FAILED: stan FAILED i błąd w logach (ręczna obsługa przez support, panel w F-34).
 // Ledger księgujemy dopiero po potwierdzeniu operatora: nieudany zwrot nie zmienia sald.
 import { type Money, money } from '@biddy/shared';
@@ -39,7 +40,7 @@ export type RequestRefundCommand = {
   readonly idempotencyKey: string;
 } & (
   | {
-      readonly reason: Exclude<RefundReason, 'NOT_PICKED_UP'>;
+      readonly reason: Exclude<RefundReason, 'NOT_PICKED_UP' | 'DISPUTE_PARTIAL'>;
       /** Kwota zwrotu; domyślnie cała płatność (bez wcześniejszych zwrotów). */
       readonly amount?: Money;
     }
@@ -48,7 +49,24 @@ export type RequestRefundCommand = {
       readonly reason: 'NOT_PICKED_UP';
       readonly orderAmounts: RefundOrderAmounts;
     }
+  | {
+      /** Zwrot części ceny w sporze (§7.5): najwyżej cena, POK i dostawa nie wracają. */
+      readonly reason: 'DISPUTE_PARTIAL';
+      readonly orderAmounts: RefundOrderAmounts;
+      readonly amount: Money;
+    }
 );
+
+/** Kwota zwrotu z polecenia; undefined: cała płatność bez wcześniejszych zwrotów. */
+function requestedAmount(command: RequestRefundCommand): Money | undefined {
+  if (command.reason === 'NOT_PICKED_UP') {
+    return money(
+      command.orderAmounts.itemsTotal.amount + command.orderAmounts.pokFee.amount,
+      command.orderAmounts.itemsTotal.currency,
+    );
+  }
+  return command.amount;
+}
 
 @Injectable()
 export class RefundService {
@@ -88,18 +106,13 @@ export class RefundService {
       .from(refunds)
       .where(and(eq(refunds.paymentId, payment.id), ne(refunds.status, 'FAILED')));
     const available = payment.amount - (refunded?.total ?? 0);
-    const requested =
-      command.reason === 'NOT_PICKED_UP'
-        ? money(
-            command.orderAmounts.itemsTotal.amount + command.orderAmounts.pokFee.amount,
-            command.orderAmounts.itemsTotal.currency,
-          )
-        : command.amount;
+    const requested = requestedAmount(command);
     const amount = requested?.amount ?? available;
     if (
       amount <= 0 ||
       amount > available ||
-      (requested !== undefined && requested.currency !== payment.currency)
+      (requested !== undefined && requested.currency !== payment.currency) ||
+      (command.reason === 'DISPUTE_PARTIAL' && amount > command.orderAmounts.itemsTotal.amount)
     ) {
       throw new DomainError({
         code: 'CONFLICT',
@@ -116,7 +129,7 @@ export class RefundService {
         amount,
         reason: command.reason,
         idempotencyKey: command.idempotencyKey,
-        orderAmounts: command.reason === 'NOT_PICKED_UP' ? command.orderAmounts : null,
+        orderAmounts: 'orderAmounts' in command ? command.orderAmounts : null,
       })
       .returning();
     if (created === undefined) {
@@ -241,17 +254,30 @@ export class RefundService {
       .where(eq(refunds.id, refund.id));
     const amount = { amount: refund.amount, currency: refund.currency };
     const idempotencyKey = `refund:${refund.id}:succeeded`;
-    if (refund.reason === 'NOT_PICKED_UP') {
+    if (refund.reason === 'NOT_PICKED_UP' || refund.reason === 'DISPUTE_PARTIAL') {
       if (refund.orderAmounts === null) {
-        throw new Error(`Zwrot ${refund.id}: brak kwot zamówienia dla nieodebranej paczki`);
+        throw new Error(`Zwrot ${refund.id} (${refund.reason}): brak kwot zamówienia`);
       }
-      await this.ledger.post(tx, {
-        type: 'NOT_PICKED_UP_REFUNDED',
-        idempotencyKey,
-        orderId: refund.orderId,
-        provider: refund.provider,
-        amounts: refund.orderAmounts,
-      });
+      await this.ledger.post(
+        tx,
+        refund.reason === 'NOT_PICKED_UP'
+          ? {
+              type: 'NOT_PICKED_UP_REFUNDED',
+              idempotencyKey,
+              orderId: refund.orderId,
+              provider: refund.provider,
+              amounts: refund.orderAmounts,
+            }
+          : {
+              type: 'ORDER_PARTIALLY_REFUNDED',
+              idempotencyKey,
+              orderId: refund.orderId,
+              sellerId: payment.sellerId,
+              provider: refund.provider,
+              amounts: refund.orderAmounts,
+              refund: amount,
+            },
+      );
     } else {
       await this.ledger.post(tx, {
         type: 'ORDER_REFUNDED',

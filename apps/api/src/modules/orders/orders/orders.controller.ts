@@ -59,11 +59,14 @@ export class OrderDetailsDto extends createZodDto(
     cancelledAt: optionalTimestamp,
     notPickedUpAt: optionalTimestamp,
     lostAt: optionalTimestamp,
+    disputedAt: optionalTimestamp.describe(
+      'Zgłoszenie problemu (F-28); zostaje po rozstrzygnięciu',
+    ),
     refundedAt: optionalTimestamp,
     compensation: z
       .object({ dueAt: timestamp, paidAt: optionalTimestamp })
       .nullable()
-      .describe('Rekompensata za zaginioną paczkę (tylko sprzedający)'),
+      .describe('Rekompensata za zaginioną albo uszkodzoną paczkę (tylko sprzedający)'),
     onHold: z.boolean().describe('Zakończenie wstrzymane przez chargeback'),
     fromSecondChance: z.boolean(),
     shipment: ShipmentDto.schema.nullable(),
@@ -82,6 +85,10 @@ export class OrderDetailsDto extends createZodDto(
         .object({ availableAt: timestamp, allowed: z.boolean() })
         .nullable()
         .describe('Zgłoszenie braku paczki (kupujący, paczka w drodze)'),
+      openDispute: z
+        .object({ until: timestamp, allowed: z.boolean() })
+        .nullable()
+        .describe('Zgłoszenie problemu do końca okna 36 h (kupujący, paczka odebrana, F-28)'),
     }),
     secondChance: z
       .object({
@@ -139,6 +146,7 @@ export function orderDetailsDto(details: OrderDetails): OrderDetailsDto {
     cancelledAt: iso(order.cancelledAt),
     notPickedUpAt: iso(order.notPickedUpAt),
     lostAt: iso(order.lostAt),
+    disputedAt: iso(order.disputedAt),
     refundedAt: iso(order.refundedAt),
     compensation:
       role === 'SELLER' && order.lostAt !== null
@@ -167,6 +175,13 @@ export function orderDetailsDto(details: OrderDetails): OrderDetailsDto {
         notReceived === null
           ? null
           : { availableAt: notReceived.from.toISOString(), allowed: notReceived.allowed },
+      openDispute:
+        details.openDispute === null
+          ? null
+          : {
+              until: details.openDispute.until.toISOString(),
+              allowed: details.openDispute.allowed,
+            },
     },
     secondChance:
       secondChance === undefined

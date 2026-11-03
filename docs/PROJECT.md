@@ -520,6 +520,19 @@ stateDiagram-v2
 
 Zamówienie pozostaje w `DISPUTED` aż spór przejdzie w `RESOLVED`. Wtedy zamówienie przechodzi w `COMPLETED`, `REFUNDED` lub `PARTIALLY_REFUNDED`.
 
+**Implementacja (F-28):**
+
+- **Podział modułów** (decyzja nr 128): spór prowadzi moduł `disputes` (stany, terminy, historia, decyzje, przesyłka zwrotna), a stan zamówienia i pieniądze moduł `orders` (`OrderDisputes`) w tej samej transakcji. `REFUNDED` i `PARTIALLY_REFUNDED` zamówienie dostaje dopiero po potwierdzeniu zwrotu przez operatora.
+- **Poza diagramem** spór przechodzi w `ESCALATED` także wtedy, gdy przesyłki zwrotnej nie da się dostarczyć (wraca do kupującego). Trigger `disputes_status_transition` pilnuje par w bazie.
+- **Koszty i strike:**
+  - akceptacja zwrotu przez sprzedającego to wina sprzedającego dla kosztów, ale bez strike'a;
+  - strike `DISPUTE_LOST` daje tylko decyzja Biddy na korzyść kupującego z winy sprzedającego (decyzja nr 129).
+- **Zwrot z odesłaniem** idzie kurierem na adres sprzedającego z „Nadaj” (decyzja nr 130).
+- **Brak odpowiedzi kupującego na propozycję** w 48 h to eskalacja (decyzja nr 131).
+- **Wina przewoźnika** daje rekompensatę od razu po decyzji (decyzja nr 132).
+- **Zdjęcia ze sporu** są prywatne (decyzja nr 133).
+- **Zwrot częściowy** (decyzja nr 134).
+
 ### 7.6 Operator płatności
 
 #### Problem z kosztami Stripe Connect
@@ -585,7 +598,7 @@ Mapowanie modelu na operatorów (do potwierdzenia w dokumentacji i umowie):
 - **Dane do wypłat** są niezależne od operatora (`seller_payout_profiles`): dane DAC7 i rachunek szyfrowane AES-256-GCM kluczem `DATA_ENCRYPTION_KEY` (osobnym od sekretu sesji, decyzja nr 122). Przekazanie rachunku operatorowi i KYC to F-31 i F-32.
 - **Zlecenie wypłaty** blokuje wiersz danych do wypłat, sprawdza warunki (blokada F-61, komplet danych, 48 h po zmianie rachunku, należność, saldo w ledgerze, minimum, KYC) i w jednej transakcji zapisuje `payouts`, księgowanie `PAYOUT_REQUESTED` i event `PayoutRequested`. Operatora woła konsument eventu (klucz `payout:{id}`), a wynik przychodzi webhookiem (decyzja nr 124).
 - **Wypłata tygodniowa** w poniedziałek o 6:00 (klucz z tygodniem ISO), **saldo uśpione** codziennie o 4:00, **zamknięcie konta** przez `PayoutService.payOutOnClosure` (F-41).
-- **Widok salda** jest w module `orders` (decyzja nr 123); „w trakcie” to ceny zamówień opłaconych, wysłanych i odebranych.
+- **Widok salda** jest w module `orders` (decyzja nr 123); „w trakcie” to ceny zamówień opłaconych, wysłanych, odebranych i w sporze (F-28).
 
 ### 7.7 Księga (ledger)
 
@@ -1277,7 +1290,7 @@ erDiagram
 |---|---|
 | `categories` | id, parent_id, path (ltree ze slugów), slug (unikalny), name, position, attributes (jsonb: definicje atrybutów w formacie z `@biddy/shared`, z których powstaje JSON Schema), is_restricted, is_brand_sensitive, listing_notice, is_active (F-11) |
 | `items` | id, seller_id, category_id, title, description, condition (`NEW`/`LIKE_NEW`/`VERY_GOOD`/`GOOD`/`FAIR`/`FOR_PARTS`), brand, attributes (jsonb), package_size (`S`/`M`/`L`/`XL`), weight_grams, length_cm, width_cm, height_cm, allowed_carriers (text[]), created_at, updated_at (moduł `catalog`, F-14; pola puste w szkicu, lokalizacja z adresu nadania w F-18) |
-| `media` | id, owner_id, purpose (`ITEM_PHOTO`/`AVATAR`), status (`PENDING_UPLOAD`/`PROCESSING`/`READY`/`FLAGGED`/`REJECTED`), content_type, size_bytes, width, height, rejection_reason, moderation_labels, attached_at, processed_at (moduł `media`, F-12; nieprzypisane znikają po 24 h) |
+| `media` | id, owner_id, purpose (`ITEM_PHOTO`/`AVATAR`/`DISPUTE_EVIDENCE`: prywatne, F-28), status (`PENDING_UPLOAD`/`PROCESSING`/`READY`/`FLAGGED`/`REJECTED`), content_type, size_bytes, width, height, rejection_reason, moderation_labels, attached_at, processed_at (moduł `media`, F-12; nieprzypisane znikają po 24 h) |
 | `item_media` | item_id, media_id, position (F-14; plik, wymiary i moderacja w `media`; to samo zdjęcie może być w kopii przedmiotu po ponownym wystawieniu) |
 | `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status (`DRAFT`/`PENDING_REVIEW`/`ACTIVE`/`ENDED_SOLD`/`ENDED_UNSOLD`/`CANCELLED`), currency, start_price, reserve_price, buy_now_price, duration_days, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, bid_sequence, review_reasons, review_terms, starts_at, ends_at, original_ends_at, published_at, cancelled_at, version, created_at, updated_at (F-14; extension_policy w F-15) |
 | `bids` | id, auction_id, bidder_id, sequence (kolejność w aukcji, replay §15.6), amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, cancelled_at, idempotency_key (unique per bidder), created_at (F-15; ip i device_id dojdą z antyfraudem F-36) |
@@ -1289,11 +1302,11 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, paid_at, ship_by, payment_id, shipped_at, delivered_at, inspection_ends_at, buyer_confirmed_at, completed_at, cancelled_at, not_picked_up_at, lost_at, refunded_at, seller_compensated_at, chargeback_status, second_chance_offer_id, created_at (F-16, F-25, F-26; trigger `orders_status_transition` dopuszcza tylko przejścia z §7.3) |
+| `orders` | id, public_id, buyer_id, seller_id, status, items_total, pok_fee, pok_vat, shipping_fee, total, currency, fee_schedule_id, payment_due_at, paid_at, ship_by, payment_id, shipped_at, delivered_at, inspection_ends_at, buyer_confirmed_at, completed_at, cancelled_at, not_picked_up_at, lost_at, disputed_at, refunded_at, seller_compensated_at, chargeback_status, second_chance_offer_id, created_at (F-16, F-25, F-26, F-28; trigger `orders_status_transition` dopuszcza tylko przejścia z §7.3) |
 | `order_items` | id, order_id, auction_id, hammer_price, item_snapshot (jsonb), runner_ups (jsonb: kandydaci do drugiej szansy, F-26), is_active (false, gdy aukcja ma nowsze zamówienie z drugiej szansy) |
 | `fee_schedules` | id, currency, fixed_fee, tiers (jsonb, progi krańcowe, np. `[{"upTo":100000,"bp":700},{"upTo":null,"bp":400}]`; kwoty w groszach, `bp` = punkty bazowe), vat_rate_bp, valid_from, valid_to, note (moduł `payments`, F-13; okresy bez nakładania, wiersz niezmienny poza zamknięciem; category_id dojdzie z cennikami per kategoria) |
 | `payments` | id, order_id, buyer_id, seller_id, provider, provider_payment_id (unikalne z provider), method, currency, amount, seller_amount, platform_amount (split, suma = amount), status (`PENDING`/`SUCCEEDED`/`FAILED`), failure_reason, redirect_url, idempotency_key (unikalny), raw (jsonb), polled_at, succeeded_at, failed_at, created_at, updated_at (moduł `payments`, F-23) |
-| `refunds` | id, order_id, payment_id, dispute_id, reason (`DISPUTE`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`DUPLICATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, order_amounts (jsonb, tylko `NOT_PICKED_UP`, F-26), raw (jsonb), created_at |
+| `refunds` | id, order_id, payment_id, reason (`DISPUTE`/`DISPUTE_PARTIAL`/`NOT_SHIPPED`/`NOT_PICKED_UP`/`LOST`/`LATE_PAYMENT`/`DUPLICATE_PAYMENT`/`CHARGEBACK`), amount, status, provider_refund_id, idempotency_key, order_amounts (jsonb, tylko `NOT_PICKED_UP` i `DISPUTE_PARTIAL`, F-26, F-28), raw (jsonb), created_at |
 | `fund_releases` | id, order_id (unikalne), payment_id, provider, provider_transfer_id, currency, amount, status (`PENDING`/`SUCCEEDED`/`NOT_REQUIRED`), released_at, created_at (F-26: zwolnienie środków u operatora po zakończeniu) |
 | `chargebacks` | id, payment_id, order_id, amount, reason, status, liable_party (`PLATFORM`/`SELLER`), provider_ref, evidence_submitted_at, opened_at, closed_at |
 | `ledger_accounts` | id, code (konto planu §7.7), subject (operator albo ID sprzedającego, zamówienia lub wypłaty; null dla kont platformy), currency, seller_id, seller_amount (tylko `buyer_funds_held`: część dla sprzedającego, saldo „w trakcie”), balance (= suma wpisów, zmienia je tylko trigger), created_at. Unikalne (code, subject, currency) (moduł `ledger`, F-22) |
@@ -1304,8 +1317,8 @@ erDiagram
 | `shipments` | id, order_id (null tylko dla przesyłki testowej FakeShipping), direction (`OUTBOUND`/`RETURN`), provider, carrier_id, package_size, parcel (jsonb), pickup_point (jsonb: id, nazwa, adres), recipient (jsonb), sender (jsonb), dispatch_method (`DROP_OFF`/`COURIER_PICKUP`), declared_value, reference, currency, price (cena dla kupującego), cost (koszt u dostawcy), status (§8.3 + `PENDING`/`REQUESTED` przed utworzeniem u dostawcy), status_changed_at, provider_shipment_id, tracking_number, dropoff_code, label_key, dispatch_attempts, last_error, requested_at, delivered_at, returned_at, cancelled_at, polled_at, created_at. Unikalne (provider, provider_shipment_id) i (order_id, direction) bez anulowanych (moduł `shipping`, F-24) |
 | `shipment_events` | id, shipment_id, raw_status, status, description, occurred_at, recorded_at. Unikalne (shipment_id, raw_status, occurred_at): webhook i polling nie dublują zdarzeń |
 | `carrier_claims` | id, shipment_id (unikalny), type (`LOST`/`DAMAGED`), status (`OPEN`/`SUBMITTED`/`ACCEPTED`/`REJECTED`), currency, claimed_amount, recovered_amount, provider_claim_ref, note, submitted_at, resolved_at |
-| `disputes` | id, order_id, opened_by, reason, status (§7.5), resolution, refund_amount, deadline_at, decided_by, decision_reason, created_at |
-| `dispute_messages` / `dispute_evidence` | wiadomości i załączniki w sporze |
+| `disputes` | id, order_id (unikalne), order_public_id, title, buyer_id, seller_id, currency, items_total, shipping_fee, order_total, reason, description, status (§7.5), response_due_at, partial_offer_amount, escalated_at, decision_due_at, outcome (`SELLER_FAVOR`/`FULL_REFUND`/`PARTIAL_REFUND`), fault (`SELLER`/`CARRIER`), refund_amount, return_required, decided_by (`PARTIES`/`STAFF`/`SYSTEM`), decided_by_staff_id, statement (uzasadnienie dla stron), decided_at, return_shipment_id, return_ship_by, return_shipped_at, return_delivered_at, return_inspection_ends_at, resolved_at, created_at (moduł `disputes`, F-28; trigger `disputes_status_transition`) |
+| `dispute_events` | id, dispute_id, type (zgłoszenie, odpowiedzi, eskalacja, wyjaśnienie, decyzja, etapy zwrotu, rozstrzygnięcie), actor (`BUYER`/`SELLER`/`STAFF`/`SYSTEM`), actor_id, note, amount, media_ids (zdjęcia `DISPUTE_EVIDENCE`), created_at: historia sporu (F-28) |
 
 **Społeczność i operacje**
 
@@ -1393,7 +1406,7 @@ GET    /orders/:id/shipment        (obie strony: zamówienie i przesyłka; kod n
 POST   /orders/:id/shipment        (sprzedający: „Nadaj” — dane nadawcy, sposób nadania → 202, worker tworzy przesyłkę, F-24)
 GET    /orders/:id/label           (sprzedający: etykieta PDF, F-24)
 POST   /orders/:id/confirm-receipt (kupujący: „Wszystko OK”, F-26)
-POST   /orders/:id/disputes        (w oknie 36 h)
+GET|POST /orders/:id/dispute       (strony: spór zamówienia; kupujący: zgłoszenie w oknie 36 h, F-28)
 POST   /orders/:id/report-not-received (kupujący, 14 dni po nadaniu bez statusu końcowego → LOST, F-26)
 POST   /orders/:id/second-chance-offers (sprzedający, po CANCELLED_UNPAID: oferta do kolejnej osoby, F-26)
 GET    /second-chance-offers/:id   (licytujący, F-26)
@@ -1401,7 +1414,9 @@ POST   /second-chance-offers/:id/accept | /decline
 GET    /shipping/points?carrier=&lat=&lng= | &q=   (sesja; punkty odbioru u dostawcy, F-24)
 
 # Spory, wiadomości, oceny, zgłoszenia
-GET|POST /disputes/:id/messages    POST /disputes/:id/evidence   POST /disputes/:id/respond
+POST   /disputes/:id/seller-response   (ACCEPT z odesłaniem albo bez | OFFER_PARTIAL | REJECT, F-28)
+POST   /disputes/:id/offer-response    POST /disputes/:id/comments    POST /disputes/:id/return-review
+POST   /disputes/:id/return-shipment   GET /disputes/:id/return-label   GET /disputes/:id/photos/:mediaId/:variant
 GET|POST /conversations            GET|POST /conversations/:id/messages
 POST   /orders/:id/review
 POST   /reports
@@ -1423,7 +1438,7 @@ POST   /dev/fake-shipping/parcels/:id/advance      POST /dev/fake-shipping/parce
 # Admin (/admin/*, osobna sesja i RBAC) — m.in.:
 POST   /admin/bids/:id/cancel      (unieważnienie oferty + replay, §15.6)
 POST   /admin/auctions/:id/cancel  (anulowanie aukcji przez moderację, F-16)
-POST   /admin/disputes/:id/decision
+GET    /admin/disputes?status=     GET /admin/disputes/:id          POST /admin/disputes/:id/decision   (F-28)
 POST   /admin/strikes              POST /admin/strikes/:id/revoke   POST /admin/strikes/:id/appeal-decision
 POST   /admin/account-blocks/:id/lift    POST /admin/account-blocks/:id/appeal-decision    GET /admin/appeals
 GET    /admin/account-policy       PUT /admin/account-policy        PUT /admin/users/:id/limits    GET /admin/users/:id/standing   (F-61)
@@ -1479,11 +1494,11 @@ interface AuctionViewersEvent { auctionId: string; count: number; serverTime: st
 ### 14.3 Eventy domenowe (outbox)
 
 - **Aukcje:** `AuctionPublished`, `AuctionSubmittedForReview`, `AuctionUpdated` (zmiana przed pierwszą ofertą), `BidPlaced`, `BidCancelled`, `UserOutbid`, `AuctionExtended`, `AuctionEnded`, `AuctionCancelled`.
-- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `SecondChanceOfferResolved`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderShipped`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`.
+- **Zamówienia:** `OrderCreated`, `OrderPaid`, `PaymentFailed`, `OrderCancelled`, `SecondChanceOffered`, `SecondChanceOfferResolved`, `ShipmentCreated`, `ShipmentStatusChanged`, `OrderShipped`, `OrderDelivered`, `OrderNotPickedUp`, `OrderLost`, `OrderCompleted`, `OrderRefunded`, `OrderDisputed`, `OrderPartiallyRefunded` (F-28).
   - `ShipmentCreated` i `ShipmentStatusChanged` (F-24) publikuje moduł `shipping`; `ShipmentStatusChanged` niesie czas u przewoźnika, czas wykrycia i przy `RETURNING` powód zwrotu.
   - Kontrakt `OrderPaid` (z `shipBy`) zdefiniował F-24 dla powiadomienia „nadaj paczkę”, a publikuje go F-25.
   - Eventy cyklu życia (F-26) niosą numer zamówienia, aukcję i obie strony. `OrderCancelled.reason` to `UNPAID` albo `NOT_SHIPPED`, a `OrderCreated.secondChanceOfferId` oznacza zamówienie z drugiej szansy.
-- **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputeResolved`, `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutPaid`, `PayoutFailed`, `PayoutAccountChanged` (F-27), `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika), `FundsReleaseRequested` (F-26, zwolnienie środków u operatora). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
+- **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputePartialOffered`, `DisputeEscalated`, `DisputeReturnRequested`, `DisputeReturnDelivered`, `DisputeResolved` (F-28), `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutPaid`, `PayoutFailed`, `PayoutAccountChanged` (F-27), `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika), `FundsReleaseRequested` (F-26, zwolnienie środków u operatora). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
 - **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `AccountBlocked`, `AccountBlockLifted`, `AppealResolved` (F-61), `ReviewPublished`, `ReportCreated`.
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
@@ -2000,11 +2015,18 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 120 | Zwolnienie środków: księgowanie `ORDER_COMPLETED` w transakcji zakończenia (ledger jest źródłem prawdy dla wypłat), wywołanie operatora w konsumencie `FundsReleaseRequested` z kluczem `release:{id}` (tabela `fund_releases`, `NOT_REQUIRED` w modelu `SELLER_BALANCE`). Zwrot nieodebranej paczki to powód `NOT_PICKED_UP` w `refunds` z kwotami zamówienia, księgowany jako `NOT_PICKED_UP_REFUNDED` | Przyjęta | §7.4, §7.7, §7.8 |
 | 121 | Zaginiona paczka: kupujący zgłasza brak paczki 14 dni po nadaniu, gdy przesyłka nie ma statusu końcowego; pełny zwrot i reklamacja (kwota = cena) od razu. Rekompensata = cena (do czasu poznania limitów przewoźnika) na saldo, gdy operator ma `internalTransfers`, inaczej przelewem działu finansów; po rozstrzygnięciu reklamacji, najpóźniej 30 dni od zgłoszenia. Okno 36 h liczymy od chwili wykrycia odbioru (`detectedAt`). Teksty w UI neutralne płciowo („Zgłoś brak paczki” zamiast „Nie otrzymałem”) | Tymczasowa | §7.4, §7.9 |
 | 122 | Dane do wypłat (DAC7 i rachunek) w tabeli `seller_payout_profiles` modułu `payments`, niezależnej od operatora (konto u operatora w `seller_accounts` jest per operator). Oba bloki szyfrowane AES-256-GCM z bajtem wersji klucza i kontekstem (typ danych + ID użytkownika jako AAD) kluczem `DATA_ENCRYPTION_KEY`, nie z `BETTER_AUTH_SECRET`: rotacja sekretu sesji nie może zniszczyć danych. API zwraca identyfikator i rachunek tylko zamaskowane | Przyjęta | §16.1, §17 |
-| 123 | Widok salda (`GET /me/balance`, historia) w module `orders`, bo łączy ledger, wypłaty i tytuły zamówień, a `payments` nie zależy od `orders`. „W trakcie” w widoku to ceny zamówień `PAID`, `SHIPPED` i `DELIVERED` (bez zamówień w drodze do zwrotu), historia to transakcje ledgera na saldzie dostępnym albo należności sprzedającego | Przyjęta | §7.7 |
+| 123 | Widok salda (`GET /me/balance`, historia) w module `orders`, bo łączy ledger, wypłaty i tytuły zamówień, a `payments` nie zależy od `orders`. „W trakcie” w widoku to ceny zamówień `PAID`, `SHIPPED`, `DELIVERED` i (od F-28) `DISPUTED` (bez zamówień w drodze do zwrotu), historia to transakcje ledgera na saldzie dostępnym albo należności sprzedającego | Przyjęta | §7.7 |
 | 124 | Wypłata: zlecenie pod blokadą danych do wypłat, w jednej transakcji wiersz `payouts`, `PAYOUT_REQUESTED` i event; ledger (blokada konta, CHECK salda) jest drugą barierą przy równoległych żądaniach. Operator w konsumencie `PayoutRequested` z kluczem `payout:{id}`; odmowa operatora (`SELLER_NOT_VERIFIED`, `INSUFFICIENT_BALANCE`, `INVALID_REQUEST`) kończy wypłatę od razu z `PAYOUT_FAILED`. Wypłata na żądanie z nagłówkiem `Idempotency-Key` | Przyjęta | §7.6, §7.8 |
 | 125 | Rachunek: blokada wypłat 48 h tylko przy zmianie numeru (pierwszy rachunek bez blokady, bo wypłata i tak wymaga KYC u operatora; zmiana samego właściciela bez blokady). Powiadomienie w aplikacji i e-mailem przy każdym nowym numerze. Potwierdzenie zmiany linkiem w e-mailu (§16.1) odłożone do 2FA (v1) | Tymczasowa | §16.1 |
 | 126 | Saldo uśpione: saldo dostępne od 0,01 do 19,99 zł, bez otwartych zamówień ze wstrzymanymi środkami i bez księgowania sprzedaży (`ORDER_COMPLETED`, `ORDER_PARTIALLY_REFUNDED`) od 90 dni; job codziennie o 4:00 z kluczem dnia (nieudana wypłata wraca następnego dnia). Bez danych do wypłat pomijamy, a widok salda prosi o dane | Przyjęta | §7.6 |
 | 127 | Wypłata tygodniowa w poniedziałek o 6:00 czasu polskiego: całe saldo ≥ 20 zł, klucz `weekly:{userId}:{tydzień ISO}` (bez dubli w tygodniu); niespełniony warunek to pominięcie z wpisem w logach | Przyjęta | §7.6 |
+| 128 | Spór w module `disputes` (stany §7.5 z triggerem, terminy, historia `dispute_events`, decyzje, przesyłka zwrotna), a stan zamówienia i pieniądze w `orders` (`OrderDisputes.open` / `settle`) w tej samej transakcji; `disputes` zależy od `orders`, a nie odwrotnie (widok zamówienia zna tylko `disputed_at`). Każde rozstrzygnięcie (strony, personel, system) ma uzasadnienie widoczne dla stron | Przyjęta | §7.5, §10.3 |
+| 129 | Akceptacja zwrotu przez sprzedającego to pełny zwrot z winy sprzedającego (dostawa w obie strony po jego stronie), ale bez strike'a i bez wpisu przegranego sporu; strike `DISPUTE_LOST` i `recordDisputeLost` tylko po decyzji Biddy (`FULL_REFUND`, wina `SELLER`). Zwrot częściowy i wina przewoźnika bez strike'a | Tymczasowa | §4.1, §7.5, §7.9 |
+| 130 | Zwrot z odesłaniem: przesyłka `RETURN` kurierem na adres sprzedającego z „Nadaj” (usługa przesyłki do kupującego, jeśli kurierska, inaczej najtańszy kurier z cennika dla gabarytu); etykietę zleca i opłaca Biddy, cena z cennika to koszt zwrotu po stronie winnego sprzedającego. Brak kuriera dla paczki: 409 `RETURN_SHIPPING_UNAVAILABLE` (zwrot bez odesłania) | Tymczasowa | §7.5, §8.6 |
+| 131 | Brak odpowiedzi kupującego na propozycję zwrotu części ceny w 48 h to eskalacja (jak brak odpowiedzi sprzedającego), a nie przyjęcie. Propozycja jest jedna na spór | Tymczasowa | §7.4, §7.5 |
+| 132 | Wina przewoźnika w sporze: pełny zwrot kupującemu, rekompensata równa cenie od razu po decyzji Biddy (bez czekania na reklamację, tym samym kanałem co przy zaginięciu) i reklamacja przesyłki do kupującego (`DAMAGED`, przy „paczka nie dotarła” `LOST`); rozliczenie odszkodowania po rozstrzygnięciu reklamacji | Tymczasowa | §7.5, §7.9 |
+| 133 | Zdjęcia ze sporu to prywatne przeznaczenie mediów `DISPUTE_EVIDENCE`: ta sama obróbka i moderacja, ale warianty w kubełku `uploads`, bez publicznych adresów; wydaje je API (`/disputes/:id/photos/…`) tylko stronom sporu i personelowi, i tylko zdjęcia z historii tego sporu | Przyjęta | §16.1, §17 |
+| 134 | Zwrot części ceny: powód `DISPUTE_PARTIAL` w `refunds` z kwotami zamówienia (najwyżej cena); po potwierdzeniu operatora księgowanie `ORDER_PARTIALLY_REFUNDED` (reszta ceny na saldo, POK i dostawa jako przychody), potem zamówienie `PARTIALLY_REFUNDED` i zwolnienie reszty ceny u operatora (`fund_releases` bez księgowania). Koszty sporu (`DISPUTE_COSTS_CHARGED`) księgujemy przy rozstrzygnięciu, razem ze zleceniem zwrotu | Przyjęta | §7.5, §7.7 |
 
 ---
 

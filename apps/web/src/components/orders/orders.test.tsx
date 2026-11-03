@@ -46,13 +46,18 @@ function order(overrides: Partial<OrderDetailsDto> = {}): OrderDetailsDto {
     cancelledAt: null,
     notPickedUpAt: null,
     lostAt: null,
+    disputedAt: null,
     refundedAt: null,
     compensation: null,
     onHold: false,
     fromSecondChance: false,
     shipment: null,
     refund: null,
-    actions: { confirmReceipt: true, reportNotReceived: null },
+    actions: {
+      confirmReceipt: true,
+      reportNotReceived: null,
+      openDispute: { until: '2026-11-01T00:00:00.000Z', allowed: true },
+    },
     secondChance: null,
     ...overrides,
   };
@@ -66,7 +71,7 @@ describe('OrderPanel', () => {
         status: 'COMPLETED',
         completedAt: '2026-10-30T15:00:00.000Z',
         buyerConfirmedAt: '2026-10-30T15:00:00.000Z',
-        actions: { confirmReceipt: false, reportNotReceived: null },
+        actions: { confirmReceipt: false, reportNotReceived: null, openDispute: null },
       }),
     });
     render(<OrderPanel publicId={PUBLIC_ID} />, { wrapper: AppWrapper });
@@ -98,7 +103,7 @@ describe('OrderPanel', () => {
         role: 'SELLER',
         counterpart: { name: 'Jan' },
         completedAt: '2026-10-31T10:00:00.000Z',
-        actions: { confirmReceipt: false, reportNotReceived: null },
+        actions: { confirmReceipt: false, reportNotReceived: null, openDispute: null },
       }),
     });
     render(<OrderPanel publicId={PUBLIC_ID} />, { wrapper: AppWrapper });
@@ -116,6 +121,7 @@ describe('OrderPanel', () => {
       actions: {
         confirmReceipt: false,
         reportNotReceived: { availableAt: '2026-11-12T09:00:00.000Z', allowed: false },
+        openDispute: null,
       },
     });
     mockApi({ [ORDER_PATH]: shipped });
@@ -132,6 +138,7 @@ describe('OrderPanel', () => {
         actions: {
           confirmReceipt: false,
           reportNotReceived: { availableAt: '2026-10-29T09:00:00.000Z', allowed: true },
+          openDispute: null,
         },
       },
       [`${ORDER_PATH}/report-not-received`]: order({
@@ -144,7 +151,7 @@ describe('OrderPanel', () => {
           createdAt: '2026-11-13T09:00:00.000Z',
           succeededAt: null,
         },
-        actions: { confirmReceipt: false, reportNotReceived: null },
+        actions: { confirmReceipt: false, reportNotReceived: null, openDispute: null },
       }),
     });
     render(<OrderPanel publicId={PUBLIC_ID} />, { wrapper: AppWrapper });
@@ -169,7 +176,7 @@ describe('OrderPanel', () => {
       deliveredAt: null,
       inspectionEndsAt: null,
       cancelledAt: '2026-10-29T18:00:00.000Z',
-      actions: { confirmReceipt: false, reportNotReceived: null },
+      actions: { confirmReceipt: false, reportNotReceived: null, openDispute: null },
       secondChance: {
         next: { bidder: 'k***a', amount: 4_500 },
         offers: [],

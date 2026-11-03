@@ -4,6 +4,8 @@
  * Odpowiedzialność: checkout, maszyna stanów zamówienia, terminy, oferty drugiej szansy.
  * - OrderService: zamówienia sprzedanych aukcji, odczyty dla Moje Biddy i strony aukcji.
  * - OrderLifecycle: przejścia po opłaceniu, „Wszystko OK”, zaginięcie i joby terminów (F-26).
+ * - OrderDisputes: zgłoszenie problemu (DELIVERED → DISPUTED) i rozliczenie rozstrzygnięcia
+ *   sporu (F-28); przebieg sporu prowadzi moduł disputes.
  * - SecondChanceService: oferty drugiej szansy (F-26).
  *
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
@@ -39,13 +41,23 @@ export {
 } from './domain/lifecycle-rules.js';
 export { type DeadlineReport, OrderLifecycle } from './lifecycle/order-lifecycle.js';
 export {
+  type DisputedOrder,
+  type DisputeOpenBlocker,
+  type DisputeParticipant,
+  type DisputeSettlement,
+  disputeOpenBlocker,
+  OrderDisputes,
+} from './lifecycle/order-disputes.js';
+export {
   OrderCancelled,
   OrderCompleted,
   OrderCreated,
   OrderDelivered,
+  OrderDisputed,
   OrderLost,
   OrderNotPickedUp,
   OrderPaid,
+  OrderPartiallyRefunded,
   OrderRefunded,
   OrderShipped,
   SecondChanceOffered,

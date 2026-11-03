@@ -9,7 +9,7 @@ import type { CreateUploadDtoContentType } from './createUploadDtoContentType';
 import type { CreateUploadDtoPurpose } from './createUploadDtoPurpose';
 
 export interface CreateUploadDto {
-  /** Zdjęcie przedmiotu albo zdjęcie profilowe */
+  /** Zdjęcie przedmiotu, zdjęcie profilowe albo dowód w sporze (prywatny, F-28) */
   purpose: CreateUploadDtoPurpose;
   contentType: CreateUploadDtoContentType;
   /**

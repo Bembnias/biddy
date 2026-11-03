@@ -584,13 +584,45 @@ Sprzedający widzi swoje pieniądze i wypłaca je na rachunek (PROJECT.md §7.6�
 - **Web:** `/konto/saldo` (kafle, wypłata, wypłata tygodniowa, zamówienia w trakcie, historia) i `/konto/saldo/dane` (dane osobowe i rachunek); skrót na stronie konta i link przy zakończonym zamówieniu.
 - **Lokalnie:** FakeGateway potwierdza wypłatę webhookiem po `PAYMENTS_FAKE_WEBHOOK_DELAY_MS` (sprzedawca jest od razu zweryfikowany), a odrzucenie wypłaty wywołasz w panelu `/dev/fake-gateway`, zanim przyjdzie potwierdzenie. Harmonogramy jobów automatycznych widać w Bull Board (`pnpm dev:board`).
 
+### Spory i zwroty (F-28)
+
+Kupujący zgłasza problem z przedmiotem w oknie 36 h, strony próbują się porozumieć, a bez porozumienia rozstrzyga zespół Biddy (PROJECT.md §7.5, §7.9). Spec: [F-28](docs/features/F-28-spory-i-zwroty.md).
+
+- **Moduł `disputes`** prowadzi spór: stany z §7.5 (trigger `disputes_status_transition`), terminy, historię (`dispute_events`) i decyzje. Pieniądze i stan zamówienia rusza `OrderDisputes` w module `orders`, w tej samej transakcji.
+- **Zgłoszenie** (`POST /v1/orders/:id/dispute`, kupujący): powód, opis i zdjęcia (wymagane przy wadzie przedmiotu). Zamówienie przechodzi w `DISPUTED`, więc auto-zakończenie go nie dotyka.
+- **Odpowiedzi stron:**
+  - sprzedający w 48 h (`POST /v1/disputes/:id/seller-response`): zwrot z odesłaniem albo bez, propozycja zwrotu części ceny, odrzucenie;
+  - kupujący na propozycję w 48 h (`…/offer-response`);
+  - wyjaśnienia obu stron (`…/comments`).
+    Brak odpowiedzi eskaluje spór (job `disputes.escalate-overdue`).
+- **Decyzja personelu** (do F-34 przez API, role `support`, `moderator`, `admin`):
+  - kolejka `GET /v1/admin/disputes`;
+  - widok `GET /v1/admin/disputes/:id`;
+  - decyzja `POST /v1/admin/disputes/:id/decision` z uzasadnieniem dla stron.
+- **Zwrot z odesłaniem:**
+  - przesyłka `RETURN` kurierem na adres sprzedającego z „Nadaj” (`ShipmentService.prepareReturn`);
+  - kupujący nadaje ją `POST …/return-shipment` i pobiera etykietę `GET …/return-label`;
+  - tracking zwrotu prowadzi spór;
+  - joby: `disputes.expire-returns` (brak nadania w 5 dni roboczych: na korzyść sprzedającego) i `disputes.settle-returns` (36 h po odbiorze: zwrot pieniędzy).
+- **Pieniądze:**
+  - pełny zwrot (`DISPUTE`) albo zwrot części ceny (`DISPUTE_PARTIAL`, księgowanie `ORDER_PARTIALLY_REFUNDED` po potwierdzeniu operatora, reszta ceny zwalniana u operatora);
+  - przy winie sprzedającego potrącenie dostawy w obie strony (`DISPUTE_COSTS_CHARGED`, niedobór jako należność) i strike `DISPUTE_LOST` po decyzji Biddy;
+  - przy winie przewoźnika rekompensata równa cenie i reklamacja.
+- **Zdjęcia ze sporu** (`DISPUTE_EVIDENCE`) są prywatne: warianty leżą w kubełku `uploads`, a wydaje je `GET /v1/disputes/:id/photos/:mediaId/:variant` tylko stronom i personelowi.
+- **Web:**
+  - `/zamowienia/[publicId]/spor`: formularz zgłoszenia, akcje stron, nadanie zwrotu, rozstrzygnięcie z uzasadnieniem i historia;
+  - linki „Zgłoś problem” i „Zobacz spór” na stronie zamówienia.
+- **Lokalnie:**
+  - statusy przesyłki zwrotnej prowadzisz w panelu `/dev/fake-shipping`;
+  - rolę personelu nadajesz w bazie: `update users set staff_role = 'moderator' where email = '…'`.
+
 ### Limity kont i strike'i (F-61)
 
 Poziomy kont, limity, strike'i i blokady z uzasadnieniem i odwołaniem (PROJECT.md §4.1). Spec: [F-61](docs/features/F-61-limity-i-strike.md).
 
 - **Poziomy z historii zamówień.**
   - Moduł `identity` trzyma tabelę `trade_records` (jeden wiersz na zamówienie).
-  - Dopisuje ją moduł `orders`: konsumenci `OrderPaid` i `OrderCompleted` (F-26), w F-28 przegrany spór.
+  - Dopisują ją moduł `orders` (konsumenci `OrderPaid` i `OrderCompleted`, F-26) i moduł `disputes` (przegrany spór, F-28).
   - Kupujący po pierwszym opłaconym zamówieniu może licytować do 5000 zł (nowe konto: 2500 zł).
 - **Polityka kont bez deployu.**
   - Limity poziomów i reguły strike'ów leżą w `account_policies` (najnowsza wersja, bez wersji: `DEFAULT_ACCOUNT_POLICY` z `@biddy/shared`).

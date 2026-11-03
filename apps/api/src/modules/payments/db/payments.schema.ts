@@ -162,7 +162,10 @@ export const payments = pgTable(
 
 export type PaymentRow = typeof payments.$inferSelect;
 
-/** Kwoty zamówienia do księgowania zwrotu nieodebranej paczki (szablon NOT_PICKED_UP_REFUNDED). */
+/**
+ * Kwoty zamówienia do księgowania zwrotu nieodebranej paczki (szablon NOT_PICKED_UP_REFUNDED)
+ * i zwrotu częściowego w sporze (ORDER_PARTIALLY_REFUNDED, F-28).
+ */
 export interface RefundOrderAmounts {
   readonly itemsTotal: Money;
   readonly pokFee: Money;
@@ -172,7 +175,7 @@ export interface RefundOrderAmounts {
 
 /**
  * Zwrot płatności u operatora (F-25: spóźniona i zdublowana płatność; F-26: nienadanie,
- * nieodebranie i zaginięcie; spory i chargebacki w F-28). Wiersz powstaje w transakcji zlecającej
+ * nieodebranie i zaginięcie; F-28: spory; chargebacki w F-31). Wiersz powstaje w transakcji zlecającej
  * (z eventem RefundRequested), operatora woła konsument eventu, a stan końcowy i księgowanie
  * przychodzą webhookiem.
  */
@@ -194,7 +197,10 @@ export const refunds = pgTable(
     status: text().$type<RefundStatus>().notNull().default('PENDING'),
     /** Klucz wywołującego, np. `refund:payment:{id}:late`. */
     idempotencyKey: text().notNull(),
-    /** Kwoty zamówienia, tylko przy `NOT_PICKED_UP` (dostawa zostaje w Biddy, F-26). */
+    /**
+     * Kwoty zamówienia, tylko przy `NOT_PICKED_UP` (dostawa zostaje w Biddy, F-26)
+     * i `DISPUTE_PARTIAL` (reszta ceny dla sprzedającego, F-28).
+     */
     orderAmounts: jsonb().$type<RefundOrderAmounts>(),
     succeededAt: timestamp({ withTimezone: true }),
     failedAt: timestamp({ withTimezone: true }),
@@ -211,7 +217,7 @@ export const refunds = pgTable(
     check('refunds_idempotency_key_check', sql`length(${table.idempotencyKey}) between 1 and 200`),
     check(
       'refunds_order_amounts_check',
-      sql`(${table.reason} = 'NOT_PICKED_UP') = (${table.orderAmounts} is not null)`,
+      sql`(${table.reason} in ('NOT_PICKED_UP', 'DISPUTE_PARTIAL')) = (${table.orderAmounts} is not null)`,
     ),
   ],
 );

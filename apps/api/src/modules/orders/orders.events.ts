@@ -1,5 +1,5 @@
-// Eventy domenowe modułu orders (F-16, F-25, F-26, PROJECT.md §14.3). Konsumenci: powiadomienia
-// na każdym etapie (F-20, F-24, F-26), historia zamówień i strike'i (F-61, F-26). Każdy event
+// Eventy domenowe modułu orders (F-16, F-25, F-26, F-28, PROJECT.md §14.3). Konsumenci:
+// powiadomienia na każdym etapie (F-20, F-24, F-26, F-28), historia zamówień i strike'i (F-61, F-26). Każdy event
 // zamówienia niesie numer, aukcję i strony, żeby konsumenci nie czytali tabel zamówień.
 import { CURRENCIES, type CurrencyCode } from '@biddy/shared';
 import { z } from 'zod';
@@ -142,7 +142,31 @@ export const OrderRefunded = defineDomainEvent({
     ...parties,
     refundedAt: z.iso.datetime(),
     amount: money,
-    reason: z.enum(['NOT_SHIPPED', 'NOT_PICKED_UP', 'LOST']),
+    reason: z.enum(['NOT_SHIPPED', 'NOT_PICKED_UP', 'LOST', 'DISPUTE']),
+  }),
+});
+
+/** Kupujący zgłosił problem w oknie 36 h: środki czekają na rozstrzygnięcie sporu (F-28). */
+export const OrderDisputed = defineDomainEvent({
+  type: 'OrderDisputed',
+  version: 1,
+  aggregateType: 'order',
+  payload: z.object({ ...parties, disputedAt: z.iso.datetime() }),
+});
+
+/**
+ * Zwrot części ceny po sporze potwierdzony przez operatora (PARTIALLY_REFUNDED, F-28): reszta
+ * ceny jest na saldzie sprzedającego.
+ */
+export const OrderPartiallyRefunded = defineDomainEvent({
+  type: 'OrderPartiallyRefunded',
+  version: 1,
+  aggregateType: 'order',
+  payload: z.object({
+    ...parties,
+    refundedAt: z.iso.datetime(),
+    amount: money,
+    sellerAmount: money,
   }),
 });
 

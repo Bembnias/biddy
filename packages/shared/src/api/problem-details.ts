@@ -143,6 +143,16 @@ export const ERROR_CODES = {
   INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
   /** Kwota wypłaty poniżej minimum 20 zł (F-27). */
   PAYOUT_BELOW_MINIMUM: 'PAYOUT_BELOW_MINIMUM',
+  /** Problem można zgłosić tylko dla odebranego zamówienia (F-28). */
+  DISPUTE_UNAVAILABLE: 'DISPUTE_UNAVAILABLE',
+  /** Minęło 36 h na zgłoszenie problemu (`inspectionEndsAt`, F-28). */
+  DISPUTE_WINDOW_CLOSED: 'DISPUTE_WINDOW_CLOSED',
+  /** Spór jest już w innym stanie niż zakłada akcja (`status`, F-28). */
+  DISPUTE_STATE_CHANGED: 'DISPUTE_STATE_CHANGED',
+  /** Decyzję personelu można wydać tylko w sporze przekazanym do Biddy (F-28). */
+  DISPUTE_NOT_ESCALATED: 'DISPUTE_NOT_ESCALATED',
+  /** Dla tej paczki nie ma usługi kurierskiej do zwrotu (F-28). */
+  RETURN_SHIPPING_UNAVAILABLE: 'RETURN_SHIPPING_UNAVAILABLE',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

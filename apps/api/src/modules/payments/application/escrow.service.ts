@@ -1,11 +1,15 @@
-// Środki zamówienia po stronie Biddy (F-26, PROJECT.md §7.2, §7.7, §7.9): zwolnienie dla
-// sprzedającego po zakończeniu zamówienia oraz rekompensata za zaginioną paczkę z rozliczeniem
-// reklamacji u przewoźnika. Moduł orders woła te metody w transakcji przejścia zamówienia.
+// Środki zamówienia po stronie Biddy (F-26, F-28, PROJECT.md §7.2, §7.5, §7.7, §7.9): zwolnienie
+// dla sprzedającego po zakończeniu zamówienia albo po zwrocie częściowym, rekompensata za
+// zaginioną lub uszkodzoną paczkę z rozliczeniem reklamacji u przewoźnika i koszty sporu po
+// stronie sprzedającego. Moduł orders woła te metody w transakcji przejścia zamówienia.
 // - release: księgowanie ORDER_COMPLETED od razu (ledger jest źródłem prawdy dla wypłat), wiersz
 //   `fund_releases` i event FundsReleaseRequested; operatora woła konsument z kluczem
 //   `release:{id}`, więc ponowienie nie zwalnia drugi raz.
-// - compensateLostParcel / settleCarrierClaim: tylko ledger (PARCEL_COMPENSATION_PAID,
-//   CARRIER_CLAIM_SETTLED), z kluczami zamówienia i reklamacji.
+// - releaseRemainder: to samo zwolnienie u operatora po zwrocie częściowym, bez księgowania
+//   (ORDER_PARTIALLY_REFUNDED księguje zwrot po potwierdzeniu operatora, F-28).
+// - compensateLostParcel / settleCarrierClaim / chargeDisputeCosts: tylko ledger
+//   (PARCEL_COMPENSATION_PAID, CARRIER_CLAIM_SETTLED, DISPUTE_COSTS_CHARGED), z kluczami
+//   zamówienia i reklamacji.
 import type { Money } from '@biddy/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
@@ -19,7 +23,12 @@ import {
 } from '../../../infra/outbox/index.js';
 import { type CompensationChannel, LedgerService, type OrderAmounts } from '../../ledger/index.js';
 import * as paymentsTables from '../db/payments.schema.js';
-import { type FundReleaseRow, fundReleases, payments } from '../db/payments.schema.js';
+import {
+  type FundReleaseRow,
+  fundReleases,
+  type PaymentRow,
+  payments,
+} from '../db/payments.schema.js';
 import { FundsReleaseRequested } from '../payments.events.js';
 import { GatewayRegistry } from './gateway-registry.js';
 import { SellerAccountService } from './seller-account.service.js';
@@ -37,6 +46,20 @@ export interface CompensateLostParcelCommand {
   readonly sellerId: string;
   /** Operator płatności zamówienia: od jego `internalTransfers` zależy kanał wypłaty. */
   readonly provider: string;
+  readonly amount: Money;
+}
+
+export interface ReleaseRemainderCommand {
+  readonly orderId: string;
+  readonly paymentId: string;
+  /** Reszta ceny po zwrocie częściowym (więcej niż 0). */
+  readonly amount: Money;
+}
+
+export interface ChargeDisputeCostsCommand {
+  readonly orderId: string;
+  readonly sellerId: string;
+  /** Dostawa w obie strony (§7.9). */
   readonly amount: Money;
 }
 
@@ -77,14 +100,40 @@ export class EscrowService {
       sellerId: command.sellerId,
       amounts: command.amounts,
     });
+    return this.requestRelease(tx, payment, command.orderId, command.amounts.itemsTotal);
+  }
+
+  /**
+   * Zwolnienie u operatora reszty ceny po zwrocie częściowym w sporze (F-28). Ledger ma już
+   * księgowanie ORDER_PARTIALLY_REFUNDED (po potwierdzeniu zwrotu), więc tu bez księgowania.
+   */
+  async releaseRemainder(
+    tx: Transaction,
+    command: ReleaseRemainderCommand,
+  ): Promise<FundReleaseRow> {
+    const [payment] = await tx.select().from(payments).where(eq(payments.id, command.paymentId));
+    if (payment?.status !== 'SUCCEEDED' || payment.orderId !== command.orderId) {
+      throw new Error(
+        `Zamówienie ${command.orderId}: płatność ${command.paymentId} nie opłaciła zamówienia`,
+      );
+    }
+    return this.requestRelease(tx, payment, command.orderId, command.amount);
+  }
+
+  private async requestRelease(
+    tx: Transaction,
+    payment: PaymentRow,
+    orderId: string,
+    amount: Money,
+  ): Promise<FundReleaseRow> {
     const [created] = await tx
       .insert(fundReleases)
       .values({
-        orderId: command.orderId,
+        orderId,
         paymentId: payment.id,
         provider: payment.provider,
-        currency: command.amounts.itemsTotal.currency,
-        amount: command.amounts.itemsTotal.amount,
+        currency: amount.currency,
+        amount: amount.amount,
       })
       .onConflictDoNothing({ target: fundReleases.orderId })
       .returning();
@@ -92,9 +141,9 @@ export class EscrowService {
       const [existing] = await tx
         .select()
         .from(fundReleases)
-        .where(eq(fundReleases.orderId, command.orderId));
+        .where(eq(fundReleases.orderId, orderId));
       if (existing === undefined) {
-        throw new Error(`Zamówienie ${command.orderId}: brak zwolnienia środków`);
+        throw new Error(`Zamówienie ${orderId}: brak zwolnienia środków`);
       }
       return existing;
     }
@@ -102,11 +151,7 @@ export class EscrowService {
       tx,
       FundsReleaseRequested.create({
         aggregateId: created.id,
-        payload: {
-          orderId: command.orderId,
-          paymentId: payment.id,
-          amount: command.amounts.itemsTotal,
-        },
+        payload: { orderId, paymentId: payment.id, amount },
       }),
     );
     return created;
@@ -166,8 +211,9 @@ export class EscrowService {
   }
 
   /**
-   * Rekompensata za zaginioną paczkę (§7.9): na saldo sprzedającego, gdy operator pozwala na
-   * transfery z salda platformy, inaczej przelewem działu finansów. Idempotentna po zamówieniu.
+   * Rekompensata za zaginioną albo uszkodzoną w transporcie paczkę (§7.9): na saldo sprzedającego,
+   * gdy operator pozwala na transfery z salda platformy, inaczej przelewem działu finansów.
+   * Idempotentna po zamówieniu.
    */
   async compensateLostParcel(
     tx: Transaction,
@@ -192,6 +238,23 @@ export class EscrowService {
       );
     }
     return channel;
+  }
+
+  /**
+   * Koszty sporu przegranego przez sprzedającego (§7.9): dostawa w obie strony z salda dostępnego,
+   * a niedobór jako należność. Idempotentne po zamówieniu.
+   */
+  async chargeDisputeCosts(tx: Transaction, command: ChargeDisputeCostsCommand): Promise<void> {
+    if (command.amount.amount === 0) {
+      return;
+    }
+    await this.ledger.post(tx, {
+      type: 'DISPUTE_COSTS_CHARGED',
+      idempotencyKey: `order:${command.orderId}:dispute-costs`,
+      orderId: command.orderId,
+      sellerId: command.sellerId,
+      amount: command.amount,
+    });
   }
 
   /** Rozliczenie reklamacji: odszkodowanie przewoźnika i nieodzyskana reszta (strata Biddy). */

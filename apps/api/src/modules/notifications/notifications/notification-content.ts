@@ -3,6 +3,10 @@
 import {
   type AccountBlockKind,
   auctionPath,
+  type DisputeDecider,
+  type DisputeEscalationCause,
+  type DisputeFault,
+  type DisputeOutcome,
   formatMoney,
   type Money,
   type NotificationType,
@@ -40,12 +44,30 @@ export interface PayoutRef {
   readonly blockedUntil?: string | null;
 }
 
+/** Spór w migawce powiadomienia (F-28). */
+export interface DisputeRef {
+  readonly orderPublicId: string;
+  readonly title: string;
+  readonly recipientRole: 'BUYER' | 'SELLER';
+  /** Termin: odpowiedzi, decyzji, nadania albo sprawdzenia zwrotu (zależnie od typu). */
+  readonly dueAt?: string;
+  /** Propozycja zwrotu części ceny albo kwota zwrotu w rozstrzygnięciu. */
+  readonly amount?: Money | null;
+  readonly cause?: DisputeEscalationCause;
+  readonly decidedBy?: DisputeDecider;
+  readonly outcome?: DisputeOutcome;
+  readonly fault?: DisputeFault | null;
+  readonly sellerCosts?: Money | null;
+  readonly statement?: string;
+}
+
 /** Migawka zapisana w `notifications.payload` (pola zależne od typu). */
 export interface NotificationPayload {
-  /** Aukcja; brak w powiadomieniach o koncie (F-61) i o wypłatach (F-27). */
+  /** Aukcja; brak w powiadomieniach o koncie (F-61), wypłatach (F-27) i sporach (F-28). */
   readonly auction?: AuctionRef;
   readonly account?: AccountRef;
   readonly payout?: PayoutRef;
+  readonly dispute?: DisputeRef;
   /** Aktualna albo wywoławcza cena. */
   readonly price?: Money;
   readonly endsAt?: string;
@@ -84,7 +106,8 @@ export type RefundReasonCode =
   | 'LATE_PAYMENT'
   | 'DUPLICATE_PAYMENT'
   | 'CHARGEBACK'
-  | 'NOT_PICKED_UP';
+  | 'NOT_PICKED_UP'
+  | 'DISPUTE_PARTIAL';
 
 export interface NotificationContent {
   readonly title: string;
@@ -121,6 +144,11 @@ export const BALANCE_PATH = '/konto/saldo';
 /** Dane do wypłat: dane osobowe i rachunek (F-27). */
 export const PAYOUT_PROFILE_PATH = '/konto/saldo/dane';
 
+/** Spór zamówienia dla obu stron (F-28). */
+export function disputePath(orderPublicId: string): string {
+  return `/zamowienia/${orderPublicId}/spor`;
+}
+
 /** Oferta drugiej szansy dla licytującego (F-26). */
 export function secondChancePath(offerId: string): string {
   return `/druga-szansa/${offerId}`;
@@ -134,6 +162,7 @@ const REFUND_REASON_TEXT: Readonly<Record<RefundReasonCode, string>> = {
   NOT_PICKED_UP: 'Paczka nie została odebrana, więc zwrot nie obejmuje dostawy.',
   LOST: 'Paczka zaginęła.',
   DISPUTE: 'Spór rozstrzygnięto na Twoją korzyść.',
+  DISPUTE_PARTIAL: 'To zwrot części ceny uzgodniony w sporze. POK i dostawa nie są zwracane.',
   CHARGEBACK: 'Zwrot po reklamacji płatności w banku.',
 };
 
@@ -277,6 +306,139 @@ function payoutContent(type: PayoutNotificationType, payout: PayoutRef): Notific
   }
 }
 
+const DISPUTE_TYPES = [
+  'DISPUTE_OPENED',
+  'DISPUTE_PARTIAL_OFFERED',
+  'DISPUTE_ESCALATED',
+  'DISPUTE_RETURN_REQUESTED',
+  'DISPUTE_RETURN_DELIVERED',
+  'DISPUTE_RESOLVED',
+] as const satisfies readonly NotificationType[];
+type DisputeNotificationType = (typeof DISPUTE_TYPES)[number];
+
+function isDisputeType(type: NotificationType): type is DisputeNotificationType {
+  return (DISPUTE_TYPES as readonly NotificationType[]).includes(type);
+}
+
+/** Wynik sporu dla odbiorcy: co dostaje albo co się dzieje z pieniędzmi. */
+function disputeOutcomeLine(dispute: DisputeRef): string {
+  const buyer = dispute.recipientRole === 'BUYER';
+  const amount = money(dispute.amount ?? undefined);
+  switch (dispute.outcome) {
+    case 'SELLER_FAVOR':
+      return buyer
+        ? 'Spór zakończył się na korzyść sprzedającego, więc nie zwracamy pieniędzy.'
+        : 'Spór zakończył się na Twoją korzyść: cena trafi na Twoje saldo.';
+    case 'PARTIAL_REFUND':
+      return buyer
+        ? `Zwracamy Ci ${amount}. Przedmiot zostaje u Ciebie.`
+        : `Kupujący dostaje zwrot ${amount}, a reszta ceny trafi na Twoje saldo.`;
+    case 'FULL_REFUND':
+      if (buyer) {
+        return `Zwracamy Ci ${amount}.`;
+      }
+      if (dispute.fault === 'CARRIER') {
+        return 'Kupujący dostaje pełny zwrot, a Ty rekompensatę równą cenie, bo paczkę uszkodził przewoźnik.';
+      }
+      return dispute.sellerCosts === null || dispute.sellerCosts === undefined
+        ? 'Kupujący dostaje pełny zwrot.'
+        : `Kupujący dostaje pełny zwrot, a koszt dostawy ${money(dispute.sellerCosts)} potrącimy z Twojego salda.`;
+    case undefined:
+      return '';
+  }
+}
+
+/** Dlaczego spór trafił do Biddy (zdanie w powiadomieniu o eskalacji). */
+const ESCALATION_TEXT: Readonly<Record<DisputeEscalationCause, string>> = {
+  SELLER_REJECTED: 'Sprzedający nie zgodził się ze zgłoszeniem.',
+  SELLER_SILENT: 'Sprzedający nie odpowiedział w 48 godzin.',
+  OFFER_REJECTED: 'Kupujący nie przyjął propozycji zwrotu części ceny.',
+  BUYER_SILENT: 'Kupujący nie odpowiedział na propozycję w 48 godzin.',
+  RETURN_CONTESTED: 'Sprzedający zgłosił problem ze zwrotem.',
+  RETURN_FAILED: 'Przesyłka zwrotna nie dotarła do sprzedającego.',
+};
+
+/** Spory (F-28): terminy i rozstrzygnięcie z uzasadnieniem. */
+function disputeContent(type: DisputeNotificationType, dispute: DisputeRef): NotificationContent {
+  const title = `„${dispute.title}”`;
+  const path = disputePath(dispute.orderPublicId);
+  const buyer = dispute.recipientRole === 'BUYER';
+  switch (type) {
+    case 'DISPUTE_OPENED':
+      return {
+        title: `Kupujący zgłosił problem z ${title}`,
+        lines: [
+          `Odpowiedz do ${date(dispute.dueAt)}: zwróć pieniądze, zaproponuj zwrot części ceny albo wyjaśnij, dlaczego się nie zgadzasz.`,
+          'Bez odpowiedzi spór rozstrzygnie zespół Biddy. Do tego czasu pieniądze czekają w Biddy.',
+        ],
+        path,
+        actionLabel: 'Odpowiedz',
+      };
+    case 'DISPUTE_PARTIAL_OFFERED':
+      return {
+        title: `Propozycja zwrotu ${money(dispute.amount ?? undefined)} za ${title}`,
+        lines: [
+          `Sprzedający proponuje zwrot ${money(dispute.amount ?? undefined)}, a przedmiot zostaje u Ciebie. Odpowiedz do ${date(dispute.dueAt)}.`,
+          'Jeśli odrzucisz propozycję albo nie odpowiesz, spór rozstrzygnie zespół Biddy.',
+        ],
+        path,
+        actionLabel: 'Zobacz propozycję',
+      };
+    case 'DISPUTE_ESCALATED':
+      return {
+        title: `Spór o ${title} sprawdza zespół Biddy`,
+        lines: [
+          ...(dispute.cause === undefined ? [] : [ESCALATION_TEXT[dispute.cause]]),
+          `Decyzję wydamy do ${date(dispute.dueAt)}. Możesz dodać wyjaśnienia i zdjęcia na stronie sporu.`,
+        ],
+        path,
+        actionLabel: 'Zobacz spór',
+      };
+    case 'DISPUTE_RETURN_REQUESTED':
+      return buyer
+        ? {
+            title: `Odeślij ${title}`,
+            lines: [
+              `Nadaj zwrot do ${date(dispute.dueAt)}. Etykietę przygotuje Biddy, a pieniądze zwrócimy, gdy sprzedający odbierze przedmiot.`,
+              'Bez nadania w terminie spór zakończy się na korzyść sprzedającego.',
+            ],
+            path,
+            actionLabel: 'Nadaj zwrot',
+          }
+        : {
+            title: `Kupujący odeśle ${title}`,
+            lines: [
+              ...(dispute.decidedBy === 'STAFF' && dispute.statement !== undefined
+                ? [`Decyzja zespołu Biddy: ${dispute.statement}`]
+                : []),
+              `Kupujący ma czas na nadanie zwrotu do ${date(dispute.dueAt)}. Po odbiorze będzie 36 godzin na sprawdzenie przedmiotu.`,
+            ],
+            path,
+            actionLabel: 'Zobacz spór',
+          };
+    case 'DISPUTE_RETURN_DELIVERED':
+      return {
+        title: `Zwrot ${title} dotarł`,
+        lines: [
+          `Sprawdź przedmiot do ${date(dispute.dueAt)}. Potem zwrócimy pieniądze kupującemu.`,
+          'Jeśli coś jest nie tak ze zwrotem, zgłoś to na stronie sporu przed terminem.',
+        ],
+        path,
+        actionLabel: 'Sprawdź zwrot',
+      };
+    case 'DISPUTE_RESOLVED':
+      return {
+        title: `Spór o ${title} rozstrzygnięty`,
+        lines: [
+          disputeOutcomeLine(dispute),
+          ...(dispute.statement === undefined ? [] : [`Uzasadnienie: ${dispute.statement}`]),
+        ],
+        path,
+        actionLabel: 'Zobacz spór',
+      };
+  }
+}
+
 export function notificationContent(
   type: NotificationType,
   payload: NotificationPayload,
@@ -286,6 +448,12 @@ export function notificationContent(
   }
   if (isPayoutType(type)) {
     return payoutContent(type, payload.payout ?? {});
+  }
+  if (isDisputeType(type)) {
+    return disputeContent(
+      type,
+      payload.dispute ?? { orderPublicId: '', title: '', recipientRole: 'BUYER' },
+    );
   }
   const auction = payload.auction ?? { id: '', publicId: '', slug: '', title: '' };
   const path = auctionPath(auction.slug, auction.publicId);

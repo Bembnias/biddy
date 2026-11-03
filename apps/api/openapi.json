@@ -5049,6 +5049,727 @@
         ]
       }
     },
+    "/v1/orders/{id}/dispute": {
+      "get": {
+        "description": "Brak sporu: 404.",
+        "operationId": "getOrderDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Spór",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Spór zamówienia (strony)",
+        "tags": [
+          "disputes"
+        ]
+      },
+      "post": {
+        "description": "Zamówienie przechodzi w DISPUTED, a sprzedający ma 48 h na odpowiedź. Ponowienie zwraca istniejący spór (200).",
+        "operationId": "openDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenDisputeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Spór",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zgłoszenie problemu (kupujący, 36 h od odbioru)",
+        "tags": [
+          "disputes"
+        ]
+      }
+    },
+    "/v1/disputes/{id}/seller-response": {
+      "post": {
+        "description": "Zwrot (z odesłaniem albo bez), propozycja zwrotu części ceny albo odrzucenie.",
+        "operationId": "respondToDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SellerResponseBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Spór",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odpowiedź sprzedającego",
+        "tags": [
+          "disputes"
+        ]
+      }
+    },
+    "/v1/disputes/{id}/offer-response": {
+      "post": {
+        "operationId": "answerDisputeOffer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OfferResponseBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Spór",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odpowiedź kupującego na propozycję zwrotu części ceny",
+        "tags": [
+          "disputes"
+        ]
+      }
+    },
+    "/v1/disputes/{id}/comments": {
+      "post": {
+        "operationId": "commentOnDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Spór",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Wyjaśnienie strony (notatka i zdjęcia) przed rozstrzygnięciem",
+        "tags": [
+          "disputes"
+        ]
+      }
+    },
+    "/v1/disputes/{id}/return-shipment": {
+      "post": {
+        "description": "Dane nadawcy i sposób nadania; przesyłkę u przewoźnika tworzy worker (F-24).",
+        "operationId": "shipDisputeReturn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DispatchShipmentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Spór",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nadanie zwrotu (kupujący)",
+        "tags": [
+          "disputes"
+        ]
+      }
+    },
+    "/v1/disputes/{id}/return-label": {
+      "get": {
+        "operationId": "getDisputeReturnLabel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Etykieta",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Etykieta PDF zwrotu (kupujący)",
+        "tags": [
+          "disputes"
+        ]
+      }
+    },
+    "/v1/disputes/{id}/return-review": {
+      "post": {
+        "description": "Przyjęcie zwraca pieniądze kupującemu, zakwestionowanie przekazuje spór do Biddy.",
+        "operationId": "reviewDisputeReturn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnReviewBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Spór",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Weryfikacja zwrotu (sprzedający)",
+        "tags": [
+          "disputes"
+        ]
+      }
+    },
+    "/v1/disputes/{id}/photos/{mediaId}/{variant}": {
+      "get": {
+        "operationId": "getDisputePhoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "mediaId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "thumb",
+                "large"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zdjęcie WebP",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zdjęcie ze sporu (strony i personel)",
+        "tags": [
+          "disputes"
+        ]
+      }
+    },
+    "/v1/admin/disputes": {
+      "get": {
+        "description": "Domyślnie spory u zespołu Biddy, najstarsza eskalacja pierwsza (SLA 72 h).",
+        "operationId": "listDisputes",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "ESCALATED",
+              "type": "string",
+              "enum": [
+                "AWAITING_SELLER",
+                "PARTIAL_OFFERED",
+                "ESCALATED",
+                "AWAITING_RETURN",
+                "RETURN_IN_TRANSIT",
+                "RETURN_DELIVERED",
+                "RESOLVED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Spory",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDisputeListDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Kolejka sporów",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/disputes/{id}": {
+      "get": {
+        "operationId": "getAdminDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Spór",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Spór z historią, zdjęciami i przesyłką zwrotną",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/disputes/{id}/decision": {
+      "post": {
+        "description": "SELLER_FAVOR kończy zamówienie, FULL_REFUND (wina SELLER albo CARRIER, opcjonalnie z odesłaniem) i PARTIAL_REFUND (kwota do ceny) zlecają zwrot. Uzasadnienie widzą obie strony (DSA).",
+        "operationId": "decideDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Spór po decyzji",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDisputeDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decyzja w sporze po eskalacji",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/me/notifications": {
       "get": {
         "description": "Od najnowszych, po 30.",
@@ -9342,9 +10063,10 @@
             "type": "string",
             "enum": [
               "ITEM_PHOTO",
-              "AVATAR"
+              "AVATAR",
+              "DISPUTE_EVIDENCE"
             ],
-            "description": "Zdjęcie przedmiotu albo zdjęcie profilowe"
+            "description": "Zdjęcie przedmiotu, zdjęcie profilowe albo dowód w sporze (prywatny, F-28)"
           },
           "contentType": {
             "type": "string",
@@ -9382,7 +10104,8 @@
                 "type": "string",
                 "enum": [
                   "ITEM_PHOTO",
-                  "AVATAR"
+                  "AVATAR",
+                  "DISPUTE_EVIDENCE"
                 ]
               },
               "status": {
@@ -9432,7 +10155,7 @@
                   "large"
                 ],
                 "additionalProperties": false,
-                "description": "Publiczne adresy wariantów WebP (tylko READY)",
+                "description": "Publiczne adresy wariantów WebP (tylko READY; zdjęcia ze sporu: null)",
                 "nullable": true
               },
               "rejectionReason": {
@@ -9513,7 +10236,8 @@
             "type": "string",
             "enum": [
               "ITEM_PHOTO",
-              "AVATAR"
+              "AVATAR",
+              "DISPUTE_EVIDENCE"
             ]
           },
           "status": {
@@ -9563,7 +10287,7 @@
               "large"
             ],
             "additionalProperties": false,
-            "description": "Publiczne adresy wariantów WebP (tylko READY)",
+            "description": "Publiczne adresy wariantów WebP (tylko READY; zdjęcia ze sporu: null)",
             "nullable": true
           },
           "rejectionReason": {
@@ -11603,6 +12327,13 @@
             "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
             "nullable": true
           },
+          "disputedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Zgłoszenie problemu (F-28); zostaje po rozstrzygnięciu",
+            "nullable": true
+          },
           "refundedAt": {
             "type": "string",
             "format": "date-time",
@@ -11629,7 +12360,7 @@
               "paidAt"
             ],
             "additionalProperties": false,
-            "description": "Rekompensata za zaginioną paczkę (tylko sprzedający)",
+            "description": "Rekompensata za zaginioną albo uszkodzoną paczkę (tylko sprzedający)",
             "nullable": true
           },
           "onHold": {
@@ -11963,7 +12694,8 @@
                   "LATE_PAYMENT",
                   "DUPLICATE_PAYMENT",
                   "CHARGEBACK",
-                  "NOT_PICKED_UP"
+                  "NOT_PICKED_UP",
+                  "DISPUTE_PARTIAL"
                 ]
               },
               "status": {
@@ -12022,11 +12754,32 @@
                 "additionalProperties": false,
                 "description": "Zgłoszenie braku paczki (kupujący, paczka w drodze)",
                 "nullable": true
+              },
+              "openDispute": {
+                "type": "object",
+                "properties": {
+                  "until": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "allowed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "until",
+                  "allowed"
+                ],
+                "additionalProperties": false,
+                "description": "Zgłoszenie problemu do końca okna 36 h (kupujący, paczka odebrana, F-28)",
+                "nullable": true
               }
             },
             "required": [
               "confirmReceipt",
-              "reportNotReceived"
+              "reportNotReceived",
+              "openDispute"
             ],
             "additionalProperties": false
           },
@@ -12163,6 +12916,7 @@
           "cancelledAt",
           "notPickedUpAt",
           "lostAt",
+          "disputedAt",
           "refundedAt",
           "compensation",
           "onHold",
@@ -15520,6 +16274,1831 @@
           "scenario"
         ]
       },
+      "DisputeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "orderPublicId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AWAITING_SELLER",
+              "PARTIAL_OFFERED",
+              "ESCALATED",
+              "AWAITING_RETURN",
+              "RETURN_IN_TRANSIT",
+              "RETURN_DELIVERED",
+              "RESOLVED"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER",
+              "STAFF"
+            ],
+            "description": "Kim jest oglądający"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "NOT_AS_DESCRIBED",
+              "DAMAGED",
+              "INCOMPLETE",
+              "COUNTERFEIT",
+              "NOT_RECEIVED",
+              "OTHER"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "itemsTotal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Cena przedmiotu: najwyższy zwrot częściowy"
+          },
+          "shippingFee": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "orderTotal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Kwota zamówienia: pełny zwrot"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "responseDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Termin odpowiedzi sprzedającego (AWAITING_SELLER) albo kupującego (PARTIAL_OFFERED)",
+            "nullable": true
+          },
+          "escalatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "decisionDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "SLA decyzji zespołu Biddy (72 h od eskalacji)",
+            "nullable": true
+          },
+          "partialOffer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Propozycja zwrotu części ceny od sprzedającego",
+            "nullable": true
+          },
+          "resolution": {
+            "type": "object",
+            "properties": {
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "SELLER_FAVOR",
+                  "FULL_REFUND",
+                  "PARTIAL_REFUND"
+                ]
+              },
+              "fault": {
+                "type": "string",
+                "enum": [
+                  "SELLER",
+                  "CARRIER",
+                  null
+                ],
+                "nullable": true
+              },
+              "refundAmount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Kwota dla kupującego",
+                "nullable": true
+              },
+              "decidedBy": {
+                "type": "string",
+                "enum": [
+                  "PARTIES",
+                  "STAFF",
+                  "SYSTEM"
+                ]
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Uzasadnienie widoczne dla stron (DSA)"
+              },
+              "decidedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "null, gdy rozstrzygnięcie czeka na zwrot",
+                "nullable": true
+              },
+              "sellerCosts": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Dostawa w obie strony potrącona sprzedającemu (nie dla kupującego)",
+                "nullable": true
+              },
+              "refund": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "SUCCEEDED",
+                      "FAILED"
+                    ]
+                  },
+                  "succeededAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "status",
+                  "succeededAt"
+                ],
+                "additionalProperties": false,
+                "description": "Zwrot pieniędzy u operatora",
+                "nullable": true
+              }
+            },
+            "required": [
+              "outcome",
+              "fault",
+              "refundAmount",
+              "decidedBy",
+              "statement",
+              "decidedAt",
+              "resolvedAt",
+              "sellerCosts",
+              "refund"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "return": {
+            "type": "object",
+            "properties": {
+              "shipBy": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "shippedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "deliveredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "inspectionEndsAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "shipment": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "OUTBOUND",
+                      "RETURN"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "REQUESTED",
+                      "CREATED",
+                      "DROPPED_OFF",
+                      "IN_TRANSIT",
+                      "OUT_FOR_DELIVERY",
+                      "READY_FOR_PICKUP",
+                      "DELIVERED",
+                      "EXCEPTION",
+                      "RETURNING",
+                      "RETURNED",
+                      "CANCELLED"
+                    ]
+                  },
+                  "carrier": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "LOCKER",
+                          "PICKUP_POINT",
+                          "COURIER"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "kind"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "packageSize": {
+                    "type": "string",
+                    "enum": [
+                      "S",
+                      "M",
+                      "L",
+                      "XL"
+                    ]
+                  },
+                  "pickupPoint": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "address": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "address"
+                    ],
+                    "additionalProperties": false,
+                    "nullable": true
+                  },
+                  "recipient": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "city": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Miejscowość (kurier); null dla punktu odbioru",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "city"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "sender": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 100,
+                        "description": "Imię i nazwisko albo nazwa firmy"
+                      },
+                      "phone": {
+                        "type": "string",
+                        "maxLength": 32,
+                        "description": "Polski numer komórkowy (dla przewoźnika)"
+                      },
+                      "email": {
+                        "type": "string",
+                        "maxLength": 254,
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "nullable": true
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "street": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 100,
+                            "description": "Ulica z numerem domu i lokalu"
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "maxLength": 10,
+                            "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "street",
+                          "postalCode",
+                          "city"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "phone",
+                      "address"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Dane nadawcy (tylko sprzedający); null przed „Nadaj”",
+                    "nullable": true
+                  },
+                  "dispatchMethod": {
+                    "type": "string",
+                    "enum": [
+                      "DROP_OFF",
+                      "COURIER_PICKUP",
+                      null
+                    ],
+                    "nullable": true
+                  },
+                  "dispatchMethods": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "DROP_OFF",
+                        "COURIER_PICKUP"
+                      ]
+                    },
+                    "description": "Sposoby nadania dostępne dla tej przesyłki"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "PLN"
+                    ]
+                  },
+                  "price": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Cena dostawy zapłacona przez kupującego"
+                  },
+                  "trackingNumber": {
+                    "type": "string",
+                    "minLength": 1,
+                    "nullable": true
+                  },
+                  "dropoffCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Kod nadania w paczkomacie lub punkcie (tylko sprzedający)",
+                    "nullable": true
+                  },
+                  "labelAvailable": {
+                    "type": "boolean",
+                    "description": "Etykieta PDF gotowa do pobrania"
+                  },
+                  "lastError": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Ostatni błąd utworzenia u przewoźnika (tylko sprzedający)",
+                    "nullable": true
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "REQUESTED",
+                            "CREATED",
+                            "DROPPED_OFF",
+                            "IN_TRANSIT",
+                            "OUT_FOR_DELIVERY",
+                            "READY_FOR_PICKUP",
+                            "DELIVERED",
+                            "EXCEPTION",
+                            "RETURNING",
+                            "RETURNED",
+                            "CANCELLED"
+                          ]
+                        },
+                        "description": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Opis przewoźnika",
+                          "nullable": true
+                        },
+                        "occurredAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "description",
+                        "occurredAt"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "requestedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "nullable": true
+                  },
+                  "deliveredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "nullable": true
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "id",
+                  "direction",
+                  "status",
+                  "carrier",
+                  "packageSize",
+                  "pickupPoint",
+                  "recipient",
+                  "sender",
+                  "dispatchMethod",
+                  "dispatchMethods",
+                  "currency",
+                  "price",
+                  "trackingNumber",
+                  "dropoffCode",
+                  "labelAvailable",
+                  "lastError",
+                  "events",
+                  "requestedAt",
+                  "deliveredAt",
+                  "createdAt"
+                ],
+                "additionalProperties": false,
+                "description": "Przesyłka zwrotna (kupujący widzi ją jako nadawca)",
+                "nullable": true
+              }
+            },
+            "required": [
+              "shipBy",
+              "shippedAt",
+              "deliveredAt",
+              "inspectionEndsAt",
+              "shipment"
+            ],
+            "additionalProperties": false,
+            "description": "Zwrot z odesłaniem przedmiotu",
+            "nullable": true
+          },
+          "returnQuote": {
+            "type": "object",
+            "properties": {
+              "carrierId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "LOCKER",
+                  "PICKUP_POINT",
+                  "COURIER"
+                ]
+              },
+              "price": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Cena dostawy dla kupującego w groszach (cennik Biddy)"
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "PLN"
+                ]
+              },
+              "requiresPickupPoint": {
+                "type": "boolean",
+                "description": "Paczkomat i punkt: wybór punktu; kurier: adres"
+              }
+            },
+            "required": [
+              "carrierId",
+              "name",
+              "kind",
+              "price",
+              "currency",
+              "requiresPickupPoint"
+            ],
+            "additionalProperties": false,
+            "description": "Usługa i cena zwrotu (sprzedający przed odpowiedzią); null: zwrot niedostępny",
+            "nullable": true
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "OPENED",
+                    "SELLER_ACCEPTED",
+                    "PARTIAL_OFFERED",
+                    "PARTIAL_ACCEPTED",
+                    "PARTIAL_REJECTED",
+                    "SELLER_REJECTED",
+                    "ESCALATED",
+                    "COMMENT",
+                    "DECISION",
+                    "RETURN_SHIPPED",
+                    "RETURN_DELIVERED",
+                    "RETURN_ACCEPTED",
+                    "RETURN_CONTESTED",
+                    "RESOLVED"
+                  ]
+                },
+                "actor": {
+                  "type": "string",
+                  "enum": [
+                    "BUYER",
+                    "SELLER",
+                    "STAFF",
+                    "SYSTEM"
+                  ]
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "amount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "photos": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "thumbUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "largeUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "thumbUrl",
+                      "largeUrl"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "actor",
+                "note",
+                "amount",
+                "photos",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "actions": {
+            "type": "object",
+            "properties": {
+              "respond": {
+                "type": "boolean",
+                "description": "Odpowiedź sprzedającego na zgłoszenie"
+              },
+              "answerOffer": {
+                "type": "boolean",
+                "description": "Odpowiedź kupującego na propozycję"
+              },
+              "shipReturn": {
+                "type": "boolean",
+                "description": "Nadanie zwrotu (kupujący)"
+              },
+              "reviewReturn": {
+                "type": "boolean",
+                "description": "Weryfikacja zwrotu (sprzedający)"
+              },
+              "comment": {
+                "type": "boolean",
+                "description": "Wyjaśnienie strony przed rozstrzygnięciem"
+              }
+            },
+            "required": [
+              "respond",
+              "answerOffer",
+              "shipReturn",
+              "reviewReturn",
+              "comment"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "orderId",
+          "orderPublicId",
+          "title",
+          "status",
+          "role",
+          "reason",
+          "description",
+          "currency",
+          "itemsTotal",
+          "shippingFee",
+          "orderTotal",
+          "createdAt",
+          "responseDueAt",
+          "escalatedAt",
+          "decisionDueAt",
+          "partialOffer",
+          "resolution",
+          "return",
+          "returnQuote",
+          "events",
+          "actions"
+        ],
+        "additionalProperties": false
+      },
+      "OpenDisputeBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "NOT_AS_DESCRIBED",
+              "DAMAGED",
+              "INCOMPLETE",
+              "COUNTERFEIT",
+              "NOT_RECEIVED",
+              "OTHER"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 2000
+          },
+          "mediaIds": {
+            "default": [],
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "description": "Zdjęcia DISPUTE_EVIDENCE (przetworzone, własne)"
+          }
+        },
+        "required": [
+          "reason",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "SellerResponseBody": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "ACCEPT",
+              "OFFER_PARTIAL",
+              "REJECT"
+            ],
+            "description": "ACCEPT: zwrot pełnej kwoty; OFFER_PARTIAL: zwrot części ceny; REJECT: do Biddy"
+          },
+          "returnRequired": {
+            "description": "ACCEPT: z odesłaniem przedmiotu (etykieta od Biddy)",
+            "type": "boolean"
+          },
+          "amount": {
+            "description": "OFFER_PARTIAL: kwota w groszach, do ceny",
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "minimum": 0
+          },
+          "note": {
+            "description": "REJECT: wyjaśnienie (co najmniej 10 znaków)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "mediaIds": {
+            "description": "REJECT: zdjęcia",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "OfferResponseBody": {
+        "type": "object",
+        "properties": {
+          "accept": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "accept"
+        ],
+        "additionalProperties": false
+      },
+      "CommentBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "mediaIds": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "description": "Zdjęcia DISPUTE_EVIDENCE (przetworzone, własne)"
+          }
+        },
+        "required": [
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "ReturnReviewBody": {
+        "type": "object",
+        "properties": {
+          "accept": {
+            "type": "boolean",
+            "description": "false: problem ze zwrotem, spór trafia do Biddy"
+          },
+          "note": {
+            "description": "Wymagane (co najmniej 10 znaków) przy accept: false",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "mediaIds": {
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "description": "Zdjęcia DISPUTE_EVIDENCE (przetworzone, własne)"
+          }
+        },
+        "required": [
+          "accept"
+        ],
+        "additionalProperties": false
+      },
+      "AdminDisputeListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "orderPublicId": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "AWAITING_SELLER",
+                    "PARTIAL_OFFERED",
+                    "ESCALATED",
+                    "AWAITING_RETURN",
+                    "RETURN_IN_TRANSIT",
+                    "RETURN_DELIVERED",
+                    "RESOLVED"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "NOT_AS_DESCRIBED",
+                    "DAMAGED",
+                    "INCOMPLETE",
+                    "COUNTERFEIT",
+                    "NOT_RECEIVED",
+                    "OTHER"
+                  ]
+                },
+                "currency": {
+                  "type": "string",
+                  "enum": [
+                    "PLN"
+                  ]
+                },
+                "itemsTotal": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "escalatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                },
+                "decisionDueAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "orderPublicId",
+                "title",
+                "status",
+                "reason",
+                "currency",
+                "itemsTotal",
+                "createdAt",
+                "escalatedAt",
+                "decisionDueAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "AdminDisputeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "orderPublicId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "AWAITING_SELLER",
+              "PARTIAL_OFFERED",
+              "ESCALATED",
+              "AWAITING_RETURN",
+              "RETURN_IN_TRANSIT",
+              "RETURN_DELIVERED",
+              "RESOLVED"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER",
+              "STAFF"
+            ],
+            "description": "Kim jest oglądający"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "NOT_AS_DESCRIBED",
+              "DAMAGED",
+              "INCOMPLETE",
+              "COUNTERFEIT",
+              "NOT_RECEIVED",
+              "OTHER"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "PLN"
+            ]
+          },
+          "itemsTotal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Cena przedmiotu: najwyższy zwrot częściowy"
+          },
+          "shippingFee": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "orderTotal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Kwota zamówienia: pełny zwrot"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "responseDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Termin odpowiedzi sprzedającego (AWAITING_SELLER) albo kupującego (PARTIAL_OFFERED)",
+            "nullable": true
+          },
+          "escalatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "nullable": true
+          },
+          "decisionDueAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "SLA decyzji zespołu Biddy (72 h od eskalacji)",
+            "nullable": true
+          },
+          "partialOffer": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Propozycja zwrotu części ceny od sprzedającego",
+            "nullable": true
+          },
+          "resolution": {
+            "type": "object",
+            "properties": {
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "SELLER_FAVOR",
+                  "FULL_REFUND",
+                  "PARTIAL_REFUND"
+                ]
+              },
+              "fault": {
+                "type": "string",
+                "enum": [
+                  "SELLER",
+                  "CARRIER",
+                  null
+                ],
+                "nullable": true
+              },
+              "refundAmount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Kwota dla kupującego",
+                "nullable": true
+              },
+              "decidedBy": {
+                "type": "string",
+                "enum": [
+                  "PARTIES",
+                  "STAFF",
+                  "SYSTEM"
+                ]
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Uzasadnienie widoczne dla stron (DSA)"
+              },
+              "decidedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "resolvedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "null, gdy rozstrzygnięcie czeka na zwrot",
+                "nullable": true
+              },
+              "sellerCosts": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Dostawa w obie strony potrącona sprzedającemu (nie dla kupującego)",
+                "nullable": true
+              },
+              "refund": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "SUCCEEDED",
+                      "FAILED"
+                    ]
+                  },
+                  "succeededAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "status",
+                  "succeededAt"
+                ],
+                "additionalProperties": false,
+                "description": "Zwrot pieniędzy u operatora",
+                "nullable": true
+              }
+            },
+            "required": [
+              "outcome",
+              "fault",
+              "refundAmount",
+              "decidedBy",
+              "statement",
+              "decidedAt",
+              "resolvedAt",
+              "sellerCosts",
+              "refund"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "return": {
+            "type": "object",
+            "properties": {
+              "shipBy": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "shippedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "deliveredAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "inspectionEndsAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "nullable": true
+              },
+              "shipment": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "OUTBOUND",
+                      "RETURN"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PENDING",
+                      "REQUESTED",
+                      "CREATED",
+                      "DROPPED_OFF",
+                      "IN_TRANSIT",
+                      "OUT_FOR_DELIVERY",
+                      "READY_FOR_PICKUP",
+                      "DELIVERED",
+                      "EXCEPTION",
+                      "RETURNING",
+                      "RETURNED",
+                      "CANCELLED"
+                    ]
+                  },
+                  "carrier": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "LOCKER",
+                          "PICKUP_POINT",
+                          "COURIER"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "kind"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "packageSize": {
+                    "type": "string",
+                    "enum": [
+                      "S",
+                      "M",
+                      "L",
+                      "XL"
+                    ]
+                  },
+                  "pickupPoint": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "address": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "address"
+                    ],
+                    "additionalProperties": false,
+                    "nullable": true
+                  },
+                  "recipient": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "city": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Miejscowość (kurier); null dla punktu odbioru",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "city"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "sender": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 100,
+                        "description": "Imię i nazwisko albo nazwa firmy"
+                      },
+                      "phone": {
+                        "type": "string",
+                        "maxLength": 32,
+                        "description": "Polski numer komórkowy (dla przewoźnika)"
+                      },
+                      "email": {
+                        "type": "string",
+                        "maxLength": 254,
+                        "format": "email",
+                        "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                        "nullable": true
+                      },
+                      "address": {
+                        "type": "object",
+                        "properties": {
+                          "street": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 100,
+                            "description": "Ulica z numerem domu i lokalu"
+                          },
+                          "postalCode": {
+                            "type": "string",
+                            "maxLength": 10,
+                            "description": "Kod pocztowy NN-NNN (przyjmuje też NNNNN)"
+                          },
+                          "city": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        },
+                        "required": [
+                          "street",
+                          "postalCode",
+                          "city"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "phone",
+                      "address"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Dane nadawcy (tylko sprzedający); null przed „Nadaj”",
+                    "nullable": true
+                  },
+                  "dispatchMethod": {
+                    "type": "string",
+                    "enum": [
+                      "DROP_OFF",
+                      "COURIER_PICKUP",
+                      null
+                    ],
+                    "nullable": true
+                  },
+                  "dispatchMethods": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "DROP_OFF",
+                        "COURIER_PICKUP"
+                      ]
+                    },
+                    "description": "Sposoby nadania dostępne dla tej przesyłki"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "PLN"
+                    ]
+                  },
+                  "price": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991,
+                    "description": "Cena dostawy zapłacona przez kupującego"
+                  },
+                  "trackingNumber": {
+                    "type": "string",
+                    "minLength": 1,
+                    "nullable": true
+                  },
+                  "dropoffCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Kod nadania w paczkomacie lub punkcie (tylko sprzedający)",
+                    "nullable": true
+                  },
+                  "labelAvailable": {
+                    "type": "boolean",
+                    "description": "Etykieta PDF gotowa do pobrania"
+                  },
+                  "lastError": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Ostatni błąd utworzenia u przewoźnika (tylko sprzedający)",
+                    "nullable": true
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "PENDING",
+                            "REQUESTED",
+                            "CREATED",
+                            "DROPPED_OFF",
+                            "IN_TRANSIT",
+                            "OUT_FOR_DELIVERY",
+                            "READY_FOR_PICKUP",
+                            "DELIVERED",
+                            "EXCEPTION",
+                            "RETURNING",
+                            "RETURNED",
+                            "CANCELLED"
+                          ]
+                        },
+                        "description": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Opis przewoźnika",
+                          "nullable": true
+                        },
+                        "occurredAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "description",
+                        "occurredAt"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "requestedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "nullable": true
+                  },
+                  "deliveredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                    "nullable": true
+                  },
+                  "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "id",
+                  "direction",
+                  "status",
+                  "carrier",
+                  "packageSize",
+                  "pickupPoint",
+                  "recipient",
+                  "sender",
+                  "dispatchMethod",
+                  "dispatchMethods",
+                  "currency",
+                  "price",
+                  "trackingNumber",
+                  "dropoffCode",
+                  "labelAvailable",
+                  "lastError",
+                  "events",
+                  "requestedAt",
+                  "deliveredAt",
+                  "createdAt"
+                ],
+                "additionalProperties": false,
+                "description": "Przesyłka zwrotna (kupujący widzi ją jako nadawca)",
+                "nullable": true
+              }
+            },
+            "required": [
+              "shipBy",
+              "shippedAt",
+              "deliveredAt",
+              "inspectionEndsAt",
+              "shipment"
+            ],
+            "additionalProperties": false,
+            "description": "Zwrot z odesłaniem przedmiotu",
+            "nullable": true
+          },
+          "returnQuote": {
+            "type": "object",
+            "properties": {
+              "carrierId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "LOCKER",
+                  "PICKUP_POINT",
+                  "COURIER"
+                ]
+              },
+              "price": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991,
+                "description": "Cena dostawy dla kupującego w groszach (cennik Biddy)"
+              },
+              "currency": {
+                "type": "string",
+                "enum": [
+                  "PLN"
+                ]
+              },
+              "requiresPickupPoint": {
+                "type": "boolean",
+                "description": "Paczkomat i punkt: wybór punktu; kurier: adres"
+              }
+            },
+            "required": [
+              "carrierId",
+              "name",
+              "kind",
+              "price",
+              "currency",
+              "requiresPickupPoint"
+            ],
+            "additionalProperties": false,
+            "description": "Usługa i cena zwrotu (sprzedający przed odpowiedzią); null: zwrot niedostępny",
+            "nullable": true
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "OPENED",
+                    "SELLER_ACCEPTED",
+                    "PARTIAL_OFFERED",
+                    "PARTIAL_ACCEPTED",
+                    "PARTIAL_REJECTED",
+                    "SELLER_REJECTED",
+                    "ESCALATED",
+                    "COMMENT",
+                    "DECISION",
+                    "RETURN_SHIPPED",
+                    "RETURN_DELIVERED",
+                    "RETURN_ACCEPTED",
+                    "RETURN_CONTESTED",
+                    "RESOLVED"
+                  ]
+                },
+                "actor": {
+                  "type": "string",
+                  "enum": [
+                    "BUYER",
+                    "SELLER",
+                    "STAFF",
+                    "SYSTEM"
+                  ]
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "amount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "photos": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "thumbUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "largeUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "thumbUrl",
+                      "largeUrl"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "actor",
+                "note",
+                "amount",
+                "photos",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "actions": {
+            "type": "object",
+            "properties": {
+              "respond": {
+                "type": "boolean",
+                "description": "Odpowiedź sprzedającego na zgłoszenie"
+              },
+              "answerOffer": {
+                "type": "boolean",
+                "description": "Odpowiedź kupującego na propozycję"
+              },
+              "shipReturn": {
+                "type": "boolean",
+                "description": "Nadanie zwrotu (kupujący)"
+              },
+              "reviewReturn": {
+                "type": "boolean",
+                "description": "Weryfikacja zwrotu (sprzedający)"
+              },
+              "comment": {
+                "type": "boolean",
+                "description": "Wyjaśnienie strony przed rozstrzygnięciem"
+              }
+            },
+            "required": [
+              "respond",
+              "answerOffer",
+              "shipReturn",
+              "reviewReturn",
+              "comment"
+            ],
+            "additionalProperties": false
+          },
+          "buyerId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "sellerId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "decidedByStaffId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "orderId",
+          "orderPublicId",
+          "title",
+          "status",
+          "role",
+          "reason",
+          "description",
+          "currency",
+          "itemsTotal",
+          "shippingFee",
+          "orderTotal",
+          "createdAt",
+          "responseDueAt",
+          "escalatedAt",
+          "decisionDueAt",
+          "partialOffer",
+          "resolution",
+          "return",
+          "returnQuote",
+          "events",
+          "actions",
+          "buyerId",
+          "sellerId",
+          "decidedByStaffId"
+        ],
+        "additionalProperties": false
+      },
+      "DecisionBody": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "SELLER_FAVOR",
+              "FULL_REFUND",
+              "PARTIAL_REFUND"
+            ]
+          },
+          "fault": {
+            "description": "Wymagane przy FULL_REFUND",
+            "type": "string",
+            "enum": [
+              "SELLER",
+              "CARRIER"
+            ]
+          },
+          "returnRequired": {
+            "description": "Zwrot z odesłaniem (FULL_REFUND z winy SELLER)",
+            "type": "boolean"
+          },
+          "amount": {
+            "description": "Kwota zwrotu częściowego w groszach",
+            "type": "integer",
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "minimum": 0
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 2000,
+            "description": "Uzasadnienie widoczne dla stron (DSA)"
+          }
+        },
+        "required": [
+          "outcome",
+          "statement"
+        ],
+        "additionalProperties": false
+      },
       "NotificationListDto": {
         "type": "object",
         "properties": {
@@ -15558,6 +18137,12 @@
                     "PAYOUT_PAID",
                     "PAYOUT_FAILED",
                     "PAYOUT_ACCOUNT_CHANGED",
+                    "DISPUTE_OPENED",
+                    "DISPUTE_PARTIAL_OFFERED",
+                    "DISPUTE_ESCALATED",
+                    "DISPUTE_RETURN_REQUESTED",
+                    "DISPUTE_RETURN_DELIVERED",
+                    "DISPUTE_RESOLVED",
                     "STRIKE_ISSUED",
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
@@ -15687,6 +18272,12 @@
                     "PAYOUT_PAID",
                     "PAYOUT_FAILED",
                     "PAYOUT_ACCOUNT_CHANGED",
+                    "DISPUTE_OPENED",
+                    "DISPUTE_PARTIAL_OFFERED",
+                    "DISPUTE_ESCALATED",
+                    "DISPUTE_RETURN_REQUESTED",
+                    "DISPUTE_RETURN_DELIVERED",
+                    "DISPUTE_RESOLVED",
                     "STRIKE_ISSUED",
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
@@ -15759,6 +18350,12 @@
                     "PAYOUT_PAID",
                     "PAYOUT_FAILED",
                     "PAYOUT_ACCOUNT_CHANGED",
+                    "DISPUTE_OPENED",
+                    "DISPUTE_PARTIAL_OFFERED",
+                    "DISPUTE_ESCALATED",
+                    "DISPUTE_RETURN_REQUESTED",
+                    "DISPUTE_RETURN_DELIVERED",
+                    "DISPUTE_RESOLVED",
                     "STRIKE_ISSUED",
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
@@ -15818,6 +18415,12 @@
               "PAYOUT_PAID",
               "PAYOUT_FAILED",
               "PAYOUT_ACCOUNT_CHANGED",
+              "DISPUTE_OPENED",
+              "DISPUTE_PARTIAL_OFFERED",
+              "DISPUTE_ESCALATED",
+              "DISPUTE_RETURN_REQUESTED",
+              "DISPUTE_RETURN_DELIVERED",
+              "DISPUTE_RESOLVED",
               "STRIKE_ISSUED",
               "STRIKE_REVOKED",
               "ACCOUNT_BLOCKED",
@@ -15854,6 +18457,12 @@
                 "PAYOUT_PAID",
                 "PAYOUT_FAILED",
                 "PAYOUT_ACCOUNT_CHANGED",
+                "DISPUTE_OPENED",
+                "DISPUTE_PARTIAL_OFFERED",
+                "DISPUTE_ESCALATED",
+                "DISPUTE_RETURN_REQUESTED",
+                "DISPUTE_RETURN_DELIVERED",
+                "DISPUTE_RESOLVED",
                 "STRIKE_ISSUED",
                 "STRIKE_REVOKED",
                 "ACCOUNT_BLOCKED",

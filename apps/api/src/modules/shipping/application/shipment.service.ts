@@ -1,7 +1,9 @@
 // Przesyłki (F-24, PROJECT.md §8.3): wybór dostawy kupującego (`prepare`, woła go checkout
 // F-25), „Nadaj” sprzedającego (`dispatch`), utworzenie u dostawcy w workerze z etykietą
 // w prywatnym kubełku, anulowanie i odczyt. Przesyłkę u dostawcy tworzymy dopiero po „Nadaj”,
-// żeby nie płacić za etykiety zamówień, które nie zostaną nadane (§8.3).
+// żeby nie płacić za etykiety zamówień, które nie zostaną nadane (§8.3). Zwrot w sporze
+// (`prepareReturn`, F-28) to przesyłka `RETURN` kurierem na adres sprzedającego, nadawana przez
+// kupującego tym samym `dispatch`.
 import type { CurrencyCode, Money } from '@biddy/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, asc, eq, ne, sql } from 'drizzle-orm';
@@ -17,11 +19,12 @@ import {
   type ParcelData,
   type PickupPointSnapshot,
   type ShipmentEventRow,
+  type ShipmentParty,
   type ShipmentRow,
   shipmentEvents,
   shipments,
 } from '../db/shipping.schema.js';
-import type { ParcelSpec } from '../domain/shipping-options.js';
+import type { ParcelSpec, ShippingOption } from '../domain/shipping-options.js';
 import type { DispatchMethod, ShipmentDirection } from '../domain/shipping-values.js';
 import {
   type CreatedShipment,
@@ -83,6 +86,9 @@ export interface ShipmentDetails {
   readonly dispatchMethods: readonly DispatchMethod[];
   readonly events: readonly ShipmentEventRow[];
 }
+
+/** Przesyłka do kupującego z nadawcą: sprzedający jest odbiorcą zwrotu. */
+type ReturnSource = ShipmentRow & { readonly sender: ShipmentParty };
 
 function labelKey(shipmentId: string): string {
   return `shipping-labels/${shipmentId}.pdf`;
@@ -193,6 +199,84 @@ export class ShipmentService {
       return created?.id ?? '';
     });
     return this.require(id);
+  }
+
+  /**
+   * Usługa i cena zwrotu w sporze dla zamówienia (bez tworzenia przesyłki); undefined, gdy nie ma
+   * przesyłki do kupującego z danymi nadawcy albo żaden kurier nie pasuje.
+   */
+  async returnQuote(orderId: string): Promise<ShippingOption | undefined> {
+    const outbound = await this.returnSource(orderId);
+    return outbound === undefined ? undefined : this.returnOptionFor(outbound);
+  }
+
+  /**
+   * Przesyłka zwrotna sporu (F-28): `RETURN` w `PENDING`, kurierem na adres sprzedającego z „Nadaj”,
+   * z paczką i gabarytem przesyłki do kupującego i ceną z cennika (koszt zwrotu). Biddy jest
+   * zleceniodawcą, a nadawcę (kupującego) podaje `dispatch`. Istniejąca aktywna przesyłka zwrotna
+   * wraca bez zmian.
+   *
+   * @throws {DomainError} RETURN_SHIPPING_UNAVAILABLE (brak danych sprzedającego albo kuriera)
+   */
+  async prepareReturn(orderId: string): Promise<ShipmentDetails> {
+    const existing = await this.forOrder(orderId, 'RETURN');
+    if (existing !== undefined) {
+      return existing;
+    }
+    const outbound = await this.returnSource(orderId);
+    const option = outbound === undefined ? undefined : await this.returnOptionFor(outbound);
+    if (outbound === undefined || option === undefined) {
+      throw new DomainError({ code: 'RETURN_SHIPPING_UNAVAILABLE' });
+    }
+    const [created] = await this.db
+      .insert(shipments)
+      .values({
+        orderId,
+        direction: 'RETURN',
+        provider: outbound.provider,
+        carrierId: option.carrierId,
+        packageSize: outbound.packageSize,
+        parcel: outbound.parcel,
+        pickupPoint: null,
+        recipient: outbound.sender,
+        currency: outbound.currency,
+        price: option.price,
+      })
+      .onConflictDoNothing()
+      .returning({ id: shipments.id });
+    if (created === undefined) {
+      // Równoległe przygotowanie: unikalny indeks aktywnej przesyłki zamówienia i kierunku.
+      const concurrent = await this.forOrder(orderId, 'RETURN');
+      if (concurrent === undefined) {
+        throw new Error(`Zamówienie ${orderId}: brak przesyłki zwrotnej po konflikcie`);
+      }
+      return concurrent;
+    }
+    return this.require(created.id);
+  }
+
+  /** Przesyłka do kupującego, z której powstaje zwrot (z danymi nadawcy z „Nadaj”). */
+  private async returnSource(orderId: string): Promise<ReturnSource | undefined> {
+    const shipment = (await this.forOrder(orderId, 'OUTBOUND'))?.shipment;
+    const sender = shipment?.sender;
+    return shipment === undefined ||
+      sender === null ||
+      sender?.address === null ||
+      sender === undefined
+      ? undefined
+      : { ...shipment, sender };
+  }
+
+  private async returnOptionFor(outbound: ReturnSource): Promise<ShippingOption | undefined> {
+    return this.quotes.returnOption(
+      {
+        packageSize: outbound.packageSize,
+        weightGrams: outbound.parcel.weightGrams,
+        dimensionsCm: outbound.parcel.dimensionsCm,
+      },
+      outbound.currency,
+      outbound.carrierId,
+    );
   }
 
   /**

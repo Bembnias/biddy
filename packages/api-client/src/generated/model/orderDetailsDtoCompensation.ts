@@ -7,7 +7,7 @@
  */
 
 /**
- * Rekompensata za zaginioną paczkę (tylko sprzedający)
+ * Rekompensata za zaginioną albo uszkodzoną paczkę (tylko sprzedający)
  * @nullable
  */
 export type OrderDetailsDtoCompensation = {

@@ -12,4 +12,5 @@ export type MediaDtoPurpose = typeof MediaDtoPurpose[keyof typeof MediaDtoPurpos
 export const MediaDtoPurpose = {
   ITEM_PHOTO: 'ITEM_PHOTO',
   AVATAR: 'AVATAR',
+  DISPUTE_EVIDENCE: 'DISPUTE_EVIDENCE',
 } as const;

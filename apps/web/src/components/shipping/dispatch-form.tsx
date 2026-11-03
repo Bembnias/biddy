@@ -35,20 +35,30 @@ const API_FIELDS: Readonly<Record<string, FieldName>> = {
   'sender.address.city': 'city',
 };
 
+/** Teksty karty nadawcy zależne od tego, kto nadaje (zwrot w sporze nadaje kupujący, F-28). */
+export interface DispatchFormCopy {
+  readonly lead: string;
+  readonly prefilled: string;
+  readonly missing: string;
+}
+
 /**
  * Formularz „Nadaj” (F-24, PROJECT.md §8.3, układ F-63): dane nadawcy (na etykiecie, zobaczy je
  * kupujący) i sposób nadania w osobnych kartach. Wypełnia się domyślnym adresem nadania z konta
- * (F-10). Wysyłkę robi wywołujący (`onSubmit`): strona zamówienia albo panel FakeShipping.
+ * (F-10). Wysyłkę robi wywołujący (`onSubmit`): strona zamówienia, zwrot w sporze (`copy`
+ * z tekstami dla kupującego) albo panel FakeShipping.
  */
 export function DispatchForm({
   methods,
   senderAddress,
+  copy,
   onSubmit,
 }: {
   /** Sposoby nadania dostępne dla przesyłki (usługa i dostawca). */
   readonly methods: readonly DispatchMethod[];
   /** Domyślny adres nadania z konta albo undefined. */
   readonly senderAddress: AddressDto | undefined;
+  readonly copy?: DispatchFormCopy;
   readonly onSubmit: (body: DispatchShipmentBody) => Promise<unknown>;
 }) {
   const t = useTranslations('shipping.dispatch');
@@ -102,11 +112,11 @@ export function DispatchForm({
           <h2 id={`${methodsId}-sender`} className="text-h3">
             {t('senderTitle')}
           </h2>
-          <p className="text-body-sm text-foreground-secondary">{t('senderLead')}</p>
+          <p className="text-body-sm text-foreground-secondary">{copy?.lead ?? t('senderLead')}</p>
         </div>
         {senderAddress === undefined ? (
           <p className="rounded-lg bg-canvas px-3.5 py-3 text-body-sm text-foreground-secondary">
-            {t('senderDefaultMissing')}{' '}
+            {copy?.missing ?? t('senderDefaultMissing')}{' '}
             <Link
               href={routes.addresses}
               className="font-semibold text-link underline-offset-3 hover:underline"
@@ -117,7 +127,7 @@ export function DispatchForm({
         ) : (
           <p className="flex items-start gap-2.5 rounded-lg bg-success-soft px-3.5 py-3 text-body-sm font-semibold text-green-800">
             <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0" />
-            {t('senderDefault')}
+            {copy?.prefilled ?? t('senderDefault')}
           </p>
         )}
         <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">

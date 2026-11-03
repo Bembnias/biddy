@@ -5,6 +5,7 @@
  * REST API Biddy. Błędy mają format Problem Details (RFC 9457) z polem `code`; każda odpowiedź ma nagłówek x-request-id.
  * OpenAPI spec version: 0.0.0
  */
+import type { OrderDetailsDtoActionsOpenDispute } from './orderDetailsDtoActionsOpenDispute';
 import type { OrderDetailsDtoActionsReportNotReceived } from './orderDetailsDtoActionsReportNotReceived';
 
 export type OrderDetailsDtoActions = {
@@ -15,4 +16,9 @@ export type OrderDetailsDtoActions = {
      * @nullable
      */
   reportNotReceived: OrderDetailsDtoActionsReportNotReceived;
+  /**
+     * Zgłoszenie problemu do końca okna 36 h (kupujący, paczka odebrana, F-28)
+     * @nullable
+     */
+  openDispute: OrderDetailsDtoActionsOpenDispute;
 };

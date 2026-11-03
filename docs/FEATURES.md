@@ -823,6 +823,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-28 · Spory i zwroty · `L`
 
+> Pełny spec: [docs/features/F-28-spory-i-zwroty.md](features/F-28-spory-i-zwroty.md).
+
 **Cel:** uczciwe rozwiązywanie problemów z przedmiotem.
 
 **Zakres:**

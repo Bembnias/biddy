@@ -306,6 +306,31 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Za mała kwota',
     detail: 'Minimalna wypłata to 20 zł.',
   },
+  DISPUTE_UNAVAILABLE: {
+    status: 409,
+    title: 'Nie można zgłosić problemu',
+    detail: 'Problem możesz zgłosić po odebraniu paczki, zanim zamówienie się zakończy.',
+  },
+  DISPUTE_WINDOW_CLOSED: {
+    status: 409,
+    title: 'Minął czas na zgłoszenie',
+    detail: 'Problem można zgłosić w ciągu 36 godzin od odbioru paczki.',
+  },
+  DISPUTE_STATE_CHANGED: {
+    status: 409,
+    title: 'Spór się zmienił',
+    detail: 'Stan sporu się zmienił. Odśwież stronę i sprawdź, co dalej.',
+  },
+  DISPUTE_NOT_ESCALATED: {
+    status: 409,
+    title: 'Spór nie czeka na decyzję',
+    detail: 'Decyzję można wydać tylko w sporze przekazanym do zespołu Biddy.',
+  },
+  RETURN_SHIPPING_UNAVAILABLE: {
+    status: 409,
+    title: 'Zwrot niedostępny',
+    detail: 'Dla tej paczki nie ma usługi kurierskiej do zwrotu. Wybierz zwrot bez odsyłania.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

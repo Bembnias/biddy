@@ -99,8 +99,11 @@ export const orders = pgTable(
     completedAt: timestamp({ withTimezone: true }),
     notPickedUpAt: timestamp({ withTimezone: true }),
     lostAt: timestamp({ withTimezone: true }),
+    /** Zgłoszenie problemu w oknie 36 h (DISPUTED, F-28); zostaje po rozstrzygnięciu. */
+    disputedAt: timestamp({ withTimezone: true }),
+    /** Potwierdzony zwrot: REFUNDED albo PARTIALLY_REFUNDED (F-28). */
     refundedAt: timestamp({ withTimezone: true }),
-    /** Rekompensata dla sprzedającego za zaginioną paczkę (§7.9). */
+    /** Rekompensata dla sprzedającego za zaginioną albo uszkodzoną w transporcie paczkę (§7.9). */
     sellerCompensatedAt: timestamp({ withTimezone: true }),
     chargebackStatus: text().$type<ChargebackStatus>(),
     /** Oferta drugiej szansy, z której powstało zamówienie (§6.8). */

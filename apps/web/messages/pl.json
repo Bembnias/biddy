@@ -1092,6 +1092,12 @@
         "PAYOUT_PAID": "Wysłana wypłata",
         "PAYOUT_FAILED": "Nieudana wypłata",
         "PAYOUT_ACCOUNT_CHANGED": "Zmiana rachunku do wypłat",
+        "DISPUTE_OPENED": "Zgłoszony problem z zamówieniem",
+        "DISPUTE_PARTIAL_OFFERED": "Propozycja zwrotu części ceny",
+        "DISPUTE_ESCALATED": "Spór u zespołu Biddy",
+        "DISPUTE_RETURN_REQUESTED": "Zwrot z odesłaniem przedmiotu",
+        "DISPUTE_RETURN_DELIVERED": "Zwrot dotarł do sprzedającego",
+        "DISPUTE_RESOLVED": "Rozstrzygnięty spór",
         "STRIKE_ISSUED": "Nowy strike",
         "STRIKE_REVOKED": "Cofnięty strike",
         "ACCOUNT_BLOCKED": "Blokada konta",
@@ -1103,6 +1109,7 @@
         "buying": "Zakupy",
         "selling": "Sprzedaż",
         "payouts": "Saldo i wypłaty",
+        "disputes": "Spory i zwroty",
         "following": "Obserwowani sprzedawcy",
         "account": "Konto: strike'i, blokady i odwołania"
       },
@@ -1692,7 +1699,7 @@
       "SHIPPED": "W drodze",
       "DELIVERED": "Odebrane",
       "COMPLETED": "Zakończone",
-      "DISPUTED": "Zgłoszony problem",
+      "DISPUTED": "Spór",
       "NOT_PICKED_UP": "Nieodebrane",
       "LOST": "Zaginione",
       "REFUNDED": "Zwrócone",
@@ -1707,7 +1714,7 @@
       "SHIPPED": "Paczka jest w drodze.",
       "DELIVERED": "Masz czas na sprawdzenie przedmiotu do {date}. Potem zamówienie zakończy się samo, a sprzedający dostanie pieniądze.",
       "COMPLETED": "Zamówienie zakończone. Dziękujemy!",
-      "DISPUTED": "Zgłoszony problem rozpatruje zespół Biddy.",
+      "DISPUTED": "Zgłoszono problem z przedmiotem. Szczegóły i kolejne kroki są na stronie sporu.",
       "NOT_PICKED_UP": "Paczka wraca do sprzedającego, bo nie została odebrana. Gdy wróci, zwrócimy cenę i Pakiet Ochrony Kupujących (bez dostawy).",
       "LOST": "Zgłoszenie przyjęte. Zwracamy pełną kwotę, a reklamację u przewoźnika składa Biddy.",
       "REFUNDED": "Zamówienie zakończone zwrotem pieniędzy.",
@@ -1721,7 +1728,7 @@
       "SHIPPED": "Paczka jest w drodze do kupującego.",
       "DELIVERED": "Kupujący sprawdza przedmiot do {date}. Potem pieniądze trafią na Twoje saldo.",
       "COMPLETED": "{amount} jest na Twoim saldzie.",
-      "DISPUTED": "Zgłoszony problem rozpatruje zespół Biddy.",
+      "DISPUTED": "Kupujący zgłosił problem z przedmiotem. Sprawdź spór i odpowiedz w terminie.",
       "NOT_PICKED_UP": "Kupujący nie odebrał paczki, więc wraca ona do Ciebie.",
       "LOST": "Paczka zaginęła. Dostaniesz rekompensatę {amount} najpóźniej {date}.",
       "LOST_COMPENSATED": "Paczka zaginęła. Rekompensata {amount} jest na Twoim saldzie.",
@@ -1741,13 +1748,14 @@
       "ship": "Nadaj paczkę",
       "balance": "Saldo i wypłaty",
       "confirm": "Wszystko OK",
-      "help": "Napisz do pomocy",
-      "relist": "Wystaw ponownie"
+      "relist": "Wystaw ponownie",
+      "dispute": "Zgłoś problem",
+      "viewDispute": "Zobacz spór"
     },
-    "problem": "Coś jest nie tak? Napisz do pomocy, zanim minie czas na sprawdzenie.",
+    "problem": "Coś jest nie tak? Do {date} możesz zgłosić problem, a pieniądze poczekają na wyjaśnienie.",
     "confirm": {
       "title": "Potwierdzić odbiór?",
-      "text": "Sprzedający od razu dostanie pieniądze. Potwierdź tylko, jeśli przedmiot jest zgodny z opisem.",
+      "text": "Sprzedający od razu dostanie pieniądze, a zgłoszenie problemu nie będzie już możliwe. Potwierdź tylko, jeśli przedmiot jest zgodny z opisem.",
       "cancel": "Jeszcze nie",
       "submit": "Wszystko OK",
       "sending": "Zapisujemy…"
@@ -1809,6 +1817,185 @@
       },
       "relistHint": "Możesz też wystawić przedmiot ponownie jako nową aukcję.",
       "relist": "Wystaw ponownie"
+    }
+  },
+  "dispute": {
+    "metaTitle": "Problem z zamówieniem",
+    "title": "Problem z zamówieniem",
+    "back": "Zamówienie nr {number}",
+    "backToOrder": "Wróć do zamówienia",
+    "loading": "Wczytywanie sporu…",
+    "error": "Nie udało się wczytać sporu.",
+    "retry": "Spróbuj ponownie",
+    "notFound": "Nie znaleziono sporu dla tego zamówienia.",
+    "now": "Co teraz",
+    "reasonLine": "Zgłoszony problem: {reason}.",
+    "statuses": {
+      "AWAITING_SELLER": "Czeka na sprzedającego",
+      "PARTIAL_OFFERED": "Propozycja zwrotu",
+      "ESCALATED": "U zespołu Biddy",
+      "AWAITING_RETURN": "Czeka na odesłanie",
+      "RETURN_IN_TRANSIT": "Zwrot w drodze",
+      "RETURN_DELIVERED": "Zwrot dostarczony",
+      "RESOLVED": "Rozstrzygnięty"
+    },
+    "reasons": {
+      "NOT_AS_DESCRIBED": "Przedmiot jest niezgodny z opisem",
+      "DAMAGED": "Przedmiot jest uszkodzony",
+      "INCOMPLETE": "Czegoś brakuje w przesyłce",
+      "COUNTERFEIT": "To podróbka",
+      "NOT_RECEIVED": "Paczka nie dotarła, choć jest oznaczona jako odebrana",
+      "OTHER": "Inny problem"
+    },
+    "form": {
+      "lead": "Masz czas do {date}. Do rozstrzygnięcia pieniądze czekają w Biddy, a sprzedający ich nie dostanie.",
+      "reason": "Co jest nie tak?",
+      "description": "Opisz problem",
+      "descriptionHint": "Napisz, czym przedmiot różni się od opisu albo co się stało (co najmniej {min} znaków).",
+      "photos": "Zdjęcia",
+      "photosHint": "Pokaż problem na zdjęciach (do 10). Zobaczą je tylko sprzedający i zespół Biddy.",
+      "photosRequiredHint": "Dodaj co najmniej jedno zdjęcie problemu (do 10). Zobaczą je tylko sprzedający i zespół Biddy.",
+      "info": "Sprzedający ma 48 godzin na odpowiedź. Jeśli się nie porozumiecie, spór rozstrzygnie zespół Biddy.",
+      "submit": "Zgłoś problem",
+      "submitting": "Wysyłanie…",
+      "closed": "Czas na zgłoszenie problemu minął {date}.",
+      "unavailable": "Problem można zgłosić po odbiorze paczki, przez 36 godzin.",
+      "validation": {
+        "reason": "Wybierz, co jest nie tak.",
+        "descriptionShort": "Opisz problem: co najmniej 20 znaków.",
+        "descriptionLong": "Opis może mieć najwyżej 2000 znaków.",
+        "photoRequired": "Dodaj co najmniej jedno zdjęcie problemu.",
+        "photosLimit": "Możesz dodać najwyżej 10 zdjęć."
+      }
+    },
+    "buyer": {
+      "AWAITING_SELLER": "Sprzedający ma czas na odpowiedź do {date}.",
+      "PARTIAL_OFFERED": "Sprzedający proponuje zwrot {amount}, a przedmiot zostaje u Ciebie. Odpowiedz do {date}.",
+      "ESCALATED": "Spór sprawdza zespół Biddy. Decyzja do {date}.",
+      "AWAITING_RETURN": "Odeślij przedmiot do {date}. Etykietę przygotuje Biddy, a pieniądze zwrócimy po odbiorze zwrotu.",
+      "RETURN_IN_TRANSIT": "Zwrot jest w drodze do sprzedającego.",
+      "RETURN_DELIVERED": "Sprzedający sprawdza zwrot do {date}. Potem zwrócimy Ci pieniądze.",
+      "RESOLVED": "Spór rozstrzygnięty."
+    },
+    "seller": {
+      "AWAITING_SELLER": "Kupujący zgłosił problem. Odpowiedz do {date}, inaczej spór trafi do zespołu Biddy.",
+      "PARTIAL_OFFERED": "Czekamy na odpowiedź kupującego do {date}.",
+      "ESCALATED": "Spór sprawdza zespół Biddy. Decyzja do {date}.",
+      "AWAITING_RETURN": "Kupujący odeśle przedmiot do {date}.",
+      "RETURN_IN_TRANSIT": "Zwrot jest w drodze do Ciebie.",
+      "RETURN_DELIVERED": "Zwrot dotarł. Sprawdź przedmiot do {date}. Potem zwrócimy pieniądze kupującemu.",
+      "RESOLVED": "Spór rozstrzygnięty."
+    },
+    "respond": {
+      "title": "Twoja odpowiedź",
+      "ACCEPT": "Zwróć pieniądze",
+      "acceptHint": "Kupujący dostanie {amount}. Koszt dostawy w obie strony potrącimy z Twojego salda.",
+      "OFFER_PARTIAL": "Zaproponuj zwrot części ceny",
+      "offerHint": "Najwyżej {max}. Pakiet Ochrony Kupujących i dostawa nie są zwracane, a przedmiot zostaje u kupującego.",
+      "REJECT": "Odrzuć zgłoszenie",
+      "rejectHint": "Spór trafi do zespołu Biddy. Wyjaśnij, dlaczego się nie zgadzasz.",
+      "returnLegend": "Czy kupujący ma odesłać przedmiot?",
+      "withoutReturn": "Bez odsyłania przedmiotu",
+      "withReturn": "Z odesłaniem przedmiotu",
+      "withReturnHint": "Etykietę zwrotną ({carrier}, {price}) przygotuje Biddy. Pieniądze zwrócimy po odbiorze zwrotu.",
+      "returnUnavailable": "Zwrot z odesłaniem jest niedostępny dla tej paczki.",
+      "amount": "Kwota zwrotu w zł",
+      "amountInvalid": "Podaj kwotę, np. 25 albo 25,50.",
+      "amountTooHigh": "Zwrot może wynieść najwyżej {max}.",
+      "note": "Wiadomość (opcjonalnie)",
+      "explanation": "Wyjaśnienie",
+      "explanationHint": "Co najmniej {min} znaków. Zobaczą je kupujący i zespół Biddy.",
+      "explanationShort": "Wyjaśnij odrzucenie: co najmniej {min} znaków.",
+      "photosHint": "Zdjęcia, np. przedmiotu przed wysyłką (do 10). Zobaczą je kupujący i zespół Biddy.",
+      "confirmAccept": "Zwróć {amount}",
+      "confirmOffer": "Wyślij propozycję",
+      "confirmReject": "Odrzuć i przekaż do Biddy",
+      "sending": "Wysyłanie…"
+    },
+    "offer": {
+      "accept": "Przyjmij {amount}",
+      "reject": "Odrzuć, niech rozstrzygnie Biddy"
+    },
+    "returnShipment": {
+      "title": "Zwrot przedmiotu",
+      "lead": "Zwrot pojedzie kurierem ({carrier}) na adres sprzedającego. Etykietę opłaca Biddy.",
+      "senderLead": "Te dane będą na etykiecie i zobaczy je sprzedający.",
+      "prefilled": "Wpisaliśmy Twój domyślny adres. Zmiany dotyczą tylko tego zwrotu.",
+      "missing": "Dodaj adres w koncie, żeby nie wpisywać go za każdym razem.",
+      "notShipped": "Przesyłka jeszcze nie jest nadana.",
+      "trackingNumber": "Numer przesyłki: {number}"
+    },
+    "review": {
+      "accept": "Zwrot w porządku",
+      "contest": "Zgłoś problem ze zwrotem",
+      "note": "Co jest nie tak ze zwrotem?",
+      "contestHint": "Co najmniej {min} znaków. Spór trafi do zespołu Biddy.",
+      "noteShort": "Opisz problem: co najmniej {min} znaków.",
+      "photosHint": "Zdjęcia zwrotu (do 10). Zobaczą je kupujący i zespół Biddy.",
+      "confirmContest": "Zgłoś problem",
+      "cancel": "Anuluj"
+    },
+    "comment": {
+      "title": "Dodaj wyjaśnienie",
+      "note": "Wyjaśnienie",
+      "hint": "Zobaczą je druga strona i zespół Biddy.",
+      "photosHint": "Zdjęcia (do 10). Zobaczą je druga strona i zespół Biddy.",
+      "submit": "Dodaj wyjaśnienie",
+      "sending": "Wysyłanie…",
+      "added": "Dodano wyjaśnienie."
+    },
+    "resolution": {
+      "decidedBy": {
+        "PARTIES": "Porozumienie stron",
+        "STAFF": "Decyzja zespołu Biddy",
+        "SYSTEM": "Minął termin"
+      },
+      "statement": "Uzasadnienie",
+      "awaitingReturn": "Pieniądze ({amount}) wrócą do kupującego po odbiorze i sprawdzeniu zwrotu.",
+      "buyer": {
+        "SELLER_FAVOR": "Spór zakończył się na korzyść sprzedającego, więc nie zwracamy pieniędzy.",
+        "FULL_REFUND": "Zwracamy Ci {amount}.",
+        "PARTIAL_REFUND": "Zwracamy Ci {amount}. Przedmiot zostaje u Ciebie."
+      },
+      "seller": {
+        "SELLER_FAVOR": "Spór zakończył się na Twoją korzyść. Cena trafia na Twoje saldo.",
+        "FULL_REFUND": "Kupujący dostaje pełny zwrot ({amount}).",
+        "FULL_REFUND_CARRIER": "Kupujący dostaje pełny zwrot, a Ty rekompensatę równą cenie, bo paczkę uszkodził przewoźnik.",
+        "PARTIAL_REFUND": "Kupujący dostaje zwrot {amount}, a reszta ceny trafia na Twoje saldo."
+      },
+      "sellerCosts": "Koszt dostawy w obie strony ({amount}) potrąciliśmy z Twojego salda.",
+      "refund": {
+        "PENDING": "Zwrot pieniędzy jest w drodze.",
+        "SUCCEEDED": "Zwróciliśmy pieniądze {date}.",
+        "FAILED": "Zwrot pieniędzy wymaga sprawdzenia przez zespół Biddy. Odezwiemy się."
+      }
+    },
+    "history": {
+      "title": "Historia sporu",
+      "you": "Ty",
+      "photo": "Zdjęcie {position}, otwiera się w nowej karcie",
+      "actors": {
+        "BUYER": "Kupujący",
+        "SELLER": "Sprzedający",
+        "STAFF": "Zespół Biddy",
+        "SYSTEM": "Biddy"
+      },
+      "types": {
+        "OPENED": "Zgłoszenie problemu",
+        "SELLER_ACCEPTED": "Zgoda na zwrot pieniędzy",
+        "PARTIAL_OFFERED": "Propozycja zwrotu {amount}",
+        "PARTIAL_ACCEPTED": "Przyjęcie propozycji zwrotu {amount}",
+        "PARTIAL_REJECTED": "Odrzucenie propozycji",
+        "SELLER_REJECTED": "Odrzucenie zgłoszenia",
+        "ESCALATED": "Spór przekazany do zespołu Biddy",
+        "COMMENT": "Wyjaśnienie",
+        "DECISION": "Decyzja",
+        "RETURN_SHIPPED": "Zwrot nadany",
+        "RETURN_DELIVERED": "Zwrot dostarczony",
+        "RETURN_ACCEPTED": "Zwrot przyjęty",
+        "RETURN_CONTESTED": "Problem ze zwrotem",
+        "RESOLVED": "Rozstrzygnięcie"
+      }
     }
   },
   "secondChanceOffer": {

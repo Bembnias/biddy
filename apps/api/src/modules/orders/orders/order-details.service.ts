@@ -1,6 +1,6 @@
 // Widok zamówienia dla obu stron (F-26): stan z datami etapów, przedmiot ze snapshotu, druga
-// strona, przesyłka z trackingiem, ostatni zwrot, dostępne akcje i (dla sprzedającego
-// anulowanego zamówienia) stan drugiej szansy.
+// strona, przesyłka z trackingiem, ostatni zwrot, dostępne akcje (z F-28 zgłoszenie problemu)
+// i (dla sprzedającego anulowanego zamówienia) stan drugiej szansy.
 import { Inject, Injectable } from '@nestjs/common';
 import { asc, eq } from 'drizzle-orm';
 
@@ -10,6 +10,7 @@ import { RefundService, type RefundRow } from '../../payments/index.js';
 import { type ShipmentDetails, ShipmentService } from '../../shipping/index.js';
 import { type OrderItem, orderItems } from '../db/orders.schema.js';
 import { notReceivedBlocker, notReceivedFrom } from '../domain/lifecycle-rules.js';
+import { disputeOpenBlocker } from '../lifecycle/order-disputes.js';
 import {
   type SecondChanceState,
   SecondChanceService,
@@ -24,6 +25,8 @@ export interface OrderDetails extends ParticipantOrder {
   readonly refund: RefundRow | undefined;
   /** Zgłoszenie braku paczki: od kiedy (null, gdy nie dotyczy) i czy już można. */
   readonly notReceived: { readonly from: Date; readonly allowed: boolean } | null;
+  /** Zgłoszenie problemu: do kiedy (null, gdy nie dotyczy) i czy jeszcze można (F-28). */
+  readonly openDispute: { readonly until: Date; readonly allowed: boolean } | null;
   readonly secondChance: SecondChanceState | undefined;
 }
 
@@ -68,6 +71,13 @@ export class OrderDetailsService {
           ? {
               from: notReceivedFrom(order.shippedAt),
               allowed: notReceivedBlocker(order, shipment?.shipment.status, now) === undefined,
+            }
+          : null,
+      openDispute:
+        role === 'BUYER' && order.status === 'DELIVERED' && order.inspectionEndsAt !== null
+          ? {
+              until: order.inspectionEndsAt,
+              allowed: disputeOpenBlocker(order, now) === undefined,
             }
           : null,
       secondChance:

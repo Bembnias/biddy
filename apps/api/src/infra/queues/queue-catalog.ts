@@ -74,6 +74,11 @@ export const QUEUE_DEFINITIONS = {
       'Płatności: polling zapasowy płatności w PENDING co minutę, symulator FakeGateway (rozliczenie z opóźnieniem, webhooki HTTP, F-23), wypłaty tygodniowe i sald uśpionych (F-27)',
     concurrency: 5,
   },
+  disputes: {
+    description:
+      'Spory: eskalacja bez odpowiedzi w 48 h, brak nadania zwrotu w 5 dni roboczych i zwrot pieniędzy po 36 h od odbioru zwrotu, co minutę (F-28)',
+    concurrency: 1,
+  },
   shipping: {
     description:
       'Przesyłki: tworzenie u dostawcy po „Nadaj” z etykietą, synchronizacja trackingu po webhooku, polling zapasowy co 10 min i automat FakeShipping (F-24)',

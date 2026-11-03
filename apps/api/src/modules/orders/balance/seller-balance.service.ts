@@ -13,7 +13,7 @@ import { type OrderStatus, orderItems, orders } from '../db/orders.schema.js';
 import type { OrderItemSnapshot } from '../orders/order-snapshot.js';
 
 /** Zamówienia, których cena trafi na saldo po zakończeniu (bez zwrotów w toku). */
-const IN_PROGRESS: readonly OrderStatus[] = ['PAID', 'SHIPPED', 'DELIVERED'];
+const IN_PROGRESS: readonly OrderStatus[] = ['PAID', 'SHIPPED', 'DELIVERED', 'DISPUTED'];
 
 const HISTORY_PAGE = 20;
 

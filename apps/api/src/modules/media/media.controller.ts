@@ -14,7 +14,9 @@ import {
 
 export class CreateUploadDto extends createZodDto(
   z.object({
-    purpose: z.enum(MEDIA_PURPOSES).describe('Zdjęcie przedmiotu albo zdjęcie profilowe'),
+    purpose: z
+      .enum(MEDIA_PURPOSES)
+      .describe('Zdjęcie przedmiotu, zdjęcie profilowe albo dowód w sporze (prywatny, F-28)'),
     contentType: z.enum(ACCEPTED_CONTENT_TYPES, {
       error: 'Dodaj zdjęcie JPEG, PNG albo WebP.',
     }),
@@ -45,7 +47,7 @@ export class MediaDto extends createZodDto(
         large: z.url(),
       })
       .nullable()
-      .describe('Publiczne adresy wariantów WebP (tylko READY)'),
+      .describe('Publiczne adresy wariantów WebP (tylko READY; zdjęcia ze sporu: null)'),
     rejectionReason: z.string().min(1).nullable().describe('Powód odrzucenia (REJECTED)'),
     createdAt: z.iso.datetime(),
   }),

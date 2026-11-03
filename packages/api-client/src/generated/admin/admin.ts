@@ -33,11 +33,15 @@ import type {
   AdminAccountBlockDto,
   AdminAppealsDto,
   AdminAuctionStateDto,
+  AdminDisputeDto,
+  AdminDisputeListDto,
   AdminStrikeDto,
   AdminUserStandingDto,
   AppealDecisionDto,
   CancelBidDto,
+  DecisionBody,
   IssueStrikeDto,
+  ListDisputesParams,
   ModeratorCancelAuctionDto,
   ProblemDetails,
   PublishAccountPolicyDto,
@@ -1330,4 +1334,411 @@ export const useCancelAuctionAsModerator = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getCancelAuctionAsModeratorMutationOptions(options), queryClient);
+    }
+    export const getListDisputesUrl = (params?: ListDisputesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/admin/disputes?${stringifiedParams}` : `/v1/admin/disputes`
+}
+
+/**
+ * Domyślnie spory u zespołu Biddy, najstarsza eskalacja pierwsza (SLA 72 h).
+ * @summary Kolejka sporów
+ */
+export const listDisputes = async (params?: ListDisputesParams, options?: Parameters<typeof apiFetch>[1]): Promise<AdminDisputeListDto> => {
+
+  return apiFetch<AdminDisputeListDto>(getListDisputesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDisputesQueryKey = (params?: ListDisputesParams,) => {
+    return [
+    `/v1/admin/disputes`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListDisputesQueryOptions = <TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(params?: ListDisputesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDisputesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDisputes>>> = ({ signal }) => listDisputes(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListDisputesQueryResult = NonNullable<Awaited<ReturnType<typeof listDisputes>>>
+export type ListDisputesQueryError = ErrorType<ProblemDetails>
+
+
+export function useListDisputes<TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(
+ params: undefined |  ListDisputesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDisputes>>,
+          TError,
+          Awaited<ReturnType<typeof listDisputes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDisputes<TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(
+ params?: ListDisputesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDisputes>>,
+          TError,
+          Awaited<ReturnType<typeof listDisputes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDisputes<TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(
+ params?: ListDisputesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Kolejka sporów
+ */
+
+export function useListDisputes<TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(
+ params?: ListDisputesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListDisputesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getListDisputesSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(params?: ListDisputesParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDisputesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDisputes>>> = ({ signal }) => listDisputes(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type ListDisputesSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof listDisputes>>>
+export type ListDisputesSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useListDisputesSuspense<TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(
+ params: undefined |  ListDisputesParams, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDisputesSuspense<TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(
+ params?: ListDisputesParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListDisputesSuspense<TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(
+ params?: ListDisputesParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Kolejka sporów
+ */
+
+export function useListDisputesSuspense<TData = Awaited<ReturnType<typeof listDisputes>>, TError = ErrorType<ProblemDetails>>(
+ params?: ListDisputesParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listDisputes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListDisputesSuspenseQueryOptions(params,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetAdminDisputeUrl = (id: string,) => {
+
+
+
+
+  return `/v1/admin/disputes/${id}`
+}
+
+/**
+ * @summary Spór z historią, zdjęciami i przesyłką zwrotną
+ */
+export const getAdminDispute = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<AdminDisputeDto> => {
+
+  return apiFetch<AdminDisputeDto>(getGetAdminDisputeUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminDisputeQueryKey = (id: string,) => {
+    return [
+    `/v1/admin/disputes/${id}`
+    ] as const;
+    }
+
+
+export const getGetAdminDisputeQueryOptions = <TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminDisputeQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminDispute>>> = ({ signal }) => getAdminDispute(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminDisputeQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminDispute>>>
+export type GetAdminDisputeQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetAdminDispute<TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminDispute>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminDispute>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminDispute<TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminDispute>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminDispute>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminDispute<TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Spór z historią, zdjęciami i przesyłką zwrotną
+ */
+
+export function useGetAdminDispute<TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminDisputeQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetAdminDisputeSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminDisputeQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminDispute>>> = ({ signal }) => getAdminDispute(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetAdminDisputeSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminDispute>>>
+export type GetAdminDisputeSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetAdminDisputeSuspense<TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminDisputeSuspense<TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminDisputeSuspense<TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Spór z historią, zdjęciami i przesyłką zwrotną
+ */
+
+export function useGetAdminDisputeSuspense<TData = Awaited<ReturnType<typeof getAdminDispute>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getAdminDispute>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminDisputeSuspenseQueryOptions(id,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getDecideDisputeUrl = (id: string,) => {
+
+
+
+
+  return `/v1/admin/disputes/${id}/decision`
+}
+
+/**
+ * SELLER_FAVOR kończy zamówienie, FULL_REFUND (wina SELLER albo CARRIER, opcjonalnie z odesłaniem) i PARTIAL_REFUND (kwota do ceny) zlecają zwrot. Uzasadnienie widzą obie strony (DSA).
+ * @summary Decyzja w sporze po eskalacji
+ */
+export const decideDispute = async (id: string,
+    decisionBody: DecisionBody, options?: Parameters<typeof apiFetch>[1]): Promise<AdminDisputeDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<AdminDisputeDto>(getDecideDisputeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(decisionBody)
+  }
+);}
+
+
+
+
+
+export const getDecideDisputeMutationKey = () => ['decideDispute'] as const;
+
+export const getDecideDisputeMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideDispute>>, TError,DecideDisputeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof decideDispute>>, TError,DecideDisputeMutationVariables, TContext> => {
+
+const mutationKey = getDecideDisputeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decideDispute>>, DecideDisputeMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  decideDispute(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecideDisputeMutationResult = NonNullable<Awaited<ReturnType<typeof decideDispute>>>
+    export type DecideDisputeMutationBody = BodyType<DecisionBody>
+    export type DecideDisputeMutationError = ErrorType<ProblemDetails>
+    export type DecideDisputeMutationVariables = {id: string;data: BodyType<DecisionBody>}
+
+    /**
+ * @summary Decyzja w sporze po eskalacji
+ */
+export const useDecideDispute = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideDispute>>, TError,DecideDisputeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof decideDispute>>,
+        TError,
+        DecideDisputeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDecideDisputeMutationOptions(options), queryClient);
     }

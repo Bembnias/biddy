@@ -55,6 +55,11 @@ export function orderUrl(orderPublicId: string): string {
   return `/zamowienia/${encodeURIComponent(orderPublicId)}`;
 }
 
+/** Spór zamówienia dla obu stron (F-28), np. `/zamowienia/k3x9qa7m/spor`. */
+export function disputeUrl(orderPublicId: string): string {
+  return `/zamowienia/${encodeURIComponent(orderPublicId)}/spor`;
+}
+
 /** Oferta drugiej szansy dla licytującego (F-26). */
 export function secondChanceUrl(offerId: string): string {
   return `/druga-szansa/${encodeURIComponent(offerId)}`;

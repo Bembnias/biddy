@@ -8,10 +8,12 @@
 //   (strike sprzedającego nadaje konsument OrderCancelled, ../orders/order-standing-sources.ts);
 // - zgłoszenie braku paczki: SHIPPED → LOST z pełnym zwrotem i reklamacją u przewoźnika;
 //   rekompensata dla sprzedającego po rozstrzygnięciu reklamacji albo po 30 dniach (job);
-// - konsument RefundSucceeded: CANCELLED_NOT_SHIPPED, LOST i NOT_PICKED_UP → REFUNDED dopiero po
-//   potwierdzeniu zwrotu, więc w stanie końcowym wstrzymane środki zamówienia wynoszą 0.
+// - konsument RefundSucceeded: CANCELLED_NOT_SHIPPED, LOST, NOT_PICKED_UP i DISPUTED → REFUNDED
+//   (DISPUTED → PARTIALLY_REFUNDED po zwrocie części ceny, F-28) dopiero po potwierdzeniu zwrotu,
+//   więc w stanie końcowym wstrzymane środki zamówienia wynoszą 0.
+// Rozstrzygnięcie sporu (../lifecycle/order-disputes.ts) korzysta z `complete` i `compensate`.
 // Każde przejście blokuje wiersz zamówienia i idzie przez maszynę stanów (../orders/order-records).
-import { money } from '@biddy/shared';
+import { type Money, money } from '@biddy/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, asc, eq, isNull, lte, ne, or } from 'drizzle-orm';
 
@@ -60,6 +62,7 @@ import {
   OrderDelivered,
   OrderLost,
   OrderNotPickedUp,
+  OrderPartiallyRefunded,
   OrderRefunded,
   OrderShipped,
 } from '../orders.events.js';
@@ -73,11 +76,16 @@ export interface DeadlineReport {
   readonly changed: number;
 }
 
-/** Zwroty, po których zamówienie kończy się jako REFUNDED, i stan, z którego wychodzi. */
+/**
+ * Zwroty, po których zamówienie kończy się jako REFUNDED (zwrot częściowy w sporze:
+ * PARTIALLY_REFUNDED), i stan, z którego wychodzi.
+ */
 const REFUND_SOURCES = {
   NOT_SHIPPED: 'CANCELLED_NOT_SHIPPED',
   NOT_PICKED_UP: 'NOT_PICKED_UP',
   LOST: 'LOST',
+  DISPUTE: 'DISPUTED',
+  DISPUTE_PARTIAL: 'DISPUTED',
 } as const;
 
 function isRefundSource(reason: string): reason is keyof typeof REFUND_SOURCES {
@@ -224,7 +232,11 @@ export class OrderLifecycle {
       return;
     }
     const locked = await lockOrder(tx, orderId);
-    if (locked === undefined || locked.order.status === 'REFUNDED') {
+    if (
+      locked === undefined ||
+      locked.order.status === 'REFUNDED' ||
+      locked.order.status === 'PARTIALLY_REFUNDED'
+    ) {
       return;
     }
     const { order, item } = locked;
@@ -236,6 +248,10 @@ export class OrderLifecycle {
       return;
     }
     const refundedAt = new Date(event.occurredAt);
+    if (reason === 'DISPUTE_PARTIAL') {
+      await this.settlePartialRefund(tx, locked, amount, refundedAt);
+      return;
+    }
     await transitionOrder(tx, order, 'REFUNDED', { refundedAt });
     await this.outbox.add(
       tx,
@@ -246,6 +262,39 @@ export class OrderLifecycle {
           refundedAt: refundedAt.toISOString(),
           amount,
           reason,
+        },
+      }),
+    );
+  }
+
+  /**
+   * Zwrot części ceny w sporze potwierdzony (F-28): PARTIALLY_REFUNDED i zwolnienie reszty ceny
+   * u operatora. Ledger (ORDER_PARTIALLY_REFUNDED) zaksięgował zwrot razem z potwierdzeniem.
+   */
+  private async settlePartialRefund(
+    tx: Transaction,
+    { order, item }: LockedOrder,
+    amount: Money,
+    refundedAt: Date,
+  ): Promise<void> {
+    await transitionOrder(tx, order, 'PARTIALLY_REFUNDED', { refundedAt });
+    const sellerAmount = money(order.itemsTotal - amount.amount, order.currency);
+    if (sellerAmount.amount > 0) {
+      await this.escrow.releaseRemainder(tx, {
+        orderId: order.id,
+        paymentId: requirePayment(order),
+        amount: sellerAmount,
+      });
+    }
+    await this.outbox.add(
+      tx,
+      OrderPartiallyRefunded.create({
+        aggregateId: order.id,
+        payload: {
+          ...orderParties(order, item),
+          refundedAt: refundedAt.toISOString(),
+          amount,
+          sellerAmount,
         },
       }),
     );
@@ -317,7 +366,11 @@ export class OrderLifecycle {
     );
   }
 
-  private async complete(
+  /**
+   * Zakończenie zablokowanego zamówienia (DELIVERED albo DISPUTED po sporze na korzyść
+   * sprzedającego, F-28): COMPLETED, zwolnienie środków i event OrderCompleted.
+   */
+  async complete(
     tx: Transaction,
     { order, item }: LockedOrder,
     now: Date,
@@ -497,26 +550,33 @@ export class OrderLifecycle {
     });
   }
 
-  /** Rozstrzygnięta reklamacja zaginionej paczki: rekompensata (jeśli jeszcze nie) i rozliczenie. */
+  /**
+   * Rozstrzygnięta reklamacja: przy zaginięciu rekompensata (jeśli jeszcze nie), potem
+   * rozliczenie. Reklamacje ze sporu (wina przewoźnika, F-28) mają rekompensatę od decyzji.
+   */
   @OnDomainEvent(CarrierClaimResolved, { consumer: 'orders.lost-parcel-claim' })
   async onCarrierClaimResolved(
     event: DomainEventOf<typeof CarrierClaimResolved>,
     { tx }: DomainEventContext,
   ): Promise<void> {
-    const { orderId, type, recovered } = event.payload;
-    if (orderId === null || type !== 'LOST') {
+    const { orderId, recovered } = event.payload;
+    if (orderId === null) {
       return;
     }
     const locked = await lockOrder(tx, orderId);
-    if (locked?.order.lostAt === null || locked === undefined) {
-      this.logger.warn(
-        { orderId, claimId: event.aggregateId },
-        'Reklamacja zaginięcia bez zgłoszenia',
-      );
+    if (locked === undefined) {
       return;
     }
     const { order } = locked;
-    await this.compensate(tx, order, new Date());
+    if (order.lostAt !== null) {
+      await this.compensate(tx, order, new Date());
+    } else if (order.sellerCompensatedAt === null) {
+      this.logger.warn(
+        { orderId, claimId: event.aggregateId },
+        'Reklamacja bez zgłoszenia zaginięcia i bez rekompensaty',
+      );
+      return;
+    }
     const recoveredAmount = Math.min(recovered.amount, order.itemsTotal);
     await this.escrow.settleCarrierClaim(tx, {
       orderId: order.id,
@@ -556,7 +616,11 @@ export class OrderLifecycle {
     );
   }
 
-  private async compensate(tx: Transaction, order: Order, now: Date): Promise<void> {
+  /**
+   * Rekompensata dla sprzedającego = cena (§7.9): zaginięcie albo wina przewoźnika w sporze
+   * (F-28). Idempotentna po zamówieniu (`seller_compensated_at`).
+   */
+  async compensate(tx: Transaction, order: Order, now: Date): Promise<void> {
     if (order.sellerCompensatedAt !== null) {
       return;
     }
@@ -610,7 +674,7 @@ function notFound(): DomainError {
 }
 
 /** Płatność, która opłaciła zamówienie: bez niej nie ma czego zwracać ani zwalniać. */
-function requirePayment(order: Order): string {
+export function requirePayment(order: Order): string {
   if (order.paymentId === null) {
     throw new Error(`Zamówienie ${order.id} (${order.status}) bez płatności`);
   }
