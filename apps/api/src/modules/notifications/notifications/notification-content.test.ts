@@ -180,6 +180,66 @@ describe('powiadomienia o koncie (F-61)', () => {
   });
 });
 
+describe('wypłaty (F-27)', () => {
+  it('wypłata wysłana: kwota, rachunek i zdanie o wypłacie automatycznej', () => {
+    const manual = notificationContent('PAYOUT_PAID', {
+      payout: { amount: money(12_345), bankAccountMasked: '•••• 2874', trigger: 'MANUAL' },
+    });
+    expect(text(manual.title)).toBe('Wypłata 123,45 zł wysłana');
+    expect(manual.lines.map(text)).toEqual([
+      'Wysłaliśmy 123,45 zł na rachunek •••• 2874. Pieniądze dotrą zwykle w 1–2 dni robocze.',
+    ]);
+    expect(manual).toMatchObject({ path: '/konto/saldo', actionLabel: 'Saldo i wypłaty' });
+    const dormant = notificationContent('PAYOUT_PAID', {
+      payout: { amount: money(1_200), bankAccountMasked: '•••• 2874', trigger: 'DORMANT_BALANCE' },
+    });
+    expect(dormant.lines.at(-1)).toBe(
+      'Saldo poniżej 20 zł bez sprzedaży od 90 dni wypłacamy automatycznie.',
+    );
+  });
+
+  it('wypłata nieudana: środki na saldzie, wskazówka zależna od powodu', () => {
+    const rejected = notificationContent('PAYOUT_FAILED', {
+      payout: { amount: money(5_000), failureReason: 'REJECTED' },
+    });
+    expect(text(rejected.title)).toBe('Wypłata 50 zł nie powiodła się');
+    expect(rejected.lines).toEqual([
+      'Pieniądze wróciły na saldo w Biddy.',
+      'Sprawdź numer rachunku w danych do wypłat i spróbuj ponownie.',
+    ]);
+    const kyc = notificationContent('PAYOUT_FAILED', {
+      payout: { amount: money(5_000), failureReason: 'SELLER_NOT_VERIFIED' },
+    });
+    expect(kyc.lines[1]).toBe('Wypłata wymaga weryfikacji tożsamości u operatora płatności.');
+  });
+
+  it('rachunek: pierwszy bez blokady, zmiana z terminem wypłat; zawsze ostrzeżenie o przejęciu', () => {
+    const first = notificationContent('PAYOUT_ACCOUNT_CHANGED', {
+      payout: { bankAccountMasked: '•••• 2874', first: true, blockedUntil: null },
+    });
+    expect(first).toEqual({
+      title: 'Dodano rachunek do wypłat',
+      lines: [
+        'Wypłaty trafią na rachunek •••• 2874.',
+        'Jeśli to nie Ty, od razu zmień hasło i napisz do nas.',
+      ],
+      path: '/konto/saldo/dane',
+      actionLabel: 'Dane do wypłat',
+    });
+    const changed = notificationContent('PAYOUT_ACCOUNT_CHANGED', {
+      payout: {
+        bankAccountMasked: '•••• 1111',
+        first: false,
+        blockedUntil: '2026-11-04T13:02:00.000Z',
+      },
+    });
+    expect(changed.title).toBe('Zmieniono rachunek do wypłat');
+    expect(text(changed.lines[0] ?? '')).toBe(
+      'Nowy rachunek do wypłat: •••• 1111. Ze względów bezpieczeństwa wypłaty ruszą 4 lis 2026, 14:02.',
+    );
+  });
+});
+
 describe('token wypisania', () => {
   const secret = 'test-secret-0123456789-0123456789';
   const userId = '01960000-0000-7000-8000-000000000001';

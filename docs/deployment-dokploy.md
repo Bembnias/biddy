@@ -237,7 +237,7 @@ Projekt `Biddy` → **Create Service → Compose**:
 4. **Advanced → Isolated Deployments: wyłączone.** Compose sam dołącza usługi do `dokploy-network` (tam jest baza i Traefik).
 5. **Environment**: wklej [`infra/dokploy/.env.example`](../infra/dokploy/.env.example) i uzupełnij:
    - `DATABASE_URL`: Internal Connection URL z kroku 5.
-   - `BETTER_AUTH_SECRET`, `WEB_REVALIDATE_SECRET`, `MEILI_MASTER_KEY`: każdy z `openssl rand -base64 32`.
+   - `BETTER_AUTH_SECRET`, `WEB_REVALIDATE_SECRET`, `MEILI_MASTER_KEY`, `DATA_ENCRYPTION_KEY`: każdy z `openssl rand -base64 32`. `DATA_ENCRYPTION_KEY` szyfruje dane do wypłat (F-27): nie zmieniaj go po zapisaniu danych.
    - R2 aplikacji, Resend, Turnstile, SMSAPI, Sentry: jak w [deployment.md](deployment.md#1-usługi-zewnętrzne).
    - SMS: prawdziwy `SMSAPI_TOKEN` albo, do czasu aktywacji konta w SMSAPI, `SMS_LOG_ONLY=true`: kod weryfikacyjny trafia do logu API (Dokploy → Logs → `api`, linia `SMS (atrapa)`), a SMS nie jest wysyłany. Na produkcji `SMS_LOG_ONLY` jest odrzucane.
    - `MEDIA_PUBLIC_URL`: przy DNS w OVH adres `r2.dev` kubełka media (krok 8, „Zdjęcia z R2 a DNS w OVH”), nie `media.staging.biddy.pl`.

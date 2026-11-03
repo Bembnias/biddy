@@ -35,10 +35,13 @@ import type {
   AppealDto,
   AuctionSummaryDto,
   AvatarDto,
+  BalanceHistoryDto,
+  BankAccountInputDto,
   ConfirmPhoneVerificationDto,
   CreateAddressDto,
   FollowStateDto,
   GetMyAuctionsParams,
+  GetMyBalanceHistoryParams,
   GetMyBidsParams,
   GetMyNotificationsParams,
   ListingDto,
@@ -52,8 +55,14 @@ import type {
   NotificationListDto,
   NotificationPreferencesDto,
   NotificationSummaryDto,
+  PayoutDto,
+  PayoutProfileDto,
+  PayoutSettingsInputDto,
+  PersonalDataInputDto,
   PhoneVerificationDto,
   ProblemDetails,
+  RequestPayoutDto,
+  SellerBalanceDto,
   SellingLimitsDto,
   SessionDto,
   SetAvatarDto,
@@ -3206,6 +3215,832 @@ export const useUnwatchAuction = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getUnwatchAuctionMutationOptions(options), queryClient);
+    }
+    export const getGetMyBalanceUrl = () => {
+
+
+
+
+  return `/v1/me/balance`
+}
+
+/**
+ * Salda z ledgera, powód blokady wypłaty i zamówienia w trakcie.
+ * @summary Saldo sprzedającego: do wypłaty, w trakcie, należność, wypłaty w drodze
+ */
+export const getMyBalance = async ( options?: Parameters<typeof apiFetch>[1]): Promise<SellerBalanceDto> => {
+
+  return apiFetch<SellerBalanceDto>(getGetMyBalanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyBalanceQueryKey = () => {
+    return [
+    `/v1/me/balance`
+    ] as const;
+    }
+
+
+export const getGetMyBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalance>>> = ({ signal }) => getMyBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalance>>>
+export type GetMyBalanceQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBalance>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBalance>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBalance>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBalance>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Saldo sprzedającego: do wypłaty, w trakcie, należność, wypłaty w drodze
+ */
+
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBalanceQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyBalanceSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalance>>> = ({ signal }) => getMyBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyBalanceSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalance>>>
+export type GetMyBalanceSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBalanceSuspense<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceSuspense<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceSuspense<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Saldo sprzedającego: do wypłaty, w trakcie, należność, wypłaty w drodze
+ */
+
+export function useGetMyBalanceSuspense<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBalanceSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyBalanceHistoryUrl = (params?: GetMyBalanceHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/me/balance/history?${stringifiedParams}` : `/v1/me/balance/history`
+}
+
+/**
+ * Od najnowszej; kolejna strona z `cursor` = `nextCursor`.
+ * @summary Historia salda: sprzedaże, wypłaty, korekty (20 na stronę)
+ */
+export const getMyBalanceHistory = async (params?: GetMyBalanceHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<BalanceHistoryDto> => {
+
+  return apiFetch<BalanceHistoryDto>(getGetMyBalanceHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyBalanceHistoryQueryKey = (params?: GetMyBalanceHistoryParams,) => {
+    return [
+    `/v1/me/balance/history`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMyBalanceHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalanceHistory>>> = ({ signal }) => getMyBalanceHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyBalanceHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalanceHistory>>>
+export type GetMyBalanceHistoryQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBalanceHistory<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params: undefined |  GetMyBalanceHistoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBalanceHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBalanceHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceHistory<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBalanceHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBalanceHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceHistory<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Historia salda: sprzedaże, wypłaty, korekty (20 na stronę)
+ */
+
+export function useGetMyBalanceHistory<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBalanceHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyBalanceHistorySuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalanceHistory>>> = ({ signal }) => getMyBalanceHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyBalanceHistorySuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalanceHistory>>>
+export type GetMyBalanceHistorySuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBalanceHistorySuspense<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params: undefined |  GetMyBalanceHistoryParams, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceHistorySuspense<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceHistorySuspense<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Historia salda: sprzedaże, wypłaty, korekty (20 na stronę)
+ */
+
+export function useGetMyBalanceHistorySuspense<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBalanceHistorySuspenseQueryOptions(params,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetPayoutProfileUrl = () => {
+
+
+
+
+  return `/v1/me/payout-profile`
+}
+
+/**
+ * Identyfikator podatkowy i rachunek tylko zamaskowane.
+ * @summary Dane do wypłat (DAC7 i rachunek)
+ */
+export const getPayoutProfile = async ( options?: Parameters<typeof apiFetch>[1]): Promise<PayoutProfileDto> => {
+
+  return apiFetch<PayoutProfileDto>(getGetPayoutProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayoutProfileQueryKey = () => {
+    return [
+    `/v1/me/payout-profile`
+    ] as const;
+    }
+
+
+export const getGetPayoutProfileQueryOptions = <TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayoutProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayoutProfile>>> = ({ signal }) => getPayoutProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPayoutProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getPayoutProfile>>>
+export type GetPayoutProfileQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetPayoutProfile<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPayoutProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getPayoutProfile>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayoutProfile<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPayoutProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getPayoutProfile>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayoutProfile<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Dane do wypłat (DAC7 i rachunek)
+ */
+
+export function useGetPayoutProfile<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPayoutProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetPayoutProfileSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayoutProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayoutProfile>>> = ({ signal }) => getPayoutProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetPayoutProfileSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getPayoutProfile>>>
+export type GetPayoutProfileSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetPayoutProfileSuspense<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayoutProfileSuspense<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayoutProfileSuspense<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Dane do wypłat (DAC7 i rachunek)
+ */
+
+export function useGetPayoutProfileSuspense<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPayoutProfileSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getPutPersonalDataUrl = () => {
+
+
+
+
+  return `/v1/me/payout-profile/personal-data`
+}
+
+/**
+ * PESEL musi zgadzać się z datą urodzenia; wypłaty od 18 lat. Dane są szyfrowane.
+ * @summary Zapis danych osobowych do wypłat (DAC7)
+ */
+export const putPersonalData = async (personalDataInputDto: PersonalDataInputDto, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutProfileDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PayoutProfileDto>(getPutPersonalDataUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(personalDataInputDto)
+  }
+);}
+
+
+
+
+
+export const getPutPersonalDataMutationKey = () => ['putPersonalData'] as const;
+
+export const getPutPersonalDataMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putPersonalData>>, TError,PutPersonalDataMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putPersonalData>>, TError,PutPersonalDataMutationVariables, TContext> => {
+
+const mutationKey = getPutPersonalDataMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putPersonalData>>, PutPersonalDataMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  putPersonalData(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutPersonalDataMutationResult = NonNullable<Awaited<ReturnType<typeof putPersonalData>>>
+    export type PutPersonalDataMutationBody = BodyType<PersonalDataInputDto>
+    export type PutPersonalDataMutationError = ErrorType<ProblemDetails>
+    export type PutPersonalDataMutationVariables = {data: BodyType<PersonalDataInputDto>}
+
+    /**
+ * @summary Zapis danych osobowych do wypłat (DAC7)
+ */
+export const usePutPersonalData = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putPersonalData>>, TError,PutPersonalDataMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putPersonalData>>,
+        TError,
+        PutPersonalDataMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutPersonalDataMutationOptions(options), queryClient);
+    }
+    export const getPutBankAccountUrl = () => {
+
+
+
+
+  return `/v1/me/payout-profile/bank-account`
+}
+
+/**
+ * Zmiana numeru wstrzymuje wypłaty na 48 h; każdy nowy numer wysyła powiadomienie (§16.1).
+ * @summary Zapis rachunku do wypłat
+ */
+export const putBankAccount = async (bankAccountInputDto: BankAccountInputDto, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutProfileDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PayoutProfileDto>(getPutBankAccountUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bankAccountInputDto)
+  }
+);}
+
+
+
+
+
+export const getPutBankAccountMutationKey = () => ['putBankAccount'] as const;
+
+export const getPutBankAccountMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putBankAccount>>, TError,PutBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putBankAccount>>, TError,PutBankAccountMutationVariables, TContext> => {
+
+const mutationKey = getPutBankAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putBankAccount>>, PutBankAccountMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  putBankAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutBankAccountMutationResult = NonNullable<Awaited<ReturnType<typeof putBankAccount>>>
+    export type PutBankAccountMutationBody = BodyType<BankAccountInputDto>
+    export type PutBankAccountMutationError = ErrorType<ProblemDetails>
+    export type PutBankAccountMutationVariables = {data: BodyType<BankAccountInputDto>}
+
+    /**
+ * @summary Zapis rachunku do wypłat
+ */
+export const usePutBankAccount = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putBankAccount>>, TError,PutBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putBankAccount>>,
+        TError,
+        PutBankAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutBankAccountMutationOptions(options), queryClient);
+    }
+    export const getPatchPayoutSettingsUrl = () => {
+
+
+
+
+  return `/v1/me/payout-settings`
+}
+
+/**
+ * @summary Ustawienia wypłat: wypłata tygodniowa
+ */
+export const patchPayoutSettings = async (payoutSettingsInputDto: PayoutSettingsInputDto, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutProfileDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PayoutProfileDto>(getPatchPayoutSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(payoutSettingsInputDto)
+  }
+);}
+
+
+
+
+
+export const getPatchPayoutSettingsMutationKey = () => ['patchPayoutSettings'] as const;
+
+export const getPatchPayoutSettingsMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchPayoutSettings>>, TError,PatchPayoutSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchPayoutSettings>>, TError,PatchPayoutSettingsMutationVariables, TContext> => {
+
+const mutationKey = getPatchPayoutSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchPayoutSettings>>, PatchPayoutSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  patchPayoutSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchPayoutSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof patchPayoutSettings>>>
+    export type PatchPayoutSettingsMutationBody = BodyType<PayoutSettingsInputDto>
+    export type PatchPayoutSettingsMutationError = ErrorType<ProblemDetails>
+    export type PatchPayoutSettingsMutationVariables = {data: BodyType<PayoutSettingsInputDto>}
+
+    /**
+ * @summary Ustawienia wypłat: wypłata tygodniowa
+ */
+export const usePatchPayoutSettings = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchPayoutSettings>>, TError,PatchPayoutSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof patchPayoutSettings>>,
+        TError,
+        PatchPayoutSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPatchPayoutSettingsMutationOptions(options), queryClient);
+    }
+    export const getRequestPayoutUrl = () => {
+
+
+
+
+  return `/v1/me/payouts`
+}
+
+/**
+ * Kwota domyślnie = całe saldo do wypłaty. 409 z kodem przyczyny: PAYOUT_PROFILE_INCOMPLETE, PAYOUTS_ON_HOLD, PAYOUTS_BLOCKED, RECEIVABLE_OUTSTANDING, INSUFFICIENT_BALANCE, PAYOUT_BELOW_MINIMUM, SELLER_NOT_VERIFIED.
+ * @summary Wypłata salda na rachunek (minimum 20 zł)
+ */
+export const requestPayout = async (requestPayoutDto: RequestPayoutDto, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PayoutDto>(getRequestPayoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(requestPayoutDto)
+  }
+);}
+
+
+
+
+
+export const getRequestPayoutMutationKey = () => ['requestPayout'] as const;
+
+export const getRequestPayoutMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPayout>>, TError,RequestPayoutMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestPayout>>, TError,RequestPayoutMutationVariables, TContext> => {
+
+const mutationKey = getRequestPayoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPayout>>, RequestPayoutMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestPayout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPayoutMutationResult = NonNullable<Awaited<ReturnType<typeof requestPayout>>>
+    export type RequestPayoutMutationBody = BodyType<RequestPayoutDto>
+    export type RequestPayoutMutationError = ErrorType<ProblemDetails>
+    export type RequestPayoutMutationVariables = {data: BodyType<RequestPayoutDto>}
+
+    /**
+ * @summary Wypłata salda na rachunek (minimum 20 zł)
+ */
+export const useRequestPayout = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPayout>>, TError,RequestPayoutMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestPayout>>,
+        TError,
+        RequestPayoutMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestPayoutMutationOptions(options), queryClient);
     }
     export const getGetMyNotificationsUrl = (params?: GetMyNotificationsParams,) => {
   const normalizedParams = new URLSearchParams();

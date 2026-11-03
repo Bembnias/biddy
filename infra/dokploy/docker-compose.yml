@@ -39,6 +39,7 @@ x-api-env: &api-env
   SEARCH_INDEX_PREFIX: biddy-${BIDDY_ENV:-staging}
   WEB_URL: ${WEB_URL:?podaj adres aplikacji web, np. https://staging.biddy.pl}
   BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?podaj sekret sesji (openssl rand -base64 32)}
+  DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?podaj klucz szyfrowania danych do wypłat (openssl rand -base64 32)}
   SENTRY_DSN: ${SENTRY_DSN:-}
   SENTRY_ENVIRONMENT: ${BIDDY_ENV:-staging}
   SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.2}

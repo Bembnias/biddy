@@ -1,5 +1,5 @@
 // Wartości słownikowe płatności (F-23, PROJECT.md §7.8): statusy, metody, powody porażki, statusy
-// sprzedawcy u operatora. Plik bez zależności runtime: czytają go tabele (*.schema.ts), które
+// sprzedawcy u operatora, powody nieudanych wypłat (F-27). Plik bez zależności runtime: czytają go tabele (*.schema.ts), które
 // ładuje też drizzle-kit.
 
 /** Operatorzy płatności, dla których przewidujemy adaptery (§7.6). */
@@ -56,6 +56,18 @@ export type RefundStatus = (typeof REFUND_STATUSES)[number];
  */
 export const FUND_RELEASE_STATUSES = ['PENDING', 'SUCCEEDED', 'NOT_REQUIRED'] as const;
 export type FundReleaseStatus = (typeof FUND_RELEASE_STATUSES)[number];
+
+/**
+ * Powód nieudanej wypłaty (F-27): odrzucona przez operatora (webhook PAYOUT_FAILED) albo
+ * odrzucona od razu przy zleceniu (błąd portu z tym samym kodem).
+ */
+export const PAYOUT_FAILURE_REASONS = [
+  'REJECTED',
+  'SELLER_NOT_VERIFIED',
+  'INSUFFICIENT_BALANCE',
+  'INVALID_REQUEST',
+] as const;
+export type PayoutFailureReason = (typeof PAYOUT_FAILURE_REASONS)[number];
 
 /** Status weryfikacji (KYC) sprzedawcy u operatora. */
 export const SELLER_STATUSES = ['PENDING', 'VERIFIED', 'REJECTED'] as const;

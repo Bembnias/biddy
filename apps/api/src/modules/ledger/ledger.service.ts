@@ -7,7 +7,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import { type CurrencyCode, DEFAULT_CURRENCY, type Money, money } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 
 import { type Database, DRIZZLE, type Transaction } from '../../infra/db/index.js';
 import * as ledgerTables from './db/ledger.schema.js';
@@ -70,6 +70,39 @@ export interface SellerBalances {
   /** Wypłaty zlecone, jeszcze niepotwierdzone przez operatora (`payouts_in_transit`). */
   readonly payoutsInTransit: Money;
 }
+
+/** Transakcja ledgera na saldzie sprzedającego (historia salda, F-27). */
+export interface SellerBalanceMovement {
+  readonly transactionId: string;
+  readonly type: LedgerTransactionType;
+  readonly orderId: string | null;
+  readonly payoutId: string | null;
+  readonly createdAt: Date;
+  /** Zmiana salda dostępnego: + uznanie, − obciążenie (np. zlecenie wypłaty). */
+  readonly available: Money;
+  /** Zmiana należności: + nowa należność, − spłata albo spisanie. */
+  readonly receivable: Money;
+}
+
+export interface SellerHistoryPage {
+  readonly items: readonly SellerBalanceMovement[];
+  /** ID ostatniej transakcji na stronie, gdy są starsze; undefined na końcu historii. */
+  readonly nextCursor: string | undefined;
+}
+
+/** Saldo dostępne sprzedającego bez sprzedaży od dawna (wypłata salda uśpionego, F-27). */
+export interface DormantSellerBalance {
+  readonly sellerId: string;
+  readonly available: Money;
+}
+
+/** Księgowania, które są sprzedażą (uznanie salda ceną zamówienia). */
+const SALE_TRANSACTION_TYPES: readonly LedgerTransactionType[] = [
+  'ORDER_COMPLETED',
+  'ORDER_PARTIALLY_REFUNDED',
+];
+
+const SELLER_BALANCE_CODES = ['seller_balance_available', 'seller_receivable'] as const;
 
 export interface ReverseLedgerTransactionInput {
   readonly transactionId: string;
@@ -244,6 +277,98 @@ export class LedgerService {
       receivable: money(totals.receivable, currency),
       payoutsInTransit: money(totals.payoutsInTransit, currency),
     };
+  }
+
+  /**
+   * Historia salda sprzedającego: transakcje, które zmieniły jego saldo dostępne albo należność,
+   * od najnowszej (ID UUIDv7 rosną z czasem). Kursor to ID ostatniej transakcji poprzedniej strony.
+   */
+  async sellerHistory(
+    sellerId: string,
+    options: { readonly before?: string; readonly limit: number; readonly currency?: CurrencyCode },
+  ): Promise<SellerHistoryPage> {
+    const currency = options.currency ?? DEFAULT_CURRENCY;
+    const available = sql<string>`coalesce(sum(${ledgerEntries.amount}) filter (where ${ledgerAccounts.code} = 'seller_balance_available'), 0)`;
+    const receivable = sql<string>`coalesce(sum(${ledgerEntries.amount}) filter (where ${ledgerAccounts.code} = 'seller_receivable'), 0)`;
+    const rows = await this.db
+      .select({
+        transactionId: ledgerTransactions.id,
+        type: ledgerTransactions.type,
+        orderId: ledgerTransactions.orderId,
+        payoutId: ledgerTransactions.payoutId,
+        createdAt: ledgerTransactions.createdAt,
+        available,
+        receivable,
+      })
+      .from(ledgerEntries)
+      .innerJoin(ledgerAccounts, eq(ledgerEntries.accountId, ledgerAccounts.id))
+      .innerJoin(ledgerTransactions, eq(ledgerEntries.transactionId, ledgerTransactions.id))
+      .where(
+        and(
+          eq(ledgerAccounts.sellerId, sellerId),
+          eq(ledgerAccounts.currency, currency),
+          inArray(ledgerAccounts.code, [...SELLER_BALANCE_CODES]),
+          options.before === undefined ? undefined : lt(ledgerTransactions.id, options.before),
+        ),
+      )
+      .groupBy(ledgerTransactions.id)
+      .orderBy(desc(ledgerTransactions.id))
+      .limit(options.limit + 1);
+    const items = rows.slice(0, options.limit).map((row) => ({
+      transactionId: row.transactionId,
+      type: row.type,
+      orderId: row.orderId,
+      payoutId: row.payoutId,
+      createdAt: row.createdAt,
+      available: money(normalBalance('seller_balance_available', Number(row.available)), currency),
+      receivable: money(normalBalance('seller_receivable', Number(row.receivable)), currency),
+    }));
+    return {
+      items,
+      nextCursor: rows.length > options.limit ? items.at(-1)?.transactionId : undefined,
+    };
+  }
+
+  /**
+   * Sprzedający z saldem dostępnym w przedziale (0, `below`), bez otwartych zamówień ze
+   * wstrzymanymi środkami i bez sprzedaży (`ORDER_COMPLETED`, `ORDER_PARTIALLY_REFUNDED`) od
+   * `inactiveSince` (§7.6: saldo poniżej minimum nie może utknąć).
+   */
+  async dormantSellerBalances(options: {
+    readonly below: Money;
+    readonly inactiveSince: Date;
+    readonly limit: number;
+    /** Kursor: sprzedający po tym ID (kolejność po ID). */
+    readonly after?: string;
+  }): Promise<DormantSellerBalance[]> {
+    const { currency } = options.below;
+    const rows = await this.db
+      .select({ sellerId: ledgerAccounts.sellerId, balance: ledgerAccounts.balance })
+      .from(ledgerAccounts)
+      .where(
+        and(
+          eq(ledgerAccounts.code, 'seller_balance_available'),
+          eq(ledgerAccounts.currency, currency),
+          options.after === undefined ? undefined : gt(ledgerAccounts.sellerId, options.after),
+          // Saldo zobowiązania jest ujemne: (0, below) po stronie normalnej.
+          lt(ledgerAccounts.balance, 0),
+          sql`${ledgerAccounts.balance} > ${-options.below.amount}`,
+          sql`not exists (select 1 from ledger_accounts held where held.seller_id = ${ledgerAccounts.sellerId} and held.code = 'buyer_funds_held' and held.balance <> 0)`,
+          sql`not exists (select 1 from ${ledgerEntries} join ${ledgerTransactions} on ${ledgerTransactions.id} = ${ledgerEntries.transactionId} where ${ledgerEntries.accountId} = ${ledgerAccounts.id} and ${inArray(ledgerTransactions.type, [...SALE_TRANSACTION_TYPES])} and ${ledgerTransactions.createdAt} >= ${options.inactiveSince})`,
+        ),
+      )
+      .orderBy(ledgerAccounts.sellerId)
+      .limit(options.limit);
+    return rows.flatMap((row) =>
+      row.sellerId === null
+        ? []
+        : [
+            {
+              sellerId: row.sellerId,
+              available: money(normalBalance('seller_balance_available', row.balance), currency),
+            },
+          ],
+    );
   }
 
   private async insertTransaction(

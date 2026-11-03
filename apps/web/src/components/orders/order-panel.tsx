@@ -175,6 +175,18 @@ function NowActions({ order }: { readonly order: Order }) {
       </Button>
     );
   }
+  // Pieniądze ze sprzedaży albo rekompensata są na saldzie (F-27).
+  if (
+    !buyer &&
+    (order.status === 'COMPLETED' ||
+      (order.status === 'LOST' && (order.compensation?.paidAt ?? null) !== null))
+  ) {
+    return (
+      <Button asChild variant="outline">
+        <Link href={routes.balance}>{t('actions.balance')}</Link>
+      </Button>
+    );
+  }
   if (buyer && order.actions.confirmReceipt) {
     return (
       <div className="space-y-3">

@@ -564,6 +564,26 @@ Zamówienie przechodzi od wygranej do zakończenia samo, według maszyny stanów
 - **Web:** `/zamowienia/{numer}` dla obu stron (stan, „Co teraz” z akcją, postęp, przesyłka z historią, podsumowanie, druga szansa); linki z Moje Biddy i z powiadomień.
 - **Lokalnie:** paczkę prowadzi automat FakeShipping (punkty `…-NOPICKUP` i `…-LOST`). Termin nadania czy okno 36 h skrócisz w bazie (`ship_by`, `inspection_ends_at`), a job zadziała w ciągu minuty.
 
+### Saldo i wypłaty (F-27)
+
+Sprzedający widzi swoje pieniądze i wypłaca je na rachunek (PROJECT.md §7.6–7.8, §16.1, §17). Spec: [F-27](docs/features/F-27-saldo-i-wyplaty.md).
+
+- **Dane do wypłat** (`seller_payout_profiles`, moduł `payments`): dane osobowe do DAC7 (PESEL albo NIP, data urodzenia, adres) i rachunek (polski IBAN).
+  - Oba bloki są szyfrowane AES-256-GCM kluczem `DATA_ENCRYPTION_KEY` (32 bajty w base64, na produkcji wymagany; lokalnie klucz deweloperski). Nie zmieniaj klucza po zapisaniu danych.
+  - API zwraca PESEL i rachunek tylko zamaskowane (`GET /v1/me/payout-profile`, `PUT …/personal-data`, `PUT …/bank-account`).
+  - Zmiana numeru rachunku wstrzymuje wypłaty na 48 h; każdy nowy numer wysyła powiadomienie w aplikacji i e-mailem.
+- **Wypłata na żądanie** (`POST /v1/me/payouts` z nagłówkiem `Idempotency-Key`, minimum 20 zł):
+  - warunki pod blokadą danych do wypłat; saldo zawsze z ledgera (`PAYOUT_REQUESTED`, ujemne saldo odrzuca baza, więc równoległe żądania nie wypłacą więcej niż saldo);
+  - konsument `payments.execute-payout` woła operatora (klucz `payout:{id}`), a wynik przychodzi webhookiem `PAYOUT_PAID` albo `PAYOUT_FAILED` (środki wracają na saldo);
+  - 409 z kodem przyczyny: brak danych, blokada po zmianie rachunku, blokada F-61, należność, brak środków, minimum, weryfikacja u operatora.
+- **Wypłaty automatyczne** (kolejka `payments`):
+  - `payments.weekly-payouts` w poniedziałki o 6:00: całe saldo ≥ 20 zł przy włączonej wypłacie tygodniowej (`PATCH /v1/me/payout-settings`);
+  - `payments.dormant-balances` codziennie o 4:00: saldo poniżej 20 zł bez sprzedaży od 90 dni i bez otwartych zamówień;
+  - `PayoutService.payOutOnClosure` przy zamknięciu konta (wywoła je F-41).
+- **Widok salda** (moduł `orders`): `GET /v1/me/balance` (do wypłaty, w trakcie, należność, wypłaty w drodze, powód blokady) i `GET /v1/me/balance/history?cursor=` (ruchy salda z ledgera, 20 na stronę).
+- **Web:** `/konto/saldo` (kafle, wypłata, wypłata tygodniowa, zamówienia w trakcie, historia) i `/konto/saldo/dane` (dane osobowe i rachunek); skrót na stronie konta i link przy zakończonym zamówieniu.
+- **Lokalnie:** FakeGateway potwierdza wypłatę webhookiem po `PAYMENTS_FAKE_WEBHOOK_DELAY_MS` (sprzedawca jest od razu zweryfikowany), a odrzucenie wypłaty wywołasz w panelu `/dev/fake-gateway`, zanim przyjdzie potwierdzenie. Harmonogramy jobów automatycznych widać w Bull Board (`pnpm dev:board`).
+
 ### Limity kont i strike'i (F-61)
 
 Poziomy kont, limity, strike'i i blokady z uzasadnieniem i odwołaniem (PROJECT.md §4.1). Spec: [F-61](docs/features/F-61-limity-i-strike.md).

@@ -7,6 +7,7 @@ import {
   ConfigError,
   DEFAULT_PRODUCTION_TRUST_PROXY,
   DEVELOPMENT_AUTH_SECRET,
+  DEVELOPMENT_DATA_ENCRYPTION_KEY,
   derivedSecret,
   fakeWebhookSecret,
   TURNSTILE_TEST_SECRET_KEY,
@@ -60,6 +61,7 @@ const production = {
   WEB_REVALIDATE_SECRET: 'revalidate-secret-0123456789-0123456789',
   MEILI_URL: 'https://ms-test.meilisearch.io',
   MEILI_API_KEY: 'meili-production-key-0123456789',
+  DATA_ENCRYPTION_KEY: 'cHJvZHVjdGlvbi1kYXRhLWtleS0wMTIzNDU2Nzg5YWI=',
   // Na produkcji operator jest wymagany, a FakeGateway zablokowany (F-23).
   PAYMENTS_DEFAULT_PROVIDER: 'payu',
   // Na produkcji dostawca przesyłek jest wymagany, a FakeShipping zablokowany (F-24).
@@ -145,6 +147,7 @@ describe('loadConfig: wartości domyślne', () => {
       web: { url: 'http://localhost:3000', revalidateSecret: undefined },
       payments: {
         defaultProvider: 'fake',
+        dataEncryptionKey: DEVELOPMENT_DATA_ENCRYPTION_KEY,
         fake: {
           enabled: true,
           webhookUrl: 'http://localhost:3001/v1/webhooks/payments/fake',
@@ -393,6 +396,17 @@ describe('loadConfig: płatności i środowisko wdrożenia (F-23)', () => {
     expect(config.payments.fake.enabled).toBe(false);
   });
 
+  it('klucz szyfrowania danych do wypłat (F-27): 32 bajty w base64, na produkcji z env', () => {
+    const config = loadConfig({ ...production, CORS_ORIGINS: 'https://biddy.pl' });
+    expect(config.payments.dataEncryptionKey).toBe(production.DATA_ENCRYPTION_KEY);
+    expect(loadConfig(minimal).payments.dataEncryptionKey).toBe(DEVELOPMENT_DATA_ENCRYPTION_KEY);
+    for (const key of ['krótki', Buffer.alloc(16).toString('base64'), `${'A'.repeat(43)}`]) {
+      expect(variablesWithIssues({ ...minimal, DATA_ENCRYPTION_KEY: key })).toEqual([
+        'DATA_ENCRYPTION_KEY',
+      ]);
+    }
+  });
+
   it('staging (DEPLOYMENT_ENV=staging) działa z FakeGateway i adresem webhooka z API_PUBLIC_URL', () => {
     const api = loadConfig(staging, 'api');
     expect(api.env).toBe('production');
@@ -622,7 +636,7 @@ describe('loadConfig: SMS-y (F-08)', () => {
 });
 
 describe('loadConfig: konta i e-maile (F-07)', () => {
-  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend, S3 i Meilisearch; worker Redisa cache, Resend, S3, Meilisearch, rewalidacji web i sekretu linków', () => {
+  it('na produkcji API wymaga sekretu, adresów, Turnstile, Redisa cache, Resend, S3, Meilisearch i klucza danych; worker Redisa cache, Resend, S3, Meilisearch, rewalidacji web, sekretu linków i klucza danych', () => {
     const missing = {
       ...minimal,
       NODE_ENV: 'production',
@@ -633,6 +647,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
       [
         'API_PUBLIC_URL',
         'BETTER_AUTH_SECRET',
+        'DATA_ENCRYPTION_KEY',
         'MEDIA_PUBLIC_URL',
         'MEILI_API_KEY',
         'MEILI_URL',
@@ -662,6 +677,7 @@ describe('loadConfig: konta i e-maile (F-07)', () => {
       'MEILI_API_KEY',
       'WEB_REVALIDATE_SECRET',
       'PAYMENTS_DEFAULT_PROVIDER',
+      'DATA_ENCRYPTION_KEY',
       'SHIPPING_DEFAULT_PROVIDER',
     ]);
   });

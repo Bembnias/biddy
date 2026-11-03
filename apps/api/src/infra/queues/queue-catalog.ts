@@ -71,7 +71,7 @@ export const QUEUE_DEFINITIONS = {
   },
   payments: {
     description:
-      'Płatności: polling zapasowy płatności w PENDING co minutę i symulator FakeGateway (rozliczenie z opóźnieniem, webhooki HTTP, F-23)',
+      'Płatności: polling zapasowy płatności w PENDING co minutę, symulator FakeGateway (rozliczenie z opóźnieniem, webhooki HTTP, F-23), wypłaty tygodniowe i sald uśpionych (F-27)',
     concurrency: 5,
   },
   shipping: {

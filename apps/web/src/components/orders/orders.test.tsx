@@ -91,6 +91,23 @@ describe('OrderPanel', () => {
     expect(screen.queryByRole('button', { name: 'Wszystko OK' })).toBeNull();
   });
 
+  it('sprzedający po zakończeniu: cena na saldzie i link do salda (F-27)', async () => {
+    mockApi({
+      [ORDER_PATH]: order({
+        status: 'COMPLETED',
+        role: 'SELLER',
+        counterpart: { name: 'Jan' },
+        completedAt: '2026-10-31T10:00:00.000Z',
+        actions: { confirmReceipt: false, reportNotReceived: null },
+      }),
+    });
+    render(<OrderPanel publicId={PUBLIC_ID} />, { wrapper: AppWrapper });
+    expect(await screen.findByText(/100,00\s?zł jest na Twoim saldzie\./)).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Saldo i wypłaty' }).getAttribute('href')).toBe(
+      '/konto/saldo',
+    );
+  });
+
   it('paczka w drodze: zgłoszenie braku paczki dopiero po 14 dniach, potem z potwierdzeniem', async () => {
     const shipped = order({
       status: 'SHIPPED',

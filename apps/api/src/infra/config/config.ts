@@ -284,6 +284,14 @@ export const envSchema = z.object({
   ).optional(),
   // Opóźnienie rozliczenia płatności i webhooka FakeGateway (symulacja potwierdzenia w banku).
   PAYMENTS_FAKE_WEBHOOK_DELAY_MS: integer(0, 600_000).optional(),
+  // Klucz szyfrowania danych do wypłat (F-27: DAC7, rachunek): 32 bajty w base64. Osobny od
+  // BETTER_AUTH_SECRET, bo jego zmiana nie może zniszczyć zapisanych danych.
+  DATA_ENCRYPTION_KEY: text()
+    .refine(
+      (value) => /^[A-Za-z0-9+/]{43}=$/u.test(value) && Buffer.from(value, 'base64').length === 32,
+      'oczekiwano 32 bajtów w base64 (openssl rand -base64 32)',
+    )
+    .optional(),
   // Dostawy (F-24): dostawca nowych przesyłek (adapter w ShippingProviderRegistry). Poza
   // produkcją domyślnie FakeShipping; na produkcji wymagany i różny od `fake`.
   SHIPPING_DEFAULT_PROVIDER: oneOf(SHIPPING_PROVIDER_NAMES).optional(),
@@ -340,6 +348,12 @@ export const TURNSTILE_TEST_SECRET_KEY = '1x0000000000000000000000000000000AA';
 
 /** Sekret sesji poza produkcją (lokalnie i w testach); na produkcji BETTER_AUTH_SECRET jest wymagany. */
 export const DEVELOPMENT_AUTH_SECRET = 'biddy-development-only-auth-secret-0123456789';
+
+/**
+ * Klucz szyfrowania danych do wypłat poza produkcją (lokalnie i w testach); na produkcji
+ * DATA_ENCRYPTION_KEY jest wymagany.
+ */
+export const DEVELOPMENT_DATA_ENCRYPTION_KEY = 'YmlkZHktZGV2ZWxvcG1lbnQtb25seS1kYXRhLWtleSE=';
 
 /** Operator testowy (F-23): działa tylko poza produkcją. */
 export const FAKE_PAYMENT_PROVIDER = 'fake';
@@ -507,6 +521,8 @@ export interface AppConfig {
   readonly payments: {
     /** Operator nowych płatności; GatewayRegistry musi mieć dla niego adapter. */
     readonly defaultProvider: string;
+    /** Klucz AES-256 danych do wypłat (DAC7, rachunek) w base64 (F-27). */
+    readonly dataEncryptionKey: string;
     /** FakeGateway (F-23, §7.8): adapter testowy, wyłączony na produkcji. */
     readonly fake: {
       readonly enabled: boolean;
@@ -655,6 +671,10 @@ function crossFieldIssues(
     ['MEDIA_PUBLIC_URL', 'publiczny adres kubełka media (CDN), np. https://media.biddy.pl'],
     ['MEILI_URL', 'adres Meilisearch (wyszukiwarka), np. https://ms-xxxx.meilisearch.io'],
     ['MEILI_API_KEY', 'klucz API Meilisearch z uprawnieniami do indeksu aukcji'],
+    [
+      'DATA_ENCRYPTION_KEY',
+      'klucz szyfrowania danych do wypłat (DAC7, rachunek), np. openssl rand -base64 32; nie zmieniaj go po zapisaniu danych',
+    ],
   ];
   if (role === 'api') {
     required.push(
@@ -961,6 +981,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     payments: {
       // Na produkcji paymentIssues wymaga zmiennej, więc `fake` zostaje tylko poza nią.
       defaultProvider: vars.PAYMENTS_DEFAULT_PROVIDER ?? FAKE_PAYMENT_PROVIDER,
+      dataEncryptionKey: vars.DATA_ENCRYPTION_KEY ?? DEVELOPMENT_DATA_ENCRYPTION_KEY,
       fake: {
         enabled: deployment !== 'production',
         webhookUrl: vars.PAYMENTS_FAKE_WEBHOOK_URL ?? `${apiUrl}${FAKE_PAYMENTS_WEBHOOK_PATH}`,

@@ -39,6 +39,7 @@ ENV_ARGS=(
   -e WEB_REVALIDATE_SECRET=smoke-test-revalidate-0123456789-0123456789
   -e MEILI_URL=https://smoke-test.meilisearch.invalid
   -e MEILI_API_KEY=smoke-test-meili-key
+  -e DATA_ENCRYPTION_KEY=c21va2UtdGVzdC1kYXRhLWtleS0wMTIzNDU2Nzg5YWI=
   -e RENDER_GIT_COMMIT="${GITHUB_SHA:-smoke}"
 )
 PUBLISH=()

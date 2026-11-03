@@ -800,6 +800,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-27 · Saldo i wypłaty · `M`
 
+> Pełny spec: [docs/features/F-27-saldo-i-wyplaty.md](features/F-27-saldo-i-wyplaty.md).
+
 **Cel:** sprzedający widzi swoje pieniądze i wypłaca je, kiedy chce.
 
 **Zakres:**

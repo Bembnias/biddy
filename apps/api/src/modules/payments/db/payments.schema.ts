@@ -1,17 +1,27 @@
 // Tabele modułu payments: cenniki POK (F-13), płatności u operatora, konta sprzedawców
-// u operatora i idempotencja webhooków (F-23), zwroty (F-25), zwolnienia środków (F-26); wypłaty
-// i chargebacki dojdą w F-27 i F-28 (PROJECT.md §7.8). ID to UUIDv7 nadawane przez aplikację (ADR-10). Tabele FakeGateway są
-// w fake-gateway.schema.ts.
+// u operatora i idempotencja webhooków (F-23), zwroty (F-25), zwolnienia środków (F-26), dane do
+// wypłat i wypłaty (F-27); chargebacki dojdą w F-28 (PROJECT.md §7.8). ID to UUIDv7 nadawane
+// przez aplikację (ADR-10). Tabele FakeGateway są w fake-gateway.schema.ts.
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts). Ograniczenie
 // wykluczające nakładanie się okresów i trigger niezmienności cenników są w migracji
 // 0008_fee_schedules (Drizzle ich nie opisuje).
-import type { CurrencyCode, FeeTier, Money } from '@biddy/shared';
+import {
+  type CurrencyCode,
+  type FeeTier,
+  type Money,
+  PAYOUT_STATUSES,
+  PAYOUT_TRIGGERS,
+  type PayoutStatus,
+  type PayoutTrigger,
+} from '@biddy/shared';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
+  boolean,
   char,
   check,
+  customType,
   index,
   integer,
   jsonb,
@@ -30,9 +40,11 @@ import {
   PAYMENT_FAILURE_REASONS,
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
+  PAYOUT_FAILURE_REASONS,
   type PaymentFailureReason,
   type PaymentMethodType,
   type PaymentStatus,
+  type PayoutFailureReason,
   REFUND_REASONS,
   REFUND_STATUSES,
   type RefundReason,
@@ -47,6 +59,7 @@ import {
 } from '../domain/payment-values.js';
 
 const money = () => bigint({ mode: 'number' });
+const bytea = customType<{ data: Buffer }>({ dataType: () => 'bytea' });
 
 /**
  * Wersje cennika POK (§3.1). Wiersz jest niezmienny: wolno tylko zamknąć otwarty cennik
@@ -269,6 +282,101 @@ export const sellerAccounts = pgTable(
 );
 
 export type SellerAccountRow = typeof sellerAccounts.$inferSelect;
+
+/**
+ * Dane do wypłat sprzedającego (F-27), niezależne od operatora: dane osobowe do DAC7 i rachunek,
+ * oba zaszyfrowane (DataCipher, kontekst z ID użytkownika), wypłata tygodniowa i blokada wypłat
+ * po zmianie rachunku. Wiersz blokujemy przy zleceniu wypłaty, więc zlecenia jednego
+ * sprzedającego idą po kolei.
+ */
+export const sellerPayoutProfiles = pgTable(
+  'seller_payout_profiles',
+  {
+    /** Sprzedający (moduł identity; uuid bez FK). */
+    userId: uuid().primaryKey(),
+    /** Zaszyfrowany JSON `PersonalData` (imię, nazwisko, data urodzenia, adres, PESEL/NIP). */
+    personalData: bytea(),
+    personalDataUpdatedAt: timestamp({ withTimezone: true }),
+    /** Zaszyfrowany JSON `{ iban, holderName }`. */
+    bankAccount: bytea(),
+    /** Rachunek do wyświetlania, np. `•••• 2874`. */
+    bankAccountMasked: text(),
+    bankAccountChangedAt: timestamp({ withTimezone: true }),
+    /** Koniec blokady wypłat po zmianie rachunku (48 h, §16.1). */
+    payoutsBlockedUntil: timestamp({ withTimezone: true }),
+    weeklyPayouts: boolean().notNull().default(false),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('seller_payout_profiles_weekly')
+      .on(table.userId)
+      .where(sql`${table.weeklyPayouts}`),
+    check(
+      'seller_payout_profiles_personal_data_check',
+      sql`(${table.personalData} is null) = (${table.personalDataUpdatedAt} is null)`,
+    ),
+    check(
+      'seller_payout_profiles_bank_account_check',
+      sql`(${table.bankAccount} is null) = (${table.bankAccountMasked} is null) and (${table.bankAccount} is null) = (${table.bankAccountChangedAt} is null)`,
+    ),
+  ],
+);
+
+export type SellerPayoutProfileRow = typeof sellerPayoutProfiles.$inferSelect;
+
+/**
+ * Wypłata z salda sprzedającego (F-27, §7.6). Wiersz powstaje w transakcji z księgowaniem
+ * PAYOUT_REQUESTED (saldo dostępne → wypłaty w drodze), operatora woła konsument eventu
+ * PayoutRequested z kluczem `payout:{id}`, a wynik przychodzi webhookiem PAYOUT_PAID albo
+ * PAYOUT_FAILED (`PENDING → PAID | FAILED`).
+ */
+export const payouts = pgTable(
+  'payouts',
+  {
+    id: idColumn(),
+    /** Sprzedający (moduł identity; uuid bez FK). */
+    sellerId: uuid().notNull(),
+    provider: text().notNull(),
+    /** ID wypłaty u operatora; null do czasu jego odpowiedzi. */
+    providerPayoutId: text(),
+    currency: char({ length: 3 }).$type<CurrencyCode>().notNull(),
+    amount: money().notNull(),
+    trigger: text().$type<PayoutTrigger>().notNull(),
+    status: text().$type<PayoutStatus>().notNull().default('PENDING'),
+    failureReason: text().$type<PayoutFailureReason>(),
+    /** Rachunek w chwili zlecenia (maskowany), np. `•••• 2874`. */
+    bankAccountMasked: text().notNull(),
+    /** Klucz zlecenia, np. `manual:{userId}:{Idempotency-Key}`, `weekly:{userId}:2026-W45`. */
+    idempotencyKey: text().notNull(),
+    paidAt: timestamp({ withTimezone: true }),
+    failedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('payouts_idempotency_key').on(table.idempotencyKey),
+    uniqueIndex('payouts_provider_payout_id').on(table.provider, table.providerPayoutId),
+    index().on(table.sellerId, table.createdAt),
+    check('payouts_amount_check', sql`${table.amount} > 0`),
+    check('payouts_trigger_check', sql.raw(`trigger in (${sqlList(PAYOUT_TRIGGERS)})`)),
+    check('payouts_status_check', sql.raw(`status in (${sqlList(PAYOUT_STATUSES)})`)),
+    check(
+      'payouts_failure_reason_check',
+      sql.raw(
+        `(status = 'FAILED') = (failure_reason is not null) and (failure_reason is null or failure_reason in (${sqlList(PAYOUT_FAILURE_REASONS)}))`,
+      ),
+    ),
+    check('payouts_paid_at_check', sql`(${table.status} = 'PAID') = (${table.paidAt} is not null)`),
+    check(
+      'payouts_failed_at_check',
+      sql`(${table.status} = 'FAILED') = (${table.failedAt} is not null)`,
+    ),
+    check('payouts_idempotency_key_check', sql`length(${table.idempotencyKey}) between 1 and 200`),
+  ],
+);
+
+export type PayoutRow = typeof payouts.$inferSelect;
 
 /**
  * Idempotencja webhooków (§7.8): wpis i obsługa zdarzenia to jedna transakcja, więc to samo

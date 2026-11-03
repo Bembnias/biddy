@@ -320,8 +320,11 @@
         "editProfile": "Imię wyświetlane i zdjęcie",
         "addresses": "Dostawa i nadanie paczek",
         "notifications": "E-maile o przebiciu i końcu aukcji",
-        "standing": "Poziom konta, limity i odwołania"
-      }
+        "standing": "Poziom konta, limity i odwołania",
+        "balance": "Pieniądze ze sprzedaży i wypłaty na rachunek"
+      },
+      "balance": "Saldo i wypłaty",
+      "balanceAvailable": "Do wypłaty: {amount}"
     },
     "panel": {
       "tagline": "Second-hand na żywo: oglądaj, licytuj, kupuj i sprzedawaj.",
@@ -1086,6 +1089,9 @@
         "ORDER_REFUNDED": "Zwrot pieniędzy",
         "SECOND_CHANCE_OFFER": "Oferta drugiej szansy",
         "SECOND_CHANCE_ANSWERED": "Odpowiedź na ofertę drugiej szansy",
+        "PAYOUT_PAID": "Wysłana wypłata",
+        "PAYOUT_FAILED": "Nieudana wypłata",
+        "PAYOUT_ACCOUNT_CHANGED": "Zmiana rachunku do wypłat",
         "STRIKE_ISSUED": "Nowy strike",
         "STRIKE_REVOKED": "Cofnięty strike",
         "ACCOUNT_BLOCKED": "Blokada konta",
@@ -1096,6 +1102,7 @@
         "bidding": "Licytacje",
         "buying": "Zakupy",
         "selling": "Sprzedaż",
+        "payouts": "Saldo i wypłaty",
         "following": "Obserwowani sprzedawcy",
         "account": "Konto: strike'i, blokady i odwołania"
       },
@@ -1732,6 +1739,7 @@
     "actions": {
       "pay": "Zapłać",
       "ship": "Nadaj paczkę",
+      "balance": "Saldo i wypłaty",
       "confirm": "Wszystko OK",
       "help": "Napisz do pomocy",
       "relist": "Wystaw ponownie"
@@ -1830,5 +1838,138 @@
     "error": "Nie udało się wczytać oferty.",
     "retry": "Spróbuj ponownie",
     "actionError": "Nie udało się. Spróbuj ponownie."
+  },
+  "balance": {
+    "metaTitle": "Saldo i wypłaty",
+    "title": "Saldo i wypłaty",
+    "lead": "Pieniądze ze sprzedaży trafiają na saldo, gdy zamówienie się zakończy. Stąd wypłacisz je na swój rachunek.",
+    "back": "Konto",
+    "loading": "Wczytujemy saldo…",
+    "error": "Nie udało się wczytać salda.",
+    "retry": "Spróbuj ponownie",
+    "tiles": {
+      "label": "Salda",
+      "available": "Do wypłaty",
+      "inProgress": "W trakcie",
+      "inProgressHint": "Trafi na saldo po zakończeniu zamówień.",
+      "inTransit": "Wypłaty w drodze",
+      "inTransitHint": "Dotrą zwykle w 1–2 dni robocze.",
+      "receivable": "Do spłaty",
+      "receivableHint": "Spłacimy to z kolejnych sprzedaży. Do tego czasu wypłaty są wstrzymane."
+    },
+    "payout": {
+      "title": "Wypłata",
+      "completeProfile": "Uzupełnij dane",
+      "amount": "Kwota wypłaty",
+      "amountHint": "Od {minimum} do {available}.",
+      "submit": "Wypłać {amount}",
+      "submitPlain": "Wypłać",
+      "pending": "Zlecamy wypłatę…",
+      "account": "Na rachunek {account}",
+      "changeAccount": "Zmień",
+      "requested": "Zleciliśmy wypłatę {amount}. Pieniądze dotrą zwykle w 1–2 dni robocze.",
+      "amountInvalid": "Podaj kwotę w złotych, np. 25,50.",
+      "amountTooLow": "Minimalna wypłata to {minimum}.",
+      "amountTooHigh": "Możesz wypłacić najwyżej {available}.",
+      "standingLink": "Szczegóły i odwołanie",
+      "blockers": {
+        "PAYOUTS_BLOCKED": "Masz blokadę wypłat do {date}.",
+        "PAYOUTS_BLOCKED_FOREVER": "Masz bezterminową blokadę wypłat.",
+        "PAYOUT_PROFILE_INCOMPLETE": "Żeby wypłacić pieniądze, podaj dane do wypłat. Wymagają ich przepisy podatkowe (DAC7).",
+        "PAYOUTS_ON_HOLD": "Po zmianie rachunku wypłaty ruszą {date}.",
+        "RECEIVABLE_OUTSTANDING": "Masz {amount} do spłaty. Spłacimy to z kolejnych sprzedaży, a potem wypłaty ruszą.",
+        "SELLER_NOT_VERIFIED": "Wypłata wymaga weryfikacji tożsamości u operatora płatności.",
+        "INSUFFICIENT_BALANCE": "Nie masz jeszcze środków do wypłaty. Pieniądze ze sprzedaży trafią tu po zakończeniu zamówienia.",
+        "PAYOUT_BELOW_MINIMUM": "Minimalna wypłata to {minimum}. Mniejsze saldo wypłacimy automatycznie po 90 dniach bez sprzedaży."
+      }
+    },
+    "weekly": {
+      "label": "Wypłata co tydzień",
+      "hint": "W każdy poniedziałek wypłacimy całe saldo, jeśli ma co najmniej {minimum}.",
+      "error": "Nie udało się zapisać ustawienia. Spróbuj ponownie."
+    },
+    "inProgress": {
+      "title": "W trakcie",
+      "empty": "Nie masz teraz otwartych zamówień."
+    },
+    "history": {
+      "title": "Historia",
+      "empty": "Tu zobaczysz sprzedaże i wypłaty.",
+      "more": "Pokaż starsze",
+      "loading": "Wczytujemy historię…",
+      "error": "Nie udało się wczytać historii.",
+      "order": "{label} · {title}",
+      "types": {
+        "ORDER_COMPLETED": "Sprzedaż",
+        "ORDER_PARTIALLY_REFUNDED": "Sprzedaż z częściowym zwrotem",
+        "PAYOUT_REQUESTED": "Wypłata na {account}",
+        "PAYOUT_FAILED": "Zwrot nieudanej wypłaty",
+        "DISPUTE_COSTS_CHARGED": "Koszty sporu",
+        "CHARGEBACK_CHARGED_TO_SELLER": "Obciążenie po reklamacji płatności",
+        "PARCEL_COMPENSATION_PAID": "Rekompensata za zaginioną paczkę",
+        "RECEIVABLE_WRITTEN_OFF": "Umorzenie należności",
+        "REVERSAL": "Korekta",
+        "OTHER": "Zmiana salda"
+      },
+      "receivable": "należność {amount}",
+      "payoutStatus": {
+        "PENDING": "W drodze",
+        "PAID": "Wysłana",
+        "FAILED": "Nieudana"
+      }
+    }
+  },
+  "payoutProfile": {
+    "metaTitle": "Dane do wypłat",
+    "title": "Dane do wypłat",
+    "lead": "Te dane są potrzebne do wypłat i raportu dla urzędu skarbowego (DAC7). Szyfrujemy je i nie pokazujemy innym.",
+    "back": "Saldo i wypłaty",
+    "loading": "Wczytujemy dane…",
+    "error": "Nie udało się wczytać danych do wypłat.",
+    "retry": "Spróbuj ponownie",
+    "saved": "Zapisano.",
+    "personal": {
+      "title": "Dane osobowe",
+      "firstName": "Imię",
+      "lastName": "Nazwisko",
+      "birthDate": "Data urodzenia",
+      "taxIdKind": "Identyfikator podatkowy",
+      "PESEL": "PESEL",
+      "NIP": "NIP",
+      "peselHint": "Osoba prywatna podaje PESEL, a osoba z działalnością NIP.",
+      "taxIdSaved": "Zapisany numer: {masked}. Przy zmianie danych podaj go ponownie.",
+      "street": "Ulica i numer",
+      "postalCode": "Kod pocztowy",
+      "city": "Miejscowość",
+      "country": "Kraj",
+      "countryValue": "Polska",
+      "submit": "Zapisz dane",
+      "pending": "Zapisujemy…"
+    },
+    "bank": {
+      "title": "Rachunek do wypłat",
+      "current": "Obecny rachunek: {account}, {holder}.",
+      "iban": "Numer rachunku",
+      "ibanHint": "26 cyfr, polski rachunek.",
+      "holderName": "Właściciel rachunku",
+      "changeWarning": "Po zmianie numeru rachunku wypłaty będą wstrzymane przez 48 godzin.",
+      "submit": "Zapisz rachunek",
+      "pending": "Zapisujemy…",
+      "hold": "Wypłaty ruszą {date}."
+    },
+    "validation": {
+      "firstName": "Podaj imię (1–100 znaków).",
+      "lastName": "Podaj nazwisko (1–100 znaków).",
+      "birthDate": "Podaj datę urodzenia.",
+      "adult": "Wypłaty są dostępne od 18 lat.",
+      "PESEL": "Podaj poprawny numer PESEL (11 cyfr).",
+      "NIP": "Podaj poprawny NIP (10 cyfr).",
+      "peselBirthDate": "Data urodzenia nie zgadza się z numerem PESEL.",
+      "street": "Podaj ulicę z numerem (2–100 znaków).",
+      "postalCode": "Podaj kod pocztowy w formacie 00-000.",
+      "city": "Podaj miejscowość (2–60 znaków).",
+      "iban": "Podaj polski numer rachunku: 26 cyfr.",
+      "holderName": "Podaj właściciela rachunku (2–100 znaków)."
+    }
   }
 }

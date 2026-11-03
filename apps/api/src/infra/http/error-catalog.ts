@@ -271,6 +271,41 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Oferta nieaktualna',
     detail: 'Ta oferta jest już nieaktualna.',
   },
+  PAYOUT_PROFILE_INCOMPLETE: {
+    status: 409,
+    title: 'Brak danych do wypłat',
+    detail: 'Uzupełnij dane osobowe i rachunek do wypłat.',
+  },
+  PAYOUTS_ON_HOLD: {
+    status: 409,
+    title: 'Wypłaty wstrzymane',
+    detail: 'Po zmianie rachunku wypłaty są wstrzymane przez 48 godzin.',
+  },
+  PAYOUTS_BLOCKED: {
+    status: 409,
+    title: 'Blokada wypłat',
+    detail: 'Masz blokadę wypłat. Szczegóły i odwołanie znajdziesz w koncie.',
+  },
+  SELLER_NOT_VERIFIED: {
+    status: 409,
+    title: 'Wymagana weryfikacja',
+    detail: 'Wypłata wymaga weryfikacji tożsamości u operatora płatności.',
+  },
+  RECEIVABLE_OUTSTANDING: {
+    status: 409,
+    title: 'Należność do spłaty',
+    detail: 'Masz należność wobec Biddy. Wypłaty ruszą po jej spłacie z kolejnych sprzedaży.',
+  },
+  INSUFFICIENT_BALANCE: {
+    status: 409,
+    title: 'Za mało środków',
+    detail: 'Kwota wypłaty jest większa niż saldo do wypłaty.',
+  },
+  PAYOUT_BELOW_MINIMUM: {
+    status: 409,
+    title: 'Za mała kwota',
+    detail: 'Minimalna wypłata to 20 zł.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

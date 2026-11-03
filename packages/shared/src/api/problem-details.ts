@@ -126,6 +126,23 @@ export const ERROR_CODES = {
   SECOND_CHANCE_UNAVAILABLE: 'SECOND_CHANCE_UNAVAILABLE',
   /** Oferta drugiej szansy jest już przyjęta, odrzucona albo wygasła (F-26). */
   SECOND_CHANCE_CLOSED: 'SECOND_CHANCE_CLOSED',
+  /** Brak danych do wypłat: danych osobowych (DAC7) albo rachunku (F-27). */
+  PAYOUT_PROFILE_INCOMPLETE: 'PAYOUT_PROFILE_INCOMPLETE',
+  /** Wypłaty wstrzymane na 48 h po zmianie rachunku (`blockedUntil`, F-27). */
+  PAYOUTS_ON_HOLD: 'PAYOUTS_ON_HOLD',
+  /**
+   * Aktywna blokada wypłat (F-61, np. potwierdzona podróbka): `blockedUntil` (null =
+   * bezterminowa) i `blockId` w odpowiedzi (F-27).
+   */
+  PAYOUTS_BLOCKED: 'PAYOUTS_BLOCKED',
+  /** Wypłata wymaga zweryfikowanego konta u operatora płatności (KYC, F-27, F-32). */
+  SELLER_NOT_VERIFIED: 'SELLER_NOT_VERIFIED',
+  /** Sprzedający ma należność wobec Biddy: wypłaty do jej spłaty są wstrzymane (F-27). */
+  RECEIVABLE_OUTSTANDING: 'RECEIVABLE_OUTSTANDING',
+  /** Kwota wypłaty większa niż saldo dostępne w ledgerze (F-27). */
+  INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
+  /** Kwota wypłaty poniżej minimum 20 zł (F-27). */
+  PAYOUT_BELOW_MINIMUM: 'PAYOUT_BELOW_MINIMUM',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

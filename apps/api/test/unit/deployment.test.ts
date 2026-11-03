@@ -194,12 +194,16 @@ const requiredVariables = new Set(references.filter((ref) => ref.required).map((
  * może go zastąpić SMS_LOG_ONLY=true), ale konfiguracja API wymaga go przy SMS_LOG_ONLY=false.
  */
 const requiredByConfig = new Set([...requiredVariables, 'SMSAPI_TOKEN']);
+/** Przykładowe sekrety o wymaganym formacie (klucz danych do wypłat: 32 bajty w base64, F-27). */
+const EXAMPLE_SECRETS: Readonly<Record<string, string>> = {
+  DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+};
 /** Zmienne stosu jak w szablonie; puste wymagane (sekrety) dostają przykładową wartość. */
 const stackVariables: Record<string, string> = Object.fromEntries(
   Object.entries(envExample).map(([name, value]) => [
     name,
     value === '' && requiredByConfig.has(name)
-      ? `przykladowa-wartosc-${name.toLowerCase()}-0123456789`
+      ? (EXAMPLE_SECRETS[name] ?? `przykladowa-wartosc-${name.toLowerCase()}-0123456789`)
       : value,
   ]),
 );

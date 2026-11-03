@@ -11,11 +11,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   Ban,
   BadgeCheck,
+  Banknote,
   BellRing,
   CircleCheck,
   CircleX,
   Clock,
   Gift,
+  Landmark,
   Lock,
   type LucideIcon,
   Package,
@@ -40,9 +42,9 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
-/** Grupy ustawień (F-63): licytacje, zakupy, sprzedaż, obserwowani sprzedawcy i konto. */
+/** Grupy ustawień (F-63): licytacje, zakupy, sprzedaż, wypłaty, obserwowani sprzedawcy i konto. */
 const GROUPS: readonly {
-  readonly key: 'bidding' | 'buying' | 'selling' | 'following' | 'account';
+  readonly key: 'bidding' | 'buying' | 'selling' | 'payouts' | 'following' | 'account';
   readonly types: readonly NotificationType[];
 }[] = [
   {
@@ -67,6 +69,7 @@ const GROUPS: readonly {
       'UNSOLD',
     ],
   },
+  { key: 'payouts', types: ['PAYOUT_PAID', 'PAYOUT_FAILED', 'PAYOUT_ACCOUNT_CHANGED'] },
   { key: 'following', types: ['FOLLOWED_SELLER_NEW_AUCTION'] },
   {
     key: 'account',
@@ -102,6 +105,9 @@ const TYPE_TILES: Record<
   ORDER_REFUNDED: { tone: 'neutral', Icon: Undo2 },
   SECOND_CHANCE_OFFER: { tone: 'brand', Icon: Gift },
   SECOND_CHANCE_ANSWERED: { tone: 'neutral', Icon: Gift },
+  PAYOUT_PAID: { tone: 'success', Icon: Banknote },
+  PAYOUT_FAILED: { tone: 'neutral', Icon: TriangleAlert },
+  PAYOUT_ACCOUNT_CHANGED: { tone: 'neutral', Icon: Landmark },
   UNSOLD: { tone: 'danger', Icon: CircleX },
   FOLLOWED_SELLER_NEW_AUCTION: { tone: 'neutral', Icon: Store },
   STRIKE_ISSUED: { tone: 'neutral', Icon: ShieldAlert },

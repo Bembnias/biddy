@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 
+import { LedgerModule } from '../ledger/index.js';
 import { PaymentsModule } from '../payments/index.js';
 import { ShippingModule } from '../shipping/index.js';
+import { SellerBalanceController } from './balance/seller-balance.controller.js';
+import { SellerBalanceService } from './balance/seller-balance.service.js';
 import { CheckoutController } from './checkout/checkout.controller.js';
 import { CheckoutService } from './checkout/checkout.service.js';
 import { OrderPaymentLifecycle } from './checkout/order-payment-lifecycle.js';
@@ -18,15 +21,17 @@ import { SecondChanceService } from './second-chance/second-chance.service.js';
  * Moduł domenowy `orders` (PROJECT.md §10.3): zamówienia ze sprzedanych aukcji (F-16), dostawa
  * zamówienia i „Nadaj” (F-24), checkout z opłaceniem i anulowaniem nieopłaconych (F-25),
  * historia zamówień i strike'i w stanie konta (F-61), cykl życia z terminami, widok zamówienia
- * i oferty drugiej szansy (F-26). Publiczne API: ./index.ts.
+ * i oferty drugiej szansy (F-26), widok salda sprzedającego z historią (F-27). Publiczne API:
+ * ./index.ts.
  */
 @Module({
-  imports: [PaymentsModule, ShippingModule],
+  imports: [LedgerModule, PaymentsModule, ShippingModule],
   controllers: [
     OrdersController,
     OrderShippingController,
     CheckoutController,
     SecondChanceController,
+    SellerBalanceController,
   ],
   providers: [
     OrderService,
@@ -36,6 +41,7 @@ import { SecondChanceService } from './second-chance/second-chance.service.js';
     OrderLifecycle,
     OrderDetailsService,
     SecondChanceService,
+    SellerBalanceService,
   ],
   exports: [OrderService],
 })

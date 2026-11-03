@@ -21,6 +21,9 @@ export const NOTIFICATION_TYPES = [
   'ORDER_REFUNDED',
   'SECOND_CHANCE_OFFER',
   'SECOND_CHANCE_ANSWERED',
+  'PAYOUT_PAID',
+  'PAYOUT_FAILED',
+  'PAYOUT_ACCOUNT_CHANGED',
   'STRIKE_ISSUED',
   'STRIKE_REVOKED',
   'ACCOUNT_BLOCKED',
@@ -37,8 +40,8 @@ export type NotificationChannel = (typeof NOTIFICATION_CHANNELS)[number];
 
 /**
  * E-mail per typ: domyślnie włączony i czy użytkownik może go wyłączyć. Wygrana, sprzedaż,
- * opłacone zamówienie (F-24: „nadaj paczkę”) i każdy etap zamówienia z drugą szansą (F-26) to
- * e-maile transakcyjne (terminy, pieniądze, wysyłka), a strike'i, blokady i odwołania (F-61) to
+ * opłacone zamówienie (F-24: „nadaj paczkę”), każdy etap zamówienia z drugą szansą (F-26)
+ * i wypłaty ze zmianą rachunku (F-27) to e-maile transakcyjne (terminy, pieniądze, wysyłka), a strike'i, blokady i odwołania (F-61) to
  * uzasadnienia decyzji (DSA), więc wychodzą zawsze.
  */
 export const NOTIFICATION_EMAIL: Readonly<
@@ -63,6 +66,9 @@ export const NOTIFICATION_EMAIL: Readonly<
   ORDER_REFUNDED: { enabledByDefault: true, configurable: false },
   SECOND_CHANCE_OFFER: { enabledByDefault: true, configurable: false },
   SECOND_CHANCE_ANSWERED: { enabledByDefault: true, configurable: false },
+  PAYOUT_PAID: { enabledByDefault: true, configurable: false },
+  PAYOUT_FAILED: { enabledByDefault: true, configurable: false },
+  PAYOUT_ACCOUNT_CHANGED: { enabledByDefault: true, configurable: false },
   STRIKE_ISSUED: { enabledByDefault: true, configurable: false },
   STRIKE_REVOKED: { enabledByDefault: true, configurable: false },
   ACCOUNT_BLOCKED: { enabledByDefault: true, configurable: false },

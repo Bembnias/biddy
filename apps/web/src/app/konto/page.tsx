@@ -1,4 +1,5 @@
 import {
+  Banknote,
   Bell,
   ChevronRight,
   CircleCheck,
@@ -14,7 +15,8 @@ import {
   TriangleAlert,
   UserRound,
 } from 'lucide-react';
-import { getMyStanding } from '@biddy/api-client';
+import { getMyBalance, getMyStanding } from '@biddy/api-client';
+import { formatMoney, money } from '@biddy/shared';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
@@ -56,6 +58,15 @@ async function hasActiveBlock(): Promise<boolean> {
   }
 }
 
+/** Saldo do wypłaty (F-27) w opisie skrótu; błąd API nie blokuje strony konta. */
+async function availableBalance(): Promise<number | undefined> {
+  try {
+    return (await getMyBalance(await withSessionCookies())).available;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Moje konto (F-10, układ F-63) renderowane na serwerze z sesją z ciasteczka (SSR); bez sesji
  * przekierowanie na logowanie. Karta konta z e-mailem i telefonem, skróty z opisami
@@ -63,7 +74,11 @@ async function hasActiveBlock(): Promise<boolean> {
  */
 export default async function AccountPage() {
   const me = await loadMeOrRedirect(routes.account);
-  const [t, blocked] = await Promise.all([getTranslations('auth.account'), hasActiveBlock()]);
+  const [t, blocked, available] = await Promise.all([
+    getTranslations('auth.account'),
+    hasActiveBlock(),
+    availableBalance(),
+  ]);
   const selling: Shortcut[] = [
     {
       href: routes.myBiddy,
@@ -78,6 +93,18 @@ export default async function AccountPage() {
       description: t('shortcuts.myAuctions'),
       Icon: Store,
       tone: 'warning',
+    },
+    {
+      href: routes.balance,
+      label: t('balance'),
+      description:
+        available === undefined || available === 0
+          ? t('shortcuts.balance')
+          : t('balanceAvailable', {
+              amount: formatMoney(money(available), { trailingZeroDisplay: 'stripIfInteger' }),
+            }),
+      Icon: Banknote,
+      tone: 'success',
     },
     {
       href: routes.sell,

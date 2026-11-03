@@ -26,11 +26,26 @@ export interface AccountRef {
   readonly subject?: 'STRIKE' | 'BLOCK';
 }
 
+/** Wypłata albo zmiana rachunku w migawce powiadomienia (F-27). */
+export interface PayoutRef {
+  /** Kwota wypłaty; brak przy zmianie rachunku. */
+  readonly amount?: Money;
+  /** Rachunek, np. `•••• 2874`; brak przy nieudanej wypłacie. */
+  readonly bankAccountMasked?: string;
+  readonly trigger?: 'MANUAL' | 'WEEKLY' | 'DORMANT_BALANCE' | 'ACCOUNT_CLOSURE';
+  readonly failureReason?:
+    'REJECTED' | 'SELLER_NOT_VERIFIED' | 'INSUFFICIENT_BALANCE' | 'INVALID_REQUEST';
+  /** Zmiana rachunku: pierwszy rachunek i koniec blokady wypłat (null = bez blokady). */
+  readonly first?: boolean;
+  readonly blockedUntil?: string | null;
+}
+
 /** Migawka zapisana w `notifications.payload` (pola zależne od typu). */
 export interface NotificationPayload {
-  /** Aukcja; brak w powiadomieniach o koncie (F-61). */
+  /** Aukcja; brak w powiadomieniach o koncie (F-61) i o wypłatach (F-27). */
   readonly auction?: AuctionRef;
   readonly account?: AccountRef;
+  readonly payout?: PayoutRef;
   /** Aktualna albo wywoławcza cena. */
   readonly price?: Money;
   readonly endsAt?: string;
@@ -99,6 +114,12 @@ export function dispatchPath(orderPublicId: string): string {
 export function orderPath(orderPublicId: string): string {
   return `/zamowienia/${orderPublicId}`;
 }
+
+/** Saldo i wypłaty w ustawieniach konta (F-27). */
+export const BALANCE_PATH = '/konto/saldo';
+
+/** Dane do wypłat: dane osobowe i rachunek (F-27). */
+export const PAYOUT_PROFILE_PATH = '/konto/saldo/dane';
 
 /** Oferta drugiej szansy dla licytującego (F-26). */
 export function secondChancePath(offerId: string): string {
@@ -182,12 +203,89 @@ function accountContent(type: AccountNotificationType, account: AccountRef): Not
   }
 }
 
+const PAYOUT_TYPES = [
+  'PAYOUT_PAID',
+  'PAYOUT_FAILED',
+  'PAYOUT_ACCOUNT_CHANGED',
+] as const satisfies readonly NotificationType[];
+type PayoutNotificationType = (typeof PAYOUT_TYPES)[number];
+
+function isPayoutType(type: NotificationType): type is PayoutNotificationType {
+  return (PAYOUT_TYPES as readonly NotificationType[]).includes(type);
+}
+
+/** Zdanie o źródle wypłaty automatycznej. */
+const PAYOUT_TRIGGER_TEXT: Readonly<Record<NonNullable<PayoutRef['trigger']>, string>> = {
+  MANUAL: '',
+  WEEKLY: 'To wypłata tygodniowa; wyłączysz ją na stronie salda.',
+  DORMANT_BALANCE: 'Saldo poniżej 20 zł bez sprzedaży od 90 dni wypłacamy automatycznie.',
+  ACCOUNT_CLOSURE: 'To wypłata salda przy zamknięciu konta.',
+};
+
+const ACCOUNT_TAKEOVER_HINT = 'Jeśli to nie Ty, od razu zmień hasło i napisz do nas.';
+
+/** Wypłaty i zmiana rachunku (F-27). */
+function payoutContent(type: PayoutNotificationType, payout: PayoutRef): NotificationContent {
+  const amount = money(payout.amount);
+  switch (type) {
+    case 'PAYOUT_PAID':
+      return {
+        title: `Wypłata ${amount} wysłana`,
+        lines: [
+          `Wysłaliśmy ${amount} na rachunek ${payout.bankAccountMasked ?? ''}. Pieniądze dotrą zwykle w 1–2 dni robocze.`,
+          ...(payout.trigger === undefined || payout.trigger === 'MANUAL'
+            ? []
+            : [PAYOUT_TRIGGER_TEXT[payout.trigger]]),
+        ],
+        path: BALANCE_PATH,
+        actionLabel: 'Saldo i wypłaty',
+      };
+    case 'PAYOUT_FAILED':
+      return {
+        title: `Wypłata ${amount} nie powiodła się`,
+        lines: [
+          'Pieniądze wróciły na saldo w Biddy.',
+          payout.failureReason === 'SELLER_NOT_VERIFIED'
+            ? 'Wypłata wymaga weryfikacji tożsamości u operatora płatności.'
+            : 'Sprawdź numer rachunku w danych do wypłat i spróbuj ponownie.',
+        ],
+        path: BALANCE_PATH,
+        actionLabel: 'Saldo i wypłaty',
+      };
+    case 'PAYOUT_ACCOUNT_CHANGED':
+      return payout.first === true ||
+        payout.blockedUntil === undefined ||
+        payout.blockedUntil === null
+        ? {
+            title: 'Dodano rachunek do wypłat',
+            lines: [
+              `Wypłaty trafią na rachunek ${payout.bankAccountMasked ?? ''}.`,
+              ACCOUNT_TAKEOVER_HINT,
+            ],
+            path: PAYOUT_PROFILE_PATH,
+            actionLabel: 'Dane do wypłat',
+          }
+        : {
+            title: 'Zmieniono rachunek do wypłat',
+            lines: [
+              `Nowy rachunek do wypłat: ${payout.bankAccountMasked ?? ''}. Ze względów bezpieczeństwa wypłaty ruszą ${date(payout.blockedUntil)}.`,
+              ACCOUNT_TAKEOVER_HINT,
+            ],
+            path: PAYOUT_PROFILE_PATH,
+            actionLabel: 'Dane do wypłat',
+          };
+  }
+}
+
 export function notificationContent(
   type: NotificationType,
   payload: NotificationPayload,
 ): NotificationContent {
   if (isAccountType(type)) {
     return accountContent(type, payload.account ?? { statement: '' });
+  }
+  if (isPayoutType(type)) {
+    return payoutContent(type, payload.payout ?? {});
   }
   const auction = payload.auction ?? { id: '', publicId: '', slug: '', title: '' };
   const path = auctionPath(auction.slug, auction.publicId);

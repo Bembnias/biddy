@@ -26,6 +26,10 @@ export const routes = {
   notificationSettings: '/konto/powiadomienia',
   /** Limity konta, strike'i, blokady i odwołania (F-61). */
   accountStanding: '/konto/limity',
+  /** Saldo, wypłaty i historia salda (F-27). */
+  balance: '/konto/saldo',
+  /** Dane do wypłat: dane osobowe (DAC7) i rachunek (F-27). */
+  payoutProfile: '/konto/saldo/dane',
   unsubscribe: '/wypisz',
   about: '/o-nas',
   contact: '/kontakt',
