@@ -23,6 +23,7 @@ import {
   Lock,
   type LucideIcon,
   MessageSquareWarning,
+  MessagesSquare,
   Package,
   PackageCheck,
   PackageOpen,
@@ -51,7 +52,15 @@ import { Switch } from '@/components/ui/switch';
  * i konto.
  */
 const GROUPS: readonly {
-  readonly key: 'bidding' | 'buying' | 'selling' | 'payouts' | 'disputes' | 'following' | 'account';
+  readonly key:
+    | 'bidding'
+    | 'buying'
+    | 'selling'
+    | 'payouts'
+    | 'disputes'
+    | 'messages'
+    | 'following'
+    | 'account';
   readonly types: readonly NotificationType[];
 }[] = [
   {
@@ -88,6 +97,7 @@ const GROUPS: readonly {
       'DISPUTE_RESOLVED',
     ],
   },
+  { key: 'messages', types: ['NEW_MESSAGE'] },
   { key: 'following', types: ['FOLLOWED_SELLER_NEW_AUCTION'] },
   {
     key: 'account',
@@ -139,10 +149,11 @@ const TYPE_TILES: Record<
   ACCOUNT_BLOCKED: { tone: 'neutral', Icon: Ban },
   ACCOUNT_UNBLOCKED: { tone: 'neutral', Icon: ShieldCheck },
   APPEAL_REJECTED: { tone: 'neutral', Icon: Scale },
+  NEW_MESSAGE: { tone: 'neutral', Icon: MessagesSquare },
 };
 
 /** Typy z opisem pod nazwą (`settings.hints`). */
-const HINT_TYPES = ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED'] as const;
+const HINT_TYPES = ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED', 'NEW_MESSAGE'] as const;
 
 function hasHint(type: NotificationType): type is (typeof HINT_TYPES)[number] {
   return (HINT_TYPES as readonly string[]).includes(type);

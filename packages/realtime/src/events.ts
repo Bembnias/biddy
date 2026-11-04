@@ -99,6 +99,30 @@ export interface NotificationNewEvent {
   readonly unreadCount: number;
 }
 
+/**
+ * Nowa wiadomość w rozmowie (F-29), do obu stron (nadawca ma też inne urządzenia). Treść klient
+ * pobiera przez REST: tam jest autoryzacja, zdjęcia i flagi danych kontaktowych.
+ */
+export interface MessageNewEvent {
+  readonly conversationId: string;
+  readonly messageId: string;
+  readonly senderId: string;
+  readonly createdAt: string;
+  /** Liczba rozmów z nieprzeczytanymi wiadomościami odbiorcy zdarzenia (ikona w nagłówku). */
+  readonly unreadCount: number;
+  readonly serverTime: string;
+}
+
+/** Strona przeczytała wiadomości w rozmowie (F-29): „Przeczytano” u nadawcy, licznik u czytającego. */
+export interface ConversationReadEvent {
+  readonly conversationId: string;
+  readonly readerId: string;
+  readonly readAt: string;
+  /** Liczba rozmów z nieprzeczytanymi wiadomościami odbiorcy zdarzenia. */
+  readonly unreadCount: number;
+  readonly serverTime: string;
+}
+
 export interface ServerToClientEvents {
   'auction.updated': (event: AuctionUpdatedEvent) => void;
   'auction.extended': (event: AuctionExtendedEvent) => void;
@@ -107,6 +131,8 @@ export interface ServerToClientEvents {
   'user.outbid': (event: UserOutbidEvent) => void;
   'user.won': (event: UserWonEvent) => void;
   'notification.new': (event: NotificationNewEvent) => void;
+  'message.new': (event: MessageNewEvent) => void;
+  'conversation.read': (event: ConversationReadEvent) => void;
 }
 
 export type SubscribeResult =

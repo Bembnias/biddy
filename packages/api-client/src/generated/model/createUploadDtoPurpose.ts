@@ -7,7 +7,7 @@
  */
 
 /**
- * Zdjęcie przedmiotu, zdjęcie profilowe albo dowód w sporze (prywatny, F-28)
+ * Zdjęcie przedmiotu, zdjęcie profilowe, dowód w sporze (prywatny, F-28) albo zdjęcie w wiadomości (prywatne, F-29)
  */
 export type CreateUploadDtoPurpose = typeof CreateUploadDtoPurpose[keyof typeof CreateUploadDtoPurpose];
 
@@ -16,4 +16,5 @@ export const CreateUploadDtoPurpose = {
   ITEM_PHOTO: 'ITEM_PHOTO',
   AVATAR: 'AVATAR',
   DISPUTE_EVIDENCE: 'DISPUTE_EVIDENCE',
+  MESSAGE_PHOTO: 'MESSAGE_PHOTO',
 } as const;

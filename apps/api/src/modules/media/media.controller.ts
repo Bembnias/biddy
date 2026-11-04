@@ -16,7 +16,9 @@ export class CreateUploadDto extends createZodDto(
   z.object({
     purpose: z
       .enum(MEDIA_PURPOSES)
-      .describe('Zdjęcie przedmiotu, zdjęcie profilowe albo dowód w sporze (prywatny, F-28)'),
+      .describe(
+        'Zdjęcie przedmiotu, zdjęcie profilowe, dowód w sporze (prywatny, F-28) albo zdjęcie w wiadomości (prywatne, F-29)',
+      ),
     contentType: z.enum(ACCEPTED_CONTENT_TYPES, {
       error: 'Dodaj zdjęcie JPEG, PNG albo WebP.',
     }),

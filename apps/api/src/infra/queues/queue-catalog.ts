@@ -79,6 +79,11 @@ export const QUEUE_DEFINITIONS = {
       'Spory: eskalacja bez odpowiedzi w 48 h, brak nadania zwrotu w 5 dni roboczych i zwrot pieniędzy po 36 h od odbioru zwrotu, co minutę (F-28)',
     concurrency: 1,
   },
+  messaging: {
+    description:
+      'Wiadomości: powiadomienie o wiadomościach nieprzeczytanych od 5 minut, co minutę (F-29)',
+    concurrency: 1,
+  },
   shipping: {
     description:
       'Przesyłki: tworzenie u dostawcy po „Nadaj” z etykietą, synchronizacja trackingu po webhooku, polling zapasowy co 10 min i automat FakeShipping (F-24)',

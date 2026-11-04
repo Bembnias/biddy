@@ -11,6 +11,8 @@ import {
   type AuctionUpdatedEvent,
   type AuctionViewersEvent,
   type ClientToServerEvents,
+  type ConversationReadEvent,
+  type MessageNewEvent,
   REALTIME_PATH,
   type ServerToClientEvents,
   type UserOutbidEvent,
@@ -35,6 +37,10 @@ export interface UserHandlers {
   readonly onWon?: (event: UserWonEvent) => void;
   /** Nowe powiadomienie (F-20). */
   readonly onNotification?: (event: NotificationNewEvent) => void;
+  /** Nowa wiadomość w rozmowie (F-29). */
+  readonly onMessage?: (event: MessageNewEvent) => void;
+  /** Odczyt wiadomości w rozmowie (F-29). */
+  readonly onConversationRead?: (event: ConversationReadEvent) => void;
 }
 
 export interface RealtimeClientOptions {
@@ -255,6 +261,12 @@ export function createRealtimeClient(options: RealtimeClientOptions): RealtimeCl
     });
     created.on('notification.new', (event) => {
       users.forEach((handlers) => handlers.onNotification?.(event));
+    });
+    created.on('message.new', (event) => {
+      users.forEach((handlers) => handlers.onMessage?.(event));
+    });
+    created.on('conversation.read', (event) => {
+      users.forEach((handlers) => handlers.onConversationRead?.(event));
     });
     return created;
   };

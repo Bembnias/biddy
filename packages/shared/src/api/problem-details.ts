@@ -153,6 +153,10 @@ export const ERROR_CODES = {
   DISPUTE_NOT_ESCALATED: 'DISPUTE_NOT_ESCALATED',
   /** Dla tej paczki nie ma usługi kurierskiej do zwrotu (F-28). */
   RETURN_SHIPPING_UNAVAILABLE: 'RETURN_SHIPPING_UNAVAILABLE',
+  /** Rozmowy nie da się zacząć: aukcja zakończona bez zamówienia albo własna aukcja (F-29). */
+  CONVERSATION_UNAVAILABLE: 'CONVERSATION_UNAVAILABLE',
+  /** Jedna ze stron zablokowała drugą: w rozmowie nie można pisać (F-29). */
+  CONVERSATION_BLOCKED: 'CONVERSATION_BLOCKED',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

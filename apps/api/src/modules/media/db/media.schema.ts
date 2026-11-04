@@ -9,13 +9,22 @@ import { idColumn } from '../../../infra/db/ids.js';
 
 /**
  * Do czego służy zdjęcie: warianty i minimalny rozmiar zależą od przeznaczenia. Zdjęcia ze sporu
- * (F-28) są prywatne: ich warianty leżą w kubełku uploads, a wydaje je API stronom sporu.
+ * (F-28) i z wiadomości (F-29) są prywatne: ich warianty leżą w kubełku uploads, a wydaje je API
+ * stronom sporu albo rozmowy.
  */
-export const MEDIA_PURPOSES = ['ITEM_PHOTO', 'AVATAR', 'DISPUTE_EVIDENCE'] as const;
+export const MEDIA_PURPOSES = [
+  'ITEM_PHOTO',
+  'AVATAR',
+  'DISPUTE_EVIDENCE',
+  'MESSAGE_PHOTO',
+] as const;
 export type MediaPurpose = (typeof MEDIA_PURPOSES)[number];
 
 /** Przeznaczenia bez publicznych adresów (warianty w prywatnym kubełku). */
-export const PRIVATE_MEDIA_PURPOSES: ReadonlySet<MediaPurpose> = new Set(['DISPUTE_EVIDENCE']);
+export const PRIVATE_MEDIA_PURPOSES: ReadonlySet<MediaPurpose> = new Set([
+  'DISPUTE_EVIDENCE',
+  'MESSAGE_PHOTO',
+]);
 
 /**
  * PENDING_UPLOAD → PROCESSING → READY (publiczne) | FLAGGED (moderacja, niepubliczne) |
@@ -62,7 +71,7 @@ export const media = pgTable(
       .where(sql`${table.attachedAt} is null`),
     check(
       'media_purpose_check',
-      sql`${table.purpose} in ('ITEM_PHOTO', 'AVATAR', 'DISPUTE_EVIDENCE')`,
+      sql`${table.purpose} in ('ITEM_PHOTO', 'AVATAR', 'DISPUTE_EVIDENCE', 'MESSAGE_PHOTO')`,
     ),
     check(
       'media_status_check',

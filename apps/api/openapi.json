@@ -5770,6 +5770,750 @@
         ]
       }
     },
+    "/v1/conversations": {
+      "get": {
+        "operationId": "listConversations",
+        "parameters": [
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "ID ostatniego elementu poprzedniej strony",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rozmowy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationListDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rozmowy (ostatnia aktywność pierwsza, po 30)",
+        "tags": [
+          "messaging"
+        ]
+      },
+      "post": {
+        "description": "Rozmowa pary, która już istnieje, dostaje wiadomość. Zakończona aukcja bez zamówienia albo własna: 409 CONVERSATION_UNAVAILABLE; blokada: 403 CONVERSATION_BLOCKED; limity: 429.",
+        "operationId": "startConversation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartConversationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Rozmowa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pierwsza wiadomość o aukcji albo zamówieniu",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/conversations/summary": {
+      "get": {
+        "operationId": "getConversationSummary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Licznik",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationSummaryCountDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Liczba rozmów z nieprzeczytanymi wiadomościami (nagłówek)",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/conversations/start": {
+      "get": {
+        "description": "Przedmiot rozmowy, druga strona, istniejąca rozmowa pary (przekierowanie) i powód, gdy nie można zacząć. Obce zamówienie albo niepubliczna aukcja: 404.",
+        "operationId": "getConversationStart",
+        "parameters": [
+          {
+            "name": "auctionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderId",
+            "required": false,
+            "in": "query",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Nowa rozmowa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationStartDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ekran nowej wiadomości",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/conversations/{id}": {
+      "get": {
+        "operationId": "getConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rozmowa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Nagłówek rozmowy (strony)",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/conversations/{id}/messages": {
+      "get": {
+        "operationId": "listConversationMessages",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "ID ostatniego elementu poprzedniej strony",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wiadomości",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagePageDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Wiadomości rozmowy (najnowsze pierwsze, po 50)",
+        "tags": [
+          "messaging"
+        ]
+      },
+      "post": {
+        "description": "Blokada: 403 CONVERSATION_BLOCKED; limity: 429 RATE_LIMITED z Retry-After.",
+        "operationId": "sendMessage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendMessageBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Wiadomość",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Wiadomość w rozmowie",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/conversations/{id}/read": {
+      "post": {
+        "operationId": "markConversationRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Licznik po odczycie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationSummaryCountDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odczyt wiadomości do mnie w rozmowie",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/conversations/{id}/report": {
+      "post": {
+        "description": "Z migawką fragmentu rozmowy dla zespołu Biddy; z `block` od razu blokuje drugą stronę. Ponowienie zwraca istniejące zgłoszenie.",
+        "operationId": "reportConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Zgłoszenie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResultDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zgłoszenie wiadomości albo drugiej strony",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/conversations/{id}/photos/{mediaId}/{variant}": {
+      "get": {
+        "operationId": "getConversationPhoto",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "mediaId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "variant",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "thumb",
+                "large"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Zdjęcie WebP",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zdjęcie z rozmowy (strony; personel przy spornym zamówieniu)",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/me/blocks": {
+      "get": {
+        "operationId": "listBlockedUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Zablokowani",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockedUserListDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zablokowani użytkownicy (od najnowszej blokady)",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/me/blocks/{userId}": {
+      "put": {
+        "description": "Idempotentne. Żadna strona nie napisze w waszych rozmowach. Siebie: 400.",
+        "operationId": "blockUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Zablokowano"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zablokuj użytkownika",
+        "tags": [
+          "messaging"
+        ]
+      },
+      "delete": {
+        "operationId": "unblockUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Odblokowano"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Odblokuj użytkownika",
+        "tags": [
+          "messaging"
+        ]
+      }
+    },
+    "/v1/admin/orders/{id}/messages": {
+      "get": {
+        "description": "Tylko zamówienie ze sporem (inaczej 404). Bez oznaczania odczytu.",
+        "operationId": "getDisputedOrderMessages",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rozmowa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminConversationDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rozmowa stron spornego zamówienia",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/me/notifications": {
       "get": {
         "description": "Od najnowszych, po 30.",
@@ -10064,9 +10808,10 @@
             "enum": [
               "ITEM_PHOTO",
               "AVATAR",
-              "DISPUTE_EVIDENCE"
+              "DISPUTE_EVIDENCE",
+              "MESSAGE_PHOTO"
             ],
-            "description": "Zdjęcie przedmiotu, zdjęcie profilowe albo dowód w sporze (prywatny, F-28)"
+            "description": "Zdjęcie przedmiotu, zdjęcie profilowe, dowód w sporze (prywatny, F-28) albo zdjęcie w wiadomości (prywatne, F-29)"
           },
           "contentType": {
             "type": "string",
@@ -10105,7 +10850,8 @@
                 "enum": [
                   "ITEM_PHOTO",
                   "AVATAR",
-                  "DISPUTE_EVIDENCE"
+                  "DISPUTE_EVIDENCE",
+                  "MESSAGE_PHOTO"
                 ]
               },
               "status": {
@@ -10237,7 +10983,8 @@
             "enum": [
               "ITEM_PHOTO",
               "AVATAR",
-              "DISPUTE_EVIDENCE"
+              "DISPUTE_EVIDENCE",
+              "MESSAGE_PHOTO"
             ]
           },
           "status": {
@@ -18099,6 +18846,1069 @@
         ],
         "additionalProperties": false
       },
+      "ConversationListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "BUYER",
+                    "SELLER"
+                  ],
+                  "description": "Rola oglądającego: SELLER = sprzedający aukcji"
+                },
+                "counterpart": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "avatarUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true
+                    },
+                    "available": {
+                      "type": "boolean",
+                      "description": "false: konto zablokowane przez Biddy albo usunięte"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "avatarUrl",
+                    "available"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Druga strona rozmowy"
+                },
+                "auction": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "coverUrl": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "Miniatura zdjęcia głównego (320 px)",
+                      "nullable": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING_REVIEW",
+                        "ACTIVE",
+                        "ENDED_SOLD",
+                        "ENDED_UNSOLD",
+                        "CANCELLED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "publicId",
+                    "slug",
+                    "title",
+                    "coverUrl",
+                    "status"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Aukcja, o którą toczy się rozmowa",
+                  "nullable": true
+                },
+                "order": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "publicId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "AWAITING_PAYMENT",
+                        "PAID",
+                        "SHIPPED",
+                        "DELIVERED",
+                        "COMPLETED",
+                        "DISPUTED",
+                        "NOT_PICKED_UP",
+                        "LOST",
+                        "REFUNDED",
+                        "PARTIALLY_REFUNDED",
+                        "CANCELLED_UNPAID",
+                        "CANCELLED_NOT_SHIPPED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "publicId",
+                    "status"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Najnowsze zamówienie pary (null przed sprzedażą albo bez zamówienia)",
+                  "nullable": true
+                },
+                "lastMessage": {
+                  "type": "object",
+                  "properties": {
+                    "preview": {
+                      "type": "string",
+                      "description": "Początek treści w jednej linii (do 120 znaków)"
+                    },
+                    "senderRole": {
+                      "type": "string",
+                      "enum": [
+                        "BUYER",
+                        "SELLER"
+                      ]
+                    },
+                    "hasPhotos": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "preview",
+                    "senderRole",
+                    "hasPhotos",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false,
+                  "nullable": true
+                },
+                "unreadCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Nieprzeczytane wiadomości do oglądającego"
+                },
+                "lastMessageAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "counterpart",
+                "auction",
+                "order",
+                "lastMessage",
+                "unreadCount",
+                "lastMessageAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextBefore": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Kursor następnej strony (parametr `before`)",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextBefore"
+        ],
+        "additionalProperties": false
+      },
+      "ConversationSummaryCountDto": {
+        "type": "object",
+        "properties": {
+          "unreadCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Rozmowy z nieprzeczytanymi wiadomościami"
+          }
+        },
+        "required": [
+          "unreadCount"
+        ],
+        "additionalProperties": false
+      },
+      "ConversationStartDto": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Istniejąca rozmowa pary: przekieruj do niej",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER"
+            ]
+          },
+          "counterpart": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              },
+              "avatarUrl": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true
+              },
+              "available": {
+                "type": "boolean",
+                "description": "false: konto zablokowane przez Biddy albo usunięte"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "avatarUrl",
+              "available"
+            ],
+            "additionalProperties": false,
+            "description": "Druga strona rozmowy"
+          },
+          "auction": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "coverUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "Miniatura zdjęcia głównego (320 px)",
+                "nullable": true
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "DRAFT",
+                  "PENDING_REVIEW",
+                  "ACTIVE",
+                  "ENDED_SOLD",
+                  "ENDED_UNSOLD",
+                  "CANCELLED"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "publicId",
+              "slug",
+              "title",
+              "coverUrl",
+              "status"
+            ],
+            "additionalProperties": false,
+            "description": "Aukcja, o którą toczy się rozmowa",
+            "nullable": true
+          },
+          "order": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "AWAITING_PAYMENT",
+                  "PAID",
+                  "SHIPPED",
+                  "DELIVERED",
+                  "COMPLETED",
+                  "DISPUTED",
+                  "NOT_PICKED_UP",
+                  "LOST",
+                  "REFUNDED",
+                  "PARTIALLY_REFUNDED",
+                  "CANCELLED_UNPAID",
+                  "CANCELLED_NOT_SHIPPED"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "publicId",
+              "status"
+            ],
+            "additionalProperties": false,
+            "description": "Najnowsze zamówienie pary (null przed sprzedażą albo bez zamówienia)",
+            "nullable": true
+          },
+          "unavailableReason": {
+            "type": "string",
+            "enum": [
+              "OWN_AUCTION",
+              "AUCTION_CLOSED",
+              "ACCOUNT_UNAVAILABLE",
+              null
+            ],
+            "description": "Dlaczego nie można zacząć rozmowy",
+            "nullable": true
+          },
+          "canSend": {
+            "type": "boolean"
+          },
+          "blockedByMe": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "conversationId",
+          "role",
+          "counterpart",
+          "auction",
+          "order",
+          "unavailableReason",
+          "canSend",
+          "blockedByMe"
+        ],
+        "additionalProperties": false
+      },
+      "StartConversationBody": {
+        "type": "object",
+        "properties": {
+          "auctionId": {
+            "description": "Pytanie o aukcję",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "orderId": {
+            "description": "Zamówienie: UUID albo numer",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Treść (przycięta); może być pusta, gdy wiadomość ma zdjęcie"
+          },
+          "mediaIds": {
+            "default": [],
+            "description": "Zdjęcia MESSAGE_PHOTO (przetworzone, własne)",
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "ConversationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER"
+            ],
+            "description": "Rola oglądającego: SELLER = sprzedający aukcji"
+          },
+          "counterpart": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              },
+              "avatarUrl": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true
+              },
+              "available": {
+                "type": "boolean",
+                "description": "false: konto zablokowane przez Biddy albo usunięte"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "avatarUrl",
+              "available"
+            ],
+            "additionalProperties": false,
+            "description": "Druga strona rozmowy"
+          },
+          "auction": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "coverUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "Miniatura zdjęcia głównego (320 px)",
+                "nullable": true
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "DRAFT",
+                  "PENDING_REVIEW",
+                  "ACTIVE",
+                  "ENDED_SOLD",
+                  "ENDED_UNSOLD",
+                  "CANCELLED"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "publicId",
+              "slug",
+              "title",
+              "coverUrl",
+              "status"
+            ],
+            "additionalProperties": false,
+            "description": "Aukcja, o którą toczy się rozmowa",
+            "nullable": true
+          },
+          "order": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "publicId": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "AWAITING_PAYMENT",
+                  "PAID",
+                  "SHIPPED",
+                  "DELIVERED",
+                  "COMPLETED",
+                  "DISPUTED",
+                  "NOT_PICKED_UP",
+                  "LOST",
+                  "REFUNDED",
+                  "PARTIALLY_REFUNDED",
+                  "CANCELLED_UNPAID",
+                  "CANCELLED_NOT_SHIPPED"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "publicId",
+              "status"
+            ],
+            "additionalProperties": false,
+            "description": "Najnowsze zamówienie pary (null przed sprzedażą albo bez zamówienia)",
+            "nullable": true
+          },
+          "lastMessage": {
+            "type": "object",
+            "properties": {
+              "preview": {
+                "type": "string",
+                "description": "Początek treści w jednej linii (do 120 znaków)"
+              },
+              "senderRole": {
+                "type": "string",
+                "enum": [
+                  "BUYER",
+                  "SELLER"
+                ]
+              },
+              "hasPhotos": {
+                "type": "boolean"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "preview",
+              "senderRole",
+              "hasPhotos",
+              "createdAt"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "unreadCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Nieprzeczytane wiadomości do oglądającego"
+          },
+          "lastMessageAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "canSend": {
+            "type": "boolean",
+            "description": "false przy blokadzie albo niedostępnym koncie"
+          },
+          "blockedByMe": {
+            "type": "boolean",
+            "description": "Oglądający zablokował drugą stronę"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "counterpart",
+          "auction",
+          "order",
+          "lastMessage",
+          "unreadCount",
+          "lastMessageAt",
+          "canSend",
+          "blockedByMe"
+        ],
+        "additionalProperties": false
+      },
+      "MessagePageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "senderRole": {
+                  "type": "string",
+                  "enum": [
+                    "BUYER",
+                    "SELLER"
+                  ]
+                },
+                "body": {
+                  "type": "string"
+                },
+                "photos": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "thumbUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "largeUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "thumbUrl",
+                      "largeUrl"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Zdjęcia z API (prywatne, sesja)"
+                },
+                "contactFlags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "PHONE",
+                      "EMAIL",
+                      "IBAN"
+                    ]
+                  },
+                  "description": "Wykryte dane kontaktowe: obie strony widzą ostrzeżenie"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "readAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "description": "Odczyt przez odbiorcę",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "senderRole",
+                "body",
+                "photos",
+                "contactFlags",
+                "createdAt",
+                "readAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Najnowsze pierwsze"
+          },
+          "nextBefore": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Kursor starszych wiadomości (parametr `before`)",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextBefore"
+        ],
+        "additionalProperties": false
+      },
+      "SendMessageBody": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Treść (przycięta); może być pusta, gdy wiadomość ma zdjęcie"
+          },
+          "mediaIds": {
+            "default": [],
+            "description": "Zdjęcia MESSAGE_PHOTO (przetworzone, własne)",
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "MessageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "senderRole": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER"
+            ]
+          },
+          "body": {
+            "type": "string"
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "thumbUrl": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "largeUrl": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": [
+                "id",
+                "thumbUrl",
+                "largeUrl"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Zdjęcia z API (prywatne, sesja)"
+          },
+          "contactFlags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "PHONE",
+                "EMAIL",
+                "IBAN"
+              ]
+            },
+            "description": "Wykryte dane kontaktowe: obie strony widzą ostrzeżenie"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "readAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Odczyt przez odbiorcę",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "senderRole",
+          "body",
+          "photos",
+          "contactFlags",
+          "createdAt",
+          "readAt"
+        ],
+        "additionalProperties": false
+      },
+      "ReportBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "OFF_PLATFORM",
+              "SCAM",
+              "ABUSE",
+              "SPAM",
+              "OTHER"
+            ]
+          },
+          "messageId": {
+            "description": "Zgłaszana wiadomość drugiej strony; bez niej osoba",
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "block": {
+            "default": false,
+            "description": "Od razu zablokuj drugą stronę",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "ReportResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "blocked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "blocked"
+        ],
+        "additionalProperties": false
+      },
+      "BlockedUserListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "avatarUrl": {
+                  "type": "string",
+                  "format": "uri",
+                  "nullable": true
+                },
+                "blockedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "userId",
+                "name",
+                "avatarUrl",
+                "blockedAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "AdminConversationDto": {
+        "type": "object",
+        "properties": {
+          "conversationId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "null: strony nie pisały do siebie",
+            "nullable": true
+          },
+          "buyer": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "seller": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "senderRole": {
+                  "type": "string",
+                  "enum": [
+                    "BUYER",
+                    "SELLER"
+                  ]
+                },
+                "body": {
+                  "type": "string"
+                },
+                "photos": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "thumbUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "largeUrl": {
+                        "type": "string",
+                        "format": "uri"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "thumbUrl",
+                      "largeUrl"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Zdjęcia z API (prywatne, sesja)"
+                },
+                "contactFlags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "PHONE",
+                      "EMAIL",
+                      "IBAN"
+                    ]
+                  },
+                  "description": "Wykryte dane kontaktowe: obie strony widzą ostrzeżenie"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                },
+                "readAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                  "description": "Odczyt przez odbiorcę",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "senderRole",
+                "body",
+                "photos",
+                "contactFlags",
+                "createdAt",
+                "readAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Najstarsze pierwsze (do 500)"
+          }
+        },
+        "required": [
+          "conversationId",
+          "buyer",
+          "seller",
+          "messages"
+        ],
+        "additionalProperties": false
+      },
       "NotificationListDto": {
         "type": "object",
         "properties": {
@@ -18147,7 +19957,8 @@
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
                     "ACCOUNT_UNBLOCKED",
-                    "APPEAL_REJECTED"
+                    "APPEAL_REJECTED",
+                    "NEW_MESSAGE"
                   ]
                 },
                 "title": {
@@ -18282,7 +20093,8 @@
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
                     "ACCOUNT_UNBLOCKED",
-                    "APPEAL_REJECTED"
+                    "APPEAL_REJECTED",
+                    "NEW_MESSAGE"
                   ]
                 },
                 "channel": {
@@ -18360,7 +20172,8 @@
                     "STRIKE_REVOKED",
                     "ACCOUNT_BLOCKED",
                     "ACCOUNT_UNBLOCKED",
-                    "APPEAL_REJECTED"
+                    "APPEAL_REJECTED",
+                    "NEW_MESSAGE"
                   ]
                 },
                 "channel": {
@@ -18426,6 +20239,7 @@
               "ACCOUNT_BLOCKED",
               "ACCOUNT_UNBLOCKED",
               "APPEAL_REJECTED",
+              "NEW_MESSAGE",
               "ALL"
             ],
             "description": "Typ powiadomień albo ALL (wszystkie)"
@@ -18467,7 +20281,8 @@
                 "STRIKE_REVOKED",
                 "ACCOUNT_BLOCKED",
                 "ACCOUNT_UNBLOCKED",
-                "APPEAL_REJECTED"
+                "APPEAL_REJECTED",
+                "NEW_MESSAGE"
               ]
             },
             "description": "Typy e-maili, które wyłączamy"

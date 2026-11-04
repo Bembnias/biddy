@@ -3,6 +3,7 @@ import { BadgeCheck, Star } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
+import { AskSellerButton } from '@/components/messaging/ask-seller-button';
 import { UserAvatar } from '@/components/profile/user-avatar';
 import { Button } from '@/components/ui/button';
 import { monthAndYear } from '@/lib/dates';
@@ -10,9 +11,19 @@ import { publicProfileUrl } from '@/lib/routes';
 
 /**
  * Sprzedawca na stronie aukcji (F-18, wygląd F-62): profil, weryfikacja telefonu, oceny (F-30)
- * i informacja, że to osoba prywatna (prawo konsumenckie, PROJECT.md §17).
+ * i informacja, że to osoba prywatna (prawo konsumenckie, PROJECT.md §17). Przy aktywnej aukcji
+ * „Zapytaj sprzedającego” (F-29).
  */
-export async function SellerCard({ seller }: { readonly seller: PublicAuctionDto['seller'] }) {
+export async function SellerCard({
+  seller,
+  auctionId,
+  askable,
+}: {
+  readonly seller: PublicAuctionDto['seller'];
+  readonly auctionId: string;
+  /** Aukcja aktywna: można zapytać sprzedającego. */
+  readonly askable: boolean;
+}) {
   const t = await getTranslations('auction.seller');
   const profile = await getTranslations('profile.public');
   return (
@@ -53,6 +64,7 @@ export async function SellerCard({ seller }: { readonly seller: PublicAuctionDto
         </li>
       </ul>
       <p className="text-caption text-muted-foreground">{t('privateNotice')}</p>
+      {askable ? <AskSellerButton auctionId={auctionId} sellerId={seller.id} /> : null}
       <Button asChild variant="outline" className="w-full">
         <Link href={publicProfileUrl(seller.id)}>
           {t('profile')}

@@ -162,6 +162,13 @@
       "when": 1793716002376,
       "tag": "0022_disputes",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793720332366,
+      "tag": "0023_messaging",
+      "breakpoints": true
     }
   ]
 }

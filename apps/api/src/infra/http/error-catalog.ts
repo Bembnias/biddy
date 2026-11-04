@@ -331,6 +331,16 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Zwrot niedostępny',
     detail: 'Dla tej paczki nie ma usługi kurierskiej do zwrotu. Wybierz zwrot bez odsyłania.',
   },
+  CONVERSATION_UNAVAILABLE: {
+    status: 409,
+    title: 'Nie można zacząć rozmowy',
+    detail: 'O tę aukcję nie można już zapytać. Rozmowę zaczniesz ze strony zamówienia.',
+  },
+  CONVERSATION_BLOCKED: {
+    status: 403,
+    title: 'Rozmowa zablokowana',
+    detail: 'Nie możesz pisać w tej rozmowie.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

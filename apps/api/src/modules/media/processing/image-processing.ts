@@ -47,6 +47,13 @@ export const PURPOSE_SPECS: Readonly<
       { name: 'large', size: 1600 },
     ],
   },
+  MESSAGE_PHOTO: {
+    minSide: 200,
+    variants: [
+      { name: 'thumb', size: 320 },
+      { name: 'large', size: 1600 },
+    ],
+  },
 };
 
 /** Plik odrzucony z powodem dla użytkownika (po polsku). */

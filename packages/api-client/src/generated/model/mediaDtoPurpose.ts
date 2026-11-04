@@ -13,4 +13,5 @@ export const MediaDtoPurpose = {
   ITEM_PHOTO: 'ITEM_PHOTO',
   AVATAR: 'AVATAR',
   DISPUTE_EVIDENCE: 'DISPUTE_EVIDENCE',
+  MESSAGE_PHOTO: 'MESSAGE_PHOTO',
 } as const;

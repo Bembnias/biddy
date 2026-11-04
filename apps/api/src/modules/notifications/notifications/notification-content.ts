@@ -61,6 +61,14 @@ export interface DisputeRef {
   readonly statement?: string;
 }
 
+/** Nieprzeczytane wiadomości w migawce powiadomienia (F-29); bez treści wiadomości. */
+export interface MessageRef {
+  readonly conversationId: string;
+  readonly senderName: string;
+  readonly title: string;
+  readonly count: number;
+}
+
 /** Migawka zapisana w `notifications.payload` (pola zależne od typu). */
 export interface NotificationPayload {
   /** Aukcja; brak w powiadomieniach o koncie (F-61), wypłatach (F-27) i sporach (F-28). */
@@ -68,6 +76,7 @@ export interface NotificationPayload {
   readonly account?: AccountRef;
   readonly payout?: PayoutRef;
   readonly dispute?: DisputeRef;
+  readonly message?: MessageRef;
   /** Aktualna albo wywoławcza cena. */
   readonly price?: Money;
   readonly endsAt?: string;
@@ -147,6 +156,11 @@ export const PAYOUT_PROFILE_PATH = '/konto/saldo/dane';
 /** Spór zamówienia dla obu stron (F-28). */
 export function disputePath(orderPublicId: string): string {
   return `/zamowienia/${orderPublicId}/spor`;
+}
+
+/** Rozmowa (F-29). */
+export function conversationPath(conversationId: string): string {
+  return `/wiadomosci/${conversationId}`;
 }
 
 /** Oferta drugiej szansy dla licytującego (F-26). */
@@ -455,6 +469,11 @@ export function notificationContent(
       payload.dispute ?? { orderPublicId: '', title: '', recipientRole: 'BUYER' },
     );
   }
+  if (type === 'NEW_MESSAGE') {
+    return messageContent(
+      payload.message ?? { conversationId: '', senderName: '', title: '', count: 1 },
+    );
+  }
   const auction = payload.auction ?? { id: '', publicId: '', slug: '', title: '' };
   const path = auctionPath(auction.slug, auction.publicId);
   const title = `„${auction.title}”`;
@@ -634,6 +653,24 @@ export function notificationContent(
         actionLabel: 'Zobacz aukcję',
       };
   }
+}
+
+/**
+ * Nieprzeczytane wiadomości (F-29): kto i w jakiej sprawie, bez treści (telefony i adresy nie
+ * wychodzą poza Biddy, decyzja nr 138).
+ */
+function messageContent(message: MessageRef): NotificationContent {
+  return {
+    title: `Nowa wiadomość od ${message.senderName}`,
+    lines: [
+      message.count > 1
+        ? `Rozmowa w sprawie „${message.title}”. Nieprzeczytane wiadomości: ${String(message.count)}.`
+        : `Rozmowa w sprawie „${message.title}”.`,
+      'Odpowiedz w Biddy: płatność i ustalenia poza Biddy nie są chronione.',
+    ],
+    path: conversationPath(message.conversationId),
+    actionLabel: 'Odpowiedz',
+  };
 }
 
 /** Anulowane zamówienie (F-26): po braku płatności tylko sprzedający, po braku nadania obie strony. */

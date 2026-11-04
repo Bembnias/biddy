@@ -42,10 +42,11 @@ export {
   StrikeService,
 } from './standing/strike.service.js';
 export { type TradeParties, TradeHistoryService } from './standing/trade-history.service.js';
-export { ProfileService, type PublicProfile } from './profile/profile.service.js';
+export { type ChatProfile, ProfileService, type PublicProfile } from './profile/profile.service.js';
 export { type SellerStanding, SellerStandingService } from './seller/seller-standing.service.js';
 export {
   CurrentUser,
+  RequireAcceptedTerms,
   RequireSession,
   RequireStaff,
   RequireVerifiedEmail,

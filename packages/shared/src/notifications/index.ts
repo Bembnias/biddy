@@ -35,6 +35,7 @@ export const NOTIFICATION_TYPES = [
   'ACCOUNT_BLOCKED',
   'ACCOUNT_UNBLOCKED',
   'APPEAL_REJECTED',
+  'NEW_MESSAGE',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -87,6 +88,7 @@ export const NOTIFICATION_EMAIL: Readonly<
   ACCOUNT_BLOCKED: { enabledByDefault: true, configurable: false },
   ACCOUNT_UNBLOCKED: { enabledByDefault: true, configurable: false },
   APPEAL_REJECTED: { enabledByDefault: true, configurable: false },
+  NEW_MESSAGE: { enabledByDefault: true, configurable: true },
 };
 
 /** E-mail o przebiciu w tej samej aukcji najwyżej raz na ten czas. */

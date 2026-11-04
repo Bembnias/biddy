@@ -221,4 +221,33 @@ describe('createRealtimeClient', () => {
     realtime.close();
     expect(statuses).toEqual(['connecting', 'connected', 'idle']);
   });
+
+  it('wiadomości i odczyty rozmów (F-29)', async () => {
+    const realtime = connect();
+    const received: string[] = [];
+    realtime.onUserEvents({
+      onMessage: (event) => received.push(`message:${event.messageId}:${event.unreadCount}`),
+      onConversationRead: (event) => received.push(`read:${event.conversationId}`),
+    });
+    await waitFor(() => realtime.status === 'connected');
+    const serverTime = new Date().toISOString();
+    server.emit('message.new', {
+      conversationId: 'c',
+      messageId: 'm',
+      senderId: 'u',
+      createdAt: serverTime,
+      unreadCount: 2,
+      serverTime,
+    });
+    server.emit('conversation.read', {
+      conversationId: 'c',
+      readerId: 'u',
+      readAt: serverTime,
+      unreadCount: 0,
+      serverTime,
+    });
+    await waitFor(() => received.length === 2);
+    realtime.close();
+    expect(received).toEqual(['message:m:2', 'read:c']);
+  });
 });

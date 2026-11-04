@@ -26,6 +26,7 @@ import {
   Landmark,
   type LucideIcon,
   MessageSquareWarning,
+  MessagesSquare,
   Package,
   PackageCheck,
   PackageOpen,
@@ -96,6 +97,7 @@ const TYPE_TILES: Record<
   ACCOUNT_BLOCKED: { tone: 'danger', Icon: Ban },
   ACCOUNT_UNBLOCKED: { tone: 'success', Icon: ShieldCheck },
   APPEAL_REJECTED: { tone: 'neutral', Icon: Scale },
+  NEW_MESSAGE: { tone: 'brand', Icon: MessagesSquare },
 };
 
 function NotificationItem({

@@ -7,6 +7,7 @@ export * from './disputes/disputes';
 export * from './fee-schedules/fee-schedules';
 export * from './me/me';
 export * from './media/media';
+export * from './messaging/messaging';
 export * from './notifications/notifications';
 export * from './orders/orders';
 export * from './search/search';

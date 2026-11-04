@@ -1,5 +1,5 @@
 // Klucze obiektów w magazynie (F-12). Kubełek uploads (prywatny): oryginały, kwarantanna
-// i warianty zdjęć prywatnych (spory, F-28); kubełek media (publiczny): niezmienne warianty WebP.
+// i warianty zdjęć prywatnych (spory F-28, wiadomości F-29); kubełek media (publiczny): niezmienne warianty WebP.
 import type { MediaPurpose } from './db/media.schema.js';
 
 export function incomingKey(ownerId: string, mediaId: string): string {
@@ -14,6 +14,7 @@ const VARIANT_PREFIX: Readonly<Record<MediaPurpose, string>> = {
   ITEM_PHOTO: 'items',
   AVATAR: 'avatars',
   DISPUTE_EVIDENCE: 'evidence',
+  MESSAGE_PHOTO: 'messages',
 };
 
 export function variantKey(purpose: MediaPurpose, mediaId: string, variant: string): string {

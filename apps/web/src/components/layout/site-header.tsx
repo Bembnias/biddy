@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
+import { MessagesLink } from '@/components/messaging/messages-link';
 import { MyBiddyLink } from '@/components/my-biddy/my-biddy-link';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Button } from '@/components/ui/button';
@@ -12,10 +13,11 @@ import { SearchForm } from './search-form';
 import { UserMenu } from './user-menu';
 
 /**
- * Nagłówek (F-62): logo, wyszukiwarka w pigułce, Moje Biddy, powiadomienia, konto i „Wystaw
- * przedmiot” w granacie (gradient należy do treści strony, nie do nagłówka). Przyklejony do góry,
- * półprzezroczysty. Na telefonie (< 768 px) wyszukiwarka przechodzi do drugiego wiersza, a Moje
- * Biddy i „Wystaw” są w dolnym pasku nawigacji (F-63, D4); zostają powiadomienia i konto.
+ * Nagłówek (F-62): logo, wyszukiwarka w pigułce, Moje Biddy, wiadomości (F-29), powiadomienia,
+ * konto i „Wystaw przedmiot” w granacie (gradient należy do treści strony, nie do nagłówka).
+ * Przyklejony do góry, półprzezroczysty. Na telefonie (< 768 px) wyszukiwarka przechodzi do
+ * drugiego wiersza, a Moje Biddy i „Wystaw” są w dolnym pasku nawigacji (F-63, D4); zostają
+ * wiadomości, powiadomienia i konto.
  */
 export function SiteHeader() {
   const t = useTranslations('layout');
@@ -28,6 +30,9 @@ export function SiteHeader() {
           <ul className="flex items-center gap-1 md:gap-2">
             <li className="max-md:hidden">
               <MyBiddyLink />
+            </li>
+            <li>
+              <MessagesLink />
             </li>
             <li>
               <NotificationBell />

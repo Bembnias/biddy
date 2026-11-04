@@ -1,7 +1,7 @@
 // Zdjęcia (F-12): upload przez presigned PUT do prywatnego kubełka, przetwarzanie w workerze
 // (kolejka `media`), moderacja, publikacja wariantów w publicznym kubełku i sprzątanie. Zdjęcia ze
-// sporu (F-28) nie mają publicznych adresów: ich warianty zostają w prywatnym kubełku, a wydaje je
-// moduł disputes (`privateVariant`) stronom sporu.
+// sporu (F-28) i z wiadomości (F-29) nie mają publicznych adresów: ich warianty zostają
+// w prywatnym kubełku, a wydają je moduły disputes i messaging (`privateVariant`) stronom.
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, eq, gte, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 
@@ -276,7 +276,7 @@ export class MediaService {
 
   /**
    * Wariant prywatnego zdjęcia READY (np. dowód w sporze) albo undefined. Bez sprawdzania
-   * właściciela: dostęp sprawdza moduł, który zdjęcie przypisał (strony sporu).
+   * właściciela: dostęp sprawdza moduł, który zdjęcie przypisał (strony sporu albo rozmowy).
    */
   async privateVariant(
     mediaId: string,

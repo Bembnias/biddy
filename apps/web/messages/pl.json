@@ -321,10 +321,14 @@
         "addresses": "Dostawa i nadanie paczek",
         "notifications": "E-maile o przebiciu i końcu aukcji",
         "standing": "Poziom konta, limity i odwołania",
-        "balance": "Pieniądze ze sprzedaży i wypłaty na rachunek"
+        "balance": "Pieniądze ze sprzedaży i wypłaty na rachunek",
+        "messages": "Rozmowy z kupującymi i sprzedającymi",
+        "blockedUsers": "Osoby, z którymi nie wymieniasz wiadomości"
       },
       "balance": "Saldo i wypłaty",
-      "balanceAvailable": "Do wypłaty: {amount}"
+      "balanceAvailable": "Do wypłaty: {amount}",
+      "messages": "Wiadomości",
+      "blockedUsers": "Zablokowani"
     },
     "panel": {
       "tagline": "Second-hand na żywo: oglądaj, licytuj, kupuj i sprzedawaj.",
@@ -816,7 +820,8 @@
       "profile": "Zobacz profil",
       "profileOf": ": {name}",
       "private": "Osoba prywatna",
-      "privateNotice": "Sprzedawca jest osobą prywatną, więc prawa konsumenta wobec przedsiębiorcy (np. zwrot w 14 dni) wobec niego nie przysługują. Zakup chroni Pakiet Ochrony Kupujących."
+      "privateNotice": "Sprzedawca jest osobą prywatną, więc prawa konsumenta wobec przedsiębiorcy (np. zwrot w 14 dni) wobec niego nie przysługują. Zakup chroni Pakiet Ochrony Kupujących.",
+      "ask": "Zapytaj sprzedającego"
     },
     "panel": {
       "title": "Licytacja",
@@ -1102,7 +1107,8 @@
         "STRIKE_REVOKED": "Cofnięty strike",
         "ACCOUNT_BLOCKED": "Blokada konta",
         "ACCOUNT_UNBLOCKED": "Zdjęta blokada",
-        "APPEAL_REJECTED": "Odrzucone odwołanie"
+        "APPEAL_REJECTED": "Odrzucone odwołanie",
+        "NEW_MESSAGE": "Nowa wiadomość"
       },
       "groups": {
         "bidding": "Licytacje",
@@ -1110,6 +1116,7 @@
         "selling": "Sprzedaż",
         "payouts": "Saldo i wypłaty",
         "disputes": "Spory i zwroty",
+        "messages": "Wiadomości",
         "following": "Obserwowani sprzedawcy",
         "account": "Konto: strike'i, blokady i odwołania"
       },
@@ -1117,7 +1124,8 @@
         "OUTBID": "Najwyżej raz na 15 minut na aukcję",
         "ENDING_SOON": "Obserwowana albo licytowana",
         "WON": "Z terminem płatności",
-        "AUCTION_CANCELLED": "Którą obserwujesz albo licytujesz"
+        "AUCTION_CANCELLED": "Którą obserwujesz albo licytujesz",
+        "NEW_MESSAGE": "Po 5 minutach bez odczytu, raz na serię wiadomości"
       },
       "back": "Powiadomienia"
     },
@@ -1792,7 +1800,9 @@
       "total": "Razem",
       "seller": "Sprzedaje: {name}",
       "buyer": "Kupuje: {name}",
-      "auction": "Zobacz aukcję"
+      "auction": "Zobacz aukcję",
+      "writeToSeller": "Napisz do sprzedającego",
+      "writeToBuyer": "Napisz do kupującego"
     },
     "secondChance": {
       "title": "Druga szansa",
@@ -2157,6 +2167,137 @@
       "city": "Podaj miejscowość (2–60 znaków).",
       "iban": "Podaj polski numer rachunku: 26 cyfr.",
       "holderName": "Podaj właściciela rachunku (2–100 znaków)."
+    }
+  },
+  "messaging": {
+    "metaTitle": "Wiadomości",
+    "title": "Wiadomości",
+    "headerLink": "{count, plural, =0 {Wiadomości} one {Wiadomości: # rozmowa z nieprzeczytanymi} few {Wiadomości: # rozmowy z nieprzeczytanymi} many {Wiadomości: # rozmów z nieprzeczytanymi} other {Wiadomości: # rozmowy z nieprzeczytanymi}}",
+    "list": {
+      "loading": "Wczytywanie rozmów",
+      "error": "Nie udało się wczytać rozmów.",
+      "retry": "Spróbuj ponownie",
+      "empty": "Nie masz jeszcze wiadomości",
+      "emptyText": "Zapytaj sprzedającego na stronie aukcji albo napisz ze strony zamówienia.",
+      "you": "Ty: {text}",
+      "photo": "Zdjęcie",
+      "unread": "{count, plural, one {# nieprzeczytana wiadomość} few {# nieprzeczytane wiadomości} many {# nieprzeczytanych wiadomości} other {# nieprzeczytanej wiadomości}}",
+      "order": "zamówienie: {status}",
+      "more": "Wcześniejsze rozmowy",
+      "unavailable": "Konto niedostępne",
+      "pick": "Wybierz rozmowę",
+      "pickText": "Wybierz rozmowę z listy, żeby ją przeczytać i odpowiedzieć."
+    },
+    "conversation": {
+      "loading": "Wczytywanie rozmowy",
+      "back": "Wiadomości",
+      "order": "Zamówienie nr {number}: {status}",
+      "report": "Zgłoś",
+      "reportUser": "Zgłoś tę osobę",
+      "reportMessage": "Zgłoś wiadomość",
+      "earlier": "Wcześniejsze wiadomości",
+      "read": "Przeczytano",
+      "today": "Dziś",
+      "yesterday": "Wczoraj",
+      "you": "Ty",
+      "photo": "Zdjęcie {position} z wiadomości",
+      "photoOnly": "zdjęcie",
+      "incoming": "Nowa wiadomość od {name}: {text}",
+      "messagesLabel": "Wiadomości w rozmowie z {name}",
+      "notFound": "Nie znaleziono rozmowy",
+      "notFoundText": "Rozmowa nie istnieje albo nie należy do Ciebie.",
+      "error": "Nie udało się wczytać rozmowy.",
+      "retry": "Spróbuj ponownie",
+      "blockedByMe": "Zablokowano tę osobę. Odblokuj ją, żeby napisać.",
+      "blocked": "Nie możesz pisać w tej rozmowie.",
+      "unavailable": "Konto drugiej strony jest niedostępne. Rozmowa jest tylko do odczytu.",
+      "unavailableName": "Konto niedostępne"
+    },
+    "contact": {
+      "warning": "Ta wiadomość zawiera {kinds}. Umawiaj się i płać tylko w Biddy: poza Biddy nie masz Pakietu Ochrony Kupujących.",
+      "hint": "Wygląda na {kinds}. Rozmawiaj i płać w Biddy, żeby zachować ochronę kupującego.",
+      "kinds": {
+        "PHONE": "numer telefonu",
+        "EMAIL": "adres e-mail",
+        "IBAN": "numer konta"
+      }
+    },
+    "composer": {
+      "label": "Wiadomość",
+      "placeholder": "Napisz wiadomość…",
+      "send": "Wyślij",
+      "sending": "Wysyłanie…",
+      "photos": "Dodaj zdjęcia",
+      "hidePhotos": "Ukryj zdjęcia",
+      "photosHint": "Do 5 zdjęć. Zobaczy je tylko druga strona rozmowy.",
+      "keyboard": "Enter wysyła, Shift+Enter dodaje nową linię.",
+      "counter": "{count}/{max}",
+      "empty": "Napisz wiadomość albo dodaj zdjęcie.",
+      "error": "Nie udało się wysłać wiadomości. Spróbuj ponownie."
+    },
+    "report": {
+      "titleMessage": "Zgłoś wiadomość",
+      "titleUser": "Zgłoś: {name}",
+      "lead": "Zespół Biddy sprawdzi zgłoszenie. Dołączymy do niego fragment tej rozmowy.",
+      "reason": "Co jest nie tak?",
+      "reasonRequired": "Wybierz powód zgłoszenia.",
+      "reasons": {
+        "OFF_PLATFORM": "Namawia do płatności lub kontaktu poza Biddy",
+        "SCAM": "Próba oszustwa",
+        "ABUSE": "Obraźliwe treści lub nękanie",
+        "SPAM": "Spam",
+        "OTHER": "Inny powód"
+      },
+      "details": "Opis (opcjonalnie)",
+      "detailsRequired": "Opis",
+      "detailsOther": "Opisz problem: co najmniej {min} znaków.",
+      "block": "Zablokuj też tę osobę",
+      "submit": "Wyślij zgłoszenie",
+      "sending": "Wysyłanie…",
+      "cancel": "Anuluj",
+      "done": "Dziękujemy. Zespół Biddy sprawdzi zgłoszenie.",
+      "doneBlocked": "Ta osoba jest też zablokowana.",
+      "error": "Nie udało się wysłać zgłoszenia. Spróbuj ponownie."
+    },
+    "block": {
+      "open": "Zablokuj tę osobę",
+      "short": "Zablokuj",
+      "unblock": "Odblokuj",
+      "title": "Zablokować tę osobę ({name})?",
+      "text": "Żadne z was nie będzie mogło pisać w waszych rozmowach. Zamówienia i spory działają dalej.",
+      "confirm": "Zablokuj",
+      "cancel": "Anuluj",
+      "error": "Nie udało się zmienić blokady. Spróbuj ponownie."
+    },
+    "start": {
+      "metaTitle": "Nowa wiadomość",
+      "title": "Nowa wiadomość",
+      "loading": "Wczytywanie",
+      "about": "W sprawie",
+      "to": "Do: {name}",
+      "order": "Zamówienie nr {number}: {status}",
+      "tips": "Pytaj o stan, wymiary i wysyłkę. Nie podawaj telefonu ani numeru konta: płatność poza Biddy nie jest chroniona.",
+      "unavailable": {
+        "OWN_AUCTION": "To Twoja aukcja: nie możesz napisać do siebie.",
+        "AUCTION_CLOSED": "Aukcja się zakończyła, więc nie można już o nią zapytać.",
+        "ACCOUNT_UNAVAILABLE": "Konto drugiej strony jest niedostępne."
+      },
+      "blockedByMe": "Zablokowano tę osobę. Odblokuj ją w ustawieniach konta, żeby napisać.",
+      "blocked": "Nie możesz napisać do tej osoby.",
+      "notFound": "Nie znaleziono aukcji ani zamówienia",
+      "error": "Nie udało się wczytać strony",
+      "back": "Wiadomości"
+    },
+    "blocked": {
+      "metaTitle": "Zablokowani",
+      "title": "Zablokowani użytkownicy",
+      "lead": "Z tymi osobami nie wymieniasz wiadomości. Zamówienia i spory działają dalej.",
+      "since": "Zablokowano {date}",
+      "unblock": "Odblokuj",
+      "unblockLabel": "Odblokuj: {name}",
+      "empty": "Nikogo nie blokujesz",
+      "emptyText": "Osobę zablokujesz w nagłówku rozmowy.",
+      "error": "Nie udało się wczytać listy. Spróbuj ponownie."
     }
   }
 }

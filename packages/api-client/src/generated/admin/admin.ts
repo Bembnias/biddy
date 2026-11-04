@@ -33,6 +33,7 @@ import type {
   AdminAccountBlockDto,
   AdminAppealsDto,
   AdminAuctionStateDto,
+  AdminConversationDto,
   AdminDisputeDto,
   AdminDisputeListDto,
   AdminStrikeDto,
@@ -1742,3 +1743,159 @@ export const useDecideDispute = <TError = ErrorType<ProblemDetails>,
       > => {
       return useMutation(getDecideDisputeMutationOptions(options), queryClient);
     }
+    export const getGetDisputedOrderMessagesUrl = (id: string,) => {
+
+
+
+
+  return `/v1/admin/orders/${id}/messages`
+}
+
+/**
+ * Tylko zamówienie ze sporem (inaczej 404). Bez oznaczania odczytu.
+ * @summary Rozmowa stron spornego zamówienia
+ */
+export const getDisputedOrderMessages = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<AdminConversationDto> => {
+
+  return apiFetch<AdminConversationDto>(getGetDisputedOrderMessagesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDisputedOrderMessagesQueryKey = (id: string,) => {
+    return [
+    `/v1/admin/orders/${id}/messages`
+    ] as const;
+    }
+
+
+export const getGetDisputedOrderMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDisputedOrderMessagesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDisputedOrderMessages>>> = ({ signal }) => getDisputedOrderMessages(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDisputedOrderMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getDisputedOrderMessages>>>
+export type GetDisputedOrderMessagesQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetDisputedOrderMessages<TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDisputedOrderMessages>>,
+          TError,
+          Awaited<ReturnType<typeof getDisputedOrderMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDisputedOrderMessages<TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDisputedOrderMessages>>,
+          TError,
+          Awaited<ReturnType<typeof getDisputedOrderMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDisputedOrderMessages<TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Rozmowa stron spornego zamówienia
+ */
+
+export function useGetDisputedOrderMessages<TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDisputedOrderMessagesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetDisputedOrderMessagesSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDisputedOrderMessagesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDisputedOrderMessages>>> = ({ signal }) => getDisputedOrderMessages(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetDisputedOrderMessagesSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getDisputedOrderMessages>>>
+export type GetDisputedOrderMessagesSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetDisputedOrderMessagesSuspense<TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDisputedOrderMessagesSuspense<TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDisputedOrderMessagesSuspense<TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Rozmowa stron spornego zamówienia
+ */
+
+export function useGetDisputedOrderMessagesSuspense<TData = Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getDisputedOrderMessages>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDisputedOrderMessagesSuspenseQueryOptions(id,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+

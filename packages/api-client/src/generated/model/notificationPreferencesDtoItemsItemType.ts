@@ -43,4 +43,5 @@ export const NotificationPreferencesDtoItemsItemType = {
   ACCOUNT_BLOCKED: 'ACCOUNT_BLOCKED',
   ACCOUNT_UNBLOCKED: 'ACCOUNT_UNBLOCKED',
   APPEAL_REJECTED: 'APPEAL_REJECTED',
+  NEW_MESSAGE: 'NEW_MESSAGE',
 } as const;

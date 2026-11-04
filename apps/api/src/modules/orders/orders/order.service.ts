@@ -4,7 +4,7 @@
 // opłacenie i anulowanie nieopłaconych: F-25 (../checkout); cykl życia: F-26 (../lifecycle).
 import { type CurrencyCode, money, PUBLIC_ID_PATTERN } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, or, type SQL } from 'drizzle-orm';
 
 import { type Database, DRIZZLE, newPublicId, type Transaction } from '../../../infra/db/index.js';
 import { DomainError } from '../../../infra/http/index.js';
@@ -18,6 +18,15 @@ import type { OrderItemSnapshot } from './order-snapshot.js';
 export const PAYMENT_WINDOW_MS = 24 * 60 * 60 * 1_000;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+/** Warunek na zamówienie po UUID albo numerze; undefined dla innego tekstu. */
+function referenceCondition(idOrPublicId: string): SQL | undefined {
+  return UUID.test(idOrPublicId)
+    ? eq(orders.id, idOrPublicId)
+    : PUBLIC_ID_PATTERN.test(idOrPublicId)
+      ? eq(orders.publicId, idOrPublicId)
+      : undefined;
+}
 
 /** Strona zamówienia z perspektywy zalogowanego użytkownika. */
 export type OrderRole = 'BUYER' | 'SELLER';
@@ -125,6 +134,55 @@ export class OrderService {
     return latest;
   }
 
+  /**
+   * Najnowsze zamówienie każdej pary (aukcja, kupujący): kontekst rozmów (F-29). Klucz mapy:
+   * `{auctionId}:{buyerId}`.
+   */
+  async latestForPairs(
+    pairs: readonly { readonly auctionId: string; readonly buyerId: string }[],
+  ): Promise<Map<string, Order>> {
+    if (pairs.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({ auctionId: orderItems.auctionId, order: orders })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .where(
+        or(
+          ...pairs.map((pair) =>
+            and(eq(orderItems.auctionId, pair.auctionId), eq(orders.buyerId, pair.buyerId)),
+          ),
+        ),
+      )
+      .orderBy(desc(orders.createdAt));
+    const latest = new Map<string, Order>();
+    for (const row of rows) {
+      const key = `${row.auctionId}:${row.order.buyerId}`;
+      if (!latest.has(key)) {
+        latest.set(key, row.order);
+      }
+    }
+    return latest;
+  }
+
+  /** Zamówienie po UUID albo numerze z jego aukcją, bez sprawdzania stron (personel, F-29). */
+  async byReference(
+    idOrPublicId: string,
+  ): Promise<{ readonly order: Order; readonly auctionId: string } | undefined> {
+    const condition = referenceCondition(idOrPublicId);
+    if (condition === undefined) {
+      return undefined;
+    }
+    const [row] = await this.db
+      .select({ order: orders, auctionId: orderItems.auctionId })
+      .from(orders)
+      .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+      .where(condition)
+      .limit(1);
+    return row;
+  }
+
   /** Aukcje kupione z drugiej szansy (kupujący nie był zwycięzcą aukcji, Moje Biddy, F-26). */
   async secondChanceAuctions(buyerId: string): Promise<string[]> {
     const rows = await this.db
@@ -140,11 +198,7 @@ export class OrderService {
    * Inni dostają 404, tak jak dla nieistniejącego zamówienia (bez ujawniania numerów).
    */
   async forParticipant(idOrPublicId: string, userId: string): Promise<ParticipantOrder> {
-    const condition = UUID.test(idOrPublicId)
-      ? eq(orders.id, idOrPublicId)
-      : PUBLIC_ID_PATTERN.test(idOrPublicId)
-        ? eq(orders.publicId, idOrPublicId)
-        : undefined;
+    const condition = referenceCondition(idOrPublicId);
     const [row] =
       condition === undefined
         ? []

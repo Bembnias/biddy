@@ -2,7 +2,7 @@
 
 import { type OrderDetailsDto, isApiError, useGetOrder } from '@biddy/api-client';
 import { formatMoney, money } from '@biddy/shared';
-import { Check, ImageOff, ShieldAlert } from 'lucide-react';
+import { Check, ImageOff, MessagesSquare, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
@@ -12,7 +12,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ORDER_TONES, orderProgress } from '@/lib/orders/order-view';
-import { auctionUrl, checkoutUrl, dispatchUrl, disputeUrl, routes } from '@/lib/routes';
+import {
+  auctionUrl,
+  checkoutUrl,
+  dispatchUrl,
+  disputeUrl,
+  newConversationUrl,
+  routes,
+} from '@/lib/routes';
 import { cn } from '@/lib/utils';
 
 import { ConfirmReceipt, ReportNotReceived } from './order-actions';
@@ -419,9 +426,17 @@ export function OrderSummary({ order }: { readonly order: Order }) {
         </div>
       </dl>
       {order.counterpart.name === '' ? null : (
-        <p className="border-t border-ink-100 pt-3.5 text-body-sm text-foreground-secondary">
-          {t(order.role === 'BUYER' ? 'seller' : 'buyer', { name: order.counterpart.name })}
-        </p>
+        <div className="space-y-3 border-t border-ink-100 pt-3.5">
+          <p className="text-body-sm text-foreground-secondary">
+            {t(order.role === 'BUYER' ? 'seller' : 'buyer', { name: order.counterpart.name })}
+          </p>
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <Link href={newConversationUrl({ orderPublicId: order.publicId })}>
+              <MessagesSquare aria-hidden />
+              {t(order.role === 'BUYER' ? 'writeToSeller' : 'writeToBuyer')}
+            </Link>
+          </Button>
+        </div>
       )}
     </aside>
   );

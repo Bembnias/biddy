@@ -27,7 +27,7 @@ import {
 } from './session.js';
 
 /** Co trasa wymaga od konta poza sesją (metadane ustawiane przez dekoratory niżej). */
-type AccountRequirement = 'verified-email' | 'verified-phone';
+type AccountRequirement = 'verified-email' | 'accepted-terms' | 'verified-phone';
 const ACCOUNT_REQUIREMENT = 'biddy:account-requirement';
 /** Role personelu dopuszczone do trasy (@RequireStaff). */
 const STAFF_ROLES_METADATA = 'biddy:staff-roles';
@@ -68,8 +68,9 @@ export class SessionReader {
 /**
  * Sesja z ciasteczka albo tokenu Bearer (Better Auth). Bez sesji 401 UNAUTHORIZED, konto
  * zablokowane 403 FORBIDDEN. @RequireVerifiedEmail: niepotwierdzony e-mail 403
- * EMAIL_NOT_VERIFIED. @RequireVerifiedPhone: dodatkowo brak oświadczenia 18+ 403
- * TERMS_NOT_ACCEPTED i niezweryfikowany telefon 403 PHONE_NOT_VERIFIED. Stan konta czytamy
+ * EMAIL_NOT_VERIFIED. @RequireAcceptedTerms: dodatkowo brak oświadczenia 18+ 403
+ * TERMS_NOT_ACCEPTED. @RequireVerifiedPhone: dodatkowo niezweryfikowany telefon 403
+ * PHONE_NOT_VERIFIED. Stan konta czytamy
  * z bazy przy każdym żądaniu, więc weryfikacje i wylogowanie ze wszystkich urządzeń działają
  * od razu.
  */
@@ -97,17 +98,15 @@ export class SessionGuard implements CanActivate {
     if (requirement !== undefined && !user.emailVerified) {
       throw new DomainError({ code: 'EMAIL_NOT_VERIFIED' });
     }
-    if (requirement === 'verified-phone') {
-      if (!user.adultDeclared) {
-        throw new DomainError({
-          code: 'TERMS_NOT_ACCEPTED',
-          status: 403,
-          detail: 'Zaakceptuj regulamin i potwierdź, że masz ukończone 18 lat.',
-        });
-      }
-      if (user.phoneNumber === null) {
-        throw new DomainError({ code: 'PHONE_NOT_VERIFIED' });
-      }
+    if (requirement !== undefined && requirement !== 'verified-email' && !user.adultDeclared) {
+      throw new DomainError({
+        code: 'TERMS_NOT_ACCEPTED',
+        status: 403,
+        detail: 'Zaakceptuj regulamin i potwierdź, że masz ukończone 18 lat.',
+      });
+    }
+    if (requirement === 'verified-phone' && user.phoneNumber === null) {
+      throw new DomainError({ code: 'PHONE_NOT_VERIFIED' });
     }
     const staffRoles = this.reflector.getAllAndOverride<readonly StaffRole[] | undefined>(
       STAFF_ROLES_METADATA,
@@ -150,6 +149,17 @@ export function RequireVerifiedEmail(): MethodDecorator & ClassDecorator {
 }
 
 /**
+ * Trasa wymaga potwierdzonego e-maila i akceptacji regulaminu z oświadczeniem 18+ (np. pisanie
+ * wiadomości, F-29; PROJECT.md §4). Kolejno 403 EMAIL_NOT_VERIFIED, TERMS_NOT_ACCEPTED.
+ */
+export function RequireAcceptedTerms(): MethodDecorator & ClassDecorator {
+  return applyDecorators(
+    SetMetadata(ACCOUNT_REQUIREMENT, 'accepted-terms' satisfies AccountRequirement),
+    RequireSession(),
+  );
+}
+
+/**
  * Trasa wymaga konta gotowego do handlu: potwierdzony e-mail, oświadczenie 18+ i zweryfikowany
  * telefon (licytowanie F-15, wystawianie F-14; PROJECT.md §4). Kolejno 403 EMAIL_NOT_VERIFIED,
  * TERMS_NOT_ACCEPTED, PHONE_NOT_VERIFIED.
@@ -165,7 +175,7 @@ function authContext(context: ExecutionContext): AuthenticatedRequestContext {
   const auth = context.switchToHttp().getRequest<RequestWithAuth>()[AUTH_CONTEXT];
   if (auth === undefined) {
     throw new Error(
-      '@CurrentUser() wymaga @RequireSession(), @RequireVerifiedEmail() albo @RequireVerifiedPhone() na trasie',
+      '@CurrentUser() wymaga @RequireSession(), @RequireVerifiedEmail(), @RequireAcceptedTerms() albo @RequireVerifiedPhone() na trasie',
     );
   }
   return auth;

@@ -7,6 +7,7 @@ import {
   type LucideIcon,
   Mail,
   MapPin,
+  MessagesSquare,
   Plus,
   ShieldAlert,
   ShieldCheck,
@@ -14,6 +15,7 @@ import {
   Store,
   TriangleAlert,
   UserRound,
+  UserX,
 } from 'lucide-react';
 import { getMyBalance, getMyStanding } from '@biddy/api-client';
 import { formatMoney, money } from '@biddy/shared';
@@ -88,6 +90,13 @@ export default async function AccountPage() {
       tone: 'brand',
     },
     {
+      href: routes.messages,
+      label: t('messages'),
+      description: t('shortcuts.messages'),
+      Icon: MessagesSquare,
+      tone: 'info',
+    },
+    {
       href: routes.myAuctions,
       label: t('myAuctions'),
       description: t('shortcuts.myAuctions'),
@@ -134,6 +143,13 @@ export default async function AccountPage() {
       label: t('notifications'),
       description: t('shortcuts.notifications'),
       Icon: Bell,
+      tone: 'neutral',
+    },
+    {
+      href: routes.blockedUsers,
+      label: t('blockedUsers'),
+      description: t('shortcuts.blockedUsers'),
+      Icon: UserX,
       tone: 'neutral',
     },
     {

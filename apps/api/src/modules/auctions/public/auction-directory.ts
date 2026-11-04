@@ -1,5 +1,6 @@
 // Aukcje dla powiadomień (F-20, moduł notifications): podsumowanie do treści (tytuł, adres, cena,
-// koniec) i odbiorcy (obserwujący i licytujący). Bez maksimów i danych licytujących.
+// koniec) i odbiorcy (obserwujący i licytujący). Bez maksimów i danych licytujących. Przedmiot
+// rozmów (F-29, moduł messaging): podsumowanie ze zdjęciem głównym.
 import { auctionSlug, type CurrencyCode } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -7,6 +8,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { type Database, DRIZZLE, type Transaction } from '../../../infra/db/index.js';
 import { ItemService } from '../../catalog/index.js';
 import { type AuctionStatus, auctions, bids, watchlist } from '../db/auctions.schema.js';
+import { AuctionCards } from './auction-cards.js';
 
 export interface AuctionNotice {
   readonly id: string;
@@ -22,11 +24,17 @@ export interface AuctionNotice {
   readonly endsAt: Date | null;
 }
 
+/** Aukcja jako przedmiot rozmowy (F-29): podsumowanie i miniatura zdjęcia głównego (320 px). */
+export interface AuctionSubject extends AuctionNotice {
+  readonly coverUrl: string | null;
+}
+
 @Injectable()
 export class AuctionDirectory {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(ItemService) private readonly items: ItemService,
+    @Inject(AuctionCards) private readonly cards: AuctionCards,
   ) {}
 
   async notices(auctionIds: readonly string[], tx?: Transaction): Promise<AuctionNotice[]> {
@@ -64,6 +72,36 @@ export class AuctionDirectory {
 
   async notice(auctionId: string, tx?: Transaction): Promise<AuctionNotice | undefined> {
     return (await this.notices([auctionId], tx))[0];
+  }
+
+  /** Przedmioty rozmów według ID aukcji (nieznane aukcje nie trafiają do wyniku). */
+  async subjects(auctionIds: readonly string[]): Promise<Map<string, AuctionSubject>> {
+    if (auctionIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select()
+      .from(auctions)
+      .where(inArray(auctions.id, [...new Set(auctionIds)]));
+    const cards = await this.cards.cards(rows);
+    return new Map(
+      cards.map(({ auction, title, slug, cover }) => [
+        auction.id,
+        {
+          id: auction.id,
+          publicId: auction.publicId,
+          slug,
+          title,
+          sellerId: auction.sellerId,
+          status: auction.status,
+          currency: auction.currency,
+          price: auction.currentPrice ?? auction.startPrice ?? 0,
+          bidCount: auction.bidCount,
+          endsAt: auction.endsAt,
+          coverUrl: cover?.thumb ?? null,
+        },
+      ]),
+    );
   }
 
   /** Obserwujący i licytujący (ważne oferty) aukcji, bez sprzedającego; każdy raz. */

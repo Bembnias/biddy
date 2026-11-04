@@ -848,6 +848,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-29 · Wiadomości · `M`
 
+> Pełny spec: [docs/features/F-29-wiadomosci.md](features/F-29-wiadomosci.md).
+
 **Cel:** bezpieczna komunikacja kupującego ze sprzedającym.
 
 **Zakres:**

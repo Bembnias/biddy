@@ -1075,11 +1075,11 @@ Jeden codebase `apps/api` ma dwa entrypointy:
 | Room | Kto subskrybuje | Zdarzenia |
 |---|---|---|
 | `auction:{id}` | Oglądający stronę aukcji | `auction.updated`, `auction.extended`, `auction.ended`, `auction.viewers` |
-| `user:{id}` | Zalogowany użytkownik (wszystkie urządzenia) | `user.outbid`, `user.won`, `order.updated`, `message.new`, `notification.new` |
+| `user:{id}` | Zalogowany użytkownik (wszystkie urządzenia) | `user.outbid`, `user.won`, `order.updated`, `message.new`, `conversation.read`, `notification.new` |
 
 Każda wiadomość niesie `serverTime`. Po reconnect klient dociąga stan przez REST (nie polegamy na tym, że WS dostarczy wszystko).
 
-Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, adapter Redis na instancji cache. Do `user:{id}` dołącza wyłącznie serwer przy połączeniu (sesja z ciasteczka albo token Bearer); `auction:{id}` klient subskrybuje sam (`auction:subscribe`, najwyżej 50 aukcji). Zdarzenia publikuje API albo worker przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji. `notification.new` (F-20) niesie powiadomienie i liczbę nieprzeczytanych; `order.updated` i `message.new` dojdą z zamówieniami i czatem. Liczba oglądających (F-63): strona aukcji zgłasza `auction:view` (najwyżej 5 aukcji na połączenie), API trzyma identyfikatory gniazd w Redisie cache z wygasaniem, a `auction.viewers` wysyła najwyżej raz na 5 s i tylko po zmianie; na zewnątrz wychodzi sama liczba.
+Implementacja (F-17): Socket.IO pod `/v1/realtime`, tylko transport WebSocket, adapter Redis na instancji cache. Do `user:{id}` dołącza wyłącznie serwer przy połączeniu (sesja z ciasteczka albo token Bearer); `auction:{id}` klient subskrybuje sam (`auction:subscribe`, najwyżej 50 aukcji). Zdarzenia publikuje API albo worker przez `@socket.io/redis-emitter` zaraz po zatwierdzeniu transakcji. `notification.new` (F-20) niesie powiadomienie i liczbę nieprzeczytanych. `message.new` i `conversation.read` (F-29) idą do obu stron rozmowy z liczbą rozmów z nieprzeczytanymi wiadomościami odbiorcy zdarzenia; treść wiadomości klient pobiera przez REST. `order.updated` dojdzie z zamówieniami. Liczba oglądających (F-63): strona aukcji zgłasza `auction:view` (najwyżej 5 aukcji na połączenie), API trzyma identyfikatory gniazd w Redisie cache z wygasaniem, a `auction.viewers` wysyła najwyżej raz na 5 s i tylko po zmianie; na zewnątrz wychodzi sama liczba.
 
 ---
 
@@ -1281,7 +1281,7 @@ erDiagram
 | `payment_methods` (v1) | id, user_id, provider_ref, type, brand, last4, is_default (tylko referencje/tokeny operatora, **żadnych danych kart**) |
 | `devices` | id, user_id, platform (`WEB`/`IOS`/`ANDROID`), push_token (Expo), web_push_subscription (jsonb: endpoint, klucze), fingerprint, last_seen_at |
 | `user_follows` | follower_id, seller_id, created_at (obserwowani sprzedawcy) |
-| `user_blocks` | blocker_id, blocked_id, created_at |
+| `user_blocks` | blocker_id, blocked_id, created_at. PK (blocker_id, blocked_id); moduł `messaging`, blokada wyłącza wiadomości w obie strony (F-29) |
 | `notification_preferences` | user_id, type, channel, enabled, updated_at; brak wiersza = wartość domyślna (F-20) |
 
 **Katalog i aukcje**
@@ -1290,7 +1290,7 @@ erDiagram
 |---|---|
 | `categories` | id, parent_id, path (ltree ze slugów), slug (unikalny), name, position, attributes (jsonb: definicje atrybutów w formacie z `@biddy/shared`, z których powstaje JSON Schema), is_restricted, is_brand_sensitive, listing_notice, is_active (F-11) |
 | `items` | id, seller_id, category_id, title, description, condition (`NEW`/`LIKE_NEW`/`VERY_GOOD`/`GOOD`/`FAIR`/`FOR_PARTS`), brand, attributes (jsonb), package_size (`S`/`M`/`L`/`XL`), weight_grams, length_cm, width_cm, height_cm, allowed_carriers (text[]), created_at, updated_at (moduł `catalog`, F-14; pola puste w szkicu, lokalizacja z adresu nadania w F-18) |
-| `media` | id, owner_id, purpose (`ITEM_PHOTO`/`AVATAR`/`DISPUTE_EVIDENCE`: prywatne, F-28), status (`PENDING_UPLOAD`/`PROCESSING`/`READY`/`FLAGGED`/`REJECTED`), content_type, size_bytes, width, height, rejection_reason, moderation_labels, attached_at, processed_at (moduł `media`, F-12; nieprzypisane znikają po 24 h) |
+| `media` | id, owner_id, purpose (`ITEM_PHOTO`/`AVATAR`/`DISPUTE_EVIDENCE` i `MESSAGE_PHOTO`: prywatne, F-28, F-29), status (`PENDING_UPLOAD`/`PROCESSING`/`READY`/`FLAGGED`/`REJECTED`), content_type, size_bytes, width, height, rejection_reason, moderation_labels, attached_at, processed_at (moduł `media`, F-12; nieprzypisane znikają po 24 h) |
 | `item_media` | item_id, media_id, position (F-14; plik, wymiary i moderacja w `media`; to samo zdjęcie może być w kopii przedmiotu po ponownym wystawieniu) |
 | `auctions` | id, public_id, item_id, seller_id, type (`TIMED`; w przyszłości `LIVE`), status (`DRAFT`/`PENDING_REVIEW`/`ACTIVE`/`ENDED_SOLD`/`ENDED_UNSOLD`/`CANCELLED`), currency, start_price, reserve_price, buy_now_price, duration_days, current_price, leader_id, leader_max_amount (*ukryte*), bid_count, bid_sequence, review_reasons, review_terms, starts_at, ends_at, original_ends_at, published_at, cancelled_at, version, created_at, updated_at (F-14; extension_policy w F-15) |
 | `bids` | id, auction_id, bidder_id, sequence (kolejność w aukcji, replay §15.6), amount, max_amount, kind (`MANUAL`/`AUTO`/`BUY_NOW`), status (`VALID`/`CANCELLED`), cancel_reason (`TYPO`/`FRAUD`/`REPLAY`), cancelled_by, cancelled_at, idempotency_key (unique per bidder), created_at (F-15; ip i device_id dojdą z antyfraudem F-36) |
@@ -1324,10 +1324,11 @@ erDiagram
 
 | Tabela | Kolumny |
 |---|---|
-| `conversations` / `messages` | czat per aukcja lub zamówienie, flagi wykrytych danych kontaktowych |
+| `conversations` | id, auction_id, seller_id, buyer_id (pytający albo kupujący), last_message_at, created_at. Unikalne (auction_id, buyer_id): jedna rozmowa pary, zamówienie pary liczone przy odczycie (moduł `messaging`, F-29) |
+| `messages` | id, conversation_id, sender_id, recipient_id, body (do 2000 znaków), media_ids (do 5 zdjęć `MESSAGE_PHOTO`), contact_flags (`PHONE`/`EMAIL`/`IBAN`), read_at, notified_at (powiadomienie o nieprzeczytanej), created_at (F-29) |
 | `reviews` | id, order_id, author_id, target_id, role (`BUYER`/`SELLER`), rating, comment, visible_at. Unikalne (order_id, author_id). |
 | `notifications` | id, user_id, type, auction_id, payload (migawka), dedupe_key (unikalny z user_id), read_at, emailed_at, created_at (F-20) |
-| `reports` | id, reporter_id, target_type, target_id, reason, status, decision, statement_of_reasons, created_at (DSA *notice & action*) |
+| `reports` | id, reporter_id, target_type (`MESSAGE`/`USER`; aukcje w F-35), target_id, reason (`OFF_PLATFORM`/`SCAM`/`ABUSE`/`SPAM`/`OTHER`), details, context (jsonb: źródło i migawka zgłoszonej treści), status (`OPEN`), created_at. Unikalne (reporter_id, target_type, target_id); moduł `trust-safety`, F-29. Decyzja i statement_of_reasons dojdą w F-35 (DSA *notice & action*) |
 | `outbox` | id, type, payload, created_at, processed_at, attempts |
 | `processed_webhooks` | provider, event_id (PK z provider), event_type, outcome (`HANDLED`/`IGNORED`: bez obsługi w tej wersji), processed_at (idempotencja webhooków, F-23) |
 | `fake_shipping_*` | stan FakeShipping (F-24): `parcels` (klucz idempotencji, odcisk żądania, scenariusz), `tracking` (statusy w notacji symulatora), `webhooks` (stan dostarczenia); na produkcji puste |
@@ -1343,7 +1344,8 @@ erDiagram
 - unikalny `bids(bidder_id, idempotency_key)`,
 - unikalny częściowy `order_items(auction_id) WHERE is_active` (jedno aktywne zamówienie na aukcję; akceptacja drugiej szansy ustawia `is_active = false` poprzedniemu w tej samej transakcji, F-26),
 - `strikes(user_id, role, created_at)` dla reguły „3 w 90 dni”, `account_blocks(user_id, kind, starts_at)` dla guardów,
-- `shipments(status, polled_at)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`.
+- `shipments(status, polled_at)` dla pollingu trackingu, `second_chance_offers(status, expires_at)`,
+- częściowe `messages(recipient_id, conversation_id) WHERE read_at IS NULL` dla liczników nieprzeczytanych i `messages(created_at) WHERE read_at IS NULL AND notified_at IS NULL` dla joba powiadomień (F-29).
 
 ---
 
@@ -1417,7 +1419,10 @@ GET    /shipping/points?carrier=&lat=&lng= | &q=   (sesja; punkty odbioru u dost
 POST   /disputes/:id/seller-response   (ACCEPT z odesłaniem albo bez | OFFER_PARTIAL | REJECT, F-28)
 POST   /disputes/:id/offer-response    POST /disputes/:id/comments    POST /disputes/:id/return-review
 POST   /disputes/:id/return-shipment   GET /disputes/:id/return-label   GET /disputes/:id/photos/:mediaId/:variant
-GET|POST /conversations            GET|POST /conversations/:id/messages
+GET    /conversations?before=       GET /conversations/summary      GET /conversations/start?auctionId=|orderId=   (F-29)
+POST   /conversations               (pierwsza wiadomość o aukcji albo zamówieniu)   GET /conversations/:id
+GET|POST /conversations/:id/messages   POST /conversations/:id/read   POST /conversations/:id/report
+GET    /conversations/:id/photos/:mediaId/:variant   GET /me/blocks   PUT|DELETE /me/blocks/:userId
 POST   /orders/:id/review
 POST   /reports
 
@@ -1439,6 +1444,7 @@ POST   /dev/fake-shipping/parcels/:id/advance      POST /dev/fake-shipping/parce
 POST   /admin/bids/:id/cancel      (unieważnienie oferty + replay, §15.6)
 POST   /admin/auctions/:id/cancel  (anulowanie aukcji przez moderację, F-16)
 GET    /admin/disputes?status=     GET /admin/disputes/:id          POST /admin/disputes/:id/decision   (F-28)
+GET    /admin/orders/:id/messages  (rozmowa stron, tylko zamówienie ze sporem, F-29)
 POST   /admin/strikes              POST /admin/strikes/:id/revoke   POST /admin/strikes/:id/appeal-decision
 POST   /admin/account-blocks/:id/lift    POST /admin/account-blocks/:id/appeal-decision    GET /admin/appeals
 GET    /admin/account-policy       PUT /admin/account-policy        PUT /admin/users/:id/limits    GET /admin/users/:id/standing   (F-61)
@@ -1486,6 +1492,14 @@ interface UserWonEvent {
   paymentDueAt: string; serverTime: string;
 }
 interface AuctionViewersEvent { auctionId: string; count: number; serverTime: string } // F-63
+interface MessageNewEvent {        // F-29, obie strony rozmowy; treść przez REST
+  conversationId: string; messageId: string; senderId: string; createdAt: string;
+  unreadCount: number;             // rozmowy z nieprzeczytanymi u odbiorcy zdarzenia
+  serverTime: string;
+}
+interface ConversationReadEvent {  // F-29
+  conversationId: string; readerId: string; readAt: string; unreadCount: number; serverTime: string;
+}
 // klient → serwer: 'auction:subscribe' (ack { ok } albo { ok: false, error }),
 // 'auction:unsubscribe', 'auction:view' (ack { ok, viewers } albo { ok: false, error }, F-63),
 // 'auction:unview', 'time:ping' (ack { serverTime })
@@ -1499,7 +1513,7 @@ interface AuctionViewersEvent { auctionId: string; count: number; serverTime: st
   - Kontrakt `OrderPaid` (z `shipBy`) zdefiniował F-24 dla powiadomienia „nadaj paczkę”, a publikuje go F-25.
   - Eventy cyklu życia (F-26) niosą numer zamówienia, aukcję i obie strony. `OrderCancelled.reason` to `UNPAID` albo `NOT_SHIPPED`, a `OrderCreated.secondChanceOfferId` oznacza zamówienie z drugiej szansy.
 - **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputePartialOffered`, `DisputeEscalated`, `DisputeReturnRequested`, `DisputeReturnDelivered`, `DisputeResolved` (F-28), `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutPaid`, `PayoutFailed`, `PayoutAccountChanged` (F-27), `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika), `FundsReleaseRequested` (F-26, zwolnienie środków u operatora). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
-- **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `AccountBlocked`, `AccountBlockLifted`, `AppealResolved` (F-61), `ReviewPublished`, `ReportCreated`.
+- **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `AccountBlocked`, `AccountBlockLifted`, `AppealResolved` (F-61), `MessagesUnread` (F-29: wiadomości nieprzeczytane od 5 minut, jedno powiadomienie na serię; bez treści), `ReportCreated` (F-29: zgłoszenie z rozmowy; konsumenci w F-35), `ReviewPublished`.
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
 
@@ -1628,7 +1642,7 @@ Terminy w dniach roboczych (nadanie, nadanie zwrotu) liczy jedna funkcja w `pack
 | Fałszywe konta / boty | 1 telefon = 1 konto, Turnstile, limity dla nowych kont (§4.1) |
 | Niepłacący zwycięzcy | Limity nowych kupujących i strike'i (§4.1); w v1 wymóg zapisanej metody płatności dla aukcji powyżej określonej kwoty |
 | Oszuści-sprzedawcy | Limity dla nowych sprzedawców (§4.1: 5 aktywnych aukcji, maks. 5000 zł), KYC przed wypłatą i przed aukcją > 5000 zł, środki wstrzymane do weryfikacji |
-| Transakcje poza platformą | Wykrywanie telefonów, e-maili i IBAN-ów w czacie z ostrzeżeniem, edukacja („poza Biddy nie masz ochrony”) |
+| Transakcje poza platformą | Wykrywanie telefonów, e-maili i IBAN-ów w czacie z ostrzeżeniem dla obu stron i flagą na wiadomości (F-29, `detectContactData` w `@biddy/shared`), edukacja („poza Biddy nie masz ochrony”); reguły na flagach w F-36 |
 | Podróbki | Kategorie „brand-sensitive” wymagają więcej zdjęć (metki, kody), zgłoszenia, docelowo weryfikacja autentyczności |
 | Fraud płatniczy | Narzędzia antyfraudowe operatora, 3DS/SCA |
 | Przejęcie konta | 2FA, alert o nowym urządzeniu, blokada wypłat po zmianach wrażliwych danych |
@@ -2027,6 +2041,13 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 132 | Wina przewoźnika w sporze: pełny zwrot kupującemu, rekompensata równa cenie od razu po decyzji Biddy (bez czekania na reklamację, tym samym kanałem co przy zaginięciu) i reklamacja przesyłki do kupującego (`DAMAGED`, przy „paczka nie dotarła” `LOST`); rozliczenie odszkodowania po rozstrzygnięciu reklamacji | Tymczasowa | §7.5, §7.9 |
 | 133 | Zdjęcia ze sporu to prywatne przeznaczenie mediów `DISPUTE_EVIDENCE`: ta sama obróbka i moderacja, ale warianty w kubełku `uploads`, bez publicznych adresów; wydaje je API (`/disputes/:id/photos/…`) tylko stronom sporu i personelowi, i tylko zdjęcia z historii tego sporu | Przyjęta | §16.1, §17 |
 | 134 | Zwrot części ceny: powód `DISPUTE_PARTIAL` w `refunds` z kwotami zamówienia (najwyżej cena); po potwierdzeniu operatora księgowanie `ORDER_PARTIALLY_REFUNDED` (reszta ceny na saldo, POK i dostawa jako przychody), potem zamówienie `PARTIALLY_REFUNDED` i zwolnienie reszty ceny u operatora (`fund_releases` bez księgowania). Koszty sporu (`DISPUTE_COSTS_CHARGED`) księgujemy przy rozstrzygnięciu, razem ze zleceniem zwrotu | Przyjęta | §7.5, §7.7 |
+| 135 | Rozmowa to para (aukcja, druga strona): pytanie przed końcem aukcji i rozmowa po zakupie (także z drugiej szansy, która ma własną parę) to jedna rozmowa. Zamówienie pary liczymy przy odczycie (najnowsze), bez kopii w rozmowie. Nową rozmowę o aukcji zaczyna tylko druga strona i tylko o aktywnej aukcji (albo z zamówieniem pary); sprzedający zaczyna ją ze strony zamówienia. Rozmowa bez wiadomości nie powstaje | Przyjęta | §5, §10.3 |
+| 136 | Dane kontaktowe w wiadomości (telefon, e-mail, numer konta) tylko ostrzegają obie strony i flagują wiadomość (`contact_flags`): bez maskowania i bez blokady wysyłki. Reguły wolą fałszywy alarm niż przeoczenie. Treść widzą tylko strony; personel przy spornym zamówieniu i w migawce zgłoszenia | Tymczasowa | §16.2, §17 |
+| 137 | Blokada użytkownika działa w obie strony tylko dla wiadomości: żadna strona nie pisze w rozmowach pary ani nie zaczyna nowych. Zamówień, sporów i licytowania nie dotyczy; zablokowany widzi neutralny komunikat | Przyjęta | §10.3, §16.2 |
+| 138 | Powiadomienie o wiadomości dopiero po 5 minutach bez odczytu (job co minutę), jedno na serię nieprzeczytanych wiadomości w rozmowie; e-mail bez treści wiadomości i z możliwością wyłączenia. Na żywo idzie tylko `message.new` | Tymczasowa | §10.5, §14.3 |
+| 139 | Zgłoszenia z rozmów zapisujemy w `reports` (moduł `trust-safety`) z migawką treści przekazanej przez zgłaszającego (zgłoszona wiadomość i 10 poprzednich albo 20 ostatnich przy zgłoszeniu osoby); jedno zgłoszenie celu na osobę. Kolejka, decyzje z uzasadnieniem i zgłoszenia aukcji: F-35 | Przyjęta | §13.3, §17 |
+| 140 | Limity wiadomości liczone w Postgresie pod blokadą doradczą nadawcy: 10 na minutę, 200 na dobę, 20 nowych rozmów na dobę (429 `RATE_LIMITED` z `Retry-After`). Pisanie wymaga potwierdzonego e-maila i akceptacji regulaminu z oświadczeniem 18+ (`@RequireAcceptedTerms`) | Tymczasowa | §4, §16.1 |
+| 141 | Zdjęcia w wiadomościach to prywatne przeznaczenie `MESSAGE_PHOTO` (jak `DISPUTE_EVIDENCE`): do 5 na wiadomość, warianty w kubełku `uploads`, wydaje je API stronom rozmowy i personelowi przy spornym zamówieniu | Przyjęta | §16.1, §17 |
 
 ---
 

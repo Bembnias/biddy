@@ -54,8 +54,8 @@ function revokePreview(entry: Entry): void {
  * w workerze, zdjęcie główne (pierwsze), kolejność przyciskami i usuwanie. `onChange` dostaje
  * identyfikatory gotowych zdjęć w kolejności. `initial`: zdjęcia już zapisane (szkic aukcji);
  * `deleteOnRemove={false}`: usunięte zdjęcie zwalnia dopiero zapis właściciela (szkic).
- * Zdjęcia ze sporu (F-28, `purpose="DISPUTE_EVIDENCE"`) są prywatne: bez zdjęcia głównego
- * i kolejności, z podglądem z pliku.
+ * Zdjęcia ze sporu (F-28, `purpose="DISPUTE_EVIDENCE"`) i z wiadomości (F-29, `MESSAGE_PHOTO`) są
+ * prywatne: bez zdjęcia głównego i kolejności, z podglądem z pliku.
  */
 export function PhotoUploader({
   max = MAX_ITEM_PHOTOS,
@@ -69,7 +69,10 @@ export function PhotoUploader({
   readonly max?: number;
   readonly initial?: readonly ExistingPhoto[];
   readonly deleteOnRemove?: boolean;
-  readonly purpose?: Extract<CreateUploadDtoPurpose, 'ITEM_PHOTO' | 'DISPUTE_EVIDENCE'>;
+  readonly purpose?: Extract<
+    CreateUploadDtoPurpose,
+    'ITEM_PHOTO' | 'DISPUTE_EVIDENCE' | 'MESSAGE_PHOTO'
+  >;
   /** Podpowiedź pod przyciskiem zamiast domyślnej (zdjęcia przedmiotu). */
   readonly hint?: string;
   readonly onChange?: (mediaIds: string[]) => void;

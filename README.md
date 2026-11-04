@@ -616,6 +616,30 @@ Kupujący zgłasza problem z przedmiotem w oknie 36 h, strony próbują się por
   - statusy przesyłki zwrotnej prowadzisz w panelu `/dev/fake-shipping`;
   - rolę personelu nadajesz w bazie: `update users set staff_role = 'moderator' where email = '…'`.
 
+### Wiadomości (F-29)
+
+Rozmowy kupujących ze sprzedającymi o aukcji albo zamówieniu, na żywo i ze zdjęciami, z ostrzeżeniem o danych kontaktowych (PROJECT.md §16.2). Spec: [F-29](docs/features/F-29-wiadomosci.md).
+
+- **Moduł `messaging`.** Rozmowa to para (aukcja, druga strona): pytanie przed końcem aukcji i rozmowa po zakupie to ta sama rozmowa. Zamówienie pary API liczy przy odczycie.
+- **Trasy stron** (`/v1/conversations`, pisanie wymaga potwierdzonego e-maila i regulaminu):
+  - lista i licznik (`GET /v1/conversations`, `…/summary`);
+  - ekran nowej wiadomości (`GET …/start?auctionId=|orderId=`) i pierwsza wiadomość (`POST /v1/conversations`);
+  - wiadomości, odczyt i zgłoszenie (`…/:id/messages`, `…/:id/read`, `…/:id/report`);
+  - zdjęcia prywatne (`MESSAGE_PHOTO`) przez `GET …/:id/photos/:mediaId/:variant`.
+    Nowej rozmowy nie zaczniesz o własnej ani zakończonej aukcji bez zamówienia (409 `CONVERSATION_UNAVAILABLE`).
+- **Dane kontaktowe:** `detectContactData` w `@biddy/shared` wykrywa telefony, e-maile i numery kont. Wiadomość dostaje `contact_flags`, obie strony widzą ostrzeżenie, a pole wiadomości podpowiada przed wysłaniem.
+- **Blokady** (`GET|PUT|DELETE /v1/me/blocks/:userId`): przy blokadzie w dowolną stronę nikt nie pisze w rozmowach tej pary (403 `CONVERSATION_BLOCKED`). Zamówienia i spory działają dalej.
+- **Limity:** 10 wiadomości na minutę, 200 na dobę i 20 nowych rozmów na dobę (429 z `Retry-After`).
+- **Na żywo:** `message.new` i `conversation.read` w roomie `user:{id}` zaraz po zapisie; treść klient pobiera przez REST.
+- **Powiadomienia:** job `messaging.notify-unread` (kolejka `messaging`, co minutę) emituje `MessagesUnread` dla wiadomości nieprzeczytanych od 5 minut, raz na serię. Powiadomienie `NEW_MESSAGE` ma e-mail bez treści wiadomości, który można wyłączyć.
+- **Zgłoszenia** trafiają do tabeli `reports` (moduł `trust-safety`) z migawką fragmentu rozmowy i eventem `ReportCreated`; kolejka i decyzje dojdą w F-35.
+- **Personel** czyta rozmowę stron tylko przy spornym zamówieniu: `GET /v1/admin/orders/:id/messages`.
+- **Web:**
+  - `/wiadomosci` (lista, od 1024 px z rozmową obok), `/wiadomosci/[id]` i `/wiadomosci/nowa?aukcja=|zamowienie=`;
+  - ikona wiadomości z licznikiem w nagłówku;
+  - „Zapytaj sprzedającego” na stronie aukcji, „Napisz do…” na stronie zamówienia;
+  - `/konto/zablokowani`.
+
 ### Limity kont i strike'i (F-61)
 
 Poziomy kont, limity, strike'i i blokady z uzasadnieniem i odwołaniem (PROJECT.md §4.1). Spec: [F-61](docs/features/F-61-limity-i-strike.md).
