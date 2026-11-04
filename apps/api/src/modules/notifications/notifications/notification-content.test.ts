@@ -240,6 +240,37 @@ describe('wypłaty (F-27)', () => {
   });
 });
 
+describe('oceny (F-30)', () => {
+  const review = {
+    orderPublicId: 'K3X9QA7M',
+    title: 'Lampa biurkowa',
+    authorRole: 'BUYER' as const,
+  };
+
+  it('zaproszenie do oceny: termin, bez gwiazdek', () => {
+    const content = notificationContent('REVIEW_REQUESTED', {
+      review: { ...review, rateUntil: '2026-11-12T10:00:00.000Z', rating: 1 },
+    });
+    expect(content.title).toBe('Oceń zamówienie: Lampa biurkowa');
+    expect(content.lines[0]).toContain('nr K3X9QA7M');
+    expect(content.lines[0]).toContain('12 lis 2026');
+    expect(content.lines.join(' ')).not.toMatch(/\d\/5/u);
+    expect(content.path).toBe('/zamowienia/K3X9QA7M');
+    expect(content.actionLabel).toBe('Oceń zamówienie');
+  });
+
+  it('nowa ocena: gwiazdki i rola autora', () => {
+    const content = notificationContent('REVIEW_RECEIVED', {
+      review: { ...review, authorRole: 'SELLER', rating: 4 },
+    });
+    expect(content.title).toBe('Nowa ocena: 4/5');
+    expect(content.lines[0]).toBe(
+      'Ocena od sprzedającego za zamówienie „Lampa biurkowa” (nr K3X9QA7M) jest już widoczna na Twoim profilu.',
+    );
+    expect(content.path).toBe('/zamowienia/K3X9QA7M');
+  });
+});
+
 describe('token wypisania', () => {
   const secret = 'test-secret-0123456789-0123456789';
   const userId = '01960000-0000-7000-8000-000000000001';

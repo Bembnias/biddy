@@ -10,6 +10,7 @@ export * from './media/media';
 export * from './messaging/messaging';
 export * from './notifications/notifications';
 export * from './orders/orders';
+export * from './reviews/reviews';
 export * from './search/search';
 export * from './shipping/shipping';
 export * from './time/time';

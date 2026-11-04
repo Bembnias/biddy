@@ -1326,7 +1326,7 @@ erDiagram
 |---|---|
 | `conversations` | id, auction_id, seller_id, buyer_id (pytający albo kupujący), last_message_at, created_at. Unikalne (auction_id, buyer_id): jedna rozmowa pary, zamówienie pary liczone przy odczycie (moduł `messaging`, F-29) |
 | `messages` | id, conversation_id, sender_id, recipient_id, body (do 2000 znaków), media_ids (do 5 zdjęć `MESSAGE_PHOTO`), contact_flags (`PHONE`/`EMAIL`/`IBAN`), read_at, notified_at (powiadomienie o nieprzeczytanej), created_at (F-29) |
-| `reviews` | id, order_id, author_id, target_id, role (`BUYER`/`SELLER`), rating, comment, visible_at. Unikalne (order_id, author_id). |
+| `reviews` | id, order_id, order_public_id, title (migawka przedmiotu), author_id, target_id, role (rola autora: `BUYER`/`SELLER`), rating (1–5), comment (do 1000 znaków), created_at, visible_at (ujawnienie), published_at (event dla powiadomień). Unikalne (order_id, author_id); moduł `reviews`, F-30 |
 | `notifications` | id, user_id, type, auction_id, payload (migawka), dedupe_key (unikalny z user_id), read_at, emailed_at, created_at (F-20) |
 | `reports` | id, reporter_id, target_type (`MESSAGE`/`USER`; aukcje w F-35), target_id, reason (`OFF_PLATFORM`/`SCAM`/`ABUSE`/`SPAM`/`OTHER`), details, context (jsonb: źródło i migawka zgłoszonej treści), status (`OPEN`), created_at. Unikalne (reporter_id, target_type, target_id); moduł `trust-safety`, F-29. Decyzja i statement_of_reasons dojdą w F-35 (DSA *notice & action*) |
 | `outbox` | id, type, payload, created_at, processed_at, attempts |
@@ -1360,7 +1360,8 @@ POST   /me/phone-verification      { phoneNumber } → SMS z kodem      POST /me
 
 # Użytkownicy
 GET    /me                         PATCH /me
-GET    /users/:id                  (profil publiczny: imię, data dołączenia, znaczek telefonu; oceny w F-30)
+GET    /users/:id                  (profil publiczny: imię, data dołączenia, znaczek telefonu)
+GET    /users/:id/rating           GET /users/:id/reviews?before=   (publiczne: średnia i liczba ocen według ról, lista ocen; F-30)
 GET    /me/addresses               POST /me/addresses           PATCH|DELETE /me/addresses/:id
 POST   /me/terms-acceptances       (akceptacja aktualnej wersji regulaminu / polityki)
 POST   /me/seller-onboarding       → rejestracja sprzedawcy i KYC u operatora
@@ -1423,7 +1424,7 @@ GET    /conversations?before=       GET /conversations/summary      GET /convers
 POST   /conversations               (pierwsza wiadomość o aukcji albo zamówieniu)   GET /conversations/:id
 GET|POST /conversations/:id/messages   POST /conversations/:id/read   POST /conversations/:id/report
 GET    /conversations/:id/photos/:mediaId/:variant   GET /me/blocks   PUT|DELETE /me/blocks/:userId
-POST   /orders/:id/review
+GET    /orders/:id/reviews         POST /orders/:id/review { rating, comment? }   (strony zamówienia; F-30)
 POST   /reports
 
 # Webhooki (weryfikacja podpisu + idempotencja)
@@ -1513,7 +1514,7 @@ interface ConversationReadEvent {  // F-29
   - Kontrakt `OrderPaid` (z `shipBy`) zdefiniował F-24 dla powiadomienia „nadaj paczkę”, a publikuje go F-25.
   - Eventy cyklu życia (F-26) niosą numer zamówienia, aukcję i obie strony. `OrderCancelled.reason` to `UNPAID` albo `NOT_SHIPPED`, a `OrderCreated.secondChanceOfferId` oznacza zamówienie z drugiej szansy.
 - **Spory i pieniądze:** `PaymentSucceeded` (F-23), `DisputeOpened`, `DisputePartialOffered`, `DisputeEscalated`, `DisputeReturnRequested`, `DisputeReturnDelivered`, `DisputeResolved` (F-28), `ChargebackOpened`, `ChargebackClosed`, `PayoutRequested`, `PayoutPaid`, `PayoutFailed`, `PayoutAccountChanged` (F-27), `SellerKycStatusChanged` (F-23), `CarrierClaimResolved` (F-24, rozstrzygnięta reklamacja u przewoźnika), `FundsReleaseRequested` (F-26, zwolnienie środków u operatora). `PaymentFailed` (lista „Zamówienia”) publikuje moduł `payments`, a `OrderPaid` publikuje `orders` po konsumpcji `PaymentSucceeded`.
-- **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `AccountBlocked`, `AccountBlockLifted`, `AppealResolved` (F-61), `MessagesUnread` (F-29: wiadomości nieprzeczytane od 5 minut, jedno powiadomienie na serię; bez treści), `ReportCreated` (F-29: zgłoszenie z rozmowy; konsumenci w F-35), `ReviewPublished`.
+- **Konto i społeczność:** `StrikeIssued`, `StrikeRevoked`, `AccountBlocked`, `AccountBlockLifted`, `AppealResolved` (F-61), `MessagesUnread` (F-29: wiadomości nieprzeczytane od 5 minut, jedno powiadomienie na serię; bez treści), `ReportCreated` (F-29: zgłoszenie z rozmowy; konsumenci w F-35), `ReviewSubmitted` (F-30: strona oceniła zamówienie, bez gwiazdek i treści), `ReviewPublished` (F-30: ocena stała się publiczna; emituje job `reviews.publish`).
 
 Konsumenci: `notifications`, `search` (reindeks), `ledger`, `trust-safety` (reguły), rewalidacja stron w Next.js, analityka.
 
@@ -1595,7 +1596,7 @@ Eventy z outboxa trafiają do joba indeksującego, a ten robi częściowe aktual
 
 Dokument indeksu zawiera: `title`, `description`, `brand`, `categoryPath`, `attributes.*`, `condition`, `currentPrice`, `bidCount`, `endsAt`, `status`, `sellerRating`, `city`, `carriers`, `createdAt`.
 
-Implementacja (F-19): indeks `{SEARCH_INDEX_PREFIX}-auctions` tylko z aktywnymi aukcjami; job `search.index-auction` (kolejka `search`) na koniec 5-sekundowego okna; dodatkowo `categoryIds`, `attributeText`, `price` (aktualna albo wywoławcza), `endsAtTs`, `publishedAtTs`, `sellerId`, zdjęcie główne. `sellerRating` i `city` dojdą z ocenami i adresem sprzedawcy.
+Implementacja (F-19): indeks `{SEARCH_INDEX_PREFIX}-auctions` tylko z aktywnymi aukcjami; job `search.index-auction` (kolejka `search`) na koniec 5-sekundowego okna; dodatkowo `categoryIds`, `attributeText`, `price` (aktualna albo wywoławcza), `endsAtTs`, `publishedAtTs`, `sellerId`, zdjęcie główne. `sellerRating` dojdzie z reindeksacją aukcji sprzedawcy po ujawnieniu oceny (po F-30), a `city` z adresem sprzedawcy.
 
 ### 15.6 Unieważnienie oferty (replay)
 
@@ -1986,7 +1987,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 72 | Strona aukcji `/a/{slug}-{publicId}` jako ISR bez ciasteczek; dane użytkownika (maksimum, wygrana, zamówienie) z `GET /v1/me/bids/{id}` w przeglądarce; slug z tytułu (`@biddy/shared`), stary slug przekierowuje 308 | Przyjęta | §11.3 |
 | 73 | Rewalidacja stron aukcji: konsumenci eventów w workerze planują job w kolejce `web` z końcem 5-sekundowego okna w ID (najwyżej jedna rewalidacja na okno, ostatnia zmiana też trafia na stronę), job woła `POST /api/revalidate` w web z sekretem; `revalidateTag(…, { expire: 0 })`, żeby następne żądanie nie dostało starej wersji | Przyjęta | §11.3 |
 | 74 | Obrazek OG strony aukcji to zdjęcie główne (wariant 1600 px), bez generowania `next/og`: cena w obrazku byłaby nieaktualna w cache serwisów społecznościowych, a generowanie kosztuje | Przyjęta | §11.3 |
-| 75 | Strona aukcji przed cennikiem dostaw (F-24) pokazuje akceptowanych przewoźników, a cenę łączną z POK bez „dostawa od”; oceny sprzedawcy (F-30) jako „Brak ocen” | Tymczasowa | §3.1, §17 |
+| 75 | Strona aukcji przed cennikiem dostaw (F-24) pokazuje akceptowanych przewoźników, a cenę łączną z POK bez „dostawa od”; oceny sprzedawcy (F-30) jako „Brak ocen” | Tymczasowa (oceny: zastąpiona przez F-30, nr 145) | §3.1, §17 |
 | 76 | Indeks wyszukiwarki tylko z aktywnymi aukcjami (zakończona albo anulowana jest usuwana), aktualizowany jobem na koniec 5-sekundowego okna (debounce zmian cen) z pełnym dokumentem; wyszukiwanie dodatkowo filtruje `endsAt > teraz`; nocny pełny reindeks | Przyjęta | §15.5 |
 | 77 | Klient Meilisearch przez HTTP bez SDK; indeks tworzony aktualizacją ustawień, a krótkie okno bez ustawień po utworzeniu (Meilisearch odrzuca wtedy filtr) API traktuje jak brak wyników | Przyjęta | §11.2 |
 | 78 | Filtry atrybutów w wyszukiwarce tylko ze schematu wybranej kategorii (z dziedziczeniem); liczby przy opcjach uwzględniają wszystkie wybrane filtry (bez faset rozłącznych w MVP); najwyżej 1000 wyników na zapytanie | Tymczasowa | §15.5 |
@@ -2048,6 +2049,12 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 139 | Zgłoszenia z rozmów zapisujemy w `reports` (moduł `trust-safety`) z migawką treści przekazanej przez zgłaszającego (zgłoszona wiadomość i 10 poprzednich albo 20 ostatnich przy zgłoszeniu osoby); jedno zgłoszenie celu na osobę. Kolejka, decyzje z uzasadnieniem i zgłoszenia aukcji: F-35 | Przyjęta | §13.3, §17 |
 | 140 | Limity wiadomości liczone w Postgresie pod blokadą doradczą nadawcy: 10 na minutę, 200 na dobę, 20 nowych rozmów na dobę (429 `RATE_LIMITED` z `Retry-After`). Pisanie wymaga potwierdzonego e-maila i akceptacji regulaminu z oświadczeniem 18+ (`@RequireAcceptedTerms`) | Tymczasowa | §4, §16.1 |
 | 141 | Zdjęcia w wiadomościach to prywatne przeznaczenie `MESSAGE_PHOTO` (jak `DISPUTE_EVIDENCE`): do 5 na wiadomość, warianty w kubełku `uploads`, wydaje je API stronom rozmowy i personelowi przy spornym zamówieniu | Przyjęta | §16.1, §17 |
+| 142 | Ocenić można zamówienie `COMPLETED` albo zwrócone po sporze (`REFUNDED`/`PARTIALLY_REFUNDED` z `disputed_at`), raz na stronę, w ciągu 14 dni od `completed_at`/`refunded_at`. Zwroty bez sporu (nienadanie, zaginięcie, nieodebrana paczka) bez ocen. Oceny nie można zmienić ani usunąć przez autora | Przyjęta | §5, §7.5 |
+| 143 | Pierwsza ocena zamówienia jest publiczna 7 dni po wystawieniu albo z końcem okna, jeśli wcześniej; druga ocena odsłania obie od razu. Termin strony kończy się z ujawnieniem oceny drugiej strony, więc nikt nie ocenia po przeczytaniu oceny o sobie. Strona wie tylko, że druga strona już oceniła | Przyjęta | §5 |
+| 144 | Komentarz do oceny jest opcjonalny (do 1000 znaków) i publiczny, więc dane kontaktowe (`detectContactData`) odrzucają zapis (400), a nie tylko ostrzegają jak w wiadomościach. Na profilu autor zanonimizowany jak w historii ofert (`anonymizeName`), z tytułem przedmiotu, bez numeru zamówienia i kwot | Przyjęta | §16.2, §17 |
+| 145 | Reputacja liczona przy odczycie z widocznych ocen (średnia i liczba: łącznie, jako sprzedający, jako kupujący), bez kolumn zagregowanych w `users`. Karta sprzedawcy na stronie aukcji pokazuje ocenę jako sprzedający; publiczne trasy z cache 60 s | Przyjęta | §13.3, §14.1 |
+| 146 | Powiadomienia o ocenach: `REVIEW_REQUESTED` (druga strona oceniła, z terminem, bez gwiazdek) i `REVIEW_RECEIVED` (ocena widoczna). Ujawnienie po 7 dniach i po drugiej ocenie idzie jedną ścieżką: job `reviews.publish` co minutę emituje `ReviewPublished`. E-maile domyślnie włączone, z możliwością wyłączenia | Przyjęta | §14.3 |
+| 147 | Informacja o weryfikacji ocen (Omnibus) na profilu przy ocenach: kto i kiedy ocenia, ujawnienie obu ocen razem, wszystkie oceny bez filtrowania i płatnych wyróżnień, usuwanie tylko za naruszenie regulaminu (zgłaszanie i usuwanie ocen w F-35) | Przyjęta | §17 |
 
 ---
 

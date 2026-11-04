@@ -157,6 +157,8 @@ export const ERROR_CODES = {
   CONVERSATION_UNAVAILABLE: 'CONVERSATION_UNAVAILABLE',
   /** Jedna ze stron zablokowała drugą: w rozmowie nie można pisać (F-29). */
   CONVERSATION_BLOCKED: 'CONVERSATION_BLOCKED',
+  /** Zamówienia nie da się ocenić: w toku, po terminie albo już ocenione (`reason`, F-30). */
+  REVIEW_UNAVAILABLE: 'REVIEW_UNAVAILABLE',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

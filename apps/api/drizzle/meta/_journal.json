@@ -169,6 +169,13 @@
       "when": 1793720332366,
       "tag": "0023_messaging",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793806230373,
+      "tag": "0024_reviews",
+      "breakpoints": true
     }
   ]
 }

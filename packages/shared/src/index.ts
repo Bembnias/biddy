@@ -12,3 +12,4 @@ export * from './account/index.js';
 export * from './payouts/index.js';
 export * from './disputes/index.js';
 export * from './messaging/index.js';
+export * from './reviews/index.js';

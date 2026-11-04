@@ -866,6 +866,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-30 · Oceny · `S`
 
+> Pełny spec: [docs/features/F-30-oceny.md](features/F-30-oceny.md).
+
 **Cel:** reputacja buduje zaufanie między stronami.
 
 **Zakres:**

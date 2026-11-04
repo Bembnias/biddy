@@ -8,6 +8,7 @@ import { OrderNotificationSources } from './notifications/order-notification-sou
 import { DisputeNotificationSources } from './notifications/dispute-notification-sources.js';
 import { MessageNotificationSources } from './notifications/message-notification-sources.js';
 import { PayoutNotificationSources } from './notifications/payout-notification-sources.js';
+import { ReviewNotificationSources } from './notifications/review-notification-sources.js';
 import { NotificationService } from './notifications/notification.service.js';
 import {
   MyNotificationsController,
@@ -18,8 +19,8 @@ import { PreferenceService } from './notifications/preference.service.js';
 /**
  * Moduł domenowy `notifications` (PROJECT.md §10.3): centrum powiadomień, e-maile i preferencje
  * (F-20); powiadomienia o strike'ach, blokadach i odwołaniach (F-61), o etapach zamówienia
- * i drugiej szansie (F-26), o wypłatach (F-27), o sporach (F-28) i o nieprzeczytanych
- * wiadomościach (F-29). Publiczne API: ./index.ts.
+ * i drugiej szansie (F-26), o wypłatach (F-27), o sporach (F-28), o nieprzeczytanych
+ * wiadomościach (F-29) i o ocenach (F-30). Publiczne API: ./index.ts.
  */
 @Module({
   imports: [AuctionsModule, OrdersModule],
@@ -33,6 +34,7 @@ import { PreferenceService } from './notifications/preference.service.js';
     PayoutNotificationSources,
     DisputeNotificationSources,
     MessageNotificationSources,
+    ReviewNotificationSources,
   ],
   exports: [NotificationService, PreferenceService],
 })

@@ -37,6 +37,7 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Star,
   Store,
   TriangleAlert,
   Trophy,
@@ -98,6 +99,8 @@ const TYPE_TILES: Record<
   ACCOUNT_UNBLOCKED: { tone: 'success', Icon: ShieldCheck },
   APPEAL_REJECTED: { tone: 'neutral', Icon: Scale },
   NEW_MESSAGE: { tone: 'brand', Icon: MessagesSquare },
+  REVIEW_REQUESTED: { tone: 'brand', Icon: Star },
+  REVIEW_RECEIVED: { tone: 'success', Icon: Star },
 };
 
 function NotificationItem({

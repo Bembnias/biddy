@@ -23,5 +23,6 @@ export * from '../../modules/auctions/db/auctions.schema.js';
 export * from '../../modules/orders/db/orders.schema.js';
 export * from '../../modules/disputes/db/disputes.schema.js';
 export * from '../../modules/messaging/db/messaging.schema.js';
+export * from '../../modules/reviews/db/reviews.schema.js';
 export * from '../../modules/trust-safety/db/trust-safety.schema.js';
 export * from '../../modules/notifications/db/notifications.schema.js';

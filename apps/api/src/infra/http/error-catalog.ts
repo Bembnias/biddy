@@ -341,6 +341,11 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Rozmowa zablokowana',
     detail: 'Nie możesz pisać w tej rozmowie.',
   },
+  REVIEW_UNAVAILABLE: {
+    status: 409,
+    title: 'Nie można ocenić zamówienia',
+    detail: 'Ocenić można zamówienie zakończone sprzedażą albo sporem, raz i w ciągu 14 dni.',
+  },
   PAYLOAD_TOO_LARGE: {
     status: 413,
     title: 'Za duża treść żądania',

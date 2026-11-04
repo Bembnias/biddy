@@ -1,14 +1,26 @@
-import { getPublicProfile, isApiError, type PublicProfileDto } from '@biddy/api-client';
+import {
+  getPublicProfile,
+  getUserRating,
+  isApiError,
+  listUserReviews,
+  type PublicProfileDto,
+  type PublicReviewListDto,
+  type UserRatingDto,
+} from '@biddy/api-client';
 import { BadgeCheck, CalendarDays } from 'lucide-react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getTranslations } from 'next-intl/server';
+import { getFormatter, getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 
 import { FollowSellerButton } from '@/components/profile/follow-seller-button';
 import { UserAvatar } from '@/components/profile/user-avatar';
+import { ProfileReviews } from '@/components/reviews/profile-reviews';
+import { RatingSummary } from '@/components/reviews/rating-summary';
+import { ReviewsInfo } from '@/components/reviews/reviews-info';
 import { AuctionGrid } from '@/components/search/auction-card';
 import { monthAndYear } from '@/lib/dates';
+import { AVERAGE_FORMAT, REVIEWS_ANCHOR } from '@/lib/reviews/reviews';
 import { publicProfileUrl } from '@/lib/routes';
 import { searchCached } from '@/lib/search/load';
 // Klient API po stronie serwera (adres API, także API_INTERNAL_URL); profil bez ciasteczek.
@@ -29,6 +41,24 @@ const loadProfile = cache(async (id: string): Promise<PublicProfileDto> => {
   }
 });
 
+/**
+ * Reputacja z API (F-30): średnie i pierwsza strona ocen. Błąd nie psuje profilu: sekcja ocen
+ * pokazuje wtedy komunikat.
+ */
+async function loadReputation(
+  id: string,
+): Promise<{ readonly rating: UserRatingDto; readonly reviews: PublicReviewListDto } | null> {
+  try {
+    const [rating, reviews] = await Promise.all([
+      getUserRating(id, { next: { revalidate: 60 } }),
+      listUserReviews(id, undefined, { next: { revalidate: 60 } }),
+    ]);
+    return { rating, reviews };
+  } catch {
+    return null;
+  }
+}
+
 interface PageProps {
   readonly params: Promise<{ readonly id: string }>;
 }
@@ -47,15 +77,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 /**
- * Profil publiczny (układ F-63): okładka, karta profilu ze statystykami z danych, które już są
- * (członek od, weryfikacja telefonu, liczba aktywnych aukcji), siatka aukcji. Bez e-maila,
- * telefonu i adresów (tylko pola z API). Oceny w obecnej formie do F-30.
+ * Profil publiczny (układ F-63): okładka, karta profilu ze statystykami (członek od, weryfikacja
+ * telefonu, liczba aktywnych aukcji, ocena), siatka aukcji i oceny z informacją o ich weryfikacji
+ * (F-30). Bez e-maila, telefonu i adresów (tylko pola z API).
  */
 export default async function PublicProfilePage({ params }: PageProps) {
   const profile = await loadProfile((await params).id);
   const t = await getTranslations('profile');
   // Aktywne aukcje sprzedawcy z wyszukiwarki (F-19); bez niej sekcja mówi, że ich nie ma.
-  const auctions = await searchCached({ seller: profile.id, sort: 'ending', pageSize: 12 }, 60);
+  const [auctions, reputation] = await Promise.all([
+    searchCached({ seller: profile.id, sort: 'ending', pageSize: 12 }, 60),
+    loadReputation(profile.id),
+  ]);
+  const format = await getFormatter();
+  const rating = reputation?.rating;
   return (
     <div className="pb-16 md:pb-22">
       {/* Okładka: ozdobne koła w kolorach marki. */}
@@ -88,14 +123,36 @@ export default async function PublicProfilePage({ params }: PageProps) {
               </li>
             </ul>
           </div>
-          {auctions === null ? null : (
+          {auctions === null && rating === undefined ? null : (
             <dl aria-label={t('public.stats')} className="flex gap-8 px-1">
-              <div className="flex flex-col">
-                <dt className="text-overline text-muted-foreground uppercase">
-                  {t('public.statActive')}
-                </dt>
-                <dd className="text-h2 font-extrabold tabular-nums">{auctions.total}</dd>
-              </div>
+              {auctions === null ? null : (
+                <div className="flex flex-col">
+                  <dt className="text-overline text-muted-foreground uppercase">
+                    {t('public.statActive')}
+                  </dt>
+                  <dd className="text-h2 font-extrabold tabular-nums">{auctions.total}</dd>
+                </div>
+              )}
+              {rating === undefined ? null : (
+                <div className="flex flex-col">
+                  <dt className="text-overline text-muted-foreground uppercase">
+                    {t('public.statRating')}
+                  </dt>
+                  <dd className="flex flex-col">
+                    <span className="text-h2 font-extrabold tabular-nums">
+                      {rating.average === null
+                        ? '—'
+                        : format.number(rating.average, AVERAGE_FORMAT)}
+                    </span>
+                    <a
+                      href={`#${REVIEWS_ANCHOR}`}
+                      className="text-caption font-semibold text-link underline-offset-3 hover:text-link-hover hover:underline"
+                    >
+                      {t('public.statRatingCount', { count: rating.count })}
+                    </a>
+                  </dd>
+                </div>
+              )}
             </dl>
           )}
           <div className="w-full sm:w-auto">
@@ -114,11 +171,21 @@ export default async function PublicProfilePage({ params }: PageProps) {
             </div>
           )}
         </section>
-        <section aria-labelledby="ratings">
-          <h2 id="ratings" className="text-h3">
+        <section id={REVIEWS_ANCHOR} aria-labelledby="ratings" className="scroll-mt-24 space-y-6">
+          <h2 id="ratings" className="text-h2">
             {t('public.ratings')}
           </h2>
-          <p className="mt-3 text-muted-foreground">{t('public.noRatings')}</p>
+          {reputation === null ? (
+            <p className="text-muted-foreground">{t('public.ratingsError')}</p>
+          ) : reputation.rating.count === 0 ? (
+            <p className="text-muted-foreground">{t('public.noRatings')}</p>
+          ) : (
+            <div className="grid items-start gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
+              <RatingSummary rating={reputation.rating} />
+              <ProfileReviews userId={profile.id} initialPage={reputation.reviews} />
+            </div>
+          )}
+          <ReviewsInfo />
         </section>
       </div>
     </div>

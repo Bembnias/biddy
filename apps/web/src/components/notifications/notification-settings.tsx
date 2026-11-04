@@ -33,6 +33,7 @@ import {
   Scale,
   ShieldAlert,
   ShieldCheck,
+  Star,
   Store,
   TriangleAlert,
   Trophy,
@@ -48,8 +49,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
 /**
- * Grupy ustawień (F-63): licytacje, zakupy, sprzedaż, wypłaty, spory, obserwowani sprzedawcy
- * i konto.
+ * Grupy ustawień (F-63): licytacje, zakupy, sprzedaż, wypłaty, spory, wiadomości, oceny (F-30),
+ * obserwowani sprzedawcy i konto.
  */
 const GROUPS: readonly {
   readonly key:
@@ -59,6 +60,7 @@ const GROUPS: readonly {
     | 'payouts'
     | 'disputes'
     | 'messages'
+    | 'reviews'
     | 'following'
     | 'account';
   readonly types: readonly NotificationType[];
@@ -98,6 +100,7 @@ const GROUPS: readonly {
     ],
   },
   { key: 'messages', types: ['NEW_MESSAGE'] },
+  { key: 'reviews', types: ['REVIEW_REQUESTED', 'REVIEW_RECEIVED'] },
   { key: 'following', types: ['FOLLOWED_SELLER_NEW_AUCTION'] },
   {
     key: 'account',
@@ -150,10 +153,19 @@ const TYPE_TILES: Record<
   ACCOUNT_UNBLOCKED: { tone: 'neutral', Icon: ShieldCheck },
   APPEAL_REJECTED: { tone: 'neutral', Icon: Scale },
   NEW_MESSAGE: { tone: 'neutral', Icon: MessagesSquare },
+  REVIEW_REQUESTED: { tone: 'neutral', Icon: Star },
+  REVIEW_RECEIVED: { tone: 'neutral', Icon: Star },
 };
 
 /** Typy z opisem pod nazwą (`settings.hints`). */
-const HINT_TYPES = ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED', 'NEW_MESSAGE'] as const;
+const HINT_TYPES = [
+  'OUTBID',
+  'ENDING_SOON',
+  'WON',
+  'AUCTION_CANCELLED',
+  'NEW_MESSAGE',
+  'REVIEW_REQUESTED',
+] as const;
 
 function hasHint(type: NotificationType): type is (typeof HINT_TYPES)[number] {
   return (HINT_TYPES as readonly string[]).includes(type);

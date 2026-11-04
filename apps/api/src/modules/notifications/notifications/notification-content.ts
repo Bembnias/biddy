@@ -69,6 +69,18 @@ export interface MessageRef {
   readonly count: number;
 }
 
+/** Ocena w migawce powiadomienia (F-30); `REVIEW_REQUESTED` bez gwiazdek. */
+export interface ReviewRef {
+  readonly orderPublicId: string;
+  readonly title: string;
+  /** Rola autora oceny w zamówieniu. */
+  readonly authorRole: 'BUYER' | 'SELLER';
+  /** Otrzymana ocena (tylko `REVIEW_RECEIVED`). */
+  readonly rating?: number;
+  /** Termin oceny odbiorcy (tylko `REVIEW_REQUESTED`). */
+  readonly rateUntil?: string;
+}
+
 /** Migawka zapisana w `notifications.payload` (pola zależne od typu). */
 export interface NotificationPayload {
   /** Aukcja; brak w powiadomieniach o koncie (F-61), wypłatach (F-27) i sporach (F-28). */
@@ -77,6 +89,7 @@ export interface NotificationPayload {
   readonly payout?: PayoutRef;
   readonly dispute?: DisputeRef;
   readonly message?: MessageRef;
+  readonly review?: ReviewRef;
   /** Aktualna albo wywoławcza cena. */
   readonly price?: Money;
   readonly endsAt?: string;
@@ -474,6 +487,12 @@ export function notificationContent(
       payload.message ?? { conversationId: '', senderName: '', title: '', count: 1 },
     );
   }
+  if (type === 'REVIEW_REQUESTED' || type === 'REVIEW_RECEIVED') {
+    return reviewContent(
+      type,
+      payload.review ?? { orderPublicId: '', title: '', authorRole: 'BUYER' },
+    );
+  }
   const auction = payload.auction ?? { id: '', publicId: '', slug: '', title: '' };
   const path = auctionPath(auction.slug, auction.publicId);
   const title = `„${auction.title}”`;
@@ -597,6 +616,7 @@ export function notificationContent(
         title: `Zakończono: ${auction.title}`,
         lines: [
           `Zamówienie nr ${number} jest zakończone. ${money(payload.itemsTotal)} trafia na Twoje saldo.`,
+          'Oceń kupującego na stronie zamówienia w ciągu 14 dni.',
         ],
         path: orderPath(number),
         actionLabel: 'Zobacz zamówienie',
@@ -670,6 +690,37 @@ function messageContent(message: MessageRef): NotificationContent {
     ],
     path: conversationPath(message.conversationId),
     actionLabel: 'Odpowiedz',
+  };
+}
+
+/**
+ * Oceny (F-30): druga strona oceniła zamówienie (bez gwiazdek, z terminem odbiorcy) albo ocena
+ * o odbiorcy jest już widoczna.
+ */
+function reviewContent(
+  type: 'REVIEW_REQUESTED' | 'REVIEW_RECEIVED',
+  review: ReviewRef,
+): NotificationContent {
+  const from = review.authorRole === 'BUYER' ? 'kupującego' : 'sprzedającego';
+  const path = orderPath(review.orderPublicId);
+  if (type === 'REVIEW_REQUESTED') {
+    return {
+      title: `Oceń zamówienie: ${review.title}`,
+      lines: [
+        `Druga strona już oceniła zamówienie nr ${review.orderPublicId}. Wystaw swoją ocenę do ${date(review.rateUntil)}, a zobaczysz obie.`,
+        'Oceny obu stron pokazujemy razem, więc żadna nie wpływa na drugą.',
+      ],
+      path,
+      actionLabel: 'Oceń zamówienie',
+    };
+  }
+  return {
+    title: `Nowa ocena: ${String(review.rating ?? 0)}/5`,
+    lines: [
+      `Ocena od ${from} za zamówienie „${review.title}” (nr ${review.orderPublicId}) jest już widoczna na Twoim profilu.`,
+    ],
+    path,
+    actionLabel: 'Zobacz ocenę',
   };
 }
 

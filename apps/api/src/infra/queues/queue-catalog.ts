@@ -84,6 +84,11 @@ export const QUEUE_DEFINITIONS = {
       'Wiadomości: powiadomienie o wiadomościach nieprzeczytanych od 5 minut, co minutę (F-29)',
     concurrency: 1,
   },
+  reviews: {
+    description:
+      'Oceny: event o ujawnionych ocenach (po obu ocenach albo po 7 dniach) dla powiadomień, co minutę (F-30)',
+    concurrency: 1,
+  },
   shipping: {
     description:
       'Przesyłki: tworzenie u dostawcy po „Nadaj” z etykietą, synchronizacja trackingu po webhooku, polling zapasowy co 10 min i automat FakeShipping (F-24)',

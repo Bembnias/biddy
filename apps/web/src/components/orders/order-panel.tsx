@@ -8,6 +8,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
 import { track } from '@/analytics/posthog';
+import { isReviewableStatus, OrderReviewCard } from '@/components/reviews/order-review-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,8 +30,8 @@ type Order = OrderDetailsDto;
 
 /**
  * Strona zamówienia dla obu stron (F-26): stan w pigułce, karta „Co teraz” z jedną główną akcją
- * dla oglądającego, postęp z datami, przesyłka z historią trackingu, podsumowanie kwot i (dla
- * sprzedającego po braku płatności) druga szansa.
+ * dla oglądającego, ocena transakcji po zakończeniu (F-30), postęp z datami, przesyłka z historią
+ * trackingu, podsumowanie kwot i (dla sprzedającego po braku płatności) druga szansa.
  */
 export function OrderPanel({ publicId }: { readonly publicId: string }) {
   const t = useTranslations('order');
@@ -88,6 +89,7 @@ export function OrderPanel({ publicId }: { readonly publicId: string }) {
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0 space-y-6">
           <NowCard order={view} />
+          {isReviewableStatus(view.status) ? <OrderReviewCard publicId={view.publicId} /> : null}
           {view.secondChance === null ? null : (
             <SecondChanceCard order={view} secondChance={view.secondChance} />
           )}

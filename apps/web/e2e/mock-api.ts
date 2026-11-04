@@ -9,6 +9,7 @@
 // F-18) według publicId: PUT /__e2e/public-auctions (setSsrPublicAuction). Wyszukiwarka (F-19):
 // wyniki dla zapytania `q` ustawia PUT /__e2e/search (setSsrSearch), a strona główna, kategoria
 // „Moda” i sitemap mają stałe dane (strony z cache ISR muszą wyglądać tak samo w każdym przebiegu).
+// Oceny profilu (F-30) też są stałe: MEMBER ma trzy oceny, inne konta żadnej.
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
 
 /** Port atrapy (Playwright podaje go też Next.js jako API_INTERNAL_URL). */
@@ -176,6 +177,48 @@ export const MEMBER = {
   avatarUrl: null,
   staffRole: null,
   createdAt: '2026-10-01T10:00:00.000Z',
+} as const;
+
+/** Reputacja konta MEMBER na profilu publicznym (F-30); inne konta bez ocen. */
+export const MEMBER_RATING = {
+  userId: MEMBER.id,
+  average: 4.67,
+  count: 3,
+  asSeller: { average: 5, count: 2 },
+  asBuyer: { average: 4, count: 1 },
+} as const;
+
+export const MEMBER_REVIEWS = {
+  items: [
+    {
+      id: '01960000-0000-7000-8000-0000000002a1',
+      rating: 5,
+      comment: 'Wazon dokładnie jak na zdjęciach, świetnie zapakowany.',
+      authorRole: 'BUYER',
+      authorName: 'm***k',
+      title: 'Wazon ceramiczny, lata 70.',
+      createdAt: '2026-10-28T10:00:00.000Z',
+    },
+    {
+      id: '01960000-0000-7000-8000-0000000002a2',
+      rating: 5,
+      comment: null,
+      authorRole: 'BUYER',
+      authorName: 'o***a',
+      title: 'Lampa biurkowa, lata 60.',
+      createdAt: '2026-10-20T10:00:00.000Z',
+    },
+    {
+      id: '01960000-0000-7000-8000-0000000002a3',
+      rating: 4,
+      comment: 'Szybka płatność.',
+      authorRole: 'SELLER',
+      authorName: 'e***a',
+      title: 'Aparat Zenit E',
+      createdAt: '2026-10-12T10:00:00.000Z',
+    },
+  ],
+  nextBefore: null,
 } as const;
 
 function cookieValue(request: IncomingMessage, name: string): string | undefined {
@@ -423,6 +466,22 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
       return;
     }
     send(response, 200, addressesBySession.get(session ?? '') ?? []);
+    return;
+  }
+  const reputation = /^\/v1\/users\/([^/]+)\/(rating|reviews)$/.exec(path);
+  if (request.method === 'GET' && reputation !== null) {
+    const [, id = '', kind] = reputation;
+    const member = id === MEMBER.id;
+    if (kind === 'rating') {
+      const empty = { average: null, count: 0 };
+      send(
+        response,
+        200,
+        member ? MEMBER_RATING : { userId: id, ...empty, asSeller: empty, asBuyer: empty },
+      );
+      return;
+    }
+    send(response, 200, member ? MEMBER_REVIEWS : { items: [], nextBefore: null });
     return;
   }
   const profile = /^\/v1\/users\/([^/]+)$/.exec(path);

@@ -640,6 +640,27 @@ Rozmowy kupujących ze sprzedającymi o aukcji albo zamówieniu, na żywo i ze z
   - „Zapytaj sprzedającego” na stronie aukcji, „Napisz do…” na stronie zamówienia;
   - `/konto/zablokowani`.
 
+### Oceny (F-30)
+
+Oceny obu stron po zakończonym zamówieniu, ujawniane razem albo po 7 dniach, z reputacją na profilu (PROJECT.md §5, §17). Spec: [F-30](docs/features/F-30-oceny.md).
+
+- **Moduł `reviews`.** Tabela `reviews`: ocena 1–5 i opcjonalny komentarz (do 1000 znaków, bez danych kontaktowych), raz na stronę zamówienia.
+- **Kiedy:** zamówienie `COMPLETED` albo `REFUNDED` / `PARTIALLY_REFUNDED` po sporze, w ciągu 14 dni od `completed_at` / `refunded_at`. Reguły: `apps/api/src/modules/reviews/domain/review-rules.ts`.
+- **Ujawnienie:** pierwsza ocena jest widoczna od `visible_at` (7 dni po wystawieniu albo koniec okna). Druga ocena odsłania obie od razu. Po ujawnieniu oceny drugiej strony nie można już ocenić (bez odwetu).
+- **Trasy:**
+  - strony zamówienia: `GET /v1/orders/:id/reviews` i `POST /v1/orders/:id/review` (wymaga regulaminu; 409 `REVIEW_UNAVAILABLE` z `reason`);
+  - publiczne: `GET /v1/users/:id/rating` (średnia i liczba: łącznie, jako sprzedający, jako kupujący) i `GET /v1/users/:id/reviews?before=` (po 20, autor zanonimizowany).
+- **Powiadomienia:**
+  - `REVIEW_REQUESTED`: druga strona oceniła zamówienie, z terminem, bez gwiazdek;
+  - `REVIEW_RECEIVED`: ocena jest widoczna. Emituje ją job `reviews.publish` (kolejka `reviews`, co minutę) przez event `ReviewPublished`.
+
+  Oba e-maile można wyłączyć.
+
+- **Web:**
+  - karta „Ocena transakcji” na stronie zamówienia;
+  - statystyka „Ocena”, sekcja „Oceny” i „Jak weryfikujemy oceny” na profilu (`/u/[id]#oceny`);
+  - ocena jako sprzedający w karcie sprzedawcy na stronie aukcji.
+
 ### Limity kont i strike'i (F-61)
 
 Poziomy kont, limity, strike'i i blokady z uzasadnieniem i odwołaniem (PROJECT.md §4.1). Spec: [F-61](docs/features/F-61-limity-i-strike.md).

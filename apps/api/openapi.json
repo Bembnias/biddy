@@ -6514,6 +6514,217 @@
         ]
       }
     },
+    "/v1/orders/{id}/reviews": {
+      "get": {
+        "description": "Moja ocena, ocena drugiej strony po ujawnieniu, termin i powód, gdy nie mogę ocenić.",
+        "operationId": "getOrderReviews",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Oceny zamówienia",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderReviewsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Oceny zamówienia (strony)",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/v1/orders/{id}/review": {
+      "post": {
+        "description": "Raz na stronę, w ciągu 14 dni od zakończenia zamówienia (sprzedaż albo zwrot po sporze). Zamówienie w toku, po terminie albo już ocenione: 409 REVIEW_UNAVAILABLE z `reason`.",
+        "operationId": "submitOrderReview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "UUID albo numer zamówienia",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitReviewBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Oceny zamówienia po zapisie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderReviewsDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ocena drugiej strony zamówienia",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/v1/users/{id}/rating": {
+      "get": {
+        "operationId": "getUserRating",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reputacja",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRatingDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Średnia i liczba ocen konta (łącznie i według ról)",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/v1/users/{id}/reviews": {
+      "get": {
+        "operationId": "listUserReviews",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "maxLength": 64,
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "ID ostatniej oceny poprzedniej strony",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Oceny",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicReviewListDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Oceny konta (najnowsze pierwsze, po 20)",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/v1/me/notifications": {
       "get": {
         "description": "Od najnowszych, po 30.",
@@ -19909,6 +20120,347 @@
         ],
         "additionalProperties": false
       },
+      "OrderReviewsDto": {
+        "type": "object",
+        "properties": {
+          "orderPublicId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER"
+            ],
+            "description": "Moja rola w zamówieniu"
+          },
+          "counterpart": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "blocker": {
+            "type": "string",
+            "enum": [
+              "NOT_FINISHED",
+              "WINDOW_CLOSED",
+              "ALREADY_REVIEWED",
+              null
+            ],
+            "description": "Dlaczego nie mogę ocenić; null: mogę (do `rateUntil`)",
+            "nullable": true
+          },
+          "rateUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+            "description": "Termin mojej oceny: koniec okna albo ujawnienie oceny drugiej strony",
+            "nullable": true
+          },
+          "mine": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "rating": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "comment": {
+                "type": "string",
+                "minLength": 1,
+                "nullable": true
+              },
+              "authorRole": {
+                "type": "string",
+                "enum": [
+                  "BUYER",
+                  "SELLER"
+                ],
+                "description": "Rola autora: BUYER ocenia sprzedającego, SELLER kupującego"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "visibleAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "Od kiedy ocena jest publiczna"
+              },
+              "visible": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "rating",
+              "comment",
+              "authorRole",
+              "createdAt",
+              "visibleAt",
+              "visible"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "theirs": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "rating": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "comment": {
+                "type": "string",
+                "minLength": 1,
+                "nullable": true
+              },
+              "authorRole": {
+                "type": "string",
+                "enum": [
+                  "BUYER",
+                  "SELLER"
+                ],
+                "description": "Rola autora: BUYER ocenia sprzedającego, SELLER kupującego"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "visibleAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+                "description": "Od kiedy ocena jest publiczna"
+              },
+              "visible": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "rating",
+              "comment",
+              "authorRole",
+              "createdAt",
+              "visibleAt",
+              "visible"
+            ],
+            "additionalProperties": false,
+            "description": "Ocena drugiej strony, tylko po ujawnieniu",
+            "nullable": true
+          },
+          "counterpartReviewed": {
+            "type": "boolean",
+            "description": "Druga strona już oceniła (treść ukryta do ujawnienia)"
+          }
+        },
+        "required": [
+          "orderPublicId",
+          "role",
+          "counterpart",
+          "blocker",
+          "rateUntil",
+          "mine",
+          "theirs",
+          "counterpartReviewed"
+        ],
+        "additionalProperties": false
+      },
+      "SubmitReviewBody": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 4000,
+            "description": "Komentarz publiczny (opcjonalny, do 1000 znaków)",
+            "nullable": true
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "additionalProperties": false
+      },
+      "UserRatingDto": {
+        "type": "object",
+        "properties": {
+          "average": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Średnia (dwa miejsca po przecinku); null bez ocen",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "asSeller": {
+            "type": "object",
+            "properties": {
+              "average": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Średnia (dwa miejsca po przecinku); null bez ocen",
+                "nullable": true
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "average",
+              "count"
+            ],
+            "additionalProperties": false,
+            "description": "Oceny od kupujących"
+          },
+          "asBuyer": {
+            "type": "object",
+            "properties": {
+              "average": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Średnia (dwa miejsca po przecinku); null bez ocen",
+                "nullable": true
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "average",
+              "count"
+            ],
+            "additionalProperties": false,
+            "description": "Oceny od sprzedających"
+          }
+        },
+        "required": [
+          "average",
+          "count",
+          "userId",
+          "asSeller",
+          "asBuyer"
+        ],
+        "additionalProperties": false
+      },
+      "PublicReviewListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "rating": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5
+                },
+                "comment": {
+                  "type": "string",
+                  "minLength": 1,
+                  "nullable": true
+                },
+                "authorRole": {
+                  "type": "string",
+                  "enum": [
+                    "BUYER",
+                    "SELLER"
+                  ],
+                  "description": "Rola autora: BUYER ocenia sprzedającego, SELLER kupującego"
+                },
+                "authorName": {
+                  "type": "string",
+                  "description": "Autor zanonimizowany, np. „a***a”"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Przedmiot zamówienia"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                }
+              },
+              "required": [
+                "id",
+                "rating",
+                "comment",
+                "authorRole",
+                "authorName",
+                "title",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextBefore": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "description": "Kursor kolejnej strony",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "nextBefore"
+        ],
+        "additionalProperties": false
+      },
       "NotificationListDto": {
         "type": "object",
         "properties": {
@@ -19958,7 +20510,9 @@
                     "ACCOUNT_BLOCKED",
                     "ACCOUNT_UNBLOCKED",
                     "APPEAL_REJECTED",
-                    "NEW_MESSAGE"
+                    "NEW_MESSAGE",
+                    "REVIEW_REQUESTED",
+                    "REVIEW_RECEIVED"
                   ]
                 },
                 "title": {
@@ -20094,7 +20648,9 @@
                     "ACCOUNT_BLOCKED",
                     "ACCOUNT_UNBLOCKED",
                     "APPEAL_REJECTED",
-                    "NEW_MESSAGE"
+                    "NEW_MESSAGE",
+                    "REVIEW_REQUESTED",
+                    "REVIEW_RECEIVED"
                   ]
                 },
                 "channel": {
@@ -20173,7 +20729,9 @@
                     "ACCOUNT_BLOCKED",
                     "ACCOUNT_UNBLOCKED",
                     "APPEAL_REJECTED",
-                    "NEW_MESSAGE"
+                    "NEW_MESSAGE",
+                    "REVIEW_REQUESTED",
+                    "REVIEW_RECEIVED"
                   ]
                 },
                 "channel": {
@@ -20240,6 +20798,8 @@
               "ACCOUNT_UNBLOCKED",
               "APPEAL_REJECTED",
               "NEW_MESSAGE",
+              "REVIEW_REQUESTED",
+              "REVIEW_RECEIVED",
               "ALL"
             ],
             "description": "Typ powiadomień albo ALL (wszystkie)"
@@ -20282,7 +20842,9 @@
                 "ACCOUNT_BLOCKED",
                 "ACCOUNT_UNBLOCKED",
                 "APPEAL_REJECTED",
-                "NEW_MESSAGE"
+                "NEW_MESSAGE",
+                "REVIEW_REQUESTED",
+                "REVIEW_RECEIVED"
               ]
             },
             "description": "Typy e-maili, które wyłączamy"
