@@ -4668,6 +4668,276 @@
         ]
       }
     },
+    "/v1/shipping/points/{pointId}": {
+      "get": {
+        "description": "Punkt wybrany na mapie (F-64): nazwa, adres i godziny od dostawcy punktów. 422 PICKUP_POINT_NOT_FOUND (nieczynny albo nieznany) i SHIPPING_OPTION_UNAVAILABLE (kurier, nieznana usługa).",
+        "operationId": "getPickupPoint",
+        "parameters": [
+          {
+            "name": "pointId",
+            "required": true,
+            "in": "path",
+            "description": "Kod punktu, np. WAW01M",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "carrier",
+            "required": true,
+            "in": "query",
+            "description": "Usługa, np. inpost-paczkomat",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 60,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Punkt odbioru",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickupPointDto"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Punkt odbioru po kodzie",
+        "tags": [
+          "shipping"
+        ]
+      }
+    },
+    "/v1/me/pickup-points": {
+      "get": {
+        "operationId": "getMyPickupPoints",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Punkty (najpierw domyślne, potem od najnowszych)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SavedPickupPointDto_Output"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zapisane punkty odbioru",
+        "tags": [
+          "me"
+        ]
+      },
+      "post": {
+        "description": "Sprawdza punkt u dostawcy i zapisuje kopię nazwy i adresu. Pierwszy punkt usługi jest domyślny. Już zapisany punkt: 200 bez drugiego wpisu. Najwyżej 10 punktów (409 PICKUP_POINT_LIMIT_REACHED); punkt nieczynny: 422 PICKUP_POINT_NOT_FOUND.",
+        "operationId": "savePickupPoint",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavePickupPointDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Punkt był już zapisany",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedPickupPointDto"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Zapisany punkt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedPickupPointDto_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Zapis punktu odbioru",
+        "tags": [
+          "me"
+        ]
+      }
+    },
+    "/v1/me/pickup-points/{id}": {
+      "patch": {
+        "operationId": "updatePickupPoint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePickupPointDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Punkt domyślny",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedPickupPointDto_Output"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Punkt domyślny usługi",
+        "tags": [
+          "me"
+        ]
+      },
+      "delete": {
+        "description": "Usunięcie domyślnego punktu nie wybiera nowego domyślnego.",
+        "operationId": "deletePickupPoint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Punkt usunięty"
+          },
+          "default": {
+            "description": "Błąd: Problem Details (RFC 9457, application/problem+json); rozpoznawaj go po polu code.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Usunięcie punktu odbioru",
+        "tags": [
+          "me"
+        ]
+      }
+    },
     "/v1/dev/fake-shipping": {
       "get": {
         "description": "Najnowsze przesyłki FakeShipping ze stanem w Biddy i u dostawcy.",
@@ -13920,6 +14190,37 @@
           "requiresPickupPoint": {
             "type": "boolean",
             "description": "Paczkomat i punkt: wybór punktu; kurier: adres"
+          },
+          "pointMap": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "furgonetka"
+                ]
+              },
+              "service": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Kod usługi w mapie Furgonetki, np. inpost"
+              },
+              "env": {
+                "type": "string",
+                "enum": [
+                  "sandbox",
+                  "production"
+                ]
+              }
+            },
+            "required": [
+              "provider",
+              "service",
+              "env"
+            ],
+            "additionalProperties": false,
+            "description": "Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy",
+            "nullable": true
           }
         },
         "required": [
@@ -13928,7 +14229,8 @@
           "kind",
           "price",
           "currency",
-          "requiresPickupPoint"
+          "requiresPickupPoint",
+          "pointMap"
         ],
         "additionalProperties": false
       },
@@ -14555,6 +14857,37 @@
                 "requiresPickupPoint": {
                   "type": "boolean",
                   "description": "Paczkomat i punkt: wybór punktu; kurier: adres"
+                },
+                "pointMap": {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "furgonetka"
+                      ]
+                    },
+                    "service": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Kod usługi w mapie Furgonetki, np. inpost"
+                    },
+                    "env": {
+                      "type": "string",
+                      "enum": [
+                        "sandbox",
+                        "production"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "provider",
+                    "service",
+                    "env"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy",
+                  "nullable": true
                 }
               },
               "required": [
@@ -14563,7 +14896,8 @@
                 "kind",
                 "price",
                 "currency",
-                "requiresPickupPoint"
+                "requiresPickupPoint",
+                "pointMap"
               ],
               "additionalProperties": false
             }
@@ -16205,13 +16539,45 @@
               ]
             },
             "description": "Obsługiwane gabaryty"
+          },
+          "pointMap": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "furgonetka"
+                ]
+              },
+              "service": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Kod usługi w mapie Furgonetki, np. inpost"
+              },
+              "env": {
+                "type": "string",
+                "enum": [
+                  "sandbox",
+                  "production"
+                ]
+              }
+            },
+            "required": [
+              "provider",
+              "service",
+              "env"
+            ],
+            "additionalProperties": false,
+            "description": "Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy",
+            "nullable": true
           }
         },
         "required": [
           "id",
           "name",
           "kind",
-          "packageSizes"
+          "packageSizes",
+          "pointMap"
         ],
         "additionalProperties": false
       },
@@ -16270,6 +16636,149 @@
           "openingHours"
         ],
         "additionalProperties": false
+      },
+      "SavedPickupPointDto_Output": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "carrierId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Usługa, np. inpost-paczkomat"
+          },
+          "pointId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Kod punktu u dostawcy, np. WAW01M"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "description": "Adres jednym tekstem (kopia z zapisu)"
+          },
+          "openingHours": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Domyślny punkt tej usługi"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "carrierId",
+          "pointId",
+          "name",
+          "address",
+          "openingHours",
+          "isDefault",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "SavePickupPointDto": {
+        "type": "object",
+        "properties": {
+          "carrierId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "pointId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "isDefault": {
+            "description": "Ustaw jako domyślny dla usługi",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "carrierId",
+          "pointId"
+        ]
+      },
+      "SavedPickupPointDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "carrierId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Usługa, np. inpost-paczkomat"
+          },
+          "pointId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Kod punktu u dostawcy, np. WAW01M"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "address": {
+            "type": "string",
+            "description": "Adres jednym tekstem (kopia z zapisu)"
+          },
+          "openingHours": {
+            "type": "string",
+            "minLength": 1,
+            "nullable": true
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Domyślny punkt tej usługi"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "carrierId",
+          "pointId",
+          "name",
+          "address",
+          "openingHours",
+          "isDefault",
+          "createdAt"
+        ]
+      },
+      "UpdatePickupPointDto": {
+        "type": "object",
+        "properties": {
+          "isDefault": {
+            "type": "boolean",
+            "description": "Jedyna zmiana: punkt domyślny usługi",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "isDefault"
+        ]
       },
       "FakeShippingOverviewDto": {
         "type": "object",
@@ -17823,6 +18332,37 @@
               "requiresPickupPoint": {
                 "type": "boolean",
                 "description": "Paczkomat i punkt: wybór punktu; kurier: adres"
+              },
+              "pointMap": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string",
+                    "enum": [
+                      "furgonetka"
+                    ]
+                  },
+                  "service": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Kod usługi w mapie Furgonetki, np. inpost"
+                  },
+                  "env": {
+                    "type": "string",
+                    "enum": [
+                      "sandbox",
+                      "production"
+                    ]
+                  }
+                },
+                "required": [
+                  "provider",
+                  "service",
+                  "env"
+                ],
+                "additionalProperties": false,
+                "description": "Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy",
+                "nullable": true
               }
             },
             "required": [
@@ -17831,7 +18371,8 @@
               "kind",
               "price",
               "currency",
-              "requiresPickupPoint"
+              "requiresPickupPoint",
+              "pointMap"
             ],
             "additionalProperties": false,
             "description": "Usługa i cena zwrotu (sprzedający przed odpowiedzią); null: zwrot niedostępny",
@@ -18827,6 +19368,37 @@
               "requiresPickupPoint": {
                 "type": "boolean",
                 "description": "Paczkomat i punkt: wybór punktu; kurier: adres"
+              },
+              "pointMap": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string",
+                    "enum": [
+                      "furgonetka"
+                    ]
+                  },
+                  "service": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Kod usługi w mapie Furgonetki, np. inpost"
+                  },
+                  "env": {
+                    "type": "string",
+                    "enum": [
+                      "sandbox",
+                      "production"
+                    ]
+                  }
+                },
+                "required": [
+                  "provider",
+                  "service",
+                  "env"
+                ],
+                "additionalProperties": false,
+                "description": "Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy",
+                "nullable": true
               }
             },
             "required": [
@@ -18835,7 +19407,8 @@
               "kind",
               "price",
               "currency",
-              "requiresPickupPoint"
+              "requiresPickupPoint",
+              "pointMap"
             ],
             "additionalProperties": false,
             "description": "Usługa i cena zwrotu (sprzedający przed odpowiedzią); null: zwrot niedostępny",

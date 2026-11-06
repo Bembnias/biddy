@@ -142,7 +142,8 @@ export class ShipmentService {
       if (input.pickupPointId === null || input.pickupPointId.trim() === '') {
         throw new DomainError({ code: 'PICKUP_POINT_REQUIRED' });
       }
-      const point = await this.points.point(carrier, input.pickupPointId, provider);
+      // Punkt sprawdza dostawca punktów (F-64): na stagingu Furgonetka, a przesyłkę tworzy fake.
+      const point = await this.points.point(carrier, input.pickupPointId);
       if (point === undefined) {
         throw new DomainError({ code: 'PICKUP_POINT_NOT_FOUND' });
       }

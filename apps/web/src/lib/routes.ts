@@ -17,6 +17,7 @@ export const routes = {
   profileSettings: '/konto/profil',
   addresses: '/konto/adresy',
   newAddress: '/konto/adresy/nowy',
+  newPickupPoint: '/konto/adresy/punkty/nowy',
   myBiddy: '/moje-biddy',
   myWins: '/moje-biddy/wygrane',
   myWatchlist: '/moje-biddy/obserwowane',

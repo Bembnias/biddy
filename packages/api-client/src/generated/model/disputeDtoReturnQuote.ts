@@ -7,6 +7,7 @@
  */
 import type { DisputeDtoReturnQuoteCurrency } from './disputeDtoReturnQuoteCurrency';
 import type { DisputeDtoReturnQuoteKind } from './disputeDtoReturnQuoteKind';
+import type { DisputeDtoReturnQuotePointMap } from './disputeDtoReturnQuotePointMap';
 
 /**
  * Usługa i cena zwrotu (sprzedający przed odpowiedzią); null: zwrot niedostępny
@@ -27,4 +28,9 @@ export type DisputeDtoReturnQuote = {
   currency: DisputeDtoReturnQuoteCurrency;
   /** Paczkomat i punkt: wybór punktu; kurier: adres */
   requiresPickupPoint: boolean;
+  /**
+     * Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy
+     * @nullable
+     */
+  pointMap: DisputeDtoReturnQuotePointMap;
 } | null;

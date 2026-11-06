@@ -642,6 +642,16 @@ Rozmowy kupujących ze sprzedającymi o aukcji albo zamówieniu, na żywo i ze z
   - „Zapytaj sprzedającego” na stronie aukcji, „Napisz do…” na stronie zamówienia;
   - `/konto/zablokowani`.
 
+### Punkty odbioru: mapa i zapisane punkty (F-64)
+
+Kupujący wybiera paczkomat albo punkt na mapie Furgonetki i zapisuje swoje punkty w koncie (`/konto/adresy`, sekcja „Punkty odbioru”). Checkout sam wybiera domyślny zapisany punkt usługi. Spec: [F-64](docs/features/F-64-punkty-odbioru.md).
+
+- **Mapa:** widżet `furgonetka.pl/js/dist/map/map.js` ładowany dopiero po kliknięciu „Wybierz na mapie”, tylko gdy API podaje `pointMap` dla usługi, a web ma `NEXT_PUBLIC_FURGONETKA_MAP_KEY`. Kod punktu z mapy sprawdza `GET /v1/shipping/points/{pointId}?carrier=`, które podaje też adres.
+- **Lokalnie mapy nie ma**, bo klucza nie da się przypisać do `localhost`: działa wyszukiwarka z F-25. Testy używają atrapy `window.Furgonetka.Map`.
+- **Dostawca punktów:** `SHIPPING_POINTS_PROVIDER` (domyślnie jak `SHIPPING_DEFAULT_PROVIDER`). Staging: `furgonetka` z sandboksa przy `SHIPPING_DEFAULT_PROVIDER=fake`, więc mapa jest prawdziwa, a przesyłki przechodzą cykl FakeShipping. Przy `SHIPPING_DEFAULT_PROVIDER=furgonetka` punkty muszą być z Furgonetki.
+- **Zapisane punkty:** `GET|POST /v1/me/pickup-points`, `PATCH|DELETE /v1/me/pickup-points/:id`. Do 10 na konto (409 `PICKUP_POINT_LIMIT_REACHED`), jeden domyślny na usługę, pierwszy punkt usługi domyślny. Lista pokazuje tylko punkty bieżącego dostawcy punktów.
+- **Checkout:** zapisane punkty usługi jako karty, pole „Zapisz w moich punktach odbioru” przy nowym punkcie (zapis po wyborze dostawy, błąd nie blokuje płatności).
+
 ### Oceny (F-30)
 
 Oceny obu stron po zakończonym zamówieniu, ujawniane razem albo po 7 dniach, z reputacją na profilu (PROJECT.md §5, §17). Spec: [F-30](docs/features/F-30-oceny.md).

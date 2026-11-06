@@ -193,6 +193,7 @@ describe('DisputePanel', () => {
           price: 1_699,
           currency: 'PLN',
           requiresPickupPoint: false,
+          pointMap: null,
         },
       }),
       [respondPath]: dispute({

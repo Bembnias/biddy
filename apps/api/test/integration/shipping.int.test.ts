@@ -6,7 +6,7 @@
 // robi wprost (SQL i ShipmentService.prepare).
 import type { LightMyRequestResponse } from 'fastify';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { type Database, DRIZZLE, newId } from '../../src/infra/db/index.js';
 import { Outbox } from '../../src/infra/outbox/index.js';
@@ -17,6 +17,8 @@ import {
 } from '../../src/modules/shipping/adapters/fake/fake-shipping-format.js';
 import { FAKE_REJECTED_PHONE } from '../../src/modules/shipping/adapters/fake/fake-shipping-provider.js';
 import { FakeShippingSimulator } from '../../src/modules/shipping/adapters/fake/fake-shipping-simulator.js';
+import { ShippingProviderRegistry } from '../../src/modules/shipping/application/provider-registry.js';
+import type { ShippingProvider } from '../../src/modules/shipping/ports/shipping-provider.port.js';
 import {
   CarrierClaimService,
   type ShipmentDto,
@@ -256,6 +258,7 @@ describe('opcje dostawy (kryterium 1)', () => {
         price: 1_399,
         currency: 'PLN',
         requiresPickupPoint: true,
+        pointMap: null,
       },
       {
         carrierId: 'orlen-paczka',
@@ -264,6 +267,7 @@ describe('opcje dostawy (kryterium 1)', () => {
         price: 1_099,
         currency: 'PLN',
         requiresPickupPoint: true,
+        pointMap: null,
       },
     ]);
     expect(
@@ -321,6 +325,46 @@ describe('wybór dostawy (ShipmentService.prepare)', () => {
       pickupPoint: { id: 'orlen-paczka-02', name: 'Punkt testowy 02' },
       recipient: { name: 'Jan Kupujący', phone: '+48600700800', address: null },
     });
+  });
+});
+
+describe('dostawca punktów inny niż przesyłek (F-64)', () => {
+  it('prepare sprawdza punkt u dostawcy punktów, a przesyłkę zapisuje u dostawcy przesyłek', async () => {
+    const registry = api.app.get(ShippingProviderRegistry);
+    const fake = registry.default();
+    // Dostawca punktów jak Furgonetka na stagingu: zna tylko kod WAW01M.
+    const points = {
+      ...fake,
+      provider: 'furgonetka',
+      findPoints: vi.fn(({ pointId }: { pointId?: string }) =>
+        Promise.resolve(
+          pointId === 'WAW01M'
+            ? [
+                {
+                  id: 'WAW01M',
+                  name: 'Paczkomat WAW01M',
+                  address: 'ul. Marszałkowska 1, 00-001 Warszawa',
+                  location: null,
+                  distanceMeters: null,
+                  openingHours: '24/7',
+                },
+              ]
+            : [],
+        ),
+      ),
+    } as unknown as ShippingProvider;
+    const spy = vi.spyOn(registry, 'points').mockReturnValue(points);
+    try {
+      const order = await sale();
+      await expect(prepare(order)).rejects.toMatchObject({ code: 'PICKUP_POINT_NOT_FOUND' });
+      const prepared = await prepare(order, 'WAW01M');
+      expect(prepared.shipment).toMatchObject({
+        provider: 'fake',
+        pickupPoint: { id: 'WAW01M', name: 'Paczkomat WAW01M' },
+      });
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
@@ -706,6 +750,113 @@ describe('punkty odbioru i trasy deweloperskie (kryterium 5)', () => {
     expect(
       (await call('GET', '/v1/shipping/points?carrier=inpost-paczkomat', user)).statusCode,
     ).toBe(400);
+  });
+
+  it('punkt po kodzie (F-64): sesja, punkt z adresem, nieznany i kurier 422', async () => {
+    const user = await createUser(api, pool);
+    const url = '/v1/shipping/points/inpost-paczkomat-03?carrier=inpost-paczkomat';
+    expect((await call('GET', url)).statusCode).toBe(401);
+    const point = await call('GET', url, user);
+    expect(point.statusCode, point.body).toBe(200);
+    expect(point.json()).toMatchObject({
+      id: 'inpost-paczkomat-03',
+      name: expect.any(String) as unknown,
+    });
+    const missing = await call(
+      'GET',
+      '/v1/shipping/points/inpost-paczkomat-99?carrier=inpost-paczkomat',
+      user,
+    );
+    expect(problemOf(missing).code).toBe('PICKUP_POINT_NOT_FOUND');
+    const courier = await call('GET', '/v1/shipping/points/x?carrier=dpd-kurier', user);
+    expect(problemOf(courier).code).toBe('SHIPPING_OPTION_UNAVAILABLE');
+    // FakeShipping nie ma mapy: web pokazuje wyszukiwarkę.
+    const carriers = await call('GET', '/v1/shipping/carriers');
+    expect(
+      carriers.json<{ pointMap: unknown }[]>().every((carrier) => carrier.pointMap === null),
+    ).toBe(true);
+  });
+
+  it('zapisane punkty (F-64): pierwszy domyślny, duplikat, domyślny na usługę, limit, cudzy 404', async () => {
+    const user = await createUser(api, pool);
+    const other = await createUser(api, pool);
+    const save = (body: Record<string, unknown>, as: TestUser = user) =>
+      call('POST', '/v1/me/pickup-points', as, body);
+    expect((await call('GET', '/v1/me/pickup-points')).statusCode).toBe(401);
+
+    const first = await save({ carrierId: 'inpost-paczkomat', pointId: 'inpost-paczkomat-01' });
+    expect(first.statusCode, first.body).toBe(201);
+    expect(first.json()).toMatchObject({
+      carrierId: 'inpost-paczkomat',
+      pointId: 'inpost-paczkomat-01',
+      isDefault: true,
+      openingHours: expect.any(String) as unknown,
+    });
+    const again = await save({ carrierId: 'inpost-paczkomat', pointId: 'inpost-paczkomat-01' });
+    expect(again.statusCode).toBe(200);
+    expect(again.json<{ id: string }>().id).toBe(first.json<{ id: string }>().id);
+
+    const second = await save({
+      carrierId: 'inpost-paczkomat',
+      pointId: 'inpost-paczkomat-02',
+      isDefault: true,
+    });
+    expect(second.json()).toMatchObject({ isDefault: true });
+    const orlen = await save({ carrierId: 'orlen-paczka', pointId: 'orlen-paczka-01' });
+    expect(orlen.json()).toMatchObject({ isDefault: true });
+    const list = await call('GET', '/v1/me/pickup-points', user);
+    expect(
+      list
+        .json<{ pointId: string; isDefault: boolean }[]>()
+        .map((point) => [point.pointId, point.isDefault]),
+    ).toEqual([
+      ['orlen-paczka-01', true],
+      ['inpost-paczkomat-02', true],
+      ['inpost-paczkomat-01', false],
+    ]);
+
+    const firstId = first.json<{ id: string }>().id;
+    expect(
+      (await call('PATCH', `/v1/me/pickup-points/${firstId}`, other, { isDefault: true }))
+        .statusCode,
+    ).toBe(404);
+    expect((await call('DELETE', `/v1/me/pickup-points/${firstId}`, other)).statusCode).toBe(404);
+    const made = await call('PATCH', `/v1/me/pickup-points/${firstId}`, user, { isDefault: true });
+    expect(made.json()).toMatchObject({ isDefault: true });
+    expect(
+      await count(
+        `select count(*) from saved_pickup_points where user_id = $1 and carrier_id = 'inpost-paczkomat' and is_default`,
+        [user.id],
+      ),
+    ).toBe(1);
+
+    expect(problemOf(await save({ carrierId: 'inpost-paczkomat', pointId: 'nie-ma' })).code).toBe(
+      'PICKUP_POINT_NOT_FOUND',
+    );
+    expect(problemOf(await save({ carrierId: 'dpd-kurier', pointId: 'x' })).code).toBe(
+      'SHIPPING_OPTION_UNAVAILABLE',
+    );
+
+    // Limit 10 także przy równoległych zapisach (blokada konta).
+    const results = await Promise.all(
+      [
+        ...['01', '02', '03', '04', '05', '06', '07', '08'].map((code) => `dpd-pickup-${code}`),
+        'orlen-paczka-02',
+      ].map((pointId) => save({ carrierId: pointId.replace(/-\d+$/u, ''), pointId })),
+    );
+    expect(results.filter((result) => result.statusCode === 201)).toHaveLength(7);
+    expect(
+      results.filter((result) => result.statusCode !== 201).map((result) => problemOf(result).code),
+    ).toEqual(['PICKUP_POINT_LIMIT_REACHED', 'PICKUP_POINT_LIMIT_REACHED']);
+    expect(
+      await count(
+        `select count(*) from saved_pickup_points where user_id = $1 and carrier_id = 'dpd-pickup' and is_default`,
+        [user.id],
+      ),
+    ).toBe(1);
+
+    expect((await call('DELETE', `/v1/me/pickup-points/${firstId}`, user)).statusCode).toBe(204);
+    expect((await call('GET', '/v1/me/pickup-points', other)).json()).toEqual([]);
   });
 
   it('panel: przesyłka testowa bez zamówienia, „Nadaj”, etykieta, status i scenariusz z panelu', async () => {

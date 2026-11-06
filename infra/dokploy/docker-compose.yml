@@ -29,6 +29,17 @@ x-api-env: &api-env
   # i internetu).
   PAYMENTS_FAKE_WEBHOOK_URL: http://${BIDDY_ENV:-staging}-api:3001/v1/webhooks/payments/fake
   SHIPPING_FAKE_WEBHOOK_URL: http://${BIDDY_ENV:-staging}-api:3001/v1/webhooks/shipping/fake
+  # Dostawy przez Furgonetkę (F-24) i dostawca punktów odbioru (F-64). Puste = wartości domyślne
+  # (FakeShipping). Staging z mapą: SHIPPING_POINTS_PROVIDER=furgonetka i komplet FURGONETKA_*
+  # z sandboksa.
+  SHIPPING_DEFAULT_PROVIDER: ${SHIPPING_DEFAULT_PROVIDER:-}
+  SHIPPING_POINTS_PROVIDER: ${SHIPPING_POINTS_PROVIDER:-}
+  FURGONETKA_API_URL: ${FURGONETKA_API_URL:-}
+  FURGONETKA_CLIENT_ID: ${FURGONETKA_CLIENT_ID:-}
+  FURGONETKA_CLIENT_SECRET: ${FURGONETKA_CLIENT_SECRET:-}
+  FURGONETKA_USERNAME: ${FURGONETKA_USERNAME:-}
+  FURGONETKA_PASSWORD: ${FURGONETKA_PASSWORD:-}
+  FURGONETKA_WEBHOOK_TOKEN: ${FURGONETKA_WEBHOOK_TOKEN:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   DATABASE_URL: ${DATABASE_URL:?podaj adres bazy Postgres z panelu Dokploy (adres wewnętrzny)}
   REDIS_QUEUE_URL: redis://${BIDDY_ENV:-staging}-redis-queue:6379

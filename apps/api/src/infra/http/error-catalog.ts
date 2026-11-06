@@ -185,6 +185,11 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Nie ma takiego punktu',
     detail: 'Nie znaleziono wybranego punktu odbioru. Wybierz inny punkt.',
   },
+  PICKUP_POINT_LIMIT_REACHED: {
+    status: 409,
+    title: 'Limit punktów odbioru',
+    detail: 'Możesz zapisać najwyżej 10 punktów odbioru. Usuń punkt, którego nie używasz.',
+  },
   DELIVERY_ADDRESS_REQUIRED: {
     status: 422,
     title: 'Podaj adres dostawy',

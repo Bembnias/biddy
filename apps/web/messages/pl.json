@@ -421,6 +421,34 @@
       "countryLabel": "Kraj",
       "countryValue": "Polska",
       "flags": "Ustawienia adresu"
+    },
+    "points": {
+      "title": "Punkty odbioru",
+      "text": "Paczkomaty i punkty, w których odbierasz paczki. Domyślny punkt usługi wybierzemy za Ciebie w checkoutcie.",
+      "add": "Dodaj punkt odbioru",
+      "empty": "Nie masz zapisanych punktów odbioru",
+      "limit": "Możesz zapisać najwyżej {max} punktów odbioru.",
+      "defaultFor": "Domyślny dla: {carrier}",
+      "setDefault": "Ustaw jako domyślny",
+      "delete": "Usuń",
+      "deleteTitle": "Usunąć punkt odbioru?",
+      "deleteText": "Punkt {name} zniknie z Twoich punktów. Zamówień to nie zmienia.",
+      "deleteConfirm": "Usuń punkt",
+      "cancel": "Anuluj",
+      "saved": "Punkt odbioru zapisany.",
+      "error": "Nie udało się zmienić punktu. Spróbuj ponownie.",
+      "form": {
+        "metaTitle": "Nowy punkt odbioru",
+        "title": "Nowy punkt odbioru",
+        "text": "Wybierz usługę, a potem punkt na mapie albo z wyszukiwarki.",
+        "carrier": "Usługa",
+        "makeDefault": "Ustaw jako domyślny dla tej usługi",
+        "firstDefault": "To Twój pierwszy punkt tej usługi, więc będzie domyślny.",
+        "submit": "Zapisz punkt",
+        "submitting": "Zapisywanie…",
+        "pointRequired": "Wybierz punkt odbioru.",
+        "back": "Adresy i punkty"
+      }
     }
   },
   "catalog": {
@@ -1505,17 +1533,7 @@
       "none": "Żadna dostawa nie pasuje teraz do tego przedmiotu. Napisz do nas przez Centrum pomocy.",
       "chooseCarrier": "Wybierz sposób dostawy.",
       "point": "Punkt odbioru",
-      "pointSearch": "Miasto, adres albo kod punktu",
-      "pointSearchHint": "Np. Warszawa Marszałkowska albo WAW01M",
-      "pointSearchButton": "Szukaj",
-      "pointSearching": "Szukamy punktów…",
-      "pointResults": "Punkty odbioru",
-      "pointNoResults": "Nie znaleźliśmy punktów. Spróbuj innej nazwy miasta albo ulicy.",
-      "pointError": "Nie udało się wyszukać punktów. Spróbuj ponownie.",
       "pointRequired": "Wybierz punkt odbioru.",
-      "pointQueryTooShort": "Wpisz co najmniej 2 znaki.",
-      "pointChange": "Zmień punkt",
-      "pointSelected": "Wybrany punkt",
       "recipient": "Odbiorca",
       "name": "Imię i nazwisko",
       "phone": "Telefon",
@@ -2373,5 +2391,30 @@
       "all": "Pokazujemy wszystkie oceny, także negatywne, w kolejności od najnowszej. Nie zmieniamy ich treści, nie płacimy za oceny i nie wyróżniamy ich za opłatą.",
       "removal": "Usuwamy tylko oceny naruszające regulamin, np. obraźliwe albo z danymi kontaktowymi, i podajemy powód."
     }
+  },
+  "pickupPoints": {
+    "search": "Miasto, adres albo kod punktu",
+    "searchHint": "Np. Warszawa Marszałkowska albo WAW01M",
+    "searchButton": "Szukaj",
+    "searching": "Szukamy punktów…",
+    "results": "Punkty odbioru",
+    "noResults": "Nie znaleźliśmy punktów. Spróbuj innej nazwy miasta albo ulicy.",
+    "searchError": "Nie udało się wyszukać punktów. Spróbuj ponownie.",
+    "queryTooShort": "Wpisz co najmniej 2 znaki.",
+    "change": "Zmień punkt",
+    "selected": "Wybrany punkt",
+    "saved": "Twoje punkty",
+    "defaultBadge": "Domyślny",
+    "openMap": "Wybierz na mapie",
+    "mapLoading": "Wczytywanie mapy…",
+    "openSearch": "Szukaj po adresie",
+    "mapFailed": "Nie udało się wczytać mapy. Wyszukaj punkt po adresie.",
+    "checking": "Sprawdzamy punkt…",
+    "invalidPoint": "Ten punkt nie obsługuje wybranej dostawy albo jest nieczynny. Wybierz inny.",
+    "checkError": "Nie udało się sprawdzić punktu. Spróbuj ponownie.",
+    "remember": "Zapisz w moich punktach odbioru",
+    "rememberLimit": "Masz już 10 zapisanych punktów. Usuń któryś w Koncie, żeby dodać nowy.",
+    "rememberFailed": "Nie udało się zapisać punktu w Koncie. Dostawa jest wybrana, możesz zapłacić.",
+    "remembered": "Punkt zapisany w Twoich punktach odbioru."
   }
 }

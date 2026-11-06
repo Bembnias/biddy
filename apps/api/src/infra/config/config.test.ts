@@ -157,6 +157,7 @@ describe('loadConfig: wartości domyślne', () => {
       },
       shipping: {
         defaultProvider: 'fake',
+        pointsProvider: 'fake',
         fake: {
           enabled: true,
           webhookUrl: 'http://localhost:3001/v1/webhooks/shipping/fake',
@@ -478,6 +479,7 @@ describe('loadConfig: dostawy (F-24)', () => {
     const config = loadConfig({ ...minimal, NODE_ENV: 'test', API_PORT: '4000' });
     expect(config.shipping).toEqual({
       defaultProvider: 'fake',
+      pointsProvider: 'fake',
       fake: {
         enabled: true,
         webhookUrl: 'http://localhost:4000/v1/webhooks/shipping/fake',
@@ -530,6 +532,48 @@ describe('loadConfig: dostawy (F-24)', () => {
     const config = loadConfig({ ...minimal, ...FURGONETKA });
     expect(config.shipping.furgonetka?.apiUrl).toBe('https://api.sandbox.furgonetka.pl');
     expect(config.shipping.fake.enabled).toBe(true);
+  });
+
+  it('dostawca punktów (F-64): domyślnie jak przesyłek; staging: Furgonetka przy FakeShipping', () => {
+    expect(
+      loadConfig({ ...minimal, SHIPPING_DEFAULT_PROVIDER: 'fake' }).shipping.pointsProvider,
+    ).toBe('fake');
+    const staging = loadConfig({
+      ...minimal,
+      ...FURGONETKA,
+      SHIPPING_DEFAULT_PROVIDER: 'fake',
+      SHIPPING_POINTS_PROVIDER: 'furgonetka',
+    });
+    expect(staging.shipping).toMatchObject({
+      defaultProvider: 'fake',
+      pointsProvider: 'furgonetka',
+    });
+    expect(
+      loadConfig({ ...minimal, ...FURGONETKA, SHIPPING_DEFAULT_PROVIDER: 'furgonetka' }).shipping
+        .pointsProvider,
+    ).toBe('furgonetka');
+    expect(variablesWithIssues({ ...minimal, SHIPPING_POINTS_PROVIDER: 'furgonetka' })).toEqual([
+      'FURGONETKA_CLIENT_ID',
+      'FURGONETKA_CLIENT_SECRET',
+      'FURGONETKA_USERNAME',
+      'FURGONETKA_PASSWORD',
+      'FURGONETKA_WEBHOOK_TOKEN',
+    ]);
+    expect(
+      variablesWithIssues({
+        ...minimal,
+        ...FURGONETKA,
+        SHIPPING_DEFAULT_PROVIDER: 'furgonetka',
+        SHIPPING_POINTS_PROVIDER: 'fake',
+      }),
+    ).toEqual(['SHIPPING_POINTS_PROVIDER']);
+    const base = { ...production, CORS_ORIGINS: 'https://biddy.pl' };
+    expect(
+      issuesFor(
+        { ...base, SHIPPING_DEFAULT_PROVIDER: undefined, SHIPPING_POINTS_PROVIDER: 'fake' },
+        'api',
+      ).map((issue) => issue.variable),
+    ).toEqual(['SHIPPING_DEFAULT_PROVIDER', 'SHIPPING_POINTS_PROVIDER']);
   });
 
   it('sekret webhooków FakeShipping różni się od sekretu FakeGateway', () => {

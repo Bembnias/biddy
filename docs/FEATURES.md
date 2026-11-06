@@ -122,6 +122,7 @@ Szacunki nie obejmują projektu wizualnego kluczowych ekranów (freelancer w Faz
 | F-29 | Wiadomości | 2a | M |
 | F-30 | Oceny | 2a | S |
 | F-61 | Limity kont i strike'i | 2a | M |
+| F-64 | Punkty odbioru: mapa i zapisane punkty | 2a | M |
 | F-31 | Adapter operatora płatności | 2b | L |
 | F-32 | Weryfikacja sprzedawców u operatora | 2b | M |
 | F-33 | Uzgodnienia z operatorem | 2b | M |
@@ -177,6 +178,7 @@ flowchart TD
   F23 --> F25
   F24 --> F25
   F25 --> F26["F-26 Cykl zamówienia"]
+  F25 --> F64["F-64 Mapa i zapisane punkty"]
   F61 --> F26
   F26 --> F28["F-28 Spory"]
   F23 --> F27["F-27 Saldo i wypłaty"]
@@ -904,6 +906,25 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 **Zależności:** F-04, F-07 · **Spec:** §4.1, §16.2, §17
 
+### F-64 · Punkty odbioru: mapa i zapisane punkty · `M`
+
+> Pełny spec: [docs/features/F-64-punkty-odbioru.md](features/F-64-punkty-odbioru.md). Zastępuje tymczasową decyzję nr 109 w części „punkty odbioru przez wyszukiwarkę bez mapy”.
+
+**Cel:** kupujący wybiera punkt odbioru na mapie i nie szuka swojego paczkomatu przy każdym zamówieniu.
+
+**Zakres:**
+- Mapa punktów Furgonetki (widżet `furgonetka.pl/js/dist/map/map.js`) w checkoutcie i w koncie, ładowana po kliknięciu. Punkt z mapy sprawdza API Biddy, a wyszukiwarka z F-25 zostaje jako droga zapasowa i dostępna.
+- Zapisane punkty odbioru przy adresach (`/konto/adresy`): do 10 na konto, jeden domyślny na usługę, podpowiadane w checkoutcie, z zapisem nowego punktu prosto z checkoutu.
+- `SHIPPING_POINTS_PROVIDER`: osobny dostawca punktów, dzięki któremu staging pokazuje mapę z sandboksa Furgonetki, a przesyłki przechodzą cykl FakeShipping.
+
+**Kryteria akceptacji:**
+- Punkt wybrany na mapie trafia do zamówienia z nazwą i adresem z API Biddy, a punkt innej usługi albo nieczynny jest odrzucony.
+- Bez mapy (brak klucza, błąd skryptu, FakeShipping) checkout działa wyszukiwarką jak w F-25.
+- Domyślny zapisany punkt usługi jest wybrany automatycznie w checkoutcie bez wybranej dostawy.
+- Jeden domyślny punkt na usługę, najwyżej 10 punktów, bez duplikatów, także przy równoległych zapisach.
+
+**Zależności:** F-10, F-24, F-25 · **Spec:** §8.1, §8.3
+
 ---
 
 ## Etap 2b: Integracja operatora i operacje
@@ -1197,7 +1218,7 @@ Startuje w trakcie bety (F-43), gdy rdzeń web jest stabilny. Publikacja w sklep
 
 ## Po MVP
 
-Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-64.
+Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-65.
 
 **v1 (miesiące 8–10)**
 

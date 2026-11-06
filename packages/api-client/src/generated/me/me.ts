@@ -62,6 +62,9 @@ import type {
   PhoneVerificationDto,
   ProblemDetails,
   RequestPayoutDto,
+  SavePickupPointDto,
+  SavedPickupPointDto,
+  SavedPickupPointDtoOutput,
   SellerBalanceDto,
   SellingLimitsDto,
   SessionDto,
@@ -70,6 +73,7 @@ import type {
   StrikeDto,
   UpdateAddressDto,
   UpdateMeDto,
+  UpdatePickupPointDto,
   UpdatePreferencesDto,
   VerifiedPhoneDto
 } from '../model';
@@ -4041,6 +4045,411 @@ export const useRequestPayout = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getRequestPayoutMutationOptions(options), queryClient);
+    }
+    export const getGetMyPickupPointsUrl = () => {
+
+
+
+
+  return `/v1/me/pickup-points`
+}
+
+/**
+ * @summary Zapisane punkty odbioru
+ */
+export const getMyPickupPoints = async ( options?: Parameters<typeof apiFetch>[1]): Promise<SavedPickupPointDtoOutput[]> => {
+
+  return apiFetch<SavedPickupPointDtoOutput[]>(getGetMyPickupPointsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyPickupPointsQueryKey = () => {
+    return [
+    `/v1/me/pickup-points`
+    ] as const;
+    }
+
+
+export const getGetMyPickupPointsQueryOptions = <TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyPickupPointsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPickupPoints>>> = ({ signal }) => getMyPickupPoints({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyPickupPointsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPickupPoints>>>
+export type GetMyPickupPointsQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyPickupPoints<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyPickupPoints>>,
+          TError,
+          Awaited<ReturnType<typeof getMyPickupPoints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPickupPoints<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyPickupPoints>>,
+          TError,
+          Awaited<ReturnType<typeof getMyPickupPoints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPickupPoints<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Zapisane punkty odbioru
+ */
+
+export function useGetMyPickupPoints<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyPickupPointsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyPickupPointsSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyPickupPointsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPickupPoints>>> = ({ signal }) => getMyPickupPoints({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyPickupPointsSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPickupPoints>>>
+export type GetMyPickupPointsSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyPickupPointsSuspense<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPickupPointsSuspense<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPickupPointsSuspense<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Zapisane punkty odbioru
+ */
+
+export function useGetMyPickupPointsSuspense<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyPickupPointsSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getSavePickupPointUrl = () => {
+
+
+
+
+  return `/v1/me/pickup-points`
+}
+
+/**
+ * Sprawdza punkt u dostawcy i zapisuje kopię nazwy i adresu. Pierwszy punkt usługi jest domyślny. Już zapisany punkt: 200 bez drugiego wpisu. Najwyżej 10 punktów (409 PICKUP_POINT_LIMIT_REACHED); punkt nieczynny: 422 PICKUP_POINT_NOT_FOUND.
+ * @summary Zapis punktu odbioru
+ */
+export const savePickupPoint = async (savePickupPointDto: SavePickupPointDto, options?: Parameters<typeof apiFetch>[1]): Promise<SavedPickupPointDto | SavedPickupPointDtoOutput> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<SavedPickupPointDto | SavedPickupPointDtoOutput>(getSavePickupPointUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(savePickupPointDto)
+  }
+);}
+
+
+
+
+
+export const getSavePickupPointMutationKey = () => ['savePickupPoint'] as const;
+
+export const getSavePickupPointMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof savePickupPoint>>, TError,SavePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof savePickupPoint>>, TError,SavePickupPointMutationVariables, TContext> => {
+
+const mutationKey = getSavePickupPointMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof savePickupPoint>>, SavePickupPointMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  savePickupPoint(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SavePickupPointMutationResult = NonNullable<Awaited<ReturnType<typeof savePickupPoint>>>
+    export type SavePickupPointMutationBody = BodyType<SavePickupPointDto>
+    export type SavePickupPointMutationError = ErrorType<ProblemDetails>
+    export type SavePickupPointMutationVariables = {data: BodyType<SavePickupPointDto>}
+
+    /**
+ * @summary Zapis punktu odbioru
+ */
+export const useSavePickupPoint = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof savePickupPoint>>, TError,SavePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof savePickupPoint>>,
+        TError,
+        SavePickupPointMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSavePickupPointMutationOptions(options), queryClient);
+    }
+    export const getUpdatePickupPointUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/pickup-points/${id}`
+}
+
+/**
+ * @summary Punkt domyślny usługi
+ */
+export const updatePickupPoint = async (id: string,
+    updatePickupPointDto: UpdatePickupPointDto, options?: Parameters<typeof apiFetch>[1]): Promise<SavedPickupPointDtoOutput> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<SavedPickupPointDtoOutput>(getUpdatePickupPointUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updatePickupPointDto)
+  }
+);}
+
+
+
+
+
+export const getUpdatePickupPointMutationKey = () => ['updatePickupPoint'] as const;
+
+export const getUpdatePickupPointMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePickupPoint>>, TError,UpdatePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePickupPoint>>, TError,UpdatePickupPointMutationVariables, TContext> => {
+
+const mutationKey = getUpdatePickupPointMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePickupPoint>>, UpdatePickupPointMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePickupPoint(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePickupPointMutationResult = NonNullable<Awaited<ReturnType<typeof updatePickupPoint>>>
+    export type UpdatePickupPointMutationBody = BodyType<UpdatePickupPointDto>
+    export type UpdatePickupPointMutationError = ErrorType<ProblemDetails>
+    export type UpdatePickupPointMutationVariables = {id: string;data: BodyType<UpdatePickupPointDto>}
+
+    /**
+ * @summary Punkt domyślny usługi
+ */
+export const useUpdatePickupPoint = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePickupPoint>>, TError,UpdatePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updatePickupPoint>>,
+        TError,
+        UpdatePickupPointMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdatePickupPointMutationOptions(options), queryClient);
+    }
+    export const getDeletePickupPointUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/pickup-points/${id}`
+}
+
+/**
+ * Usunięcie domyślnego punktu nie wybiera nowego domyślnego.
+ * @summary Usunięcie punktu odbioru
+ */
+export const deletePickupPoint = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getDeletePickupPointUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeletePickupPointMutationKey = () => ['deletePickupPoint'] as const;
+
+export const getDeletePickupPointMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePickupPoint>>, TError,DeletePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePickupPoint>>, TError,DeletePickupPointMutationVariables, TContext> => {
+
+const mutationKey = getDeletePickupPointMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePickupPoint>>, DeletePickupPointMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deletePickupPoint(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePickupPointMutationResult = NonNullable<Awaited<ReturnType<typeof deletePickupPoint>>>
+
+    export type DeletePickupPointMutationError = ErrorType<ProblemDetails>
+    export type DeletePickupPointMutationVariables = {id: string}
+
+    /**
+ * @summary Usunięcie punktu odbioru
+ */
+export const useDeletePickupPoint = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePickupPoint>>, TError,DeletePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deletePickupPoint>>,
+        TError,
+        DeletePickupPointMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeletePickupPointMutationOptions(options), queryClient);
     }
     export const getGetMyNotificationsUrl = (params?: GetMyNotificationsParams,) => {
   const normalizedParams = new URLSearchParams();

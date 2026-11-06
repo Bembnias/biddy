@@ -173,25 +173,35 @@ describe('przewoźnicy z migracji', () => {
         name: 'InPost Paczkomat 24/7',
         kind: 'LOCKER',
         packageSizes: ['S', 'M', 'L'],
+        pointMap: null,
       },
       {
         id: 'inpost-kurier',
         name: 'InPost Kurier',
         kind: 'COURIER',
         packageSizes: ['S', 'M', 'L', 'XL'],
+        pointMap: null,
       },
       {
         id: 'orlen-paczka',
         name: 'Orlen Paczka',
         kind: 'PICKUP_POINT',
         packageSizes: ['S', 'M', 'L'],
+        pointMap: null,
       },
-      { id: 'dpd-pickup', name: 'DPD Pickup', kind: 'PICKUP_POINT', packageSizes: ['S', 'M', 'L'] },
+      {
+        id: 'dpd-pickup',
+        name: 'DPD Pickup',
+        kind: 'PICKUP_POINT',
+        packageSizes: ['S', 'M', 'L'],
+        pointMap: null,
+      },
       {
         id: 'dpd-kurier',
         name: 'DPD Kurier',
         kind: 'COURIER',
         packageSizes: ['S', 'M', 'L', 'XL'],
+        pointMap: null,
       },
     ]);
   });

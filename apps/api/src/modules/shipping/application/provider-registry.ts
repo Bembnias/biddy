@@ -25,6 +25,8 @@ export class UnknownShippingProviderError extends Error {
 export class ShippingProviderRegistry {
   private readonly providers: ReadonlyMap<string, ShippingProvider>;
   readonly defaultProvider: ShippingProviderName;
+  /** Dostawca punktów odbioru (F-64): wyszukiwarka, punkt po kodzie, mapa. */
+  readonly pointsProvider: ShippingProviderName;
 
   /**
    * @throws {Error} przy starcie, gdy dostawca domyślny nie ma adaptera (np. furgonetka bez
@@ -35,19 +37,30 @@ export class ShippingProviderRegistry {
     @Inject(APP_CONFIG) config: AppConfig,
   ) {
     this.providers = new Map(providers.map((provider) => [provider.provider, provider]));
-    const provider = config.shipping.defaultProvider;
-    if (!this.providers.has(provider)) {
-      const available = [...this.providers.keys()].join(', ') || 'brak';
-      throw new Error(
-        `SHIPPING_DEFAULT_PROVIDER=${provider}: brak adaptera tego dostawcy (dostępne: ${available}). FakeShipping (fake) działa tylko poza produkcją, a Furgonetka wymaga zmiennych FURGONETKA_*.`,
-      );
+    const { defaultProvider, pointsProvider } = config.shipping;
+    for (const [variable, provider] of [
+      ['SHIPPING_DEFAULT_PROVIDER', defaultProvider],
+      ['SHIPPING_POINTS_PROVIDER', pointsProvider],
+    ] as const) {
+      if (!this.providers.has(provider)) {
+        const available = [...this.providers.keys()].join(', ') || 'brak';
+        throw new Error(
+          `${variable}=${provider}: brak adaptera tego dostawcy (dostępne: ${available}). FakeShipping (fake) działa tylko poza produkcją, a Furgonetka wymaga zmiennych FURGONETKA_*.`,
+        );
+      }
     }
-    this.defaultProvider = provider;
+    this.defaultProvider = defaultProvider;
+    this.pointsProvider = pointsProvider;
   }
 
   /** Adapter dostawcy nowych przesyłek. */
   default(): ShippingProvider {
     return this.get(this.defaultProvider);
+  }
+
+  /** Adapter dostawcy punktów odbioru (F-64). */
+  points(): ShippingProvider {
+    return this.get(this.pointsProvider);
   }
 
   /** Adapter dla dostawcy albo undefined, gdy nie działa w tym środowisku. */

@@ -5,8 +5,12 @@ import {
   type CheckoutDto,
   chooseDelivery,
   getGetCheckoutQueryKey,
+  getGetMyPickupPointsQueryKey,
   isApiError,
+  savePickupPoint,
+  type SavedPickupPointDto,
   startPayment,
+  useGetMyPickupPoints,
 } from '@biddy/api-client';
 import { formatMoney, money } from '@biddy/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +24,11 @@ import { z } from 'zod';
 import { track } from '@/analytics/posthog';
 import { AuthForm, FormAlert, TextField, useErrorMessage } from '@/components/auth/form-parts';
 import { useValidationMessages } from '@/components/auth/use-validation';
+import {
+  type ChosenPoint,
+  PickupPointPicker,
+  type PointSource,
+} from '@/components/pickup-points/pickup-point-picker';
 import { Button } from '@/components/ui/button';
 import { addressSchema } from '@/lib/auth/schemas';
 import { newPaymentKey, totalWith } from '@/lib/checkout/checkout';
@@ -27,9 +36,11 @@ import { formatPhoneNumber } from '@/lib/phone';
 import { cn } from '@/lib/utils';
 
 import { CheckoutSummary } from './checkout-summary';
-import { type ChosenPoint, PickupPointPicker } from './pickup-point-picker';
 
 type Method = CheckoutDto['paymentMethods'][number];
+
+/** Limit zapisanych punktów odbioru (API: 409 PICKUP_POINT_LIMIT_REACHED). */
+const MAX_SAVED_POINTS = 10;
 
 /** Pole błędu z API (`recipient.phone`) → pole formularza. */
 const API_FIELDS = {
@@ -92,6 +103,7 @@ export function CheckoutForm({
   readonly defaultAddress: AddressDto | undefined;
 }) {
   const t = useTranslations('checkout');
+  const tp = useTranslations('pickupPoints');
   const errorMessage = useErrorMessage();
   const queryClient = useQueryClient();
   const id = useId();
@@ -99,7 +111,16 @@ export function CheckoutForm({
   const [error, setError] = useState<string>();
   const [pointError, setPointError] = useState<string>();
   const saved = view.delivery;
-  const [point, setPoint] = useState<ChosenPoint | null>(saved?.pickupPoint ?? null);
+  // undefined: bez wyboru osoby, więc punkt to domyślny zapisany punkt usługi (F-64).
+  const [chosenPoint, setPoint] = useState<ChosenPoint | null | undefined>(
+    saved === null ? undefined : saved.pickupPoint,
+  );
+  const [chosenSource, setPointSource] = useState<PointSource>();
+  const [remember, setRemember] = useState(false);
+  const [rememberNote, setRememberNote] = useState<string>();
+  // Zapisane punkty konta (F-64); błąd listy nie przeszkadza w wyborze punktu.
+  const myPoints = useGetMyPickupPoints({ query: { staleTime: 60_000 } });
+  const savedPoints: readonly SavedPickupPointDto[] = myPoints.data ?? [];
   const savedAddress = saved?.recipient.address ?? null;
   const prefill = saved === null ? defaultAddress : undefined;
   const form = useForm({
@@ -122,6 +143,35 @@ export function CheckoutForm({
   const total = totalWith(view, carrierId);
   const queryKey = getGetCheckoutQueryKey(publicId);
   const failed = view.payment?.status === 'FAILED' ? view.payment : null;
+  const savedForCarrier = savedPoints.filter((candidate) => candidate.carrierId === carrierId);
+  const presetPoint = savedForCarrier.find((candidate) => candidate.isDefault);
+  const point: ChosenPoint | null =
+    chosenPoint === undefined
+      ? presetPoint === undefined
+        ? null
+        : { id: presetPoint.pointId, name: presetPoint.name, address: presetPoint.address }
+      : chosenPoint;
+  const pointSource: PointSource | undefined =
+    chosenPoint === undefined && point !== null ? 'saved' : chosenSource;
+  const isSavedPoint =
+    point !== null && savedForCarrier.some((candidate) => candidate.pointId === point.id);
+  const canRemember =
+    point !== null && !isSavedPoint && myPoints.isSuccess && savedPoints.length < MAX_SAVED_POINTS;
+
+  const rememberPoint = async (carrier: string, chosen: ChosenPoint) => {
+    try {
+      await savePickupPoint({ carrierId: carrier, pointId: chosen.id });
+      track('pickup_point_saved', { carrierId: carrier, context: 'checkout', isDefault: false });
+      setRemember(false);
+      setRememberNote(tp('remembered'));
+      await queryClient.invalidateQueries({ queryKey: getGetMyPickupPointsQueryKey() });
+    } catch (caught) {
+      const code = isApiError(caught) ? caught.problem?.code : undefined;
+      setRememberNote(
+        code === 'PICKUP_POINT_LIMIT_REACHED' ? tp('rememberLimit') : tp('rememberFailed'),
+      );
+    }
+  };
 
   const submit = async (values: FormValues) => {
     setError(undefined);
@@ -146,7 +196,16 @@ export function CheckoutForm({
         },
       });
       queryClient.setQueryData(queryKey, delivered);
-      track('checkout_delivery_selected', { kind: option?.kind });
+      track('checkout_delivery_selected', {
+        kind: option?.kind,
+        ...(option?.requiresPickupPoint === true && pointSource !== undefined
+          ? { pointSource }
+          : {}),
+      });
+      if (option?.requiresPickupPoint === true && point !== null && remember && canRemember) {
+        // Zapis w koncie nie blokuje płatności: błąd pokazujemy jako informację.
+        await rememberPoint(values.carrierId, point);
+      }
       if (delivered.order.total !== shown) {
         setError(t('totalChanged'));
         return;
@@ -245,11 +304,14 @@ export function CheckoutForm({
                     {...form.register('carrierId', {
                       onChange: () => {
                         setPointError(undefined);
+                        setRememberNote(undefined);
+                        // Punkt zapisanej dostawy tej usługi albo domyślny zapisany punkt usługi.
                         setPoint(
                           saved?.carrierId === candidate.carrierId
-                            ? (saved.pickupPoint ?? null)
-                            : null,
+                            ? (saved.pickupPoint ?? undefined)
+                            : undefined,
                         );
+                        setPointSource(undefined);
                       },
                     })}
                   />
@@ -268,16 +330,45 @@ export function CheckoutForm({
           )}
 
           {option?.requiresPickupPoint === true ? (
-            <PickupPointPicker
-              key={option.carrierId}
-              carrierId={option.carrierId}
-              value={point}
-              onChange={(next) => {
-                setPoint(next);
-                setPointError(undefined);
-              }}
-              error={pointError}
-            />
+            <div className="space-y-3">
+              <PickupPointPicker
+                key={option.carrierId}
+                carrierId={option.carrierId}
+                carrierKind={option.kind}
+                pointMap={option.pointMap}
+                saved={savedForCarrier}
+                near={
+                  defaultAddress === undefined
+                    ? undefined
+                    : { city: defaultAddress.city, postcode: defaultAddress.postalCode }
+                }
+                context="checkout"
+                value={point}
+                onChange={(next, source) => {
+                  setPoint(next);
+                  setPointSource(source);
+                  setPointError(undefined);
+                  setRememberNote(undefined);
+                }}
+                error={pointError}
+              />
+              {canRemember ? (
+                <label className="flex items-center gap-2.5 text-body-sm">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(event) => {
+                      setRemember(event.target.checked);
+                    }}
+                    className="size-4.5 accent-brand"
+                  />
+                  {tp('remember')}
+                </label>
+              ) : null}
+              <p role="status" className="text-body-sm text-foreground-secondary empty:hidden">
+                {rememberNote}
+              </p>
+            </div>
           ) : null}
 
           <div className="space-y-4 border-t border-ink-100 pt-5">

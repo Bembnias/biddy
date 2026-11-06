@@ -289,6 +289,7 @@ test('sprzedający proponuje zwrot części ceny; axe', async ({ page, context, 
       price: 1_699,
       currency: 'PLN',
       requiresPickupPoint: false,
+      pointMap: null,
     },
   });
   const api = await mockBrowserApi(page, {

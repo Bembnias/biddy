@@ -1333,6 +1333,7 @@ erDiagram
 | `processed_webhooks` | provider, event_id (PK z provider), event_type, outcome (`HANDLED`/`IGNORED`: bez obsługi w tej wersji), processed_at (idempotencja webhooków, F-23) |
 | `fake_shipping_*` | stan FakeShipping (F-24): `parcels` (klucz idempotencji, odcisk żądania, scenariusz), `tracking` (statusy w notacji symulatora), `webhooks` (stan dostarczenia); na produkcji puste |
 | `furgonetka_tokens` | jeden wiersz: token dostępu i refresh token Furgonetki (zaszyfrowane AES-256-GCM), expires_at (F-24) |
+| `saved_pickup_points` | zapisane punkty odbioru kupującego: user_id, provider, carrier_id, point_id, kopia nazwy, adresu i godzin, is_default (jeden na konto, dostawcę i usługę), do 10 na konto (F-64) |
 | `fake_gateway_*` | stan FakeGateway (F-23): `sellers` (status KYC, saldo), `payments`, `refunds`, `payouts` (klucze idempotencji i odcisk żądania), `events` (webhooki w notacji symulatora ze stanem dostarczenia); na produkcji puste |
 | `audit_log` | id, actor_id, action, target, diff, ip, created_at |
 
@@ -1363,6 +1364,7 @@ GET    /me                         PATCH /me
 GET    /users/:id                  (profil publiczny: imię, data dołączenia, znaczek telefonu)
 GET    /users/:id/rating           GET /users/:id/reviews?before=   (publiczne: średnia i liczba ocen według ról, lista ocen; F-30)
 GET    /me/addresses               POST /me/addresses           PATCH|DELETE /me/addresses/:id
+GET    /me/pickup-points           POST /me/pickup-points       PATCH|DELETE /me/pickup-points/:id   (F-64)
 POST   /me/terms-acceptances       (akceptacja aktualnej wersji regulaminu / polityki)
 POST   /me/seller-onboarding       → rejestracja sprzedawcy i KYC u operatora
 GET    /me/balance                 (saldo z ledgera, zamówienia w trakcie, powód blokady wypłaty; F-27)   GET /me/balance/history?cursor=
@@ -1415,6 +1417,7 @@ POST   /orders/:id/second-chance-offers (sprzedający, po CANCELLED_UNPAID: ofer
 GET    /second-chance-offers/:id   (licytujący, F-26)
 POST   /second-chance-offers/:id/accept | /decline
 GET    /shipping/points?carrier=&lat=&lng= | &q=   (sesja; punkty odbioru u dostawcy, F-24)
+GET    /shipping/points/:pointId?carrier=   (sesja; punkt po kodzie z mapy u dostawcy punktów, F-64)
 
 # Spory, wiadomości, oceny, zgłoszenia
 POST   /disputes/:id/seller-response   (ACCEPT z odesłaniem albo bez | OFFER_PARTIAL | REJECT, F-28)
@@ -2016,7 +2019,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 106 | F-25 przejmuje z F-26 przejścia zamówienia wokół płatności: `AWAITING_PAYMENT → PAID` w konsumencie `PaymentSucceeded` (z `paid_at`, `ship_by` = koniec 5. dnia roboczego i eventem `OrderPaid`) oraz `AWAITING_PAYMENT → CANCELLED_UNPAID` w jobie `orders.expire-unpaid` co minutę (płatność w toku założona przed terminem przesuwa anulowanie o 30 min). Strike i druga szansa zostają w F-26 jako konsumenci `OrderCancelled` (`paymentPending` mówi, czy płatność może jeszcze przyjść; strike nadaje od F-61 konsument `orders.strike-unpaid`, nr 113; drugą szansę daje F-26, nr 119) | Przyjęta | §6.8, §7.3, §7.4 |
 | 107 | Checkout: kwoty liczy backend, a klient wysyła tylko sumę z przycisku (`expectedTotal`; inna = 409 `CHECKOUT_TOTAL_CHANGED`). Zmiana dostawy i nowa płatność blokują wiersz zamówienia (`FOR UPDATE`) do zapisu płatności, także na czas wywołania operatora; płatność w toku albo udana blokuje kolejną, nieudana nie. Klucz płatności `checkout:{orderId}:{Idempotency-Key}` | Przyjęta | §7.2, §7.8 |
 | 108 | Zwroty płatności w module `payments` (tabela `refunds`): zlecenie w transakcji wywołującego z eventem `RefundRequested`, wywołanie operatora w konsumencie z kluczem `refund:{id}`, księgowanie `ORDER_REFUNDED` dopiero po webhooku `REFUND_SUCCEEDED`; nieudany zwrot czeka na support. Udana płatność anulowanego zamówienia (`LATE_PAYMENT`) albo drugiej płatności (`DUPLICATE_PAYMENT`, nowy powód w ledgerze) wraca automatycznie i bez strike'a | Przyjęta | §6.8, §7.7 |
-| 109 | Do F-32 checkout rejestruje sprzedawcę u operatora przed pierwszą płatnością (imię i potwierdzony e-mail z `identity`; zablokowany albo bez e-maila: 409 `SELLER_UNAVAILABLE`). Checkout web: BLIK z kodem, karta i szybki przelew (Apple Pay i Google Pay z prawdziwym operatorem, F-31), punkty odbioru przez wyszukiwarkę bez mapy | Tymczasowa | §7.6, §8.1 |
+| 109 | Do F-32 checkout rejestruje sprzedawcę u operatora przed pierwszą płatnością (imię i potwierdzony e-mail z `identity`; zablokowany albo bez e-maila: 409 `SELLER_UNAVAILABLE`). Checkout web: BLIK z kodem, karta i szybki przelew (Apple Pay i Google Pay z prawdziwym operatorem, F-31), punkty odbioru przez wyszukiwarkę bez mapy | Tymczasowa (punkty odbioru: mapa w F-64, nr 150) | §7.6, §8.1 |
 | 110 | Maks. oferta nowego kupującego 2500 zł (było 500 zł), sprawdzonego 5000 zł (było 3000 zł), zaufanego bez limitu; limit liczby aukcji z aktywną ofertą bez zmian. Pierwsze zakupy mogą obejmować droższe przedmioty (elektronika, kolekcje), a ryzyko niepłacącego zwycięzcy ograniczają strike'i i blokady (F-61). Wartości obowiązują od F-61 (polityka kont, nr 112) | Przyjęta | §4.1 |
 | 111 | SMS-y z kodem weryfikacyjnym na stagingu mogą iść do logu API zamiast do SMSAPI: `SMS_LOG_ONLY=true` włącza atrapę także przy ustawionym `SMSAPI_TOKEN` (wtedy token nie jest wymagany), a na produkcji (`DEPLOYMENT_ENV=production`) konfiguracja ją odrzuca, jak FakeGateway i FakeShipping. Powód: do aktywacji konta SMSAPI odrzuca SMS-y z linią WebOTP `@host #kod` (kod błędu 94, wygląda jak link), a atrapa pozwala sprawdzić weryfikację telefonu bez wysyłki | Tymczasowa | §11.2 |
 | 112 | Limity poziomów i reguły strike'ów jako wersjonowana polityka kont w bazie (`account_policies`, najnowsza obowiązuje; pusta tabela = `DEFAULT_ACCOUNT_POLICY` z `@biddy/shared`), zmieniana przez `PUT /admin/account-policy` (rola `admin`) do panelu F-34; proces trzyma ją w pamięci 30 s. Nadpisania jednego konta w `users.limits` (poziom albo pojedyncze limity, `null` = bez limitu) | Przyjęta | §4.1 |
@@ -2056,6 +2059,9 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 146 | Powiadomienia o ocenach: `REVIEW_REQUESTED` (druga strona oceniła, z terminem, bez gwiazdek) i `REVIEW_RECEIVED` (ocena widoczna). Ujawnienie po 7 dniach i po drugiej ocenie idzie jedną ścieżką: job `reviews.publish` co minutę emituje `ReviewPublished`. E-maile domyślnie włączone, z możliwością wyłączenia | Przyjęta | §14.3 |
 | 147 | Informacja o weryfikacji ocen (Omnibus) na profilu przy ocenach: kto i kiedy ocenia, ujawnienie obu ocen razem, wszystkie oceny bez filtrowania i płatnych wyróżnień, usuwanie tylko za naruszenie regulaminu (zgłaszanie i usuwanie ocen w F-35) | Przyjęta | §17 |
 | 148 | Niezaakceptowany regulamin przewoźnika na koncie Furgonetki to niedostępność dostawcy (`UNAVAILABLE`: ponowienie joba, sprzedający widzi „Przewoźnik chwilowo nie odpowiada”), nie błąd danych przesyłki. Zespół dostaje alert w Sentry i akceptuje regulamin w panelu Furgonetki; bez automatycznej akceptacji przez `POST /regulations` (zgoda na warunki przewoźnika to decyzja biznesowa) | Przyjęta | §8.1, §8.5 |
+| 149 | Punkty odbioru mają osobnego dostawcę (`SHIPPING_POINTS_PROVIDER`, domyślnie jak przesyłek): wyszukiwarka, punkt po kodzie i sprawdzenie punktu w `prepare`. Przy Furgonetce jako dostawcy przesyłek punkty też z Furgonetki. Staging: punkty i mapa z sandboksa Furgonetki, przesyłki przez FakeShipping (przyjmuje dowolny kod punktu) | Przyjęta | §8.1, §8.6 |
+| 150 | Mapa punktów to widżet Furgonetki ładowany dopiero po kliknięciu „Wybierz na mapie”, z kluczem per środowisko (`NEXT_PUBLIC_FURGONETKA_MAP_KEY`, bez localhost). Punkt z mapy to tylko podpowiedź: API sprawdza kod u dostawcy punktów i podaje adres. Wyszukiwarka z F-25 zostaje jako droga dostępna i zapasowa. Zastępuje część decyzji nr 109 o punktach bez mapy | Przyjęta | §8.1, §17 |
+| 151 | Zapisane punkty odbioru w module `shipping` (`saved_pickup_points`), nie w `addresses`: do 10 na konto, jeden domyślny na konto, dostawcę i usługę, kopia nazwy i adresu tylko do wyświetlania. Domyślny punkt usługi checkout wybiera sam, gdy zamówienie nie ma dostawy | Przyjęta | §8.1, §13.3 |
 
 ---
 

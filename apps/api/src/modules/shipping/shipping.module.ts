@@ -19,6 +19,7 @@ import { FurgonetkaProvider } from './adapters/furgonetka/furgonetka-provider.js
 import { DbFurgonetkaTokenStore } from './adapters/furgonetka/furgonetka-token-store.js';
 import { CarrierClaimService } from './application/carrier-claim.service.js';
 import { PickupPointService } from './application/pickup-point.service.js';
+import { SavedPickupPointService } from './application/saved-pickup-points.service.js';
 import { SHIPPING_PROVIDERS, ShippingProviderRegistry } from './application/provider-registry.js';
 import { ShipmentService } from './application/shipment.service.js';
 import { ShippingJobs } from './application/shipping-jobs.js';
@@ -28,6 +29,7 @@ import { TrackingSync } from './application/tracking-sync.js';
 import { CarrierService } from './carriers/carrier.service.js';
 import { CarriersController } from './carriers/carriers.controller.js';
 import { PickupPointsController } from './points/pickup-points.controller.js';
+import { SavedPickupPointsController } from './points/saved-pickup-points.controller.js';
 import type { ShippingProvider } from './ports/shipping-provider.port.js';
 import { registerShippingWebhookRoutes } from './webhooks/shipping-webhook-routes.js';
 
@@ -38,7 +40,12 @@ import { registerShippingWebhookRoutes } from './webhooks/shipping-webhook-route
  * webhooków (surowe body) rejestruje tylko w procesie HTTP.
  */
 @Module({
-  controllers: [CarriersController, PickupPointsController, FakeShippingDevController],
+  controllers: [
+    CarriersController,
+    PickupPointsController,
+    SavedPickupPointsController,
+    FakeShippingDevController,
+  ],
   providers: [
     CarrierService,
     ShippingQuoteService,
@@ -73,6 +80,7 @@ import { registerShippingWebhookRoutes } from './webhooks/shipping-webhook-route
     },
     ShippingProviderRegistry,
     PickupPointService,
+    SavedPickupPointService,
     ShipmentService,
     TrackingSync,
     ShippingWebhookProcessor,

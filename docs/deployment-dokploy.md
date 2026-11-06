@@ -355,6 +355,7 @@ Ten sam serwer albo osobny (lepiej osobny: awaria stagingu nie dotyka produkcji)
 2. Workflow: środowisko GitHub `production` (z wymaganym zatwierdzeniem) i wyzwalacz na tag wersji; obraz API przenosi się bez budowania (`sha-<commit>` → `production`), obraz web buduje się z adresami produkcji (`biddy-web-production`).
 3. Płatności: compose ustawia `DEPLOYMENT_ENV` z `BIDDY_ENV`, a przy `production` FakeGateway jest zablokowany. Stos produkcyjny wystartuje dopiero z prawdziwym operatorem w `PAYMENTS_DEFAULT_PROVIDER` (adapter w F-31, PROJECT.md §7.8). Staging działa na FakeGateway, a worker wysyła jego webhooki do API w sieci wewnętrznej (`PAYMENTS_FAKE_WEBHOOK_URL`).
 4. Dostawy (F-24): przy `production` FakeShipping też jest zablokowany, więc stos produkcyjny wymaga `SHIPPING_DEFAULT_PROVIDER=furgonetka` i kompletu zmiennych `FURGONETKA_*`. Staging działa na FakeShipping, a worker wysyła webhooki automatu statusów do API w sieci wewnętrznej (`SHIPPING_FAKE_WEBHOOK_URL`).
+   - Mapa punktów odbioru na stagingu (F-64): w Environment stosu `SHIPPING_POINTS_PROVIDER=furgonetka` i komplet `FURGONETKA_*` z sandboksa (przesyłki dalej przez FakeShipping), a w zmiennych repozytorium GitHub `NEXT_PUBLIC_FURGONETKA_MAP_KEY` z kluczem klienta mapy dla `staging.biddy.pl`. Klucz trafia do obrazu web przy buildzie, więc po jego zmianie trzeba przebudować web. Produkcja dostaje własny klucz dla `biddy.pl`.
 5. Przed prawdziwymi płatnościami: przegląd PITR bazy, wdrożeń bez przerwy i planu awaryjnego (PROJECT.md §11.6).
 
 ## Rozwiązywanie problemów

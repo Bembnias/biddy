@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { senderSchema } from '../application/shipment-party.js';
 import type { ShipmentDetails } from '../application/shipment.service.js';
 import { CARRIER_KINDS } from '../db/shipping.schema.js';
+import { POINT_MAP_ENVS, type PointMap } from '../domain/point-map.js';
 import type { ShippingOption } from '../domain/shipping-options.js';
 import {
   DISPATCH_METHODS,
@@ -19,6 +20,20 @@ import type { PickupPoint } from '../ports/shipping-provider.port.js';
 const currency = z.enum(Object.keys(CURRENCIES) as [CurrencyCode, ...CurrencyCode[]]);
 const grosze = z.int().nonnegative();
 const timestamp = z.iso.datetime();
+
+/** Mapa punktów (F-64): widżet Furgonetki z usługą i środowiskiem; null = wyszukiwarka. */
+export const pointMapSchema = z
+  .object({
+    provider: z.literal('furgonetka'),
+    service: z.string().min(1).describe('Kod usługi w mapie Furgonetki, np. inpost'),
+    env: z.enum(POINT_MAP_ENVS),
+  })
+  .nullable()
+  .describe('Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy');
+
+export function pointMapDto(pointMap: PointMap | null | undefined): z.infer<typeof pointMapSchema> {
+  return pointMap ?? null;
+}
 
 export class PickupPointDto extends createZodDto(
   z.object({
@@ -39,6 +54,7 @@ export class ShippingOptionDto extends createZodDto(
     price: grosze.describe('Cena dostawy dla kupującego w groszach (cennik Biddy)'),
     currency,
     requiresPickupPoint: z.boolean().describe('Paczkomat i punkt: wybór punktu; kurier: adres'),
+    pointMap: pointMapSchema,
   }),
 ) {}
 
@@ -164,6 +180,7 @@ export function shippingOptionDto(
     price: option.price,
     currency: currencyCode,
     requiresPickupPoint: option.requiresPickupPoint,
+    pointMap: pointMapDto(option.pointMap),
   };
 }
 

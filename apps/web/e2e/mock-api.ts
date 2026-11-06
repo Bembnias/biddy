@@ -253,6 +253,33 @@ function problem(status: number, code: string, detail: string, instance: string)
 
 /** Adresy (DTO z API) według pełnej wartości ciasteczka sesji. */
 const addressesBySession = new Map<string, unknown[]>();
+/** Zapisane punkty odbioru (F-64) według sesji: SSR strony „Adresy i punkty”. */
+const pickupPointsBySession = new Map<string, unknown[]>();
+
+/** Usługi dostaw (GET /v1/shipping/carriers); FakeShipping, więc bez mapy. */
+const CARRIERS = [
+  {
+    id: 'inpost-paczkomat',
+    name: 'InPost Paczkomat 24/7',
+    kind: 'LOCKER',
+    packageSizes: ['S', 'M', 'L'],
+    pointMap: null,
+  },
+  {
+    id: 'orlen-paczka',
+    name: 'Orlen Paczka',
+    kind: 'PICKUP_POINT',
+    packageSizes: ['S', 'M', 'L'],
+    pointMap: null,
+  },
+  {
+    id: 'dpd-kurier',
+    name: 'DPD Kurier',
+    kind: 'COURIER',
+    packageSizes: ['S', 'M', 'L', 'XL'],
+    pointMap: null,
+  },
+];
 /** Nadpisania pól /v1/me według pełnej wartości ciasteczka sesji (np. avatarUrl po zapisie). */
 const meBySession = new Map<string, Record<string, unknown>>();
 /** Aukcje sprzedającego (ListingDto) według sesji testu. */
@@ -346,6 +373,14 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     meBySession.set(
       url.searchParams.get('session') ?? '',
       (await readJson(request)) as Record<string, unknown>,
+    );
+    send(response, 200, { ok: true });
+    return;
+  }
+  if (request.method === 'PUT' && path === '/__e2e/pickup-points') {
+    pickupPointsBySession.set(
+      url.searchParams.get('session') ?? '',
+      (await readJson(request)) as unknown[],
     );
     send(response, 200, { ok: true });
     return;
@@ -458,6 +493,18 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
       return;
     }
     send(response, 200, found);
+    return;
+  }
+  if (request.method === 'GET' && path === '/v1/shipping/carriers') {
+    send(response, 200, CARRIERS);
+    return;
+  }
+  if (request.method === 'GET' && path === '/v1/me/pickup-points') {
+    if (sessionKind(session) === undefined) {
+      send(response, 401, problem(401, 'UNAUTHORIZED', 'Zaloguj się.', path));
+      return;
+    }
+    send(response, 200, pickupPointsBySession.get(session ?? '') ?? []);
     return;
   }
   if (request.method === 'GET' && path === '/v1/me/addresses') {

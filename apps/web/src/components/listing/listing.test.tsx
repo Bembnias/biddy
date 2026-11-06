@@ -35,8 +35,15 @@ const CARRIERS: CarrierDto[] = [
     name: 'InPost Paczkomat 24/7',
     kind: 'LOCKER',
     packageSizes: ['S', 'M', 'L'],
+    pointMap: null,
   },
-  { id: 'dpd-kurier', name: 'DPD Kurier', kind: 'COURIER', packageSizes: ['S', 'M', 'L', 'XL'] },
+  {
+    id: 'dpd-kurier',
+    name: 'DPD Kurier',
+    kind: 'COURIER',
+    packageSizes: ['S', 'M', 'L', 'XL'],
+    pointMap: null,
+  },
 ];
 
 const CATEGORIES: CategoryDto[] = [

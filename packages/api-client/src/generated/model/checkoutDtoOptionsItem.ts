@@ -7,6 +7,7 @@
  */
 import type { CheckoutDtoOptionsItemCurrency } from './checkoutDtoOptionsItemCurrency';
 import type { CheckoutDtoOptionsItemKind } from './checkoutDtoOptionsItemKind';
+import type { CheckoutDtoOptionsItemPointMap } from './checkoutDtoOptionsItemPointMap';
 
 export type CheckoutDtoOptionsItem = {
   /** @minLength 1 */
@@ -23,4 +24,9 @@ export type CheckoutDtoOptionsItem = {
   currency: CheckoutDtoOptionsItemCurrency;
   /** Paczkomat i punkt: wybór punktu; kurier: adres */
   requiresPickupPoint: boolean;
+  /**
+     * Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy
+     * @nullable
+     */
+  pointMap: CheckoutDtoOptionsItemPointMap;
 };

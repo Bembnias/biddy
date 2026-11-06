@@ -92,6 +92,8 @@ export const ERROR_CODES = {
   PICKUP_POINT_REQUIRED: 'PICKUP_POINT_REQUIRED',
   /** Punktu odbioru nie ma u dostawcy (nieaktywny albo zły identyfikator, F-24). */
   PICKUP_POINT_NOT_FOUND: 'PICKUP_POINT_NOT_FOUND',
+  /** Osiągnięto limit zapisanych punktów odbioru (F-64). */
+  PICKUP_POINT_LIMIT_REACHED: 'PICKUP_POINT_LIMIT_REACHED',
   /** Kurier wymaga adresu dostawy (F-24). */
   DELIVERY_ADDRESS_REQUIRED: 'DELIVERY_ADDRESS_REQUIRED',
   /** Sposób nadania niedostępny dla tej usługi albo dostawcy (F-24). */

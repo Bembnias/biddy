@@ -176,6 +176,13 @@
       "when": 1793806230373,
       "tag": "0024_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793983739359,
+      "tag": "0025_saved_pickup_points",
+      "breakpoints": true
     }
   ]
 }

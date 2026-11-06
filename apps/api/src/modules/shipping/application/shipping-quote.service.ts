@@ -5,9 +5,11 @@ import type { CurrencyCode, PackageSize } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, gt, isNull, lte, or } from 'drizzle-orm';
 
+import { APP_CONFIG, type AppConfig } from '../../../infra/config/index.js';
 import { type Database, DRIZZLE } from '../../../infra/db/index.js';
-import { CarrierService } from '../carriers/carrier.service.js';
+import { CarrierService, type CarrierConfigRow } from '../carriers/carrier.service.js';
 import { shippingRates } from '../db/shipping.schema.js';
+import { type PointMap, pointMapFor } from '../domain/point-map.js';
 import {
   type ParcelSpec,
   type ShippingOption,
@@ -22,7 +24,17 @@ export class ShippingQuoteService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(CarrierService) private readonly carriers: CarrierService,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
+
+  /** Mapa punktów usługi (F-64): Furgonetka jako dostawca punktów, usługa z punktami. */
+  pointMap(carrier: Pick<CarrierConfigRow, 'kind' | 'providerCodes'>): PointMap | null {
+    return pointMapFor(
+      carrier,
+      this.config.shipping.pointsProvider,
+      this.config.shipping.furgonetka?.apiUrl,
+    );
+  }
 
   /** Opcje dostawy dla paczki w kolejności usług; pusta lista, gdy nic nie pasuje. */
   async options(
@@ -37,7 +49,11 @@ export class ShippingQuoteService {
       this.carriers.configs(),
       this.prices(parcel.packageSize, currency, at),
     ]);
-    return shippingOptions(configs, prices, parcel);
+    const byId = new Map(configs.map((config) => [config.id, config]));
+    return shippingOptions(configs, prices, parcel).map((option) => {
+      const carrier = byId.get(option.carrierId);
+      return { ...option, pointMap: carrier === undefined ? null : this.pointMap(carrier) };
+    });
   }
 
   /** Jedna opcja (wybór kupującego); undefined, gdy usługa nie pasuje albo nie ma ceny. */

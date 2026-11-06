@@ -7,6 +7,7 @@
  */
 import type { ShippingOptionDtoCurrency } from './shippingOptionDtoCurrency';
 import type { ShippingOptionDtoKind } from './shippingOptionDtoKind';
+import type { ShippingOptionDtoPointMap } from './shippingOptionDtoPointMap';
 
 export interface ShippingOptionDto {
   /** @minLength 1 */
@@ -23,4 +24,9 @@ export interface ShippingOptionDto {
   currency: ShippingOptionDtoCurrency;
   /** Paczkomat i punkt: wybór punktu; kurier: adres */
   requiresPickupPoint: boolean;
+  /**
+     * Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy
+     * @nullable
+     */
+  pointMap: ShippingOptionDtoPointMap;
 }
