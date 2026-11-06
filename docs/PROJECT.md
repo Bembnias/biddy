@@ -2055,6 +2055,7 @@ Stan na v0.4. **Przyjęta** = obowiązuje. **Tymczasowa** = obowiązuje i jest i
 | 145 | Reputacja liczona przy odczycie z widocznych ocen (średnia i liczba: łącznie, jako sprzedający, jako kupujący), bez kolumn zagregowanych w `users`. Karta sprzedawcy na stronie aukcji pokazuje ocenę jako sprzedający; publiczne trasy z cache 60 s | Przyjęta | §13.3, §14.1 |
 | 146 | Powiadomienia o ocenach: `REVIEW_REQUESTED` (druga strona oceniła, z terminem, bez gwiazdek) i `REVIEW_RECEIVED` (ocena widoczna). Ujawnienie po 7 dniach i po drugiej ocenie idzie jedną ścieżką: job `reviews.publish` co minutę emituje `ReviewPublished`. E-maile domyślnie włączone, z możliwością wyłączenia | Przyjęta | §14.3 |
 | 147 | Informacja o weryfikacji ocen (Omnibus) na profilu przy ocenach: kto i kiedy ocenia, ujawnienie obu ocen razem, wszystkie oceny bez filtrowania i płatnych wyróżnień, usuwanie tylko za naruszenie regulaminu (zgłaszanie i usuwanie ocen w F-35) | Przyjęta | §17 |
+| 148 | Niezaakceptowany regulamin przewoźnika na koncie Furgonetki to niedostępność dostawcy (`UNAVAILABLE`: ponowienie joba, sprzedający widzi „Przewoźnik chwilowo nie odpowiada”), nie błąd danych przesyłki. Zespół dostaje alert w Sentry i akceptuje regulamin w panelu Furgonetki; bez automatycznej akceptacji przez `POST /regulations` (zgoda na warunki przewoźnika to decyzja biznesowa) | Przyjęta | §8.1, §8.5 |
 
 ---
 

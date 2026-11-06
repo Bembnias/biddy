@@ -123,19 +123,22 @@ if (
       provider: new FurgonetkaProvider(client, webhookToken),
       locker: { id: 'inpost-paczkomat', kind: 'LOCKER', providerCodes: { furgonetka: 'inpost' } },
       pointId: process.env['FURGONETKA_SANDBOX_POINT'] ?? 'WAW01M',
-      // Sandbox: PUT /packages/tracking/simulate zastępuje historię zdarzeniami syntetycznymi.
+      // Sandbox: PUT /packages/tracking/simulate ustawia jeden status na wywołanie
+      // (`tracking_state`), a `packages_id` jest liczbą.
       moveInTransit: async (id) => {
         const shipment = (await client.json('GET', `/packages/${id}`, { version: 2 })) as {
           parcels?: { package_no?: string }[];
         };
-        await client.json('PUT', '/packages/tracking/simulate', {
-          version: 1,
-          body: {
-            packages_id: id,
-            package_no: shipment.parcels?.[0]?.package_no,
-            states: ['collected', 'transit'],
-          },
-        });
+        for (const state of ['collected', 'transit']) {
+          await client.json('PUT', '/packages/tracking/simulate', {
+            version: 1,
+            body: {
+              packages_id: Number(id),
+              package_no: shipment.parcels?.[0]?.package_no,
+              tracking_state: state,
+            },
+          });
+        }
       },
       webhook: (id) => {
         const payload = {

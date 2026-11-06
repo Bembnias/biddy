@@ -339,7 +339,7 @@ Klient API (`@biddy/api-client`) zwraca odpowiedzi PDF jako `Blob` (etykieta), a
 | `canceled` | `CANCELLED` |
 | nieznany | pomijany z ostrzeżeniem w logach |
 
-Furgonetka ma jeden stan zwrotu. Przyjmujemy więc, że `returned` to zwrot w drodze, a późniejsze `delivered` to doręczenie zwrotu do nadawcy. To założenie do potwierdzenia na sandboksie (otwarte pytania).
+Furgonetka ma jeden stan zwrotu. Przyjmujemy więc, że `returned` to zwrot w drodze, a późniejsze `delivered` to doręczenie zwrotu do nadawcy. To założenie do potwierdzenia u supportu Furgonetki, bo sandbox tego nie rozstrzyga (otwarte pytania).
 
 ### Konfiguracja
 
@@ -398,6 +398,10 @@ Furgonetka ma jeden stan zwrotu. Przyjmujemy więc, że `returned` to zwrot w dr
   - synchronizacja blokuje wiersz przesyłki (`FOR UPDATE`), więc webhook i polling nie zdublują eventów.
 - **Powód zwrotu:** `NOT_COLLECTED`, gdy paczka była wcześniej `READY_FOR_PICKUP` albo `OUT_FOR_DELIVERY`, albo gdy dostawca podał ten powód (FakeShipping `return_expired`). W innym przypadku `OTHER` (np. problem w sortowni).
 - **Webhook dla nieznanej przesyłki:** pomijamy go z ostrzeżeniem i odpowiadamy 200, bo Furgonetka wysyła powiadomienia o wszystkich paczkach konta.
+- **Niezaakceptowany regulamin przewoźnika:** gdy przewoźnik zmieni regulamin, Furgonetka odrzuca nowe przesyłki do czasu akceptacji na koncie Biddy.
+  - Adapter zgłasza to jako `UNAVAILABLE`, nie `INVALID_REQUEST`: sprzedający nic tu nie poprawi, więc job ponawia próby, a po ostatniej sprzedający widzi „Przewoźnik chwilowo nie odpowiada…”.
+  - Zespół dostaje alert (log `error` i Sentry z tagiem `reason: carrier-regulations`). Regulamin akceptuje osoba z zespołu w panelu Furgonetki (Konto → Regulaminy). Nie akceptujemy go automatycznie przez `POST /regulations` (decyzja nr 148).
+  - Furgonetka nie dokumentuje kodu tego błędu, więc rozpoznajemy go po słowach „regulamin” albo „regulation” w kodzie, ścieżce lub komunikacie.
 - **Polling:**
   - przesyłki w stanach od `CREATED` do `RETURNING` (bez końcowych), niesprawdzane od 2 godzin;
   - najdawniej sprawdzane najpierw, po 100 na wykonanie;
@@ -448,7 +452,7 @@ Brak nowych zdarzeń produktowych. Logi:
   - reguły przejść i powód zwrotu;
   - podpis FakeShipping i suma MD5 Furgonetki;
   - UUID z klucza idempotencji;
-  - adapter Furgonetki z atrapą `fetch`: logowanie, odświeżenie, 401 i powtórka, komendy z `commandExists`, etykieta 204, tracking v2, punkty, błędy 400 z `path`;
+  - adapter Furgonetki z atrapą `fetch`: logowanie, odświeżenie, 401 i powtórka, komendy z `commandExists`, etykieta 204, tracking v2, punkty, błędy 400 z `path`, niezaakceptowany regulamin (`UNAVAILABLE` z alertem w komendzie, wyniku komendy i odpowiedzi 409);
   - szyfrowanie tokenów;
   - PDF etykiety testowej;
   - walidacja danych nadawcy;
@@ -474,11 +478,21 @@ Brak nowych zdarzeń produktowych. Logi:
   - link „Nadaj paczkę” w „Moje Biddy”.
 - **E2E (Playwright):** brak nowych; pełna ścieżka z checkoutem w F-25 i F-26.
 - **Kontrakt na sandboksie Furgonetki:** `test/integration/shipping-contract.int.test.ts` uruchamia ten sam zestaw dla Furgonetki, gdy są zmienne `FURGONETKA_SANDBOX_CLIENT_ID`, `_CLIENT_SECRET`, `_USERNAME`, `_PASSWORD` (opcjonalnie `_WEBHOOK_TOKEN`, `_POINT`); bez nich jest pominięty.
+  - Konto testowe zakłada się na sandbox.furgonetka.pl, a aplikację OAuth w zakładce „Aplikacje oAuth” (bez Redirect URI, bo adapter loguje się hasłem).
+  - Przed pierwszą przesyłką trzeba zaakceptować regulaminy przewoźników na koncie (sandbox.furgonetka.pl/konto/regulaminy).
+
+## Postęp i odstępstwa (2026-11-06)
+
+- **Kontrakt na sandboksie przechodzi** (14 z 14: 7 dla FakeShipping, 7 dla Furgonetki): logowanie hasłem i token w bazie, punkty (także po kodzie `WAW01M`), idempotentne utworzenie przesyłki z numerem, etykieta PDF, tracking, anulowanie i suma kontrolna webhooka.
+- **Symulacja trackingu w teście kontraktowym:** `PUT /packages/tracking/simulate` ustawia jeden status na wywołanie (`tracking_state`, `packages_id` jako liczba), a nie listę stanów. Test ustawia `collected`, a potem `transit`.
+- **Niezaakceptowany regulamin przewoźnika:** pierwsze przesyłki na nowym koncie sandboksa odrzucił komunikat „Zmienił się regulamin przewoźnika…”. Adapter mapował go na `INVALID_REQUEST`, więc sprzedający zobaczyłby „Przewoźnik odrzucił dane przesyłki”. Teraz to `UNAVAILABLE` z alertem dla zespołu (reguły biznesowe, decyzja nr 148).
 
 ## Otwarte pytania
 
-- **Stany zwrotu w Furgonetce:** czy `returned` oznacza zwrot w drodze, czy doręczony, i czy po zwrocie przychodzi `delivered`? Do sprawdzenia na sandboksie (`PUT /packages/tracking/simulate`) przed startem. Od tego zależy moment zwrotu środków za nieodebraną paczkę (§7.4).
-- **Kod nadania bez etykiety** (InPost Paczkomat, Orlen Paczka) przez Furgonetkę: czy API go zwraca? Do czasu odpowiedzi adapter Furgonetki daje etykietę PDF, a kod nadania tylko wtedy, gdy przyjdzie w danych przesyłki.
+- **Stany zwrotu w Furgonetce:** czy `returned` oznacza zwrot w drodze, czy doręczony, i czy po zwrocie przychodzi `delivered`? Od tego zależy moment zwrotu środków za nieodebraną paczkę (§7.4).
+  - Specyfikacja API opisuje `returned` jako „przesyłka zwrócona do nadawcy”. To może oznaczać stan końcowy, wbrew założeniu z decyzji nr 98. Jeśli po `returned` nie przyjdzie `delivered`, przesyłka zostanie w `RETURNING`, a zwrot środków nie nastąpi.
+  - Sandbox tego nie rozstrzyga, bo symulacja ustawia dowolny status, o który poprosimy. Trzeba zapytać support Furgonetki o sekwencję stanów przy prawdziwym zwrocie nieodebranej paczki.
+- **Kod nadania bez etykiety** (InPost Paczkomat, Orlen Paczka) przez Furgonetkę: czy API go zwraca? Do czasu odpowiedzi adapter Furgonetki daje etykietę PDF, a kod nadania tylko wtedy, gdy przyjdzie w danych przesyłki. Sandbox zwraca etykietę PDF, a w specyfikacji API nie ma kodu nadania dla tych usług (poza siecią Furgonetka Punkt). Pytanie do supportu razem ze stanami zwrotu.
 - **Zamówienie kuriera po paczkę** (`COURIER_PICKUP`) przez Furgonetkę: `pickup-commands` z propozycją terminu. Do zrobienia po potwierdzeniu, czy sprzedający w becie tego potrzebują.
 - **Koszt przesyłki a cena dla kupującego:** cennik Biddy jest stały, a koszt u Furgonetki zależy od umowy. Marżę lub stratę na dostawie zmierzymy w becie (`shipments.price − cost`).
 - **Limity XL i startowy cennik** to wartości robocze. Potwierdzimy je stawkami Furgonetki (§8.5).

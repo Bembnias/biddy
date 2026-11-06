@@ -23,7 +23,7 @@ import {
   type TrackingEvent,
   type WebhookHint,
 } from '../../ports/shipping-provider.port.js';
-import { type FurgonetkaClient, furgonetkaRejection } from './furgonetka-client.js';
+import type { FurgonetkaClient } from './furgonetka-client.js';
 import {
   asRecord,
   commandUuid,
@@ -243,7 +243,7 @@ export class FurgonetkaProvider implements ShippingProvider {
     );
     const packageId = string(created.data, 'package_id');
     if (created.status !== 'successful' || packageId === undefined) {
-      throw furgonetkaRejection(created.errors);
+      throw this.client.rejection(created.errors);
     }
     const ordered = await this.client.command(
       'order-commands',
@@ -252,7 +252,7 @@ export class FurgonetkaProvider implements ShippingProvider {
       1,
     );
     if (ordered.status !== 'successful') {
-      throw furgonetkaRejection(ordered.errors);
+      throw this.client.rejection(ordered.errors);
     }
     const shipment = asRecord(
       await this.client.json('GET', `/packages/${packageId}`, { version: 2 }),
@@ -328,7 +328,7 @@ export class FurgonetkaProvider implements ShippingProvider {
       1,
     );
     if (result.status !== 'successful') {
-      throw furgonetkaRejection(result.errors);
+      throw this.client.rejection(result.errors);
     }
   }
 

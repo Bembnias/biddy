@@ -515,6 +515,8 @@ Domena rozmawia z przewoźnikami wyłącznie przez port `ShippingProvider` ([PRO
   - Następny albo dowolny status, zmiana scenariusza, synchronizacja bez webhooka, etykieta.
 - **Strona nadania:** `/zamowienia/{numer}/nadaj` (link z powiadomienia „Opłacono” i z „Moje Biddy → Sprzedane”). Układ F-63: od 1024 px formularz (dane nadawcy, sposób nadania) obok karty zamówienia, po nadaniu ciemna karta z kodem nadania („Kopiuj kod”) i etykietą PDF, pod nią numer i historia przesyłki.
 - **Furgonetka:** zmienne `FURGONETKA_*` (komplet albo żadna). Konto loguje się raz, a token z refresh tokenem leży zaszyfrowany w bazie. Bez danych dostępu adapter jest wyłączony, a sandbox ma własne testy kontraktowe (`FURGONETKA_SANDBOX_*`).
+  - Konto sandboksa: sandbox.furgonetka.pl, aplikacja OAuth bez Redirect URI, zaakceptowane regulaminy przewoźników (Konto → Regulaminy).
+  - Gdy przewoźnik zmieni regulamin, Furgonetka wstrzymuje nowe przesyłki. Adapter zgłasza wtedy niedostępność dostawcy i alert w Sentry (`reason: carrier-regulations`), a regulamin trzeba zaakceptować w panelu Furgonetki.
 - **Produkcja:** przy `DEPLOYMENT_ENV=production` `SHIPPING_DEFAULT_PROVIDER` jest wymagany i różny od `fake`, a trasy `/v1/dev/fake-shipping/*` odpowiadają 404.
 - **Testy kontraktowe:** `describeShippingProviderContract` w `apps/api/test/support/shipping-provider-contract.ts`; FakeShipping przechodzi go w `test/integration/shipping-contract.int.test.ts`.
 
