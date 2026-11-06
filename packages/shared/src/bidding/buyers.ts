@@ -1,22 +1,8 @@
-// Kupujący (F-15, PROJECT.md §4.1, §14.2): limity poziomów i zanonimizowane imię w historii ofert.
+// Kupujący (F-15, PROJECT.md §4.1, §14.2): poziomy kupującego i zanonimizowane imię w historii ofert.
 
-/** Poziom kupującego. Liczenie z historii zamówień i nadpisania to F-61. */
+/** Poziom kupującego (§4.1); limity i liczenie z historii zamówień w `account/account-policy.ts` (F-61). */
 export const BUYER_LEVELS = ['NEW', 'CHECKED', 'TRUSTED'] as const;
 export type BuyerLevel = (typeof BUYER_LEVELS)[number];
-
-export interface BuyerLevelLimits {
-  /** Maks. kwota oferty (maksimum licytacji automatycznej) w groszach albo null (bez limitu). */
-  readonly maxBidAmount: number | null;
-  /** Maks. liczba aukcji z aktywną ofertą albo null (bez limitu). */
-  readonly maxActiveAuctions: number | null;
-}
-
-/** Wartości startowe limitów kupującego z §4.1. */
-export const BUYER_LIMITS: Readonly<Record<BuyerLevel, BuyerLevelLimits>> = {
-  NEW: { maxBidAmount: 50_000, maxActiveAuctions: 10 },
-  CHECKED: { maxBidAmount: 300_000, maxActiveAuctions: 50 },
-  TRUSTED: { maxBidAmount: null, maxActiveAuctions: null },
-};
 
 /**
  * Zanonimizowane imię licytującego, np. „Kasia Kupująca” → „k***a”: pierwsza i ostatnia litera

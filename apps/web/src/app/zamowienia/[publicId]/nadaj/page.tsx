@@ -17,8 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Nadanie paczki (F-24, PROJECT.md §8.3): link z powiadomienia „Opłacono” i z Moje Biddy.
- * Widok zamówienia dla obu stron doda F-26.
+ * Nadanie paczki (F-24, PROJECT.md §8.3): link z powiadomienia „Opłacono”, z przypomnienia
+ * o nadaniu, z Moje Biddy i ze strony zamówienia (F-26).
  */
 export default async function DispatchPage({ params }: PageProps) {
   const { publicId } = await params;

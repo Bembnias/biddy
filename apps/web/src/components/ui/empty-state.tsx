@@ -21,7 +21,7 @@ export function EmptyState({
   readonly title: React.ReactNode;
   readonly children?: React.ReactNode;
   readonly action?: React.ReactNode;
-  readonly headingLevel?: 'h2' | 'h3';
+  readonly headingLevel?: 'h1' | 'h2' | 'h3';
   readonly className?: string;
 }) {
   const Heading = headingLevel;

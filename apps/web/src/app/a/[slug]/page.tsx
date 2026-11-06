@@ -181,7 +181,11 @@ export default async function AuctionPage({ params }: PageProps) {
         </div>
         <div className="min-w-0 space-y-12 lg:col-start-1 lg:row-start-2">
           <AuctionDetails auction={auction} />
-          <SellerCard seller={auction.seller} />
+          <SellerCard
+            seller={auction.seller}
+            auctionId={auction.id}
+            askable={auction.status === 'ACTIVE'}
+          />
         </div>
       </div>
       <MobileBidBarSlot />

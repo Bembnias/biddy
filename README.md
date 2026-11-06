@@ -506,7 +506,7 @@ Domena rozmawia z przewoźnikami wyłącznie przez port `ShippingProvider` ([PRO
 - **Tracking:**
   - webhook `POST /v1/webhooks/shipping/:provider` jest tylko wskazówką, a job `shipping.sync-tracking` pobiera historię z API dostawcy;
   - polling zapasowy `shipping.poll-tracking` co 10 minut obejmuje przesyłki niesprawdzane od 2 godzin;
-  - każda zmiana statusu to event `ShipmentStatusChanged` (przy zwrocie z powodem `NOT_COLLECTED` albo `OTHER`), który konsumuje F-26.
+  - każda zmiana statusu to event `ShipmentStatusChanged` (przy zwrocie z powodem `NOT_COLLECTED` albo `OTHER`), który prowadzi cykl zamówienia (F-26).
 - **FakeShipping lokalnie** (`pnpm dev` + `pnpm dev:worker`): automat dodaje kolejny status co `SHIPPING_FAKE_STEP_DELAY_MS` (20 s) i wysyła podpisany webhook na API, więc cały cykl trwa około 2 minut.
   - Punkty `…-NOPICKUP` i `…-LOST` prowadzą paczkę ścieżką nieodebranej albo zagubionej przesyłki.
   - Telefon nadawcy `500 000 000`: przewoźnik odrzuca dane; `500 000 001`: przewoźnik niedostępny.
@@ -515,6 +515,8 @@ Domena rozmawia z przewoźnikami wyłącznie przez port `ShippingProvider` ([PRO
   - Następny albo dowolny status, zmiana scenariusza, synchronizacja bez webhooka, etykieta.
 - **Strona nadania:** `/zamowienia/{numer}/nadaj` (link z powiadomienia „Opłacono” i z „Moje Biddy → Sprzedane”). Układ F-63: od 1024 px formularz (dane nadawcy, sposób nadania) obok karty zamówienia, po nadaniu ciemna karta z kodem nadania („Kopiuj kod”) i etykietą PDF, pod nią numer i historia przesyłki.
 - **Furgonetka:** zmienne `FURGONETKA_*` (komplet albo żadna). Konto loguje się raz, a token z refresh tokenem leży zaszyfrowany w bazie. Bez danych dostępu adapter jest wyłączony, a sandbox ma własne testy kontraktowe (`FURGONETKA_SANDBOX_*`).
+  - Konto sandboksa: sandbox.furgonetka.pl, aplikacja OAuth bez Redirect URI, zaakceptowane regulaminy przewoźników (Konto → Regulaminy).
+  - Gdy przewoźnik zmieni regulamin, Furgonetka wstrzymuje nowe przesyłki. Adapter zgłasza wtedy niedostępność dostawcy i alert w Sentry (`reason: carrier-regulations`), a regulamin trzeba zaakceptować w panelu Furgonetki.
 - **Produkcja:** przy `DEPLOYMENT_ENV=production` `SHIPPING_DEFAULT_PROVIDER` jest wymagany i różny od `fake`, a trasy `/v1/dev/fake-shipping/*` odpowiadają 404.
 - **Testy kontraktowe:** `describeShippingProviderContract` w `apps/api/test/support/shipping-provider-contract.ts`; FakeShipping przechodzi go w `test/integration/shipping-contract.int.test.ts`.
 
@@ -530,6 +532,175 @@ Zwycięzca płaci na stronie `/zamowienia/{numer}/zaplac` (link z powiadomienia 
 - **Przejścia zamówienia:** konsument `PaymentSucceeded` przełącza zamówienie w `PAID` (z `ship_by` po 5 dniach roboczych i eventem `OrderPaid`), a job `orders.expire-unpaid` (kolejka `orders`, co minutę) anuluje nieopłacone (`CANCELLED_UNPAID`, event `OrderCancelled`).
 - **Zwroty:** udana płatność anulowanego albo już opłaconego zamówienia wraca do kupującego automatycznie (tabela `refunds`, event `RefundRequested`, operator, webhook, księgowanie `ORDER_REFUNDED`).
 - **Lokalnie:** kody BLIK FakeGateway `777123` (udana), `111111` (odrzucona), `222222` (zostaje w toku); karta i szybki przelew przechodzą przez testową stronę `/dev/fake-pay/{id}`, która wraca na checkout.
+
+### Cykl życia zamówienia (F-26)
+
+Zamówienie przechodzi od wygranej do zakończenia samo, według maszyny stanów i terminów z PROJECT.md §7.3–7.4. Spec: [F-26](docs/features/F-26-cykl-zamowienia.md).
+
+- **Maszyna stanów.**
+  - Każde przejście idzie przez `transitionOrder` (blokada wiersza, para z `ORDER_TRANSITIONS`, czasy etapów i event w jednej transakcji).
+  - Trigger `orders_status_transition` odrzuca niedozwoloną parę także przy ręcznym `UPDATE`.
+- **Przesyłka prowadzi zamówienie** (konsument `orders.shipment-lifecycle`):
+  - pierwszy status u przewoźnika: `PAID → SHIPPED`;
+  - odbiór: `DELIVERED` z oknem 36 h od chwili wykrycia;
+  - zwrot nieodebranej: `NOT_PICKED_UP`, a `RETURNED` zleca zwrot ceny i POK bez dostawy.
+- **Zakończenie:** „Wszystko OK” (`POST /v1/orders/:id/confirm-receipt`) albo job `orders.complete-inspected` po 36 h.
+  - `EscrowService.release` księguje `ORDER_COMPLETED` (cena na saldo dostępne) i zleca zwolnienie u operatora (`fund_releases`).
+  - Otwarty chargeback (`orders.chargeback_status = 'OPEN'`) wstrzymuje zakończenie.
+- **Terminy** (kolejka `orders`, co minutę):
+  - `orders.expire-unshipped`: po `ship_by` najpierw synchronizacja trackingu, potem anulowanie przesyłki, `CANCELLED_NOT_SHIPPED`, pełny zwrot i strike `NOT_SHIPPED` sprzedającego;
+  - `orders.expire-second-chance`: wygaszenie ofert po 24 h;
+  - `orders.compensate-lost` (co godzinę): rekompensata 30 dni po zgłoszeniu zaginięcia.
+    Po potwierdzeniu zwrotu przez operatora zamówienie jest `REFUNDED`, a wstrzymane środki wynoszą 0.
+- **Zaginiona paczka:** „Zgłoś brak paczki” (`POST /v1/orders/:id/report-not-received`) 14 dni po nadaniu.
+  - Zamówienie przechodzi w `LOST`, dostaje pełny zwrot i reklamację u przewoźnika (`carrier_claims`).
+  - Sprzedający dostaje rekompensatę = cena po rozstrzygnięciu reklamacji (`CarrierClaimResolved`) albo po 30 dniach.
+- **Druga szansa** (§6.8):
+  - przy zakończeniu aukcji zamówienie zapamiętuje do 5 pozostałych licytujących (`order_items.runner_ups`);
+  - po `CANCELLED_UNPAID` sprzedający wysyła ofertę do kolejnej osoby (`POST /v1/orders/:id/second-chance-offers`, do 14 dni);
+  - licytujący przyjmuje ją albo odrzuca na `/druga-szansa/{id}` (`POST /v1/second-chance-offers/:id/accept|decline`);
+  - akceptacja tworzy nowe zamówienie `AWAITING_PAYMENT` za jej maksimum.
+- **Powiadomienia:**
+  - przypomnienia o płatności (1 h, 12 h, 20 h) i o nadaniu (dobę przed terminem) to joby z terminem w ID;
+  - dalej anulowanie, nadanie, odbiór, zakończenie, nieodebrana i zaginiona paczka, zwrot i oferty drugiej szansy.
+- **Web:** `/zamowienia/{numer}` dla obu stron (stan, „Co teraz” z akcją, postęp, przesyłka z historią, podsumowanie, druga szansa); linki z Moje Biddy i z powiadomień.
+- **Lokalnie:** paczkę prowadzi automat FakeShipping (punkty `…-NOPICKUP` i `…-LOST`). Termin nadania czy okno 36 h skrócisz w bazie (`ship_by`, `inspection_ends_at`), a job zadziała w ciągu minuty.
+
+### Saldo i wypłaty (F-27)
+
+Sprzedający widzi swoje pieniądze i wypłaca je na rachunek (PROJECT.md §7.6–7.8, §16.1, §17). Spec: [F-27](docs/features/F-27-saldo-i-wyplaty.md).
+
+- **Dane do wypłat** (`seller_payout_profiles`, moduł `payments`): dane osobowe do DAC7 (PESEL albo NIP, data urodzenia, adres) i rachunek (polski IBAN).
+  - Oba bloki są szyfrowane AES-256-GCM kluczem `DATA_ENCRYPTION_KEY` (32 bajty w base64, na produkcji wymagany; lokalnie klucz deweloperski). Nie zmieniaj klucza po zapisaniu danych.
+  - API zwraca PESEL i rachunek tylko zamaskowane (`GET /v1/me/payout-profile`, `PUT …/personal-data`, `PUT …/bank-account`).
+  - Zmiana numeru rachunku wstrzymuje wypłaty na 48 h; każdy nowy numer wysyła powiadomienie w aplikacji i e-mailem.
+- **Wypłata na żądanie** (`POST /v1/me/payouts` z nagłówkiem `Idempotency-Key`, minimum 20 zł):
+  - warunki pod blokadą danych do wypłat; saldo zawsze z ledgera (`PAYOUT_REQUESTED`, ujemne saldo odrzuca baza, więc równoległe żądania nie wypłacą więcej niż saldo);
+  - konsument `payments.execute-payout` woła operatora (klucz `payout:{id}`), a wynik przychodzi webhookiem `PAYOUT_PAID` albo `PAYOUT_FAILED` (środki wracają na saldo);
+  - 409 z kodem przyczyny: brak danych, blokada po zmianie rachunku, blokada F-61, należność, brak środków, minimum, weryfikacja u operatora.
+- **Wypłaty automatyczne** (kolejka `payments`):
+  - `payments.weekly-payouts` w poniedziałki o 6:00: całe saldo ≥ 20 zł przy włączonej wypłacie tygodniowej (`PATCH /v1/me/payout-settings`);
+  - `payments.dormant-balances` codziennie o 4:00: saldo poniżej 20 zł bez sprzedaży od 90 dni i bez otwartych zamówień;
+  - `PayoutService.payOutOnClosure` przy zamknięciu konta (wywoła je F-41).
+- **Widok salda** (moduł `orders`): `GET /v1/me/balance` (do wypłaty, w trakcie, należność, wypłaty w drodze, powód blokady) i `GET /v1/me/balance/history?cursor=` (ruchy salda z ledgera, 20 na stronę).
+- **Web:** `/konto/saldo` (kafle, wypłata, wypłata tygodniowa, zamówienia w trakcie, historia) i `/konto/saldo/dane` (dane osobowe i rachunek); skrót na stronie konta i link przy zakończonym zamówieniu.
+- **Lokalnie:** FakeGateway potwierdza wypłatę webhookiem po `PAYMENTS_FAKE_WEBHOOK_DELAY_MS` (sprzedawca jest od razu zweryfikowany), a odrzucenie wypłaty wywołasz w panelu `/dev/fake-gateway`, zanim przyjdzie potwierdzenie. Harmonogramy jobów automatycznych widać w Bull Board (`pnpm dev:board`).
+
+### Spory i zwroty (F-28)
+
+Kupujący zgłasza problem z przedmiotem w oknie 36 h, strony próbują się porozumieć, a bez porozumienia rozstrzyga zespół Biddy (PROJECT.md §7.5, §7.9). Spec: [F-28](docs/features/F-28-spory-i-zwroty.md).
+
+- **Moduł `disputes`** prowadzi spór: stany z §7.5 (trigger `disputes_status_transition`), terminy, historię (`dispute_events`) i decyzje. Pieniądze i stan zamówienia rusza `OrderDisputes` w module `orders`, w tej samej transakcji.
+- **Zgłoszenie** (`POST /v1/orders/:id/dispute`, kupujący): powód, opis i zdjęcia (wymagane przy wadzie przedmiotu). Zamówienie przechodzi w `DISPUTED`, więc auto-zakończenie go nie dotyka.
+- **Odpowiedzi stron:**
+  - sprzedający w 48 h (`POST /v1/disputes/:id/seller-response`): zwrot z odesłaniem albo bez, propozycja zwrotu części ceny, odrzucenie;
+  - kupujący na propozycję w 48 h (`…/offer-response`);
+  - wyjaśnienia obu stron (`…/comments`).
+    Brak odpowiedzi eskaluje spór (job `disputes.escalate-overdue`).
+- **Decyzja personelu** (do F-34 przez API, role `support`, `moderator`, `admin`):
+  - kolejka `GET /v1/admin/disputes`;
+  - widok `GET /v1/admin/disputes/:id`;
+  - decyzja `POST /v1/admin/disputes/:id/decision` z uzasadnieniem dla stron.
+- **Zwrot z odesłaniem:**
+  - przesyłka `RETURN` kurierem na adres sprzedającego z „Nadaj” (`ShipmentService.prepareReturn`);
+  - kupujący nadaje ją `POST …/return-shipment` i pobiera etykietę `GET …/return-label`;
+  - tracking zwrotu prowadzi spór;
+  - joby: `disputes.expire-returns` (brak nadania w 5 dni roboczych: na korzyść sprzedającego) i `disputes.settle-returns` (36 h po odbiorze: zwrot pieniędzy).
+- **Pieniądze:**
+  - pełny zwrot (`DISPUTE`) albo zwrot części ceny (`DISPUTE_PARTIAL`, księgowanie `ORDER_PARTIALLY_REFUNDED` po potwierdzeniu operatora, reszta ceny zwalniana u operatora);
+  - przy winie sprzedającego potrącenie dostawy w obie strony (`DISPUTE_COSTS_CHARGED`, niedobór jako należność) i strike `DISPUTE_LOST` po decyzji Biddy;
+  - przy winie przewoźnika rekompensata równa cenie i reklamacja.
+- **Zdjęcia ze sporu** (`DISPUTE_EVIDENCE`) są prywatne: warianty leżą w kubełku `uploads`, a wydaje je `GET /v1/disputes/:id/photos/:mediaId/:variant` tylko stronom i personelowi.
+- **Web:**
+  - `/zamowienia/[publicId]/spor`: formularz zgłoszenia, akcje stron, nadanie zwrotu, rozstrzygnięcie z uzasadnieniem i historia;
+  - linki „Zgłoś problem” i „Zobacz spór” na stronie zamówienia.
+- **Lokalnie:**
+  - statusy przesyłki zwrotnej prowadzisz w panelu `/dev/fake-shipping`;
+  - rolę personelu nadajesz w bazie: `update users set staff_role = 'moderator' where email = '…'`.
+
+### Wiadomości (F-29)
+
+Rozmowy kupujących ze sprzedającymi o aukcji albo zamówieniu, na żywo i ze zdjęciami, z ostrzeżeniem o danych kontaktowych (PROJECT.md §16.2). Spec: [F-29](docs/features/F-29-wiadomosci.md).
+
+- **Moduł `messaging`.** Rozmowa to para (aukcja, druga strona): pytanie przed końcem aukcji i rozmowa po zakupie to ta sama rozmowa. Zamówienie pary API liczy przy odczycie.
+- **Trasy stron** (`/v1/conversations`, pisanie wymaga potwierdzonego e-maila i regulaminu):
+  - lista i licznik (`GET /v1/conversations`, `…/summary`);
+  - ekran nowej wiadomości (`GET …/start?auctionId=|orderId=`) i pierwsza wiadomość (`POST /v1/conversations`);
+  - wiadomości, odczyt i zgłoszenie (`…/:id/messages`, `…/:id/read`, `…/:id/report`);
+  - zdjęcia prywatne (`MESSAGE_PHOTO`) przez `GET …/:id/photos/:mediaId/:variant`.
+    Nowej rozmowy nie zaczniesz o własnej ani zakończonej aukcji bez zamówienia (409 `CONVERSATION_UNAVAILABLE`).
+- **Dane kontaktowe:** `detectContactData` w `@biddy/shared` wykrywa telefony, e-maile i numery kont. Wiadomość dostaje `contact_flags`, obie strony widzą ostrzeżenie, a pole wiadomości podpowiada przed wysłaniem.
+- **Blokady** (`GET|PUT|DELETE /v1/me/blocks/:userId`): przy blokadzie w dowolną stronę nikt nie pisze w rozmowach tej pary (403 `CONVERSATION_BLOCKED`). Zamówienia i spory działają dalej.
+- **Limity:** 10 wiadomości na minutę, 200 na dobę i 20 nowych rozmów na dobę (429 z `Retry-After`).
+- **Na żywo:** `message.new` i `conversation.read` w roomie `user:{id}` zaraz po zapisie; treść klient pobiera przez REST.
+- **Powiadomienia:** job `messaging.notify-unread` (kolejka `messaging`, co minutę) emituje `MessagesUnread` dla wiadomości nieprzeczytanych od 5 minut, raz na serię. Powiadomienie `NEW_MESSAGE` ma e-mail bez treści wiadomości, który można wyłączyć.
+- **Zgłoszenia** trafiają do tabeli `reports` (moduł `trust-safety`) z migawką fragmentu rozmowy i eventem `ReportCreated`; kolejka i decyzje dojdą w F-35.
+- **Personel** czyta rozmowę stron tylko przy spornym zamówieniu: `GET /v1/admin/orders/:id/messages`.
+- **Web:**
+  - `/wiadomosci` (lista, od 1024 px z rozmową obok), `/wiadomosci/[id]` i `/wiadomosci/nowa?aukcja=|zamowienie=`;
+  - ikona wiadomości z licznikiem w nagłówku;
+  - „Zapytaj sprzedającego” na stronie aukcji, „Napisz do…” na stronie zamówienia;
+  - `/konto/zablokowani`.
+
+### Punkty odbioru: mapa i zapisane punkty (F-64)
+
+Kupujący wybiera paczkomat albo punkt na mapie Furgonetki i zapisuje swoje punkty w koncie (`/konto/adresy`, sekcja „Punkty odbioru”). Checkout sam wybiera domyślny zapisany punkt usługi. Spec: [F-64](docs/features/F-64-punkty-odbioru.md).
+
+- **Mapa:** widżet `furgonetka.pl/js/dist/map/map.js` ładowany dopiero po kliknięciu „Wybierz na mapie”, tylko gdy API podaje `pointMap` dla usługi, a web ma `NEXT_PUBLIC_FURGONETKA_MAP_KEY`. Kod punktu z mapy sprawdza `GET /v1/shipping/points/{pointId}?carrier=`, które podaje też adres.
+- **Lokalnie mapy nie ma**, bo klucza nie da się przypisać do `localhost`: działa wyszukiwarka z F-25. Testy używają atrapy `window.Furgonetka.Map`.
+- **Dostawca punktów:** `SHIPPING_POINTS_PROVIDER` (domyślnie jak `SHIPPING_DEFAULT_PROVIDER`). Staging: `furgonetka` z sandboksa przy `SHIPPING_DEFAULT_PROVIDER=fake`, więc mapa jest prawdziwa, a przesyłki przechodzą cykl FakeShipping. Przy `SHIPPING_DEFAULT_PROVIDER=furgonetka` punkty muszą być z Furgonetki.
+- **Zapisane punkty:** `GET|POST /v1/me/pickup-points`, `PATCH|DELETE /v1/me/pickup-points/:id`. Do 10 na konto (409 `PICKUP_POINT_LIMIT_REACHED`), jeden domyślny na usługę, pierwszy punkt usługi domyślny. Lista pokazuje tylko punkty bieżącego dostawcy punktów.
+- **Checkout:** zapisane punkty usługi jako karty, pole „Zapisz w moich punktach odbioru” przy nowym punkcie (zapis po wyborze dostawy, błąd nie blokuje płatności).
+
+### Oceny (F-30)
+
+Oceny obu stron po zakończonym zamówieniu, ujawniane razem albo po 7 dniach, z reputacją na profilu (PROJECT.md §5, §17). Spec: [F-30](docs/features/F-30-oceny.md).
+
+- **Moduł `reviews`.** Tabela `reviews`: ocena 1–5 i opcjonalny komentarz (do 1000 znaków, bez danych kontaktowych), raz na stronę zamówienia.
+- **Kiedy:** zamówienie `COMPLETED` albo `REFUNDED` / `PARTIALLY_REFUNDED` po sporze, w ciągu 14 dni od `completed_at` / `refunded_at`. Reguły: `apps/api/src/modules/reviews/domain/review-rules.ts`.
+- **Ujawnienie:** pierwsza ocena jest widoczna od `visible_at` (7 dni po wystawieniu albo koniec okna). Druga ocena odsłania obie od razu. Po ujawnieniu oceny drugiej strony nie można już ocenić (bez odwetu).
+- **Trasy:**
+  - strony zamówienia: `GET /v1/orders/:id/reviews` i `POST /v1/orders/:id/review` (wymaga regulaminu; 409 `REVIEW_UNAVAILABLE` z `reason`);
+  - publiczne: `GET /v1/users/:id/rating` (średnia i liczba: łącznie, jako sprzedający, jako kupujący) i `GET /v1/users/:id/reviews?before=` (po 20, autor zanonimizowany).
+- **Powiadomienia:**
+  - `REVIEW_REQUESTED`: druga strona oceniła zamówienie, z terminem, bez gwiazdek;
+  - `REVIEW_RECEIVED`: ocena jest widoczna. Emituje ją job `reviews.publish` (kolejka `reviews`, co minutę) przez event `ReviewPublished`.
+
+  Oba e-maile można wyłączyć.
+
+- **Web:**
+  - karta „Ocena transakcji” na stronie zamówienia;
+  - statystyka „Ocena”, sekcja „Oceny” i „Jak weryfikujemy oceny” na profilu (`/u/[id]#oceny`);
+  - ocena jako sprzedający w karcie sprzedawcy na stronie aukcji.
+
+### Limity kont i strike'i (F-61)
+
+Poziomy kont, limity, strike'i i blokady z uzasadnieniem i odwołaniem (PROJECT.md §4.1). Spec: [F-61](docs/features/F-61-limity-i-strike.md).
+
+- **Poziomy z historii zamówień.**
+  - Moduł `identity` trzyma tabelę `trade_records` (jeden wiersz na zamówienie).
+  - Dopisują ją moduł `orders` (konsumenci `OrderPaid` i `OrderCompleted`, F-26) i moduł `disputes` (przegrany spór, F-28).
+  - Kupujący po pierwszym opłaconym zamówieniu może licytować do 5000 zł (nowe konto: 2500 zł).
+- **Polityka kont bez deployu.**
+  - Limity poziomów i reguły strike'ów leżą w `account_policies` (najnowsza wersja, bez wersji: `DEFAULT_ACCOUNT_POLICY` z `@biddy/shared`).
+  - Zmiana przez `PUT /v1/admin/account-policy` (rola `admin`) działa w każdym procesie po najwyżej 30 s.
+  - Nadpisania dla jednego konta: `PUT /v1/admin/users/:id/limits` (`users.limits`).
+- **Strike'i.** `StrikeService.issue(tx, …)` w transakcji modułu, który zna zdarzenie, z kluczem źródła (ponowiony event nie daje drugiego strike'a):
+  - `orders`: brak płatności i brak nadania (`OrderCancelled`, F-26) oraz nieodebrana paczka (`ShipmentStatusChanged` z `NOT_COLLECTED`);
+  - spóźniona płatność (`RefundRequested` z `LATE_PAYMENT`) cofa strike;
+  - `auctions`: anulowanie aukcji z ofertami.
+- **Blokady.**
+  - 3 strike'i roli w 90 dni dają blokadę licytowania albo wystawiania na 30 dni (tabela `account_blocks`).
+  - Kolejna blokada w ciągu 365 dni jest bezterminowa (`ends_at` null).
+  - Guardy zwracają `BIDDING_BLOCKED` albo `LISTING_BLOCKED` z `blockedUntil` (null = bezterminowa) i `blockId`.
+  - Cofnięty strike zdejmuje blokadę, którą wywołał.
+- **Web.**
+  - `/konto/limity`: blokady, limity z następnym poziomem, strike'i z uzasadnieniem i formularz odwołania.
+  - Odwołania przez `POST /v1/me/strikes/:id/appeal` i `/v1/me/account-blocks/:id/appeal`.
+- **Personel** (rola ze zwykłej sesji do F-34):
+  - `GET /v1/admin/appeals`, `POST /v1/admin/strikes/:id/appeal-decision`, `POST /v1/admin/strikes/:id/revoke`;
+  - `POST /v1/admin/strikes` (podróbka albo inne naruszenie), `POST /v1/admin/account-blocks/:id/lift`, `GET /v1/admin/users/:id/standing`.
+- **Powiadomienia.** `STRIKE_ISSUED`, `STRIKE_REVOKED`, `ACCOUNT_BLOCKED`, `ACCOUNT_UNBLOCKED` i `APPEAL_REJECTED` to e-maile transakcyjne z uzasadnieniem decyzji.
 
 ### Kontrakt OpenAPI i klient API (packages/api-client)
 

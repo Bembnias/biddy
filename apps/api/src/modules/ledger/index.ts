@@ -3,7 +3,8 @@
  *
  * Odpowiedzialność: księga podwójnego zapisu (F-22), uzgodnienia z operatorem (F-33).
  * - LedgerService.post(tx, posting): księgowanie zdarzenia według szablonu z §7.7 w transakcji
- *   wywołującego; reverse: storno; balance, heldForOrder, sellerBalances: salda.
+ *   wywołującego; reverse: storno; balance, heldForOrder, sellerBalances: salda;
+ *   sellerHistory: historia salda sprzedającego, dormantSellerBalances: salda uśpione (F-27).
  * - LedgerIntegrity.verify(): salda odtworzone z wpisów i bilans transakcji.
  *
  * Inne moduły korzystają z tego modułu wyłącznie przez ten plik albo przez eventy domenowe,
@@ -50,9 +51,12 @@ export {
 } from './ledger-integrity.js';
 export { LedgerModule } from './ledger.module.js';
 export {
+  type DormantSellerBalance,
   type PostedLedgerEntry,
   type PostedLedgerTransaction,
   type ReverseLedgerTransactionInput,
+  type SellerBalanceMovement,
   type SellerBalances,
+  type SellerHistoryPage,
   LedgerService,
 } from './ledger.service.js';

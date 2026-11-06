@@ -1,16 +1,16 @@
 // Zamówienia (F-16): utworzenie zamówienia dla sprzedanej aukcji w transakcji jej zakończenia
 // (moduł auctions przekazuje `tx`), z POK według cennika z chwili zakończenia (F-13) i terminem
-// płatności 24 h (§6.8). Checkout, opłacenie i anulowanie nieopłaconych: F-25 (../checkout);
-// pozostałe przejścia stanów i terminy: F-26.
+// płatności 24 h (§6.8), oraz zamówienia z przyjętej oferty drugiej szansy (F-26). Checkout,
+// opłacenie i anulowanie nieopłaconych: F-25 (../checkout); cykl życia: F-26 (../lifecycle).
 import { type CurrencyCode, money, PUBLIC_ID_PATTERN } from '@biddy/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, or, type SQL } from 'drizzle-orm';
 
 import { type Database, DRIZZLE, newPublicId, type Transaction } from '../../../infra/db/index.js';
 import { DomainError } from '../../../infra/http/index.js';
 import { Outbox } from '../../../infra/outbox/index.js';
 import { FeeScheduleService } from '../../payments/index.js';
-import { type Order, orderItems, orders } from '../db/orders.schema.js';
+import { type Order, orderItems, orders, type RunnerUp } from '../db/orders.schema.js';
 import { OrderCreated } from '../orders.events.js';
 import type { OrderItemSnapshot } from './order-snapshot.js';
 
@@ -18,6 +18,15 @@ import type { OrderItemSnapshot } from './order-snapshot.js';
 export const PAYMENT_WINDOW_MS = 24 * 60 * 60 * 1_000;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+/** Warunek na zamówienie po UUID albo numerze; undefined dla innego tekstu. */
+function referenceCondition(idOrPublicId: string): SQL | undefined {
+  return UUID.test(idOrPublicId)
+    ? eq(orders.id, idOrPublicId)
+    : PUBLIC_ID_PATTERN.test(idOrPublicId)
+      ? eq(orders.publicId, idOrPublicId)
+      : undefined;
+}
 
 /** Strona zamówienia z perspektywy zalogowanego użytkownika. */
 export type OrderRole = 'BUYER' | 'SELLER';
@@ -39,6 +48,21 @@ export interface AuctionSale {
   readonly hammerPrice: number;
   readonly endedAt: Date;
   readonly snapshot: OrderItemSnapshot;
+  /** Pozostali licytujący z najwyższymi ofertami maksymalnymi: kandydaci do drugiej szansy. */
+  readonly runnerUps: readonly RunnerUp[];
+}
+
+/** Przyjęta oferta drugiej szansy, z której powstaje nowe zamówienie (F-26). */
+export interface SecondChanceSale {
+  readonly offerId: string;
+  readonly auctionId: string;
+  readonly buyerId: string;
+  readonly sellerId: string;
+  readonly currency: CurrencyCode;
+  readonly price: number;
+  readonly acceptedAt: Date;
+  readonly snapshot: OrderItemSnapshot;
+  readonly runnerUps: readonly RunnerUp[];
 }
 
 @Injectable()
@@ -52,6 +76,19 @@ export class OrderService {
   async byId(orderId: string): Promise<Order | undefined> {
     const [order] = await this.db.select().from(orders).where(eq(orders.id, orderId));
     return order;
+  }
+
+  /** Zamówienie z jego aukcją (powiadomienia o zwrotach i drugiej szansie, F-26). */
+  async withAuction(
+    orderId: string,
+  ): Promise<{ readonly order: Order; readonly auctionId: string } | undefined> {
+    const [row] = await this.db
+      .select({ order: orders, auctionId: orderItems.auctionId })
+      .from(orders)
+      .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+      .where(eq(orders.id, orderId))
+      .limit(1);
+    return row;
   }
 
   /** Aktywne zamówienia sprzedanych aukcji według aukcji (listy Moje Biddy, F-21). */
@@ -69,14 +106,91 @@ export class OrderService {
     return new Map(rows.map((row) => [row.auctionId, row.order]));
   }
 
-  /** Aktywne zamówienie sprzedanej aukcji albo undefined (strona aukcji, F-18). */
-  async activeForAuction(auctionId: string): Promise<Order | undefined> {
-    const [row] = await this.db
-      .select({ order: orders })
+  /**
+   * Najnowsze zamówienie kupującego dla każdej z aukcji (Moje Biddy → Wygrane, F-26): zwycięzca,
+   * który nie zapłacił, widzi swoje anulowane zamówienie, a nie zamówienie z drugiej szansy.
+   */
+  async latestForBuyer(
+    buyerId: string,
+    auctionIds: readonly string[],
+  ): Promise<Map<string, Order>> {
+    if (auctionIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({ auctionId: orderItems.auctionId, order: orders })
       .from(orderItems)
       .innerJoin(orders, eq(orders.id, orderItems.orderId))
-      .where(and(eq(orderItems.auctionId, auctionId), eq(orderItems.isActive, true)));
-    return row?.order;
+      .where(
+        and(inArray(orderItems.auctionId, [...new Set(auctionIds)]), eq(orders.buyerId, buyerId)),
+      )
+      .orderBy(desc(orders.createdAt));
+    const latest = new Map<string, Order>();
+    for (const row of rows) {
+      if (!latest.has(row.auctionId)) {
+        latest.set(row.auctionId, row.order);
+      }
+    }
+    return latest;
+  }
+
+  /**
+   * Najnowsze zamówienie każdej pary (aukcja, kupujący): kontekst rozmów (F-29). Klucz mapy:
+   * `{auctionId}:{buyerId}`.
+   */
+  async latestForPairs(
+    pairs: readonly { readonly auctionId: string; readonly buyerId: string }[],
+  ): Promise<Map<string, Order>> {
+    if (pairs.length === 0) {
+      return new Map();
+    }
+    const rows = await this.db
+      .select({ auctionId: orderItems.auctionId, order: orders })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .where(
+        or(
+          ...pairs.map((pair) =>
+            and(eq(orderItems.auctionId, pair.auctionId), eq(orders.buyerId, pair.buyerId)),
+          ),
+        ),
+      )
+      .orderBy(desc(orders.createdAt));
+    const latest = new Map<string, Order>();
+    for (const row of rows) {
+      const key = `${row.auctionId}:${row.order.buyerId}`;
+      if (!latest.has(key)) {
+        latest.set(key, row.order);
+      }
+    }
+    return latest;
+  }
+
+  /** Zamówienie po UUID albo numerze z jego aukcją, bez sprawdzania stron (personel, F-29). */
+  async byReference(
+    idOrPublicId: string,
+  ): Promise<{ readonly order: Order; readonly auctionId: string } | undefined> {
+    const condition = referenceCondition(idOrPublicId);
+    if (condition === undefined) {
+      return undefined;
+    }
+    const [row] = await this.db
+      .select({ order: orders, auctionId: orderItems.auctionId })
+      .from(orders)
+      .innerJoin(orderItems, eq(orderItems.orderId, orders.id))
+      .where(condition)
+      .limit(1);
+    return row;
+  }
+
+  /** Aukcje kupione z drugiej szansy (kupujący nie był zwycięzcą aukcji, Moje Biddy, F-26). */
+  async secondChanceAuctions(buyerId: string): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ auctionId: orderItems.auctionId })
+      .from(orderItems)
+      .innerJoin(orders, eq(orders.id, orderItems.orderId))
+      .where(and(eq(orders.buyerId, buyerId), isNotNull(orders.secondChanceOfferId)));
+    return rows.map((row) => row.auctionId);
   }
 
   /**
@@ -84,11 +198,7 @@ export class OrderService {
    * Inni dostają 404, tak jak dla nieistniejącego zamówienia (bez ujawniania numerów).
    */
   async forParticipant(idOrPublicId: string, userId: string): Promise<ParticipantOrder> {
-    const condition = UUID.test(idOrPublicId)
-      ? eq(orders.id, idOrPublicId)
-      : PUBLIC_ID_PATTERN.test(idOrPublicId)
-        ? eq(orders.publicId, idOrPublicId)
-        : undefined;
+    const condition = referenceCondition(idOrPublicId);
     const [row] =
       condition === undefined
         ? []
@@ -117,24 +227,72 @@ export class OrderService {
    * zamówienie dla tej samej aukcji odrzuca unikalny indeks częściowy na `order_items`.
    */
   async createForAuction(tx: Transaction, sale: AuctionSale): Promise<Order> {
-    const quote = await this.fees.quote(money(sale.hammerPrice, sale.currency), sale.endedAt);
-    const paymentDueAt = new Date(sale.endedAt.getTime() + PAYMENT_WINDOW_MS);
+    return this.create(tx, {
+      auctionId: sale.auctionId,
+      buyerId: sale.buyerId,
+      sellerId: sale.sellerId,
+      currency: sale.currency,
+      price: sale.hammerPrice,
+      at: sale.endedAt,
+      snapshot: sale.snapshot,
+      runnerUps: sale.runnerUps,
+    });
+  }
+
+  /**
+   * Zamówienie AWAITING_PAYMENT z przyjętej oferty drugiej szansy (§6.8): POK od ceny oferty według
+   * cennika z chwili akceptacji, termin płatności 24 h. Wywołujący dezaktywuje wcześniej poprzednie
+   * zamówienie aukcji (unikalny indeks aktywnej pozycji).
+   */
+  async createForSecondChance(tx: Transaction, sale: SecondChanceSale): Promise<Order> {
+    return this.create(tx, {
+      auctionId: sale.auctionId,
+      buyerId: sale.buyerId,
+      sellerId: sale.sellerId,
+      currency: sale.currency,
+      price: sale.price,
+      at: sale.acceptedAt,
+      snapshot: sale.snapshot,
+      runnerUps: sale.runnerUps,
+      secondChanceOfferId: sale.offerId,
+    });
+  }
+
+  private async create(
+    tx: Transaction,
+    sale: {
+      readonly auctionId: string;
+      readonly buyerId: string;
+      readonly sellerId: string;
+      readonly currency: CurrencyCode;
+      readonly price: number;
+      /** Chwila sprzedaży: cennik POK i początek terminu płatności. */
+      readonly at: Date;
+      readonly snapshot: OrderItemSnapshot;
+      readonly runnerUps: readonly RunnerUp[];
+      readonly secondChanceOfferId?: string;
+    },
+  ): Promise<Order> {
+    const quote = await this.fees.quote(money(sale.price, sale.currency), sale.at);
+    const paymentDueAt = new Date(sale.at.getTime() + PAYMENT_WINDOW_MS);
     const order = await this.insertOrder(tx, {
       buyerId: sale.buyerId,
       sellerId: sale.sellerId,
       currency: sale.currency,
-      itemsTotal: sale.hammerPrice,
+      itemsTotal: sale.price,
       pokFee: quote.fee.amount,
       pokVat: quote.vat.amount,
       total: quote.total.amount,
       feeScheduleId: quote.feeScheduleId,
       paymentDueAt,
+      secondChanceOfferId: sale.secondChanceOfferId ?? null,
     });
     await tx.insert(orderItems).values({
       orderId: order.id,
       auctionId: sale.auctionId,
-      hammerPrice: sale.hammerPrice,
+      hammerPrice: sale.price,
       itemSnapshot: sale.snapshot,
+      runnerUps: [...sale.runnerUps],
     });
     await this.outbox.add(
       tx,
@@ -149,6 +307,9 @@ export class OrderService {
           pokFee: money(order.pokFee, order.currency),
           total: money(order.total, order.currency),
           paymentDueAt: paymentDueAt.toISOString(),
+          ...(sale.secondChanceOfferId === undefined
+            ? {}
+            : { secondChanceOfferId: sale.secondChanceOfferId }),
         },
       }),
     );

@@ -5,7 +5,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 
-import { type Database, DRIZZLE } from '../../../infra/db/index.js';
+import { type Database, DRIZZLE, type Transaction } from '../../../infra/db/index.js';
 import { DomainError } from '../../../infra/http/index.js';
 import { Outbox } from '../../../infra/outbox/index.js';
 import { type CarrierClaimRow, carrierClaims, shipments } from '../db/shipping.schema.js';
@@ -31,15 +31,19 @@ export class CarrierClaimService {
     private readonly outbox: Outbox,
   ) {}
 
-  /** Otwiera reklamację przesyłki utworzonej u dostawcy; druga reklamacja tej przesyłki: 409. */
-  async open(input: OpenClaimInput): Promise<CarrierClaimRow> {
+  /**
+   * Otwiera reklamację przesyłki utworzonej u dostawcy; druga reklamacja tej przesyłki: 409.
+   * `tx`: transakcja wywołującego (F-26: zgłoszenie zaginięcia razem z przejściem zamówienia).
+   */
+  async open(input: OpenClaimInput, tx?: Transaction): Promise<CarrierClaimRow> {
+    const db = tx ?? this.db;
     if (!Number.isSafeInteger(input.claimedAmount) || input.claimedAmount <= 0) {
       throw new DomainError({
         code: 'VALIDATION_FAILED',
         detail: 'Kwota reklamacji musi być dodatnia.',
       });
     }
-    const [shipment] = await this.db
+    const [shipment] = await db
       .select({ currency: shipments.currency, providerShipmentId: shipments.providerShipmentId })
       .from(shipments)
       .where(eq(shipments.id, input.shipmentId));
@@ -49,7 +53,7 @@ export class CarrierClaimService {
     if (shipment.providerShipmentId === null) {
       throw conflict('Reklamację można złożyć tylko dla przesyłki nadanej u przewoźnika.');
     }
-    const [claim] = await this.db
+    const [claim] = await db
       .insert(carrierClaims)
       .values({
         shipmentId: input.shipmentId,

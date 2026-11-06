@@ -134,6 +134,7 @@ jobs:
             NEXT_PUBLIC_SITE_URL=${{ vars.WEB_URL }}
             NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
             NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+            NEXT_PUBLIC_FURGONETKA_MAP_KEY=${{ vars.NEXT_PUBLIC_FURGONETKA_MAP_KEY }}
             SENTRY_ORG=${{ vars.SENTRY_ORG }}
             SENTRY_PROJECT=${{ vars.SENTRY_PROJECT_WEB }}
           secrets: |

@@ -122,6 +122,7 @@ Szacunki nie obejmują projektu wizualnego kluczowych ekranów (freelancer w Faz
 | F-29 | Wiadomości | 2a | M |
 | F-30 | Oceny | 2a | S |
 | F-61 | Limity kont i strike'i | 2a | M |
+| F-64 | Punkty odbioru: mapa i zapisane punkty | 2a | M |
 | F-31 | Adapter operatora płatności | 2b | L |
 | F-32 | Weryfikacja sprzedawców u operatora | 2b | M |
 | F-33 | Uzgodnienia z operatorem | 2b | M |
@@ -177,6 +178,7 @@ flowchart TD
   F23 --> F25
   F24 --> F25
   F25 --> F26["F-26 Cykl zamówienia"]
+  F25 --> F64["F-64 Mapa i zapisane punkty"]
   F61 --> F26
   F26 --> F28["F-28 Spory"]
   F23 --> F27["F-27 Saldo i wypłaty"]
@@ -771,9 +773,11 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-26 · Cykl życia zamówienia · `L`
 
+> Pełny spec: [docs/features/F-26-cykl-zamowienia.md](features/F-26-cykl-zamowienia.md).
+
 **Cel:** zamówienie przechodzi od wygranej do wypłaty automatycznie, z obsługą wyjątków.
 
-> Opłacenie (`PAID` z `ship_by` i `OrderPaid`), anulowanie nieopłaconego (`CANCELLED_UNPAID`, event `OrderCancelled`) i tabela `refunds` ze zwrotem przez operatora są już w F-25. F-26 dodaje do nich strike, przypomnienia i drugą szansę.
+> Opłacenie (`PAID` z `ship_by` i `OrderPaid`), anulowanie nieopłaconego (`CANCELLED_UNPAID`, event `OrderCancelled`) i tabela `refunds` ze zwrotem przez operatora są już w F-25. Strike'i za brak płatności i nieodebraną paczkę (oraz cofnięcie po spóźnionej płatności) nadają już konsumenci z F-61. F-26 dodaje przypomnienia, drugą szansę, strike za brak nadania (`StrikeService.issue` z powodem `NOT_SHIPPED`) i historię zakończonych zamówień (`TradeHistoryService.recordCompleted`).
 
 **Zakres:**
 - Maszyna stanów z §7.3 (tylko dozwolone przejścia, sterowane zdarzeniami), joby terminów z §7.4 (ID z terminem, dni robocze z kalendarzem świąt).
@@ -783,7 +787,7 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 - Przesyłki zaginione: „nie otrzymałem” po 14 dniach bez statusu → `LOST`, zgłoszenie reklamacji, rekompensata dla sprzedającego (§7.9).
 - Anulowania, oferta drugiej szansy (tabela `second_chance_offers`, §6.8), ponowne wystawienie.
 - Flaga chargebacku (`orders.chargeback_status`) blokuje auto-zakończenie.
-- Strike'i za brak płatności, brak nadania i nieodebraną przesyłkę (eventy dla F-61).
+- Strike za brak nadania (`NOT_SHIPPED`) przez API z F-61; strike'i za brak płatności i nieodebraną przesyłkę są już w F-61.
 - Powiadomienia na każdym etapie, widok zamówienia dla obu stron.
 
 **Kryteria akceptacji:**
@@ -797,6 +801,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Zależności:** F-22, F-23, F-24, F-25, F-61 · **Spec:** §6.8, §7.2–7.4, §7.9
 
 ### F-27 · Saldo i wypłaty · `M`
+
+> Pełny spec: [docs/features/F-27-saldo-i-wyplaty.md](features/F-27-saldo-i-wyplaty.md).
 
 **Cel:** sprzedający widzi swoje pieniądze i wypłaca je, kiedy chce.
 
@@ -818,6 +824,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Zależności:** F-22, F-23 · **Spec:** §7.6–7.8, §16.1, §17
 
 ### F-28 · Spory i zwroty · `L`
+
+> Pełny spec: [docs/features/F-28-spory-i-zwroty.md](features/F-28-spory-i-zwroty.md).
 
 **Cel:** uczciwe rozwiązywanie problemów z przedmiotem.
 
@@ -842,6 +850,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-29 · Wiadomości · `M`
 
+> Pełny spec: [docs/features/F-29-wiadomosci.md](features/F-29-wiadomosci.md).
+
 **Cel:** bezpieczna komunikacja kupującego ze sprzedającym.
 
 **Zakres:**
@@ -858,6 +868,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 
 ### F-30 · Oceny · `S`
 
+> Pełny spec: [docs/features/F-30-oceny.md](features/F-30-oceny.md).
+
 **Cel:** reputacja buduje zaufanie między stronami.
 
 **Zakres:**
@@ -872,6 +884,8 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 **Zależności:** F-26 · **Spec:** §5, §17
 
 ### F-61 · Limity kont i strike'i · `M`
+
+> Pełny spec: [docs/features/F-61-limity-i-strike.md](features/F-61-limity-i-strike.md).
 
 **Cel:** ograniczenie szkód od nowych i nierzetelnych kont, z przejrzystymi zasadami i prawem do odwołania.
 
@@ -891,6 +905,25 @@ Cały etap działa na **FakeGateway**, więc nie czeka na wybór operatora (§7.
 - Zmiana limitów w konfiguracji działa bez deployu.
 
 **Zależności:** F-04, F-07 · **Spec:** §4.1, §16.2, §17
+
+### F-64 · Punkty odbioru: mapa i zapisane punkty · `M`
+
+> Pełny spec: [docs/features/F-64-punkty-odbioru.md](features/F-64-punkty-odbioru.md). Zastępuje tymczasową decyzję nr 109 w części „punkty odbioru przez wyszukiwarkę bez mapy”.
+
+**Cel:** kupujący wybiera punkt odbioru na mapie i nie szuka swojego paczkomatu przy każdym zamówieniu.
+
+**Zakres:**
+- Mapa punktów Furgonetki (widżet `furgonetka.pl/js/dist/map/map.js`) w checkoutcie i w koncie, ładowana po kliknięciu. Punkt z mapy sprawdza API Biddy, a wyszukiwarka z F-25 zostaje jako droga zapasowa i dostępna.
+- Zapisane punkty odbioru przy adresach (`/konto/adresy`): do 10 na konto, jeden domyślny na usługę, podpowiadane w checkoutcie, z zapisem nowego punktu prosto z checkoutu.
+- `SHIPPING_POINTS_PROVIDER`: osobny dostawca punktów, dzięki któremu staging pokazuje mapę z sandboksa Furgonetki, a przesyłki przechodzą cykl FakeShipping.
+
+**Kryteria akceptacji:**
+- Punkt wybrany na mapie trafia do zamówienia z nazwą i adresem z API Biddy, a punkt innej usługi albo nieczynny jest odrzucony.
+- Bez mapy (brak klucza, błąd skryptu, FakeShipping) checkout działa wyszukiwarką jak w F-25.
+- Domyślny zapisany punkt usługi jest wybrany automatycznie w checkoutcie bez wybranej dostawy.
+- Jeden domyślny punkt na usługę, najwyżej 10 punktów, bez duplikatów, także przy równoległych zapisach.
+
+**Zależności:** F-10, F-24, F-25 · **Spec:** §8.1, §8.3
 
 ---
 
@@ -1185,7 +1218,7 @@ Startuje w trakcie bety (F-43), gdy rdzeń web jest stabilny. Publikacja w sklep
 
 ## Po MVP
 
-Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-64.
+Specyfikacje doprecyzujemy, gdy przyjdzie ich kolej. Kolejność do weryfikacji na podstawie danych z bety. Kolejne nowe feature'y dostają numery od F-65.
 
 **v1 (miesiące 8–10)**
 

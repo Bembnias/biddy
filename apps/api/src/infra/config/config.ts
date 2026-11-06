@@ -284,9 +284,20 @@ export const envSchema = z.object({
   ).optional(),
   // Opóźnienie rozliczenia płatności i webhooka FakeGateway (symulacja potwierdzenia w banku).
   PAYMENTS_FAKE_WEBHOOK_DELAY_MS: integer(0, 600_000).optional(),
+  // Klucz szyfrowania danych do wypłat (F-27: DAC7, rachunek): 32 bajty w base64. Osobny od
+  // BETTER_AUTH_SECRET, bo jego zmiana nie może zniszczyć zapisanych danych.
+  DATA_ENCRYPTION_KEY: text()
+    .refine(
+      (value) => /^[A-Za-z0-9+/]{43}=$/u.test(value) && Buffer.from(value, 'base64').length === 32,
+      'oczekiwano 32 bajtów w base64 (openssl rand -base64 32)',
+    )
+    .optional(),
   // Dostawy (F-24): dostawca nowych przesyłek (adapter w ShippingProviderRegistry). Poza
   // produkcją domyślnie FakeShipping; na produkcji wymagany i różny od `fake`.
   SHIPPING_DEFAULT_PROVIDER: oneOf(SHIPPING_PROVIDER_NAMES).optional(),
+  // Dostawca punktów odbioru (F-64): wyszukiwarka, punkt po kodzie i mapa. Domyślnie ten sam co
+  // przesyłek; staging: punkty z sandboksa Furgonetki, przesyłki przez FakeShipping.
+  SHIPPING_POINTS_PROVIDER: oneOf(SHIPPING_PROVIDER_NAMES).optional(),
   // Dokąd worker wysyła webhooki FakeShipping (domyślnie publiczny adres API).
   SHIPPING_FAKE_WEBHOOK_URL: url(
     ['https:', 'http:'],
@@ -340,6 +351,12 @@ export const TURNSTILE_TEST_SECRET_KEY = '1x0000000000000000000000000000000AA';
 
 /** Sekret sesji poza produkcją (lokalnie i w testach); na produkcji BETTER_AUTH_SECRET jest wymagany. */
 export const DEVELOPMENT_AUTH_SECRET = 'biddy-development-only-auth-secret-0123456789';
+
+/**
+ * Klucz szyfrowania danych do wypłat poza produkcją (lokalnie i w testach); na produkcji
+ * DATA_ENCRYPTION_KEY jest wymagany.
+ */
+export const DEVELOPMENT_DATA_ENCRYPTION_KEY = 'YmlkZHktZGV2ZWxvcG1lbnQtb25seS1kYXRhLWtleSE=';
 
 /** Operator testowy (F-23): działa tylko poza produkcją. */
 export const FAKE_PAYMENT_PROVIDER = 'fake';
@@ -507,6 +524,8 @@ export interface AppConfig {
   readonly payments: {
     /** Operator nowych płatności; GatewayRegistry musi mieć dla niego adapter. */
     readonly defaultProvider: string;
+    /** Klucz AES-256 danych do wypłat (DAC7, rachunek) w base64 (F-27). */
+    readonly dataEncryptionKey: string;
     /** FakeGateway (F-23, §7.8): adapter testowy, wyłączony na produkcji. */
     readonly fake: {
       readonly enabled: boolean;
@@ -520,6 +539,8 @@ export interface AppConfig {
   readonly shipping: {
     /** Dostawca nowych przesyłek; ShippingProviderRegistry musi mieć dla niego adapter. */
     readonly defaultProvider: ShippingProviderName;
+    /** Dostawca punktów odbioru (F-64); przy Furgonetce jako dostawcy przesyłek też Furgonetka. */
+    readonly pointsProvider: ShippingProviderName;
     /** FakeShipping (F-24): adapter testowy z automatem statusów, wyłączony na produkcji. */
     readonly fake: {
       readonly enabled: boolean;
@@ -655,6 +676,10 @@ function crossFieldIssues(
     ['MEDIA_PUBLIC_URL', 'publiczny adres kubełka media (CDN), np. https://media.biddy.pl'],
     ['MEILI_URL', 'adres Meilisearch (wyszukiwarka), np. https://ms-xxxx.meilisearch.io'],
     ['MEILI_API_KEY', 'klucz API Meilisearch z uprawnieniami do indeksu aukcji'],
+    [
+      'DATA_ENCRYPTION_KEY',
+      'klucz szyfrowania danych do wypłat (DAC7, rachunek), np. openssl rand -base64 32; nie zmieniaj go po zapisaniu danych',
+    ],
   ];
   if (role === 'api') {
     required.push(
@@ -756,10 +781,12 @@ function shippingIssues(input: Readonly<Record<string, string>>, role: ProcessRo
   const issues: ConfigIssue[] = [];
   const deployment = deploymentOf(input);
   const provider = input['SHIPPING_DEFAULT_PROVIDER'];
+  const pointsProvider = input['SHIPPING_POINTS_PROVIDER'];
   const furgonetkaGiven = FURGONETKA_VARIABLES.filter((name) => input[name] !== undefined);
+  const furgonetkaChosen = provider === 'furgonetka' || pointsProvider === 'furgonetka';
   if (
     furgonetkaGiven.length > 0 ||
-    (provider === 'furgonetka' && furgonetkaGiven.length < FURGONETKA_VARIABLES.length)
+    (furgonetkaChosen && furgonetkaGiven.length < FURGONETKA_VARIABLES.length)
   ) {
     for (const variable of FURGONETKA_VARIABLES) {
       if (input[variable] === undefined) {
@@ -770,7 +797,26 @@ function shippingIssues(input: Readonly<Record<string, string>>, role: ProcessRo
       }
     }
   }
+  if (
+    provider === 'furgonetka' &&
+    pointsProvider !== undefined &&
+    pointsProvider !== 'furgonetka'
+  ) {
+    // Kody punktów różnych dostawców się nie mieszają: Furgonetka nada tylko do swoich punktów.
+    issues.push({
+      variable: 'SHIPPING_POINTS_PROVIDER',
+      message:
+        'przy SHIPPING_DEFAULT_PROVIDER=furgonetka punkty odbioru też muszą być z Furgonetki (furgonetka albo brak zmiennej)',
+    });
+  }
   if (deployment === 'production') {
+    // Przy Furgonetce jako dostawcy przesyłek `fake` zgłasza już reguła wyżej.
+    if (pointsProvider === 'fake' && provider !== 'furgonetka') {
+      issues.push({
+        variable: 'SHIPPING_POINTS_PROVIDER',
+        message: 'FakeShipping (fake) nie może działać na produkcji (DEPLOYMENT_ENV=production)',
+      });
+    }
     if (provider === undefined) {
       issues.push({
         variable: 'SHIPPING_DEFAULT_PROVIDER',
@@ -961,6 +1007,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     payments: {
       // Na produkcji paymentIssues wymaga zmiennej, więc `fake` zostaje tylko poza nią.
       defaultProvider: vars.PAYMENTS_DEFAULT_PROVIDER ?? FAKE_PAYMENT_PROVIDER,
+      dataEncryptionKey: vars.DATA_ENCRYPTION_KEY ?? DEVELOPMENT_DATA_ENCRYPTION_KEY,
       fake: {
         enabled: deployment !== 'production',
         webhookUrl: vars.PAYMENTS_FAKE_WEBHOOK_URL ?? `${apiUrl}${FAKE_PAYMENTS_WEBHOOK_PATH}`,
@@ -971,6 +1018,7 @@ export function loadConfig(env: RawEnv, role: ProcessRole = 'api'): AppConfig {
     shipping: {
       // Na produkcji shippingIssues wymaga zmiennej, więc `fake` zostaje tylko poza nią.
       defaultProvider: vars.SHIPPING_DEFAULT_PROVIDER ?? 'fake',
+      pointsProvider: vars.SHIPPING_POINTS_PROVIDER ?? vars.SHIPPING_DEFAULT_PROVIDER ?? 'fake',
       fake: {
         enabled: deployment !== 'production',
         webhookUrl: vars.SHIPPING_FAKE_WEBHOOK_URL ?? `${apiUrl}${FAKE_SHIPPING_WEBHOOK_PATH}`,

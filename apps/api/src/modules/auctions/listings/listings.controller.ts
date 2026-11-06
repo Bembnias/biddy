@@ -168,12 +168,16 @@ export class AuctionSummaryDto extends createZodDto(
 export class SellingLimitsDto extends createZodDto(
   z.object({
     level: z.enum(SELLER_LEVELS).describe('Poziom sprzedawcy (§4.1)'),
-    maxActiveAuctions: z.int().min(0),
+    maxActiveAuctions: z.int().min(0).nullable().describe('Maks. aktywnych aukcji albo null'),
     activeAuctions: z.int().min(0).describe('Aktywne i czekające na moderatora'),
     maxAuctionValue: z.int().nullable().describe('Maks. wartość aukcji w groszach albo null'),
     kycVerified: z.boolean(),
     kycRequiredAbove: z.int().describe('Wartość aukcji (grosze), powyżej której wymagane jest KYC'),
-    listingBlockedUntil: z.iso.datetime().nullable(),
+    listingBlocked: z.boolean().describe('Aktywna blokada wystawiania (F-61)'),
+    listingBlockedUntil: z.iso
+      .datetime()
+      .nullable()
+      .describe('Koniec blokady wystawiania; null bez blokady albo przy bezterminowej'),
     kycNoticeAccepted: z.boolean().describe('Czy sprzedawca potwierdził informację o KYC'),
   }),
 ) {}
@@ -414,7 +418,8 @@ export class MyAuctionsController {
       maxAuctionValue: standing.limits.maxAuctionValue,
       kycVerified: standing.kycVerified,
       kycRequiredAbove: standing.kycRequiredAbove,
-      listingBlockedUntil: iso(standing.listingBlockedUntil),
+      listingBlocked: standing.listingBlock !== null,
+      listingBlockedUntil: iso(standing.listingBlock?.until ?? null),
       kycNoticeAccepted: standing.kycNoticeAcceptedAt !== null,
     };
   }

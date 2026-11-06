@@ -20,15 +20,18 @@ import {
 } from '../ports/payment-gateway.port.js';
 import { GatewayRegistry } from './gateway-registry.js';
 import { PaymentTransitions } from './payment-transitions.js';
+import { PayoutService } from '../payouts/payout.service.js';
 import { RefundService } from './refund.service.js';
 import { SellerAccountService } from './seller-account.service.js';
 
-/** Zdarzenia z obsługą (F-23, zwroty: F-25); wypłaty i chargebacki obsłużą F-27 i F-28. */
+/** Zdarzenia z obsługą (F-23, zwroty: F-25, wypłaty: F-27); chargebacki obsłuży F-28. */
 const HANDLED_EVENT_TYPES: ReadonlySet<NormalizedPaymentEventType> = new Set([
   'PAYMENT_SUCCEEDED',
   'PAYMENT_FAILED',
   'REFUND_SUCCEEDED',
   'REFUND_FAILED',
+  'PAYOUT_PAID',
+  'PAYOUT_FAILED',
   'SELLER_STATUS_CHANGED',
 ]);
 
@@ -62,6 +65,7 @@ export class PaymentEventProcessor {
     private readonly transitions: PaymentTransitions,
     private readonly sellerAccounts: SellerAccountService,
     private readonly refunds: RefundService,
+    private readonly payouts: PayoutService,
   ) {}
 
   /**
@@ -153,6 +157,19 @@ export class PaymentEventProcessor {
           `Nieznany zwrot ${provider}:${event.providerRefundId}`,
         );
       }
+    } else if (event.type === 'PAYOUT_PAID' || event.type === 'PAYOUT_FAILED') {
+      const known = await this.payouts.applyProviderResult(
+        tx,
+        provider,
+        event.providerPayoutId,
+        event.type === 'PAYOUT_PAID' ? 'PAID' : 'FAILED',
+        event.amount,
+      );
+      if (!known) {
+        throw new UnknownWebhookSubjectError(
+          `Nieznana wypłata ${provider}:${event.providerPayoutId}`,
+        );
+      }
     } else if (event.type === 'SELLER_STATUS_CHANGED') {
       const known = await this.sellerAccounts.applyStatus(
         tx,
@@ -168,7 +185,7 @@ export class PaymentEventProcessor {
     } else {
       this.logger.warn(
         { provider, eventId: event.eventId, type: event.type },
-        'Zdarzenie operatora bez obsługi w tej wersji (wypłaty i chargebacki: F-27, F-28)',
+        'Zdarzenie operatora bez obsługi w tej wersji (chargebacki: F-28)',
       );
     }
   }

@@ -30,6 +30,15 @@ export interface PublicProfile {
   readonly phoneVerified: boolean;
 }
 
+/** Druga strona rozmowy (F-29): imię, awatar i czy konto jest dostępne. */
+export interface ChatProfile {
+  readonly id: string;
+  readonly name: string;
+  readonly avatarUrl: string | null;
+  /** Konto zablokowane przez Biddy: rozmowa z nim jest tylko do odczytu. */
+  readonly banned: boolean;
+}
+
 @Injectable()
 export class ProfileService {
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
@@ -83,6 +92,26 @@ export class ProfileService {
       .from(users)
       .where(inArray(users.id, [...new Set(userIds)]));
     return new Map(rows.map((row) => [row.id, row.name]));
+  }
+
+  /** Strony rozmów (F-29); konta nieznane nie trafiają do wyniku. */
+  async chatProfiles(
+    userIds: readonly string[],
+    tx?: Transaction,
+  ): Promise<Map<string, ChatProfile>> {
+    if (userIds.length === 0) {
+      return new Map();
+    }
+    const rows = await (tx ?? this.db)
+      .select({ id: users.id, name: users.name, avatarUrl: users.avatarUrl, status: users.status })
+      .from(users)
+      .where(inArray(users.id, [...new Set(userIds)]));
+    return new Map(
+      rows.map((row) => [
+        row.id,
+        { id: row.id, name: row.name, avatarUrl: row.avatarUrl, banned: row.status === 'BANNED' },
+      ]),
+    );
   }
 
   /** Profil publiczny albo undefined (nieznane albo zablokowane konto). */

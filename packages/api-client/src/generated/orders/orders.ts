@@ -32,8 +32,10 @@ import type {
   CheckoutDto,
   ChooseDeliveryDto,
   DispatchShipmentBody,
+  OrderDetailsDto,
   OrderShipmentDto,
   ProblemDetails,
+  SecondChanceOfferDto,
   ShippingOptionDto,
   StartPaymentDto
 } from '../model';
@@ -61,7 +63,385 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export const getGetShippingOptionsUrl = (id: string,) => {
+export const getGetOrderUrl = (id: string,) => {
+
+
+
+
+  return `/v1/orders/${id}`
+}
+
+/**
+ * Stan z datami etapów, kwoty, przesyłka z trackingiem, zwrot i dostępne akcje.
+ * @summary Zamówienie (kupujący albo sprzedający)
+ */
+export const getOrder = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetailsDto> => {
+
+  return apiFetch<OrderDetailsDto>(getGetOrderUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOrderQueryKey = (id: string,) => {
+    return [
+    `/v1/orders/${id}`
+    ] as const;
+    }
+
+
+export const getGetOrderQueryOptions = <TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrderQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrder>>> = ({ signal }) => getOrder(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOrderQueryResult = NonNullable<Awaited<ReturnType<typeof getOrder>>>
+export type GetOrderQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetOrder<TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrder>>,
+          TError,
+          Awaited<ReturnType<typeof getOrder>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrder<TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOrder>>,
+          TError,
+          Awaited<ReturnType<typeof getOrder>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrder<TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Zamówienie (kupujący albo sprzedający)
+ */
+
+export function useGetOrder<TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetOrderQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetOrderSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOrderQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOrder>>> = ({ signal }) => getOrder(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetOrderSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getOrder>>>
+export type GetOrderSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetOrderSuspense<TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrderSuspense<TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOrderSuspense<TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Zamówienie (kupujący albo sprzedający)
+ */
+
+export function useGetOrderSuspense<TData = Awaited<ReturnType<typeof getOrder>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getOrder>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetOrderSuspenseQueryOptions(id,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getConfirmReceiptUrl = (id: string,) => {
+
+
+
+
+  return `/v1/orders/${id}/confirm-receipt`
+}
+
+/**
+ * Kończy odebrane zamówienie i zwalnia środki sprzedającemu. Ponowienie po zakończeniu zwraca zamówienie.
+ * @summary „Wszystko OK” (kupujący)
+ */
+export const confirmReceipt = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetailsDto> => {
+
+  return apiFetch<OrderDetailsDto>(getConfirmReceiptUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getConfirmReceiptMutationKey = () => ['confirmReceipt'] as const;
+
+export const getConfirmReceiptMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmReceipt>>, TError,ConfirmReceiptMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmReceipt>>, TError,ConfirmReceiptMutationVariables, TContext> => {
+
+const mutationKey = getConfirmReceiptMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmReceipt>>, ConfirmReceiptMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  confirmReceipt(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmReceiptMutationResult = NonNullable<Awaited<ReturnType<typeof confirmReceipt>>>
+
+    export type ConfirmReceiptMutationError = ErrorType<ProblemDetails>
+    export type ConfirmReceiptMutationVariables = {id: string}
+
+    /**
+ * @summary „Wszystko OK” (kupujący)
+ */
+export const useConfirmReceipt = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmReceipt>>, TError,ConfirmReceiptMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof confirmReceipt>>,
+        TError,
+        ConfirmReceiptMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmReceiptMutationOptions(options), queryClient);
+    }
+    export const getReportNotReceivedUrl = (id: string,) => {
+
+
+
+
+  return `/v1/orders/${id}/report-not-received`
+}
+
+/**
+ * 14 dni po nadaniu bez statusu końcowego: zamówienie zaginione, pełny zwrot i reklamacja u przewoźnika.
+ * @summary Zgłoszenie braku paczki (kupujący)
+ */
+export const reportNotReceived = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetailsDto> => {
+
+  return apiFetch<OrderDetailsDto>(getReportNotReceivedUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getReportNotReceivedMutationKey = () => ['reportNotReceived'] as const;
+
+export const getReportNotReceivedMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportNotReceived>>, TError,ReportNotReceivedMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportNotReceived>>, TError,ReportNotReceivedMutationVariables, TContext> => {
+
+const mutationKey = getReportNotReceivedMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportNotReceived>>, ReportNotReceivedMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  reportNotReceived(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportNotReceivedMutationResult = NonNullable<Awaited<ReturnType<typeof reportNotReceived>>>
+
+    export type ReportNotReceivedMutationError = ErrorType<ProblemDetails>
+    export type ReportNotReceivedMutationVariables = {id: string}
+
+    /**
+ * @summary Zgłoszenie braku paczki (kupujący)
+ */
+export const useReportNotReceived = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportNotReceived>>, TError,ReportNotReceivedMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reportNotReceived>>,
+        TError,
+        ReportNotReceivedMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReportNotReceivedMutationOptions(options), queryClient);
+    }
+    export const getSendSecondChanceUrl = (id: string,) => {
+
+
+
+
+  return `/v1/orders/${id}/second-chance-offers`
+}
+
+/**
+ * Do kolejnego licytującego za jego maksimum, ważna 24 h. Tylko po anulowaniu nieopłaconego zamówienia, do 14 dni.
+ * @summary Oferta drugiej szansy (sprzedający)
+ */
+export const sendSecondChance = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<OrderDetailsDto> => {
+
+  return apiFetch<OrderDetailsDto>(getSendSecondChanceUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSendSecondChanceMutationKey = () => ['sendSecondChance'] as const;
+
+export const getSendSecondChanceMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendSecondChance>>, TError,SendSecondChanceMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendSecondChance>>, TError,SendSecondChanceMutationVariables, TContext> => {
+
+const mutationKey = getSendSecondChanceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendSecondChance>>, SendSecondChanceMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  sendSecondChance(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendSecondChanceMutationResult = NonNullable<Awaited<ReturnType<typeof sendSecondChance>>>
+
+    export type SendSecondChanceMutationError = ErrorType<ProblemDetails>
+    export type SendSecondChanceMutationVariables = {id: string}
+
+    /**
+ * @summary Oferta drugiej szansy (sprzedający)
+ */
+export const useSendSecondChance = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendSecondChance>>, TError,SendSecondChanceMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof sendSecondChance>>,
+        TError,
+        SendSecondChanceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendSecondChanceMutationOptions(options), queryClient);
+    }
+    export const getGetShippingOptionsUrl = (id: string,) => {
 
 
 
@@ -950,4 +1330,306 @@ export const useStartPayment = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getStartPaymentMutationOptions(options), queryClient);
+    }
+    export const getGetSecondChanceOfferUrl = (id: string,) => {
+
+
+
+
+  return `/v1/second-chance-offers/${id}`
+}
+
+/**
+ * @summary Oferta drugiej szansy (licytujący)
+ */
+export const getSecondChanceOffer = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<SecondChanceOfferDto> => {
+
+  return apiFetch<SecondChanceOfferDto>(getGetSecondChanceOfferUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSecondChanceOfferQueryKey = (id: string,) => {
+    return [
+    `/v1/second-chance-offers/${id}`
+    ] as const;
+    }
+
+
+export const getGetSecondChanceOfferQueryOptions = <TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSecondChanceOfferQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSecondChanceOffer>>> = ({ signal }) => getSecondChanceOffer(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSecondChanceOfferQueryResult = NonNullable<Awaited<ReturnType<typeof getSecondChanceOffer>>>
+export type GetSecondChanceOfferQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetSecondChanceOffer<TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSecondChanceOffer>>,
+          TError,
+          Awaited<ReturnType<typeof getSecondChanceOffer>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSecondChanceOffer<TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSecondChanceOffer>>,
+          TError,
+          Awaited<ReturnType<typeof getSecondChanceOffer>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSecondChanceOffer<TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Oferta drugiej szansy (licytujący)
+ */
+
+export function useGetSecondChanceOffer<TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSecondChanceOfferQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetSecondChanceOfferSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSecondChanceOfferQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSecondChanceOffer>>> = ({ signal }) => getSecondChanceOffer(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetSecondChanceOfferSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getSecondChanceOffer>>>
+export type GetSecondChanceOfferSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetSecondChanceOfferSuspense<TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSecondChanceOfferSuspense<TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSecondChanceOfferSuspense<TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Oferta drugiej szansy (licytujący)
+ */
+
+export function useGetSecondChanceOfferSuspense<TData = Awaited<ReturnType<typeof getSecondChanceOffer>>, TError = ErrorType<ProblemDetails>>(
+ id: string, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getSecondChanceOffer>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSecondChanceOfferSuspenseQueryOptions(id,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getAcceptSecondChanceOfferUrl = (id: string,) => {
+
+
+
+
+  return `/v1/second-chance-offers/${id}/accept`
+}
+
+/**
+ * Tworzy zamówienie do zapłaty w 24 h. Ponowienie zwraca to samo zamówienie.
+ * @summary Przyjęcie oferty drugiej szansy
+ */
+export const acceptSecondChanceOffer = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<SecondChanceOfferDto> => {
+
+  return apiFetch<SecondChanceOfferDto>(getAcceptSecondChanceOfferUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAcceptSecondChanceOfferMutationKey = () => ['acceptSecondChanceOffer'] as const;
+
+export const getAcceptSecondChanceOfferMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptSecondChanceOffer>>, TError,AcceptSecondChanceOfferMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptSecondChanceOffer>>, TError,AcceptSecondChanceOfferMutationVariables, TContext> => {
+
+const mutationKey = getAcceptSecondChanceOfferMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptSecondChanceOffer>>, AcceptSecondChanceOfferMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  acceptSecondChanceOffer(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptSecondChanceOfferMutationResult = NonNullable<Awaited<ReturnType<typeof acceptSecondChanceOffer>>>
+
+    export type AcceptSecondChanceOfferMutationError = ErrorType<ProblemDetails>
+    export type AcceptSecondChanceOfferMutationVariables = {id: string}
+
+    /**
+ * @summary Przyjęcie oferty drugiej szansy
+ */
+export const useAcceptSecondChanceOffer = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptSecondChanceOffer>>, TError,AcceptSecondChanceOfferMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof acceptSecondChanceOffer>>,
+        TError,
+        AcceptSecondChanceOfferMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAcceptSecondChanceOfferMutationOptions(options), queryClient);
+    }
+    export const getDeclineSecondChanceOfferUrl = (id: string,) => {
+
+
+
+
+  return `/v1/second-chance-offers/${id}/decline`
+}
+
+/**
+ * @summary Odrzucenie oferty drugiej szansy (bez konsekwencji)
+ */
+export const declineSecondChanceOffer = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<SecondChanceOfferDto> => {
+
+  return apiFetch<SecondChanceOfferDto>(getDeclineSecondChanceOfferUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeclineSecondChanceOfferMutationKey = () => ['declineSecondChanceOffer'] as const;
+
+export const getDeclineSecondChanceOfferMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineSecondChanceOffer>>, TError,DeclineSecondChanceOfferMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof declineSecondChanceOffer>>, TError,DeclineSecondChanceOfferMutationVariables, TContext> => {
+
+const mutationKey = getDeclineSecondChanceOfferMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof declineSecondChanceOffer>>, DeclineSecondChanceOfferMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  declineSecondChanceOffer(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeclineSecondChanceOfferMutationResult = NonNullable<Awaited<ReturnType<typeof declineSecondChanceOffer>>>
+
+    export type DeclineSecondChanceOfferMutationError = ErrorType<ProblemDetails>
+    export type DeclineSecondChanceOfferMutationVariables = {id: string}
+
+    /**
+ * @summary Odrzucenie oferty drugiej szansy (bez konsekwencji)
+ */
+export const useDeclineSecondChanceOffer = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineSecondChanceOffer>>, TError,DeclineSecondChanceOfferMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof declineSecondChanceOffer>>,
+        TError,
+        DeclineSecondChanceOfferMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeclineSecondChanceOfferMutationOptions(options), queryClient);
     }

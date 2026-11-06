@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import type * as SentryNest from '@sentry/nestjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { FurgonetkaConfig } from '../../../../infra/config/index.js';
 import type { ShipmentParty } from '../../db/shipping.schema.js';
@@ -7,10 +8,20 @@ import {
   type CreateShipmentInput,
   isShippingProviderError,
 } from '../../ports/shipping-provider.port.js';
-import { FurgonetkaClient } from './furgonetka-client.js';
+import { FurgonetkaClient, isRegulationsError } from './furgonetka-client.js';
 import { commandUuid, furgonetkaChecksum } from './furgonetka-format.js';
 import { FurgonetkaProvider } from './furgonetka-provider.js';
 import type { FurgonetkaTokens, FurgonetkaTokenStore } from './furgonetka-token-store.js';
+
+const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
+vi.mock('@sentry/nestjs', async (importOriginal) => ({
+  ...(await importOriginal<typeof SentryNest>()),
+  captureException: sentry.captureException,
+}));
+
+beforeEach(() => {
+  sentry.captureException.mockClear();
+});
 
 const CONFIG: FurgonetkaConfig = {
   apiUrl: 'https://api.sandbox.furgonetka.pl',
@@ -241,6 +252,76 @@ describe('FurgonetkaProvider: tworzenie przesyłki', () => {
       field: 'sender.phone',
       message: 'Przewoźnik odrzucił dane przesyłki: Niepoprawny numer telefonu',
     });
+    expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('niezaakceptowany regulamin przewoźnika: UNAVAILABLE z alertem, bez komunikatu dla sprzedającego', async () => {
+    // Komunikat z sandboksa (2026-11-06): przyszedł w odpowiedzi na PUT komendy przesyłki.
+    const regulations = {
+      errors: [
+        {
+          path: '',
+          code: '',
+          message:
+            'Zmienił się regulamin przewoźnika. Prześlij aktualną wersję regulaminu zgodnie z instrukcją https://sandbox.furgonetka.pl/api/rest#operation/regulations-post lub zaakceptuj go na stronie https://sandbox.furgonetka.pl/konto/regulaminy',
+        },
+      ],
+    };
+    const { provider: furgonetka } = provider([
+      (call) =>
+        call.method === 'PUT' && call.path.startsWith('/create-package-command/')
+          ? json(400, regulations)
+          : undefined,
+    ]);
+    const error = await furgonetka.createShipment(input).catch((caught: unknown) => caught);
+    expect(isShippingProviderError(error, 'UNAVAILABLE')).toBe(true);
+    expect(error).toMatchObject({
+      message: expect.stringContaining(
+        'Furgonetka: niezaakceptowany regulamin przewoźnika na koncie Biddy',
+      ) as unknown,
+    });
+    expect(sentry.captureException).toHaveBeenCalledWith(error, {
+      tags: { component: 'furgonetka', reason: 'carrier-regulations' },
+    });
+
+    // Ten sam błąd w wyniku komendy (zamówienie przesyłki) i jako 409 z endpointu JSON.
+    const ordered = provider([
+      ...happyCreation.filter((_, index) => index < 2),
+      (call) =>
+        call.method === 'PUT' && call.path === `/order-commands/${ORDER_UUID}`
+          ? new Response(null, { status: 202 })
+          : undefined,
+      (call) =>
+        call.method === 'GET' && call.path === `/order-commands/${ORDER_UUID}`
+          ? json(200, { status: 'error', ...regulations })
+          : undefined,
+    ]);
+    await expect(ordered.provider.createShipment(input)).rejects.toMatchObject({
+      code: 'UNAVAILABLE',
+    });
+    const conflict = provider([
+      (call) =>
+        call.path === '/points/map'
+          ? json(409, { errors: [{ path: '', code: 'regulations', message: '' }] })
+          : undefined,
+    ]);
+    await expect(
+      conflict.provider.findPoints({ carrier: locker, phrase: 'Warszawa', limit: 5 }),
+    ).rejects.toMatchObject({
+      code: 'UNAVAILABLE',
+      message: expect.stringContaining('regulamin') as unknown,
+    });
+    expect(sentry.captureException).toHaveBeenCalledTimes(3);
+  });
+
+  it('rozpoznanie błędu regulaminu po kodzie, ścieżce albo komunikacie', () => {
+    const error = { code: '', path: '', message: '' };
+    expect(isRegulationsError({ ...error, message: 'Zmienił się regulamin przewoźnika.' })).toBe(
+      true,
+    );
+    expect(isRegulationsError({ ...error, code: 'regulationsNotAccepted' })).toBe(true);
+    expect(isRegulationsError({ ...error, path: '/regulations' })).toBe(true);
+    expect(isRegulationsError({ ...error, message: 'Niepoprawny numer telefonu' })).toBe(false);
   });
 
   it('kurier po paczkę: UNSUPPORTED; usługa spoza Furgonetki: UNSUPPORTED', async () => {

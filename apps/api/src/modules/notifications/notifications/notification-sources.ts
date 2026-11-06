@@ -107,12 +107,19 @@ export class NotificationSources {
     );
   }
 
-  /** Wygrana (kupujący) i sprzedaż (sprzedający): zamówienie powstaje przy zakończeniu. */
+  /**
+   * Wygrana (kupujący) i sprzedaż (sprzedający): zamówienie powstaje przy zakończeniu. Zamówienie
+   * z drugiej szansy (F-26) ich nie wysyła: licytujący przyjmuje ofertę na stronie, a sprzedający
+   * dostaje SECOND_CHANCE_ANSWERED.
+   */
   @OnDomainEvent(OrderCreated, { consumer: 'notifications.order-created' })
   async onOrderCreated(
     event: DomainEventOf<typeof OrderCreated>,
     { tx }: DomainEventContext,
   ): Promise<void> {
+    if (event.payload.secondChanceOfferId !== undefined) {
+      return;
+    }
     const notice = await this.auctions.notice(event.payload.auctionId, tx);
     if (notice === undefined) {
       return;
@@ -142,7 +149,7 @@ export class NotificationSources {
     ]);
   }
 
-  /** Opłacone zamówienie (F-24): sprzedający ma nadać paczkę (event publikuje F-26). */
+  /** Opłacone zamówienie (F-24): sprzedający ma nadać paczkę (event publikuje F-25). */
   @OnDomainEvent(OrderPaid, { consumer: 'notifications.order-paid' })
   async onOrderPaid(
     event: DomainEventOf<typeof OrderPaid>,

@@ -158,7 +158,11 @@ export class AuctionViewService {
     const hasBid = (mine?.bids ?? 0) > 0;
     const leading = auction.leaderId === userId;
     const outcome = outcomeOf(auction, hasBid, leading);
-    const order = outcome === 'WON' ? await this.orders.activeForAuction(auction.id) : undefined;
+    // Najnowsze zamówienie zwycięzcy: po drugiej szansie (F-26) aktywne jest zamówienie innej osoby.
+    const order =
+      outcome === 'WON'
+        ? (await this.orders.latestForBuyer(userId, [auction.id])).get(auction.id)
+        : undefined;
     return {
       auction,
       isSeller: auction.sellerId === userId,
@@ -167,7 +171,7 @@ export class AuctionViewService {
       leading,
       maxAmount: mine?.maxAmount ?? null,
       outcome,
-      order: order?.buyerId === userId ? order : undefined,
+      order,
     };
   }
 

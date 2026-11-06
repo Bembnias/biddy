@@ -186,8 +186,8 @@ export function useAuctionViewers(auctionId: string | undefined): number | null 
 }
 
 /**
- * Zdarzenia zalogowanego użytkownika (przebicie, wygrana, nowe powiadomienie); serwer sam
- * dołącza room użytkownika.
+ * Zdarzenia zalogowanego użytkownika (przebicie, wygrana, nowe powiadomienie, wiadomości F-29);
+ * serwer sam dołącza room użytkownika.
  */
 export function useUserRealtimeEvents(handlers: UserHandlers, enabled = true): void {
   const { client } = useRealtime();
@@ -200,6 +200,13 @@ export function useUserRealtimeEvents(handlers: UserHandlers, enabled = true): v
   const onNotification = useEffectEvent(
     (event: Parameters<NonNullable<UserHandlers['onNotification']>>[0]) =>
       handlers.onNotification?.(event),
+  );
+  const onMessage = useEffectEvent((event: Parameters<NonNullable<UserHandlers['onMessage']>>[0]) =>
+    handlers.onMessage?.(event),
+  );
+  const onConversationRead = useEffectEvent(
+    (event: Parameters<NonNullable<UserHandlers['onConversationRead']>>[0]) =>
+      handlers.onConversationRead?.(event),
   );
 
   useEffect(() => {
@@ -219,6 +226,12 @@ export function useUserRealtimeEvents(handlers: UserHandlers, enabled = true): v
           },
           onNotification: (event) => {
             onNotification(event);
+          },
+          onMessage: (event) => {
+            onMessage(event);
+          },
+          onConversationRead: (event) => {
+            onConversationRead(event);
           },
         });
       }

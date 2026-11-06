@@ -1,0 +1,997 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T12:28:43.060Z",
+  "title": "Design System: Biddy",
+  "extensions": {
+    "colorMeta": {
+      "background": {
+        "role": "neutral",
+        "displayName": "Biel sali",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Płótno konta",
+        "canonical": "oklch(0.9842 0.0034 247.86)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "foreground": {
+        "role": "primary",
+        "displayName": "Atrament Biddy",
+        "canonical": "oklch(0.2208 0.0892 259.81)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "foreground-secondary": {
+        "role": "neutral",
+        "displayName": "Szary atrament (akapity)",
+        "canonical": "oklch(0.4849 0.0648 262.32)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Biel karty",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Atrament Biddy (przycisk)",
+        "canonical": "oklch(0.2208 0.0892 259.81)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Atrament Biddy, hover",
+        "canonical": "oklch(0.3198 0.0861 261.12)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "primary-foreground": {
+        "role": "neutral",
+        "displayName": "Biel na atramencie",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "Spokojne wypełnienie (soft)",
+        "canonical": "oklch(0.9683 0.0069 247.9)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Spokojne wypełnienie",
+        "canonical": "oklch(0.9683 0.0069 247.9)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Szary atrament (metadane)",
+        "canonical": "oklch(0.5442 0.0558 263.41)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Mgiełka fioletu",
+        "canonical": "oklch(0.9768 0.0142 308.3)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "accent-foreground": {
+        "role": "primary",
+        "displayName": "Fiolet na mgiełce",
+        "canonical": "oklch(0.4897 0.2445 299.88)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "link": {
+        "role": "primary",
+        "displayName": "Fiolet linku",
+        "canonical": "oklch(0.566 0.2451 302.05)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "link-hover": {
+        "role": "primary",
+        "displayName": "Fiolet linku, hover",
+        "canonical": "oklch(0.4897 0.2445 299.88)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "cta-from": {
+        "role": "secondary",
+        "displayName": "Gradient CTA: fiolet",
+        "canonical": "oklch(0.566 0.2451 302.05)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "cta-to": {
+        "role": "secondary",
+        "displayName": "Gradient CTA: róż",
+        "canonical": "oklch(0.5757 0.215 356.91)",
+        "tonalRamp": [
+          "oklch(0.2713 0.0948 358.61)",
+          "oklch(0.3645 0.13 357.97)",
+          "oklch(0.4303 0.1599 358.28)",
+          "oklch(0.5049 0.1895 358.06)",
+          "oklch(0.6573 0.2262 352.25)",
+          "oklch(0.8202 0.1174 352.08)",
+          "oklch(0.9461 0.0317 350.22)",
+          "oklch(0.9749 0.0144 350.08)"
+        ]
+      },
+      "cta-hover-from": {
+        "role": "secondary",
+        "displayName": "Gradient CTA hover: fiolet",
+        "canonical": "oklch(0.4897 0.2445 299.88)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "cta-hover-to": {
+        "role": "secondary",
+        "displayName": "Gradient CTA hover: róż",
+        "canonical": "oklch(0.5049 0.1895 358.06)",
+        "tonalRamp": [
+          "oklch(0.2713 0.0948 358.61)",
+          "oklch(0.3645 0.13 357.97)",
+          "oklch(0.4303 0.1599 358.28)",
+          "oklch(0.5049 0.1895 358.06)",
+          "oklch(0.6573 0.2262 352.25)",
+          "oklch(0.8202 0.1174 352.08)",
+          "oklch(0.9461 0.0317 350.22)",
+          "oklch(0.9749 0.0144 350.08)"
+        ]
+      },
+      "brand": {
+        "role": "primary",
+        "displayName": "Fiolet zaznaczenia",
+        "canonical": "oklch(0.6666 0.2131 305.35)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "brand-strong": {
+        "role": "primary",
+        "displayName": "Fiolet aktywnej zakładki",
+        "canonical": "oklch(0.566 0.2451 302.05)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "brand-border": {
+        "role": "primary",
+        "displayName": "Linia marki",
+        "canonical": "oklch(0.825 0.1077 307.91)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "logo-from": {
+        "role": "secondary",
+        "displayName": "Gradient logo: fiolet",
+        "canonical": "oklch(0.6666 0.2131 305.35)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "logo-to": {
+        "role": "secondary",
+        "displayName": "Gradient logo: róż",
+        "canonical": "oklch(0.6573 0.2262 352.25)",
+        "tonalRamp": [
+          "oklch(0.2713 0.0948 358.61)",
+          "oklch(0.3645 0.13 357.97)",
+          "oklch(0.4303 0.1599 358.28)",
+          "oklch(0.5049 0.1895 358.06)",
+          "oklch(0.6573 0.2262 352.25)",
+          "oklch(0.8202 0.1174 352.08)",
+          "oklch(0.9461 0.0317 350.22)",
+          "oklch(0.9749 0.0144 350.08)"
+        ]
+      },
+      "panel-from": {
+        "role": "secondary",
+        "displayName": "Panel marki: jasny fiolet",
+        "canonical": "oklch(0.6666 0.2131 305.35)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "panel-to": {
+        "role": "secondary",
+        "displayName": "Panel marki: głęboki fiolet",
+        "canonical": "oklch(0.4897 0.2445 299.88)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "live": {
+        "role": "tertiary",
+        "displayName": "Czerwień LIVE",
+        "canonical": "oklch(0.5644 0.2194 25.97)",
+        "tonalRamp": [
+          "oklch(0.2597 0.0897 26.11)",
+          "oklch(0.3594 0.1297 25.93)",
+          "oklch(0.4244 0.16 26.11)",
+          "oklch(0.4948 0.1897 25.91)",
+          "oklch(0.6379 0.2372 25.22)",
+          "oklch(0.8092 0.1083 19.7)",
+          "oklch(0.9454 0.0231 10.96)",
+          "oklch(0.9782 0.0108 10.33)"
+        ]
+      },
+      "live-dot": {
+        "role": "tertiary",
+        "displayName": "Kropka na żywo",
+        "canonical": "oklch(0.6379 0.2372 25.22)",
+        "tonalRamp": [
+          "oklch(0.2597 0.0897 26.11)",
+          "oklch(0.3594 0.1297 25.93)",
+          "oklch(0.4244 0.16 26.11)",
+          "oklch(0.4948 0.1897 25.91)",
+          "oklch(0.6379 0.2372 25.22)",
+          "oklch(0.8092 0.1083 19.7)",
+          "oklch(0.9454 0.0231 10.96)",
+          "oklch(0.9782 0.0108 10.33)"
+        ]
+      },
+      "urgent": {
+        "role": "tertiary",
+        "displayName": "Czerwień ostatniej godziny",
+        "canonical": "oklch(0.5644 0.2194 25.97)",
+        "tonalRamp": [
+          "oklch(0.2597 0.0897 26.11)",
+          "oklch(0.3594 0.1297 25.93)",
+          "oklch(0.4244 0.16 26.11)",
+          "oklch(0.4948 0.1897 25.91)",
+          "oklch(0.6379 0.2372 25.22)",
+          "oklch(0.8092 0.1083 19.7)",
+          "oklch(0.9454 0.0231 10.96)",
+          "oklch(0.9782 0.0108 10.33)"
+        ]
+      },
+      "urgent-soft": {
+        "role": "tertiary",
+        "displayName": "Tło pilności",
+        "canonical": "oklch(0.9782 0.0108 10.33)",
+        "tonalRamp": [
+          "oklch(0.2597 0.0897 26.11)",
+          "oklch(0.3594 0.1297 25.93)",
+          "oklch(0.4244 0.16 26.11)",
+          "oklch(0.4948 0.1897 25.91)",
+          "oklch(0.6379 0.2372 25.22)",
+          "oklch(0.8092 0.1083 19.7)",
+          "oklch(0.9454 0.0231 10.96)",
+          "oklch(0.9782 0.0108 10.33)"
+        ]
+      },
+      "destructive": {
+        "role": "tertiary",
+        "displayName": "Czerwień nieodwracalna",
+        "canonical": "oklch(0.5644 0.2194 25.97)",
+        "tonalRamp": [
+          "oklch(0.2597 0.0897 26.11)",
+          "oklch(0.3594 0.1297 25.93)",
+          "oklch(0.4244 0.16 26.11)",
+          "oklch(0.4948 0.1897 25.91)",
+          "oklch(0.6379 0.2372 25.22)",
+          "oklch(0.8092 0.1083 19.7)",
+          "oklch(0.9454 0.0231 10.96)",
+          "oklch(0.9782 0.0108 10.33)"
+        ]
+      },
+      "destructive-soft": {
+        "role": "tertiary",
+        "displayName": "Tło błędu",
+        "canonical": "oklch(0.9782 0.0108 10.33)",
+        "tonalRamp": [
+          "oklch(0.2597 0.0897 26.11)",
+          "oklch(0.3594 0.1297 25.93)",
+          "oklch(0.4244 0.16 26.11)",
+          "oklch(0.4948 0.1897 25.91)",
+          "oklch(0.6379 0.2372 25.22)",
+          "oklch(0.8092 0.1083 19.7)",
+          "oklch(0.9454 0.0231 10.96)",
+          "oklch(0.9782 0.0108 10.33)"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Zieleń ochrony",
+        "canonical": "oklch(0.501 0.0852 185.18)",
+        "tonalRamp": [
+          "oklch(0.2688 0.0445 187.67)",
+          "oklch(0.3597 0.0599 186.58)",
+          "oklch(0.4291 0.0716 186.9)",
+          "oklch(0.501 0.0852 185.18)",
+          "oklch(0.681 0.1305 171.82)",
+          "oklch(0.8602 0.1252 163.97)",
+          "oklch(0.9541 0.0445 165.95)",
+          "oklch(0.9833 0.0191 167.95)"
+        ]
+      },
+      "success-soft": {
+        "role": "tertiary",
+        "displayName": "Tło sukcesu",
+        "canonical": "oklch(0.9833 0.0191 167.95)",
+        "tonalRamp": [
+          "oklch(0.2688 0.0445 187.67)",
+          "oklch(0.3597 0.0599 186.58)",
+          "oklch(0.4291 0.0716 186.9)",
+          "oklch(0.501 0.0852 185.18)",
+          "oklch(0.681 0.1305 171.82)",
+          "oklch(0.8602 0.1252 163.97)",
+          "oklch(0.9541 0.0445 165.95)",
+          "oklch(0.9833 0.0191 167.95)"
+        ]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Bursztyn ostrzeżenia",
+        "canonical": "oklch(0.5346 0.1299 53.91)",
+        "tonalRamp": [
+          "oklch(0.2903 0.0699 50.1)",
+          "oklch(0.401 0.0946 50.3)",
+          "oklch(0.4687 0.1148 51.73)",
+          "oklch(0.5346 0.1299 53.91)",
+          "oklch(0.7686 0.1647 70.08)",
+          "oklch(0.8594 0.1172 73.72)",
+          "oklch(0.9647 0.0271 72.81)",
+          "oklch(0.9846 0.0124 75.37)"
+        ]
+      },
+      "warning-soft": {
+        "role": "tertiary",
+        "displayName": "Tło ostrzeżenia",
+        "canonical": "oklch(0.9647 0.0271 72.81)",
+        "tonalRamp": [
+          "oklch(0.2903 0.0699 50.1)",
+          "oklch(0.401 0.0946 50.3)",
+          "oklch(0.4687 0.1148 51.73)",
+          "oklch(0.5346 0.1299 53.91)",
+          "oklch(0.7686 0.1647 70.08)",
+          "oklch(0.8594 0.1172 73.72)",
+          "oklch(0.9647 0.0271 72.81)",
+          "oklch(0.9846 0.0124 75.37)"
+        ]
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "Błękit przesyłki",
+        "canonical": "oklch(0.5 0.1193 242.75)",
+        "tonalRamp": [
+          "oklch(0.2686 0.0612 246.77)",
+          "oklch(0.3592 0.0803 245.47)",
+          "oklch(0.4295 0.1 243.96)",
+          "oklch(0.5 0.1193 242.75)",
+          "oklch(0.6652 0.1444 240.66)",
+          "oklch(0.8307 0.0947 237.67)",
+          "oklch(0.9514 0.025 236.82)",
+          "oklch(0.9771 0.0125 236.62)"
+        ]
+      },
+      "info-soft": {
+        "role": "tertiary",
+        "displayName": "Tło informacji",
+        "canonical": "oklch(0.9514 0.025 236.82)",
+        "tonalRamp": [
+          "oklch(0.2686 0.0612 246.77)",
+          "oklch(0.3592 0.0803 245.47)",
+          "oklch(0.4295 0.1 243.96)",
+          "oklch(0.5 0.1193 242.75)",
+          "oklch(0.6652 0.1444 240.66)",
+          "oklch(0.8307 0.0947 237.67)",
+          "oklch(0.9514 0.025 236.82)",
+          "oklch(0.9771 0.0125 236.62)"
+        ]
+      },
+      "rating": {
+        "role": "tertiary",
+        "displayName": "Bursztyn gwiazdek",
+        "canonical": "oklch(0.7686 0.1647 70.08)",
+        "tonalRamp": [
+          "oklch(0.2903 0.0699 50.1)",
+          "oklch(0.401 0.0946 50.3)",
+          "oklch(0.4687 0.1148 51.73)",
+          "oklch(0.5346 0.1299 53.91)",
+          "oklch(0.7686 0.1647 70.08)",
+          "oklch(0.8594 0.1172 73.72)",
+          "oklch(0.9647 0.0271 72.81)",
+          "oklch(0.9846 0.0124 75.37)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Linia dekoracyjna",
+        "canonical": "oklch(0.9189 0.0113 269.54)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Linia kontrolki",
+        "canonical": "oklch(0.8372 0.0243 272.77)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "Linia pola (≥ 3:1)",
+        "canonical": "oklch(0.6354 0.0355 264.28)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "ring": {
+        "role": "primary",
+        "displayName": "Fiolet fokusu",
+        "canonical": "oklch(0.566 0.2451 302.05)",
+        "tonalRamp": [
+          "oklch(0.2604 0.1246 301.03)",
+          "oklch(0.3445 0.1645 300.14)",
+          "oklch(0.4142 0.205 299.81)",
+          "oklch(0.4897 0.2445 299.88)",
+          "oklch(0.6666 0.2131 305.35)",
+          "oklch(0.825 0.1077 307.91)",
+          "oklch(0.9491 0.0315 308.09)",
+          "oklch(0.9768 0.0142 308.3)"
+        ]
+      },
+      "band": {
+        "role": "neutral",
+        "displayName": "Nocny pas (ink-900)",
+        "canonical": "oklch(0.2639 0.0907 260.37)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      },
+      "band-border": {
+        "role": "neutral",
+        "displayName": "Linia nocnego pasa (ink-800)",
+        "canonical": "oklch(0.3198 0.0861 261.12)",
+        "tonalRamp": [
+          "oklch(0.2208 0.0892 259.81)",
+          "oklch(0.2639 0.0907 260.37)",
+          "oklch(0.3198 0.0861 261.12)",
+          "oklch(0.3999 0.0749 262.08)",
+          "oklch(0.5442 0.0558 263.41)",
+          "oklch(0.8372 0.0243 272.77)",
+          "oklch(0.9683 0.0069 247.9)",
+          "oklch(0.9842 0.0034 247.86)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "display",
+        "purpose": "Hero strony głównej, najwyżej raz na stronę."
+      },
+      "h1": {
+        "displayName": "h1",
+        "purpose": "Tytuł strony i aukcji, jeden na stronę."
+      },
+      "h2": {
+        "displayName": "h2",
+        "purpose": "Tytuł aukcji na telefonie, duże sekcje, dialogi."
+      },
+      "h3": {
+        "displayName": "h3",
+        "purpose": "Sekcje strony, cyfry licznika."
+      },
+      "title": {
+        "displayName": "title",
+        "purpose": "Tytuły kart, wierszy list i opcji."
+      },
+      "body-lg": {
+        "displayName": "body-lg",
+        "purpose": "Długie opisy przedmiotu i pomoc."
+      },
+      "body": {
+        "displayName": "body",
+        "purpose": "Domyślny tekst interfejsu."
+      },
+      "body-sm": {
+        "displayName": "body-sm",
+        "purpose": "Metadane, podpowiedzi, opisy opcji."
+      },
+      "caption": {
+        "displayName": "caption",
+        "purpose": "Znaczniki czasu, przypisy, liczniki znaków."
+      },
+      "label": {
+        "displayName": "label",
+        "purpose": "Etykiety pól, przyciski 32 i 40 px, zakładki."
+      },
+      "label-lg": {
+        "displayName": "label-lg",
+        "purpose": "Przyciski 48 px."
+      },
+      "overline": {
+        "displayName": "overline",
+        "purpose": "Nagłówki bloków danych, wielkimi literami."
+      },
+      "badge": {
+        "displayName": "badge",
+        "purpose": "Plakietki statusu, wielkimi literami."
+      },
+      "price-xl": {
+        "displayName": "price-xl",
+        "purpose": "Aktualna cena w panelu licytacji."
+      },
+      "price-lg": {
+        "displayName": "price-lg",
+        "purpose": "Cena w wierszach Moje Biddy, zamówień i na karcie aukcji."
+      },
+      "price": {
+        "displayName": "price",
+        "purpose": "Cena w historii ofert."
+      },
+      "timer": {
+        "displayName": "timer",
+        "purpose": "Licznik do końca aukcji."
+      }
+    },
+    "shadows": [
+      {
+        "name": "xs",
+        "value": "0 1px 2px oklch(0.2208 0.0892 259.81 / 0.05)",
+        "purpose": "Przyciski outline, drobne kontrolki."
+      },
+      {
+        "name": "sm",
+        "value": "0 1px 3px oklch(0.2208 0.0892 259.81 / 0.08), 0 1px 2px oklch(0.2208 0.0892 259.81 / 0.04)",
+        "purpose": "Aktywna pigułka, małe karty."
+      },
+      {
+        "name": "md",
+        "value": "0 2px 4px oklch(0.2208 0.0892 259.81 / 0.04), 0 8px 24px -4px oklch(0.2208 0.0892 259.81 / 0.09)",
+        "purpose": "Panel licytacji, karty konta."
+      },
+      {
+        "name": "lg",
+        "value": "0 4px 12px oklch(0.2208 0.0892 259.81 / 0.06), 0 16px 40px -8px oklch(0.2208 0.0892 259.81 / 0.16)",
+        "purpose": "Hover karty aukcji, przyklejony pasek licytacji, arkusze."
+      },
+      {
+        "name": "cta",
+        "value": "0 8px 20px -6px oklch(0.566 0.2451 302.05 / 0.4)",
+        "purpose": "Wyłącznie pod gradientem CTA."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 2px oklch(1 0 0), 0 0 0 4px oklch(0.566 0.2451 302.05)",
+        "purpose": "Fokus klawiatury, trzyma zaokrąglenie."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-control",
+        "value": "150ms ease-out",
+        "purpose": "Kolor, tło, obramowanie i cień kontrolek."
+      },
+      {
+        "name": "ease-card",
+        "value": "200ms ease-out",
+        "purpose": "Uniesienie karty aukcji o 2 px i cień przy hoverze."
+      },
+      {
+        "name": "enter",
+        "value": "enter 300ms ease-out",
+        "purpose": "Wjazd nowego wpisu historii ofert, paska stanu, komunikatu."
+      },
+      {
+        "name": "toast-in",
+        "value": "toast-in 250ms ease-out",
+        "purpose": "Toast na żywo (przebito Cię, wygrana)."
+      },
+      {
+        "name": "sheet-in",
+        "value": "sheet-in 250ms ease-out",
+        "purpose": "Dolny arkusz na telefonie."
+      },
+      {
+        "name": "flash",
+        "value": "flash 1.6s ease-out forwards",
+        "purpose": "Wygaszenie podświetlenia nowej ceny."
+      },
+      {
+        "name": "confetti",
+        "value": "confetti 3.2s ease-in-out infinite alternate",
+        "purpose": "Konfetti w panelu wygranej."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation/transition 0.01ms",
+        "purpose": "Przy prefers-reduced-motion wszystko kończy się od razu; zmiany koloru zostają."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "40rem"
+      },
+      {
+        "name": "md",
+        "value": "48rem"
+      },
+      {
+        "name": "lg",
+        "value": "64rem"
+      },
+      {
+        "name": "xl",
+        "value": "80rem"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Przycisk CTA",
+      "kind": "button",
+      "refersTo": "button-cta",
+      "description": "Jedna najważniejsza akcja widoku, gradient fiolet → róż.",
+      "html": "<button class=\"ds-btn-cta\">Licytuj 120 zł</button>",
+      "css": ".ds-btn-cta { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 16px; border:1px solid transparent; border-radius:var(--radius-md,0.5rem); font-size:0.875rem; line-height:1.25rem; font-weight:600; cursor:pointer; transition:color 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, translate 150ms ease-out; height:48px; padding:0 24px; font-size:1rem; line-height:1.5rem; font-weight:700; color:#fff; background-image:linear-gradient(to right, var(--color-cta-from, oklch(0.566 0.2451 302.05)), var(--color-cta-to, oklch(0.5757 0.215 356.91))); box-shadow:0 8px 20px -6px oklch(0.566 0.2451 302.05 / 0.4); } .ds-btn-cta:hover { background-image:linear-gradient(to right, var(--color-cta-hover-from, oklch(0.4897 0.2445 299.88)), var(--color-cta-hover-to, oklch(0.5049 0.1895 358.06))); } .ds-btn-cta:focus-visible { outline:none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-ring, oklch(0.566 0.2451 302.05)); } .ds-btn-cta:active { translate: 0 1px; }"
+    },
+    {
+      "name": "Przycisk default",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Granatowa główna akcja w karcie, wierszu albo formularzu.",
+      "html": "<button class=\"ds-btn-primary\">Nadaj paczkę</button>",
+      "css": ".ds-btn-primary { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 16px; border:1px solid transparent; border-radius:var(--radius-md,0.5rem); font-size:0.875rem; line-height:1.25rem; font-weight:600; cursor:pointer; transition:color 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, translate 150ms ease-out; background:var(--color-primary, oklch(0.2208 0.0892 259.81)); color:#fff; } .ds-btn-primary:hover { background:var(--color-primary-hover, oklch(0.3198 0.0861 261.12)); } .ds-btn-primary:focus-visible { outline:none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-ring, oklch(0.566 0.2451 302.05)); } .ds-btn-primary:active { translate: 0 1px; }"
+    },
+    {
+      "name": "Przycisk outline",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Akcja drugorzędna na bieli.",
+      "html": "<button class=\"ds-btn-outline\">Anuluj</button>",
+      "css": ".ds-btn-outline { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 16px; border:1px solid transparent; border-radius:var(--radius-md,0.5rem); font-size:0.875rem; line-height:1.25rem; font-weight:600; cursor:pointer; transition:color 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, translate 150ms ease-out; background:var(--color-card, oklch(1 0 0)); color:var(--color-foreground, oklch(0.2208 0.0892 259.81)); border-color:var(--color-border-strong, oklch(0.8372 0.0243 272.77)); box-shadow:0 1px 2px oklch(0.2208 0.0892 259.81 / 0.05); } .ds-btn-outline:hover { border-color:var(--color-input, oklch(0.6354 0.0355 264.28)); background:var(--color-canvas, oklch(0.9842 0.0034 247.86)); } .ds-btn-outline:focus-visible { outline:none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-ring, oklch(0.566 0.2451 302.05)); } .ds-btn-outline:active { translate: 0 1px; }"
+    },
+    {
+      "name": "Przycisk soft",
+      "kind": "button",
+      "refersTo": "button-soft",
+      "description": "Spokojna akcja, np. „Obserwuj aukcję”.",
+      "html": "<button class=\"ds-btn-soft\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z\"/></svg>Obserwuj aukcję</button>",
+      "css": ".ds-btn-soft { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); display:inline-flex; align-items:center; justify-content:center; gap:8px; height:40px; padding:0 16px; border:1px solid transparent; border-radius:var(--radius-md,0.5rem); font-size:0.875rem; line-height:1.25rem; font-weight:600; cursor:pointer; transition:color 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, translate 150ms ease-out; background:var(--color-secondary, oklch(0.9683 0.0069 247.9)); color:var(--color-foreground, oklch(0.2208 0.0892 259.81)); } .ds-btn-soft:hover { background:var(--color-ink-200, oklch(0.9189 0.0113 269.54)); } .ds-btn-soft:focus-visible { outline:none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-ring, oklch(0.566 0.2451 302.05)); } .ds-btn-soft:active { translate: 0 1px; }"
+    },
+    {
+      "name": "Pole tekstowe",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Pole 48 px, tekst 16 px, fokus linią ring z poświatą.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Twoja oferta, np. 130 zł\" aria-label=\"Twoja oferta\">",
+      "css": ".ds-input { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); width:100%; max-width:320px; height:48px; padding:0 14px; border:1px solid var(--color-input, oklch(0.6354 0.0355 264.28)); border-radius:var(--radius-md,0.5rem); background:var(--color-card, oklch(1 0 0)); color:var(--color-foreground, oklch(0.2208 0.0892 259.81)); font-size:1rem; transition:border-color 150ms ease-out, box-shadow 150ms ease-out; outline:none; } .ds-input::placeholder { color:var(--color-muted-foreground, oklch(0.5442 0.0558 263.41)); } .ds-input:hover { border-color:var(--color-ink-500, oklch(0.5442 0.0558 263.41)); } .ds-input:focus-visible { border-color:var(--color-ring, oklch(0.566 0.2451 302.05)); box-shadow:0 0 0 3px var(--color-violet-100, oklch(0.9491 0.0315 308.09)); }"
+    },
+    {
+      "name": "Plakietka LIVE",
+      "kind": "chip",
+      "refersTo": "badge-live",
+      "description": "Pełna czerwień z pulsującą kropką, ostatnia godzina aukcji.",
+      "html": "<span class=\"ds-badge-live\"><span class=\"ds-badge-live-dot\"></span>LIVE</span>",
+      "css": ".ds-badge-live { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); display:inline-flex; align-items:center; gap:4px; height:22px; padding:0 8px; border-radius:9999px; background:var(--color-live, oklch(0.5644 0.2194 25.97)); color:#fff; font-size:0.6875rem; line-height:1rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; } .ds-badge-live-dot { width:6px; height:6px; border-radius:9999px; background:#fff; animation: ds-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; } @keyframes ds-pulse { 50% { opacity:.5; } } @media (prefers-reduced-motion: reduce) { .ds-badge-live-dot { animation:none; } }"
+    },
+    {
+      "name": "Chip atrybutu",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Atrybut albo filtr pisany normalnie, z opcjonalnym usuwaniem.",
+      "html": "<span class=\"ds-chip\">Stan: Jak nowy</span> <span class=\"ds-chip ds-chip-brand\">Karty TCG</span>",
+      "css": ".ds-chip { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); display:inline-flex; align-items:center; gap:4px; height:26px; padding:0 10px; border-radius:var(--radius-sm,0.375rem); background:var(--color-muted, oklch(0.9683 0.0069 247.9)); color:var(--color-foreground, oklch(0.2208 0.0892 259.81)); font-size:0.75rem; line-height:1rem; font-weight:600; } .ds-chip-brand { background:var(--color-accent, oklch(0.9768 0.0142 308.3)); color:var(--color-accent-foreground, oklch(0.4897 0.2445 299.88)); }"
+    },
+    {
+      "name": "Pigułki nawigacji",
+      "kind": "nav",
+      "refersTo": "pill-tab",
+      "description": "Sekcje jednej strony; aktywna w brand-strong.",
+      "html": "<nav class=\"ds-pills\" aria-label=\"Moje Biddy\"><a class=\"ds-pill ds-pill-active\" href=\"#\" aria-current=\"page\">Licytuję <span>(4)</span></a><a class=\"ds-pill\" href=\"#\">Moje aukcje</a><a class=\"ds-pill\" href=\"#\">Obserwowane</a></nav>",
+      "css": ".ds-pills { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); display:flex; gap:8px; } .ds-pill { display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 18px; border:1px solid var(--color-border-strong, oklch(0.8372 0.0243 272.77)); border-radius:9999px; background:var(--color-card, oklch(1 0 0)); color:var(--color-foreground, oklch(0.2208 0.0892 259.81)); font-size:0.875rem; font-weight:600; text-decoration:none; transition:background-color 150ms ease-out, border-color 150ms ease-out; } .ds-pill:hover { border-color:var(--color-input, oklch(0.6354 0.0355 264.28)); background:var(--color-canvas, oklch(0.9842 0.0034 247.86)); } .ds-pill:focus-visible { outline:none; box-shadow:0 0 0 2px oklch(1 0 0), 0 0 0 4px oklch(0.566 0.2451 302.05); } .ds-pill-active, .ds-pill-active:hover { background:var(--color-brand-strong, oklch(0.566 0.2451 302.05)); border-color:var(--color-brand-strong, oklch(0.566 0.2451 302.05)); color:#fff; box-shadow:0 1px 3px oklch(0.2208 0.0892 259.81 / 0.08), 0 1px 2px oklch(0.2208 0.0892 259.81 / 0.04); } .ds-pill span { font-variant-numeric:tabular-nums; opacity:.85; }"
+    },
+    {
+      "name": "Panel licytacji",
+      "kind": "custom",
+      "refersTo": "bid-panel",
+      "description": "Serce strony aukcji: cena, licznik, CTA i ochrona kupujących.",
+      "html": "<section class=\"ds-bid\"><p class=\"ds-bid-over\">Aktualna oferta</p><p class=\"ds-bid-price\">120 zł <span class=\"ds-bid-delta\">+10 zł</span></p><p class=\"ds-bid-meta\">14 ofert · minimalna oferta 125 zł</p><div class=\"ds-bid-timer\"><span>Kończy się dziś</span><strong>3 g 12 min</strong></div><button class=\"ds-bid-cta\">Licytuj 125 zł</button><p class=\"ds-bid-total\">Zapłacisz 136,74 zł + dostawa od 12,99 zł</p><p class=\"ds-bid-prot\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/><path d=\"m9 12 2 2 4-4\"/></svg><span><b>Ochrona kupujących.</b> Pieniądze czekają, aż odbierzesz i sprawdzisz przedmiot.</span></p></section>",
+      "css": ".ds-bid { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); max-width:360px; display:flex; flex-direction:column; gap:12px; padding:24px; border:1px solid var(--color-border, oklch(0.9189 0.0113 269.54)); border-radius:var(--radius-2xl,1.5rem); background:var(--color-card, oklch(1 0 0)); color:var(--color-foreground, oklch(0.2208 0.0892 259.81)); box-shadow:0 2px 4px oklch(0.2208 0.0892 259.81 / 0.04), 0 8px 24px -4px oklch(0.2208 0.0892 259.81 / 0.09); } .ds-bid p { margin:0; } .ds-bid-over { font-size:0.75rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-muted-foreground, oklch(0.5442 0.0558 263.41)); } .ds-bid-price { display:flex; align-items:center; gap:8px; font-size:2.25rem; line-height:2.5rem; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; } .ds-bid-delta { height:22px; padding:0 8px; border-radius:9999px; background:var(--color-success-soft, oklch(0.9833 0.0191 167.95)); color:var(--color-success, oklch(0.501 0.0852 185.18)); font-size:0.6875rem; line-height:22px; font-weight:700; } .ds-bid-meta { font-size:0.8125rem; font-weight:500; color:var(--color-muted-foreground, oklch(0.5442 0.0558 263.41)); } .ds-bid-timer { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-radius:var(--radius-lg,0.75rem); background:var(--color-accent, oklch(0.9768 0.0142 308.3)); color:var(--color-accent-foreground, oklch(0.4897 0.2445 299.88)); font-size:0.875rem; font-weight:800; } .ds-bid-timer strong { font-size:1.25rem; font-variant-numeric:tabular-nums; } .ds-bid-cta { height:48px; border:0; border-radius:var(--radius-md,0.5rem); color:#fff; font:inherit; font-size:1rem; font-weight:700; cursor:pointer; background-image:linear-gradient(to right, var(--color-cta-from, oklch(0.566 0.2451 302.05)), var(--color-cta-to, oklch(0.5757 0.215 356.91))); box-shadow:0 8px 20px -6px oklch(0.566 0.2451 302.05 / 0.4); transition:background-image 150ms ease-out; } .ds-bid-cta:hover { background-image:linear-gradient(to right, var(--color-cta-hover-from, oklch(0.4897 0.2445 299.88)), var(--color-cta-hover-to, oklch(0.5049 0.1895 358.06))); } .ds-bid-cta:focus-visible { outline:none; box-shadow:0 0 0 2px oklch(1 0 0), 0 0 0 4px oklch(0.566 0.2451 302.05); } .ds-bid-total { font-size:0.8125rem; font-weight:500; color:var(--color-foreground-secondary, oklch(0.4849 0.0648 262.32)); text-align:center; } .ds-bid-prot { display:flex; gap:10px; font-size:0.8125rem; color:var(--color-foreground-secondary, oklch(0.4849 0.0648 262.32)); } .ds-bid-prot svg { flex-shrink:0; color:var(--color-success, oklch(0.501 0.0852 185.18)); } .ds-bid-prot b { color:var(--color-foreground, oklch(0.2208 0.0892 259.81)); }"
+    },
+    {
+      "name": "Licznik ostatniej godziny",
+      "kind": "custom",
+      "description": "Ton czerwony poniżej godziny, cyfry w kafelkach.",
+      "html": "<div class=\"ds-timer\" role=\"timer\"><span class=\"ds-timer-label\"><span class=\"ds-timer-dot\"></span>Ostatnie minuty</span><span class=\"ds-timer-clock\"><b>00</b>:<b>12</b>:<b>47</b></span></div>",
+      "css": ".ds-timer { font-family: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif); display:flex; justify-content:space-between; align-items:center; gap:12px; max-width:360px; padding:12px 16px; border:1px solid var(--color-red-200, oklch(0.8897 0.058 18.3)); border-radius:var(--radius-lg,0.75rem); background:var(--color-urgent-soft, oklch(0.9782 0.0108 10.33)); color:var(--color-urgent, oklch(0.5644 0.2194 25.97)); } .ds-timer-label { display:flex; align-items:center; gap:8px; font-size:0.875rem; font-weight:800; } .ds-timer-dot { width:8px; height:8px; border-radius:9999px; background:var(--color-live-dot, oklch(0.6379 0.2372 25.22)); } .ds-timer-clock { display:flex; align-items:center; gap:4px; font-size:1.25rem; font-weight:800; font-variant-numeric:tabular-nums; } .ds-timer-clock b { display:inline-grid; place-items:center; min-width:36px; height:36px; border-radius:var(--radius-md,0.5rem); background:var(--color-urgent, oklch(0.5644 0.2194 25.97)); color:#fff; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Spokojny skarbiec, żywy puls",
+    "overview": "Biddy ma dwie warstwy. Pod spodem leży skarbiec: biel, granatowy atrament, porządne odstępy i dane, którym można zaufać, bo chodzi o cudze pieniądze. Na wierzchu bije puls licytacji: fiolet zaznaczeń, czerwień ostatniej godziny, cena, która mignie po przebiciu. Puls pojawia się tylko wtedy, gdy coś się naprawdę dzieje. W spoczynku interfejs jest cichy, dzięki czemu każdy sygnał na żywo jest słyszalny.\n\nKomponenty są precyzyjne i budzą zaufanie. Ceny i liczniki mają cyfry tabelaryczne, statusy mają stałe tony, a każda kwota stoi obok informacji, ile naprawdę zapłacisz. Ekspresja (gradient, ruch, ciemny pas, konfetti wygranej) jest zarezerwowana dla momentów licytacji i jednej głównej akcji widoku. Gęstość jest umiarkowana: strony publiczne oddychają na białym tle, strony konta układają białe karty na chłodnym płótnie.\n\nTryb ciemny jest poza MVP. Ciemne powierzchnie (pas „Kończą się wkrótce”, karta „Twoja aukcja jest gorąca”) to akcenty w jasnym interfejsie, a nie motyw.",
+    "keyCharacteristics": [
+      "Granatowy atrament (`ink`) zamiast czerni: tekst, przyciski, cienie i nakładki mają ten sam chłodny odcień.",
+      "Jeden gradient fiolet → róż na widok, tylko dla najważniejszej akcji.",
+      "Czerwień oznacza czas i ryzyko (LIVE, ostatnia godzina, usuwanie), nigdy dekorację.",
+      "Ceny są największym i najgrubszym tekstem w swoim bloku, z cyframi tabelarycznymi.",
+      "Wszystkie pary tekst/tło spełniają WCAG 2.1 AA, sprawdzane testem w `packages/design-tokens`."
+    ],
+    "rules": [
+      {
+        "name": "Zasada jednego gradientu",
+        "body": "Gradient CTA występuje najwyżej raz na widok i nigdy w nagłówku. Druga ważna akcja dostaje granat (`primary`).",
+        "section": "colors"
+      },
+      {
+        "name": "Zasada czerwieni jako czasu",
+        "body": "Czerwień oznacza LIVE, ostatnią godzinę, przebicie albo nieodwracalność. Nie służy do wyróżniania promocji ani dekoracji.",
+        "section": "colors"
+      },
+      {
+        "name": "Zasada atramentu",
+        "body": "Nie ma czystej czerni: tekst, cienie i nakładki (`ink-950/50`) używają granatowego atramentu.",
+        "section": "colors"
+      },
+      {
+        "name": "Zasada AA",
+        "body": "Nowa para tekst/tło trafia do `TEXT_CONTRAST_PAIRS` w tokenach, a jeśli nie przechodzi AA, bierzemy ciemniejszy krok tej samej skali zamiast nowego koloru.",
+        "section": "colors"
+      },
+      {
+        "name": "Zasada cyfr tabelarycznych",
+        "body": "Każda kwota, licznik i liczba ofert ma `tabular-nums`, żeby zmiana na żywo nie przesuwała układu.",
+        "section": "typography"
+      },
+      {
+        "name": "Zasada ceny na szczycie",
+        "body": "W bloku z ceną cena ma najgrubszy krój (800). Nic obok niej nie jest grubsze.",
+        "section": "typography"
+      },
+      {
+        "name": "Zasada stylów semantycznych",
+        "body": "Tekst dostaje styl roli (`text-h1`, `text-price-xl`), a nie surowy rozmiar i grubość. Domyślna skala Tailwinda jest wyłączona.",
+        "section": "typography"
+      },
+      {
+        "name": "Zasada płaskiego spoczynku",
+        "body": "Karty list nie mają cienia, dopóki ktoś na nie nie najedzie. Stały cień ma tylko to, co jest centrum widoku.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** używaj tylko nazw semantycznych z `packages/design-tokens` (`bg-primary`, `text-muted-foreground`); domyślna paleta i fonty Tailwinda są wyłączone.",
+      "**Do** pokazuj cenę łączną z ochroną kupujących przy każdej akcji licytacji (`TotalPrice`).",
+      "**Do** dawaj każdej kwocie i licznikowi `tabular-nums`, a cenie najgrubszy krój w bloku.",
+      "**Do** zaznaczaj aktywność fioletem (`brand`, `brand-strong`), a główną akcję w karcie granatem.",
+      "**Do** przy `prefers-reduced-motion` przekazuj te same informacje bez animacji; zmiany koloru zostają.",
+      "**Do** dodawaj nowe pary kolorów do testu kontrastu w tokenach."
+    ],
+    "donts": [
+      "**Don't** używaj gradientu CTA więcej niż raz na widok ani w nagłówku.",
+      "**Don't** kładź tekstu na gradiencie logo.",
+      "**Don't** używaj czerwieni do promocji ani dekoracji; to kolor czasu i ryzyka.",
+      "**Don't** używaj czystej czerni w tekście, cieniach ani nakładkach.",
+      "**Don't** animuj ciągle niczego poza kropką LIVE.",
+      "**Don't** wprowadzaj trybu ciemnego ani wariantu `dark:` bez decyzji; jest poza MVP.",
+      "**Don't** używaj pasteli z makiet Figma, które nie przechodzą AA; bierz ciemniejszy krok tej samej skali."
+    ]
+  }
+}

@@ -11,6 +11,8 @@ import type {
   UserOutbidEvent,
   UserWonEvent,
   NotificationNewEvent,
+  MessageNewEvent,
+  ConversationReadEvent,
 } from '@biddy/realtime';
 import { vi } from 'vitest';
 
@@ -110,6 +112,18 @@ export function fakeRealtimeClient() {
     notification(event: NotificationNewEvent) {
       for (const handlers of users) {
         handlers.onNotification?.(event);
+      }
+    },
+    /** Nowa wiadomość w rozmowie (F-29). */
+    message(event: MessageNewEvent) {
+      for (const handlers of users) {
+        handlers.onMessage?.(event);
+      }
+    },
+    /** Odczyt wiadomości w rozmowie (F-29). */
+    conversationRead(event: ConversationReadEvent) {
+      for (const handlers of users) {
+        handlers.onConversationRead?.(event);
       }
     },
     /** Liczba oglądających aukcję (F-63), jak `auction.viewers` z serwera. */

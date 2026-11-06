@@ -9,17 +9,36 @@ import {
 import type { NotificationType } from '@biddy/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Ban,
   BadgeCheck,
+  Ban,
+  Banknote,
+  BellRing,
   CircleCheck,
   CircleX,
   Clock,
+  Gavel,
+  Gift,
+  HandCoins,
+  Landmark,
   Lock,
   type LucideIcon,
+  MessageSquareWarning,
+  MessagesSquare,
   Package,
+  PackageCheck,
+  PackageOpen,
+  PackageSearch,
+  PackageX,
+  RotateCcw,
+  Scale,
+  ShieldAlert,
+  ShieldCheck,
+  Star,
   Store,
   TriangleAlert,
   Trophy,
+  Truck,
+  Undo2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ComponentProps, useState } from 'react';
@@ -29,14 +48,70 @@ import { IconTile } from '@/components/ui/icon-tile';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 
-/** Grupy ustawień (F-63): licytacje, sprzedaż i obserwowani sprzedawcy. */
+/**
+ * Grupy ustawień (F-63): licytacje, zakupy, sprzedaż, wypłaty, spory, wiadomości, oceny (F-30),
+ * obserwowani sprzedawcy i konto.
+ */
 const GROUPS: readonly {
-  readonly key: 'bidding' | 'selling' | 'following';
+  readonly key:
+    | 'bidding'
+    | 'buying'
+    | 'selling'
+    | 'payouts'
+    | 'disputes'
+    | 'messages'
+    | 'reviews'
+    | 'following'
+    | 'account';
   readonly types: readonly NotificationType[];
 }[] = [
-  { key: 'bidding', types: ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED'] },
-  { key: 'selling', types: ['SOLD', 'ORDER_PAID', 'UNSOLD'] },
+  {
+    key: 'bidding',
+    types: ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED', 'SECOND_CHANCE_OFFER'],
+  },
+  {
+    key: 'buying',
+    types: ['PAYMENT_REMINDER', 'ORDER_SHIPPED', 'ORDER_DELIVERED', 'ORDER_REFUNDED'],
+  },
+  {
+    key: 'selling',
+    types: [
+      'SOLD',
+      'ORDER_PAID',
+      'SHIP_REMINDER',
+      'ORDER_COMPLETED',
+      'ORDER_CANCELLED',
+      'ORDER_NOT_PICKED_UP',
+      'ORDER_LOST',
+      'SECOND_CHANCE_ANSWERED',
+      'UNSOLD',
+    ],
+  },
+  { key: 'payouts', types: ['PAYOUT_PAID', 'PAYOUT_FAILED', 'PAYOUT_ACCOUNT_CHANGED'] },
+  {
+    key: 'disputes',
+    types: [
+      'DISPUTE_OPENED',
+      'DISPUTE_PARTIAL_OFFERED',
+      'DISPUTE_ESCALATED',
+      'DISPUTE_RETURN_REQUESTED',
+      'DISPUTE_RETURN_DELIVERED',
+      'DISPUTE_RESOLVED',
+    ],
+  },
+  { key: 'messages', types: ['NEW_MESSAGE'] },
+  { key: 'reviews', types: ['REVIEW_REQUESTED', 'REVIEW_RECEIVED'] },
   { key: 'following', types: ['FOLLOWED_SELLER_NEW_AUCTION'] },
+  {
+    key: 'account',
+    types: [
+      'STRIKE_ISSUED',
+      'STRIKE_REVOKED',
+      'ACCOUNT_BLOCKED',
+      'ACCOUNT_UNBLOCKED',
+      'APPEAL_REJECTED',
+    ],
+  },
 ];
 
 /** Ikona typu w spokojnym tonie (w ustawieniach nic nie wymaga reakcji). */
@@ -50,12 +125,47 @@ const TYPE_TILES: Record<
   AUCTION_CANCELLED: { tone: 'neutral', Icon: Ban },
   SOLD: { tone: 'success', Icon: BadgeCheck },
   ORDER_PAID: { tone: 'success', Icon: Package },
+  PAYMENT_REMINDER: { tone: 'brand', Icon: BellRing },
+  SHIP_REMINDER: { tone: 'brand', Icon: BellRing },
+  ORDER_CANCELLED: { tone: 'neutral', Icon: PackageX },
+  ORDER_SHIPPED: { tone: 'info', Icon: Truck },
+  ORDER_DELIVERED: { tone: 'success', Icon: PackageCheck },
+  ORDER_COMPLETED: { tone: 'success', Icon: CircleCheck },
+  ORDER_NOT_PICKED_UP: { tone: 'neutral', Icon: RotateCcw },
+  ORDER_LOST: { tone: 'neutral', Icon: PackageSearch },
+  ORDER_REFUNDED: { tone: 'neutral', Icon: Undo2 },
+  SECOND_CHANCE_OFFER: { tone: 'brand', Icon: Gift },
+  SECOND_CHANCE_ANSWERED: { tone: 'neutral', Icon: Gift },
+  PAYOUT_PAID: { tone: 'success', Icon: Banknote },
+  PAYOUT_FAILED: { tone: 'neutral', Icon: TriangleAlert },
+  PAYOUT_ACCOUNT_CHANGED: { tone: 'neutral', Icon: Landmark },
+  DISPUTE_OPENED: { tone: 'neutral', Icon: MessageSquareWarning },
+  DISPUTE_PARTIAL_OFFERED: { tone: 'neutral', Icon: HandCoins },
+  DISPUTE_ESCALATED: { tone: 'neutral', Icon: Scale },
+  DISPUTE_RETURN_REQUESTED: { tone: 'neutral', Icon: PackageOpen },
+  DISPUTE_RETURN_DELIVERED: { tone: 'neutral', Icon: PackageCheck },
+  DISPUTE_RESOLVED: { tone: 'neutral', Icon: Gavel },
   UNSOLD: { tone: 'danger', Icon: CircleX },
   FOLLOWED_SELLER_NEW_AUCTION: { tone: 'neutral', Icon: Store },
+  STRIKE_ISSUED: { tone: 'neutral', Icon: ShieldAlert },
+  STRIKE_REVOKED: { tone: 'neutral', Icon: ShieldCheck },
+  ACCOUNT_BLOCKED: { tone: 'neutral', Icon: Ban },
+  ACCOUNT_UNBLOCKED: { tone: 'neutral', Icon: ShieldCheck },
+  APPEAL_REJECTED: { tone: 'neutral', Icon: Scale },
+  NEW_MESSAGE: { tone: 'neutral', Icon: MessagesSquare },
+  REVIEW_REQUESTED: { tone: 'neutral', Icon: Star },
+  REVIEW_RECEIVED: { tone: 'neutral', Icon: Star },
 };
 
 /** Typy z opisem pod nazwą (`settings.hints`). */
-const HINT_TYPES = ['OUTBID', 'ENDING_SOON', 'WON', 'AUCTION_CANCELLED'] as const;
+const HINT_TYPES = [
+  'OUTBID',
+  'ENDING_SOON',
+  'WON',
+  'AUCTION_CANCELLED',
+  'NEW_MESSAGE',
+  'REVIEW_REQUESTED',
+] as const;
 
 function hasHint(type: NotificationType): type is (typeof HINT_TYPES)[number] {
   return (HINT_TYPES as readonly string[]).includes(type);
@@ -64,7 +174,8 @@ function hasHint(type: NotificationType): type is (typeof HINT_TYPES)[number] {
 /**
  * E-maile per typ powiadomienia (F-20, układ F-63): grupy w kartach, przełącznik
  * (`role="switch"`) przy każdym typie. Zmiana zapisuje się od razu; e-maile transakcyjne
- * (wygrana, sprzedaż, opłacone zamówienie) są zawsze włączone i mają kłódkę zamiast przełącznika.
+ * (wygrana, sprzedaż, opłacone zamówienie, decyzje o koncie z F-61) są zawsze włączone i mają
+ * kłódkę zamiast przełącznika.
  * Powiadomienia w aplikacji są zawsze.
  */
 export function NotificationSettings() {

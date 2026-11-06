@@ -7,9 +7,24 @@ import { check, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-o
 
 import { idColumn } from '../../../infra/db/ids.js';
 
-/** Do czego służy zdjęcie: warianty i minimalny rozmiar zależą od przeznaczenia. */
-export const MEDIA_PURPOSES = ['ITEM_PHOTO', 'AVATAR'] as const;
+/**
+ * Do czego służy zdjęcie: warianty i minimalny rozmiar zależą od przeznaczenia. Zdjęcia ze sporu
+ * (F-28) i z wiadomości (F-29) są prywatne: ich warianty leżą w kubełku uploads, a wydaje je API
+ * stronom sporu albo rozmowy.
+ */
+export const MEDIA_PURPOSES = [
+  'ITEM_PHOTO',
+  'AVATAR',
+  'DISPUTE_EVIDENCE',
+  'MESSAGE_PHOTO',
+] as const;
 export type MediaPurpose = (typeof MEDIA_PURPOSES)[number];
+
+/** Przeznaczenia bez publicznych adresów (warianty w prywatnym kubełku). */
+export const PRIVATE_MEDIA_PURPOSES: ReadonlySet<MediaPurpose> = new Set([
+  'DISPUTE_EVIDENCE',
+  'MESSAGE_PHOTO',
+]);
 
 /**
  * PENDING_UPLOAD → PROCESSING → READY (publiczne) | FLAGGED (moderacja, niepubliczne) |
@@ -54,7 +69,10 @@ export const media = pgTable(
     index('media_unattached_created_at_index')
       .on(table.createdAt)
       .where(sql`${table.attachedAt} is null`),
-    check('media_purpose_check', sql`${table.purpose} in ('ITEM_PHOTO', 'AVATAR')`),
+    check(
+      'media_purpose_check',
+      sql`${table.purpose} in ('ITEM_PHOTO', 'AVATAR', 'DISPUTE_EVIDENCE', 'MESSAGE_PHOTO')`,
+    ),
     check(
       'media_status_check',
       sql`${table.status} in ('PENDING_UPLOAD', 'PROCESSING', 'READY', 'FLAGGED', 'REJECTED')`,

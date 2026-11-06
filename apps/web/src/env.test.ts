@@ -30,12 +30,17 @@ describe('parsePublicEnv', () => {
         NEXT_PUBLIC_API_URL: 'https://api.biddy.pl/',
         NEXT_PUBLIC_SENTRY_DSN: '',
         NEXT_PUBLIC_POSTHOG_KEY: '  ',
+        NEXT_PUBLIC_FURGONETKA_MAP_KEY: ' ',
       }),
     ).toMatchObject({
       apiUrl: 'https://api.biddy.pl',
       sentryDsn: undefined,
       posthogKey: undefined,
+      furgonetkaMapKey: undefined,
     });
+    expect(parsePublicEnv({ NEXT_PUBLIC_FURGONETKA_MAP_KEY: 'klucz-mapy' }).furgonetkaMapKey).toBe(
+      'klucz-mapy',
+    );
   });
 
   it('poza środowiskiem lokalnym adresy API i strony są wymagane', () => {

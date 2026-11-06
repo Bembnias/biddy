@@ -25,12 +25,20 @@ import { AUTH } from './session/session.js';
 import { TermsService } from './terms/terms.service.js';
 import { FollowService } from './follows/follow.service.js';
 import { FollowsController } from './follows/follows.controller.js';
+import { AccountBlockService } from './standing/account-block.service.js';
+import { AccountPolicyService } from './standing/account-policy.service.js';
+import { AccountStandingService } from './standing/account-standing.service.js';
+import { AdminStandingController } from './standing/admin-standing.controller.js';
+import { StandingController } from './standing/standing.controller.js';
+import { StrikeService } from './standing/strike.service.js';
+import { TradeHistoryService } from './standing/trade-history.service.js';
 
 export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
 
 /**
  * Moduł domenowy `identity` (PROJECT.md §10.3): konta, sesje (Better Auth), regulamin,
- * weryfikacja telefonu (F-08), profil i adresy (F-10), stan sprzedawcy (F-14) i kupującego (F-15).
+ * weryfikacja telefonu (F-08), profil i adresy (F-10), stan sprzedawcy (F-14) i kupującego (F-15),
+ * limity, strike'i i blokady (F-61).
  * Globalny, bo guardy sesji (@RequireSession, @RequireVerifiedEmail) używają go w innych
  * modułach. Trasy /v1/auth/* rejestruje tylko w procesie HTTP (w workerze nie ma serwera).
  */
@@ -44,6 +52,8 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     AddressesController,
     UsersController,
     FollowsController,
+    StandingController,
+    AdminStandingController,
   ],
   providers: [
     {
@@ -59,6 +69,11 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     SellerStandingService,
     BuyerStandingService,
     FollowService,
+    AccountPolicyService,
+    TradeHistoryService,
+    AccountBlockService,
+    StrikeService,
+    AccountStandingService,
     {
       provide: AUTH,
       inject: [APP_CONFIG, DRIZZLE, MailQueue, TURNSTILE_VERIFIER, LoginThrottle, TermsService],
@@ -86,6 +101,10 @@ export const TURNSTILE_VERIFIER = Symbol('TURNSTILE_VERIFIER');
     SellerStandingService,
     BuyerStandingService,
     FollowService,
+    AccountPolicyService,
+    TradeHistoryService,
+    AccountBlockService,
+    StrikeService,
   ],
 })
 export class IdentityModule implements OnModuleInit {

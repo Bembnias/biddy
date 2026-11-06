@@ -98,7 +98,7 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
   LISTING_BLOCKED: {
     status: 403,
     title: 'Blokada wystawiania',
-    detail: 'Masz czasową blokadę wystawiania aukcji. Szczegóły i odwołanie znajdziesz w koncie.',
+    detail: 'Masz blokadę wystawiania aukcji. Szczegóły i odwołanie znajdziesz w koncie.',
   },
   LISTING_LIMIT_REACHED: {
     status: 409,
@@ -128,7 +128,7 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
   BIDDING_BLOCKED: {
     status: 403,
     title: 'Blokada licytowania',
-    detail: 'Masz czasową blokadę licytowania. Szczegóły i odwołanie znajdziesz w koncie.',
+    detail: 'Masz blokadę licytowania. Szczegóły i odwołanie znajdziesz w koncie.',
   },
   AUCTION_ENDED: {
     status: 409,
@@ -150,6 +150,26 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     title: 'Klucz już użyty',
     detail: 'Ten klucz Idempotency-Key został użyty w innym żądaniu. Wygeneruj nowy klucz.',
   },
+  STRIKE_NOT_FOUND: {
+    status: 404,
+    title: "Nie znaleziono strike'a",
+    detail: "Nie znaleziono strike'a.",
+  },
+  ACCOUNT_BLOCK_NOT_FOUND: {
+    status: 404,
+    title: 'Nie znaleziono blokady',
+    detail: 'Nie znaleziono blokady konta.',
+  },
+  APPEAL_NOT_ALLOWED: {
+    status: 409,
+    title: 'Odwołanie niemożliwe',
+    detail: 'Od tej decyzji nie można już się odwołać.',
+  },
+  APPEAL_NOT_PENDING: {
+    status: 409,
+    title: 'Brak odwołania w toku',
+    detail: 'To odwołanie zostało już rozpatrzone albo go nie ma.',
+  },
   SHIPPING_OPTION_UNAVAILABLE: {
     status: 422,
     title: 'Dostawa niedostępna',
@@ -164,6 +184,11 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     status: 422,
     title: 'Nie ma takiego punktu',
     detail: 'Nie znaleziono wybranego punktu odbioru. Wybierz inny punkt.',
+  },
+  PICKUP_POINT_LIMIT_REACHED: {
+    status: 409,
+    title: 'Limit punktów odbioru',
+    detail: 'Możesz zapisać najwyżej 10 punktów odbioru. Usuń punkt, którego nie używasz.',
   },
   DELIVERY_ADDRESS_REQUIRED: {
     status: 422,
@@ -215,6 +240,116 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = {
     status: 409,
     title: 'Sprzedający niedostępny',
     detail: 'Sprzedający nie może teraz przyjąć płatności. Napisz do nas przez Centrum pomocy.',
+  },
+  ORDER_NOT_DELIVERED: {
+    status: 409,
+    title: 'Paczka nieodebrana',
+    detail: 'Odbiór możesz potwierdzić, gdy paczka zostanie odebrana.',
+  },
+  ORDER_ON_HOLD: {
+    status: 409,
+    title: 'Zamówienie wstrzymane',
+    detail: 'Zamówienie jest wstrzymane do wyjaśnienia płatności z bankiem kupującego.',
+  },
+  ORDER_NOT_SHIPPED_YET: {
+    status: 409,
+    title: 'Paczka jeszcze nienadana',
+    detail: 'Sprzedający jeszcze nie nadał paczki.',
+  },
+  NOT_RECEIVED_TOO_EARLY: {
+    status: 409,
+    title: 'Za wcześnie na zgłoszenie',
+    detail: 'Brak paczki możesz zgłosić 14 dni po nadaniu.',
+  },
+  SHIPMENT_FINISHED: {
+    status: 409,
+    title: 'Przesyłka zakończona',
+    detail: 'To zamówienie nie czeka już na paczkę.',
+  },
+  SECOND_CHANCE_UNAVAILABLE: {
+    status: 409,
+    title: 'Druga szansa niedostępna',
+    detail: 'Nie możesz teraz wysłać oferty drugiej szansy.',
+  },
+  SECOND_CHANCE_CLOSED: {
+    status: 409,
+    title: 'Oferta nieaktualna',
+    detail: 'Ta oferta jest już nieaktualna.',
+  },
+  PAYOUT_PROFILE_INCOMPLETE: {
+    status: 409,
+    title: 'Brak danych do wypłat',
+    detail: 'Uzupełnij dane osobowe i rachunek do wypłat.',
+  },
+  PAYOUTS_ON_HOLD: {
+    status: 409,
+    title: 'Wypłaty wstrzymane',
+    detail: 'Po zmianie rachunku wypłaty są wstrzymane przez 48 godzin.',
+  },
+  PAYOUTS_BLOCKED: {
+    status: 409,
+    title: 'Blokada wypłat',
+    detail: 'Masz blokadę wypłat. Szczegóły i odwołanie znajdziesz w koncie.',
+  },
+  SELLER_NOT_VERIFIED: {
+    status: 409,
+    title: 'Wymagana weryfikacja',
+    detail: 'Wypłata wymaga weryfikacji tożsamości u operatora płatności.',
+  },
+  RECEIVABLE_OUTSTANDING: {
+    status: 409,
+    title: 'Należność do spłaty',
+    detail: 'Masz należność wobec Biddy. Wypłaty ruszą po jej spłacie z kolejnych sprzedaży.',
+  },
+  INSUFFICIENT_BALANCE: {
+    status: 409,
+    title: 'Za mało środków',
+    detail: 'Kwota wypłaty jest większa niż saldo do wypłaty.',
+  },
+  PAYOUT_BELOW_MINIMUM: {
+    status: 409,
+    title: 'Za mała kwota',
+    detail: 'Minimalna wypłata to 20 zł.',
+  },
+  DISPUTE_UNAVAILABLE: {
+    status: 409,
+    title: 'Nie można zgłosić problemu',
+    detail: 'Problem możesz zgłosić po odebraniu paczki, zanim zamówienie się zakończy.',
+  },
+  DISPUTE_WINDOW_CLOSED: {
+    status: 409,
+    title: 'Minął czas na zgłoszenie',
+    detail: 'Problem można zgłosić w ciągu 36 godzin od odbioru paczki.',
+  },
+  DISPUTE_STATE_CHANGED: {
+    status: 409,
+    title: 'Spór się zmienił',
+    detail: 'Stan sporu się zmienił. Odśwież stronę i sprawdź, co dalej.',
+  },
+  DISPUTE_NOT_ESCALATED: {
+    status: 409,
+    title: 'Spór nie czeka na decyzję',
+    detail: 'Decyzję można wydać tylko w sporze przekazanym do zespołu Biddy.',
+  },
+  RETURN_SHIPPING_UNAVAILABLE: {
+    status: 409,
+    title: 'Zwrot niedostępny',
+    detail: 'Dla tej paczki nie ma usługi kurierskiej do zwrotu. Wybierz zwrot bez odsyłania.',
+  },
+  CONVERSATION_UNAVAILABLE: {
+    status: 409,
+    title: 'Nie można zacząć rozmowy',
+    detail: 'O tę aukcję nie można już zapytać. Rozmowę zaczniesz ze strony zamówienia.',
+  },
+  CONVERSATION_BLOCKED: {
+    status: 403,
+    title: 'Rozmowa zablokowana',
+    detail: 'Nie możesz pisać w tej rozmowie.',
+  },
+  REVIEW_UNAVAILABLE: {
+    status: 409,
+    title: 'Nie można ocenić zamówienia',
+    detail: 'Ocenić można zamówienie zakończone sprzedażą albo sporem, raz i w ciągu 14 dni.',
   },
   PAYLOAD_TOO_LARGE: {
     status: 413,

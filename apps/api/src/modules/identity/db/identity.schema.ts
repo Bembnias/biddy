@@ -1,16 +1,19 @@
 // Tabele modułu identity: konta i sesje Better Auth (users, sessions, accounts, verifications),
 // limit zapytań Better Auth (rate_limits), akceptacje regulaminu, nieudane logowania,
-// weryfikacje numeru telefonu (F-08) i adresy (F-10).
+// weryfikacje numeru telefonu (F-08) i adresy (F-10). Strike'i, blokady i historia zamówień
+// (F-61) są w standing.schema.ts.
 // ID to UUIDv7 nadawane przez aplikację (ADR-10, advanced.database.generateId w auth.ts).
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts).
 import { sql } from 'drizzle-orm';
+import type { UserLimitsOverride } from '@biddy/shared';
 import {
   bigint,
   boolean,
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -52,10 +55,8 @@ export const users = pgTable(
     avatarUrl: text(),
     status: text().$type<UserStatus>().notNull().default('ACTIVE'),
     staffRole: text().$type<StaffRole>(),
-    /** Blokada licytowania do tej chwili (strike'i, F-61); null = brak (F-15). */
-    biddingBlockedUntil: timestamp({ withTimezone: true }),
-    /** Blokada wystawiania nowych aukcji do tej chwili (strike'i, F-61); null = brak. */
-    listingBlockedUntil: timestamp({ withTimezone: true }),
+    /** Nadpisania limitów §4.1 dla tego konta (F-61); blokady są w `account_blocks`. */
+    limits: jsonb().$type<UserLimitsOverride>(),
     /** Potwierdzenie informacji o weryfikacji tożsamości przed pierwszą publikacją (F-14). */
     sellerKycNoticeAcceptedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),

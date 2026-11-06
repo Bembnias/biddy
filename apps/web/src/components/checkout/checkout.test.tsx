@@ -21,6 +21,7 @@ const LOCKER = {
   price: 1_399,
   currency: 'PLN',
   requiresPickupPoint: true,
+  pointMap: null,
 } as const;
 const COURIER = {
   carrierId: 'inpost-kurier',
@@ -29,6 +30,7 @@ const COURIER = {
   price: 1_799,
   currency: 'PLN',
   requiresPickupPoint: false,
+  pointMap: null,
 } as const;
 
 function checkout(
@@ -191,6 +193,84 @@ describe('CheckoutPanel (F-25)', () => {
     const [payment] = apiCalls(fetchMock, PAYMENTS_PATH);
     expect(payment?.body).toEqual({ method: 'BLIK', blikCode: '777123', expectedTotal: 12_398 });
     expect(payment?.headers.get('idempotency-key')).toMatch(/^[0-9a-f-]{36}$/u);
+  });
+
+  it('zapisane punkty (F-64): domyślny punkt wybrany sam, nowy punkt zapisany po wyborze dostawy', async () => {
+    let state = checkout();
+    const saved = {
+      id: '01960000-0000-7000-8000-0000000003a1',
+      carrierId: 'inpost-paczkomat',
+      pointId: 'KRA01M',
+      name: 'Paczkomat KRA01M',
+      address: 'ul. Długa 1, Kraków',
+      openingHours: '24/7',
+      isDefault: true,
+      createdAt: '2026-11-01T10:00:00.000Z',
+    };
+    const fetchMock = mockApi({
+      [CHECKOUT_PATH]: () => state,
+      '/v1/me/addresses': [defaultAddress],
+      '/v1/me/pickup-points': (method: string) =>
+        method === 'POST'
+          ? Response.json(
+              { ...saved, id: 'p2', pointId: 'WAW01M', isDefault: false },
+              { status: 201 },
+            )
+          : [saved],
+      '/v1/shipping/points': [
+        {
+          id: 'WAW01M',
+          name: 'Paczkomat WAW01M',
+          address: 'ul. Prosta 1, Warszawa',
+          location: null,
+          distanceMeters: null,
+          openingHours: '24/7',
+        },
+      ],
+      [DELIVERY_PATH]: () => {
+        state = withLocker();
+        return state;
+      },
+      [PAYMENTS_PATH]: () =>
+        Response.json(
+          withLocker({
+            blocker: 'PAYMENT_IN_PROGRESS',
+            payment: {
+              id: '01960000-0000-7000-8000-0000000000d1',
+              status: 'PENDING',
+              method: 'BLIK',
+              failureReason: null,
+              redirectUrl: null,
+              amount: 12_398,
+              createdAt: '2026-10-27T18:00:00.000Z',
+            },
+          }),
+          { status: 201 },
+        ),
+    });
+    const user = userEvent.setup();
+    render(<CheckoutPanel publicId={PUBLIC_ID} />, { wrapper: AppWrapper });
+
+    // Domyślny zapisany punkt usługi jest wybrany bez klikania; zapisany nie ma pola „Zapisz”.
+    expect(await screen.findByText('Paczkomat KRA01M')).toBeDefined();
+    expect(screen.getByText('Wybrany punkt')).toBeDefined();
+    expect(screen.queryByRole('checkbox', { name: 'Zapisz w moich punktach odbioru' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /^Zmień punkt/u }));
+    expect(screen.getByRole('group', { name: 'Twoje punkty' })).toBeDefined();
+    await user.type(screen.getByLabelText('Miasto, adres albo kod punktu'), 'Warszawa{Enter}');
+    await user.click(await screen.findByRole('radio', { name: /Paczkomat WAW01M/u }));
+    await user.click(screen.getByRole('checkbox', { name: 'Zapisz w moich punktach odbioru' }));
+    await user.type(screen.getByLabelText('Kod BLIK'), '777123');
+    await user.click(screen.getByRole('button', { name: /^Zapłać 123,98/u }));
+
+    expect(await screen.findByText('Potwierdź płatność w aplikacji banku')).toBeDefined();
+    expect(apiCalls(fetchMock, DELIVERY_PATH)[0]?.body).toMatchObject({ pickupPointId: 'WAW01M' });
+    await waitFor(() => {
+      expect(
+        apiCalls(fetchMock, '/v1/me/pickup-points').find((call) => call.body !== undefined)?.body,
+      ).toEqual({ carrierId: 'inpost-paczkomat', pointId: 'WAW01M' });
+    });
   });
 
   it('kurier: pola adresu z domyślnego adresu; suma zmieniona po zapisie dostawy zatrzymuje płatność', async () => {

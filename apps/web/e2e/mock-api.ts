@@ -9,6 +9,7 @@
 // F-18) według publicId: PUT /__e2e/public-auctions (setSsrPublicAuction). Wyszukiwarka (F-19):
 // wyniki dla zapytania `q` ustawia PUT /__e2e/search (setSsrSearch), a strona główna, kategoria
 // „Moda” i sitemap mają stałe dane (strony z cache ISR muszą wyglądać tak samo w każdym przebiegu).
+// Oceny profilu (F-30) też są stałe: MEMBER ma trzy oceny, inne konta żadnej.
 import { type IncomingMessage, type ServerResponse, createServer } from 'node:http';
 
 /** Port atrapy (Playwright podaje go też Next.js jako API_INTERNAL_URL). */
@@ -178,6 +179,48 @@ export const MEMBER = {
   createdAt: '2026-10-01T10:00:00.000Z',
 } as const;
 
+/** Reputacja konta MEMBER na profilu publicznym (F-30); inne konta bez ocen. */
+export const MEMBER_RATING = {
+  userId: MEMBER.id,
+  average: 4.67,
+  count: 3,
+  asSeller: { average: 5, count: 2 },
+  asBuyer: { average: 4, count: 1 },
+} as const;
+
+export const MEMBER_REVIEWS = {
+  items: [
+    {
+      id: '01960000-0000-7000-8000-0000000002a1',
+      rating: 5,
+      comment: 'Wazon dokładnie jak na zdjęciach, świetnie zapakowany.',
+      authorRole: 'BUYER',
+      authorName: 'm***k',
+      title: 'Wazon ceramiczny, lata 70.',
+      createdAt: '2026-10-28T10:00:00.000Z',
+    },
+    {
+      id: '01960000-0000-7000-8000-0000000002a2',
+      rating: 5,
+      comment: null,
+      authorRole: 'BUYER',
+      authorName: 'o***a',
+      title: 'Lampa biurkowa, lata 60.',
+      createdAt: '2026-10-20T10:00:00.000Z',
+    },
+    {
+      id: '01960000-0000-7000-8000-0000000002a3',
+      rating: 4,
+      comment: 'Szybka płatność.',
+      authorRole: 'SELLER',
+      authorName: 'e***a',
+      title: 'Aparat Zenit E',
+      createdAt: '2026-10-12T10:00:00.000Z',
+    },
+  ],
+  nextBefore: null,
+} as const;
+
 function cookieValue(request: IncomingMessage, name: string): string | undefined {
   for (const part of (request.headers.cookie ?? '').split(';')) {
     const [key, ...value] = part.trim().split('=');
@@ -210,6 +253,33 @@ function problem(status: number, code: string, detail: string, instance: string)
 
 /** Adresy (DTO z API) według pełnej wartości ciasteczka sesji. */
 const addressesBySession = new Map<string, unknown[]>();
+/** Zapisane punkty odbioru (F-64) według sesji: SSR strony „Adresy i punkty”. */
+const pickupPointsBySession = new Map<string, unknown[]>();
+
+/** Usługi dostaw (GET /v1/shipping/carriers); FakeShipping, więc bez mapy. */
+const CARRIERS = [
+  {
+    id: 'inpost-paczkomat',
+    name: 'InPost Paczkomat 24/7',
+    kind: 'LOCKER',
+    packageSizes: ['S', 'M', 'L'],
+    pointMap: null,
+  },
+  {
+    id: 'orlen-paczka',
+    name: 'Orlen Paczka',
+    kind: 'PICKUP_POINT',
+    packageSizes: ['S', 'M', 'L'],
+    pointMap: null,
+  },
+  {
+    id: 'dpd-kurier',
+    name: 'DPD Kurier',
+    kind: 'COURIER',
+    packageSizes: ['S', 'M', 'L', 'XL'],
+    pointMap: null,
+  },
+];
 /** Nadpisania pól /v1/me według pełnej wartości ciasteczka sesji (np. avatarUrl po zapisie). */
 const meBySession = new Map<string, Record<string, unknown>>();
 /** Aukcje sprzedającego (ListingDto) według sesji testu. */
@@ -303,6 +373,14 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     meBySession.set(
       url.searchParams.get('session') ?? '',
       (await readJson(request)) as Record<string, unknown>,
+    );
+    send(response, 200, { ok: true });
+    return;
+  }
+  if (request.method === 'PUT' && path === '/__e2e/pickup-points') {
+    pickupPointsBySession.set(
+      url.searchParams.get('session') ?? '',
+      (await readJson(request)) as unknown[],
     );
     send(response, 200, { ok: true });
     return;
@@ -417,12 +495,40 @@ async function handle(request: IncomingMessage, response: ServerResponse): Promi
     send(response, 200, found);
     return;
   }
+  if (request.method === 'GET' && path === '/v1/shipping/carriers') {
+    send(response, 200, CARRIERS);
+    return;
+  }
+  if (request.method === 'GET' && path === '/v1/me/pickup-points') {
+    if (sessionKind(session) === undefined) {
+      send(response, 401, problem(401, 'UNAUTHORIZED', 'Zaloguj się.', path));
+      return;
+    }
+    send(response, 200, pickupPointsBySession.get(session ?? '') ?? []);
+    return;
+  }
   if (request.method === 'GET' && path === '/v1/me/addresses') {
     if (sessionKind(session) === undefined) {
       send(response, 401, problem(401, 'UNAUTHORIZED', 'Zaloguj się.', path));
       return;
     }
     send(response, 200, addressesBySession.get(session ?? '') ?? []);
+    return;
+  }
+  const reputation = /^\/v1\/users\/([^/]+)\/(rating|reviews)$/.exec(path);
+  if (request.method === 'GET' && reputation !== null) {
+    const [, id = '', kind] = reputation;
+    const member = id === MEMBER.id;
+    if (kind === 'rating') {
+      const empty = { average: null, count: 0 };
+      send(
+        response,
+        200,
+        member ? MEMBER_RATING : { userId: id, ...empty, asSeller: empty, asBuyer: empty },
+      );
+      return;
+    }
+    send(response, 200, member ? MEMBER_REVIEWS : { items: [], nextBefore: null });
     return;
   }
   const profile = /^\/v1\/users\/([^/]+)$/.exec(path);

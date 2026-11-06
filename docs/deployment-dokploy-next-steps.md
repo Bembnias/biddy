@@ -165,10 +165,10 @@ Co warto wiedzieć przed testami (z opisu F-08):
 
 **Cel:** mieć w jednym miejscu wszystko, co za chwilę wkleisz do Dokploy.
 
-1. Wygeneruj trzy sekrety aplikacji (lokalnie w terminalu) i od razu zapisz w menedżerze haseł:
+1. Wygeneruj cztery sekrety aplikacji (lokalnie w terminalu) i od razu zapisz w menedżerze haseł:
 
    ```bash
-   for name in BETTER_AUTH_SECRET WEB_REVALIDATE_SECRET MEILI_MASTER_KEY; do
+   for name in BETTER_AUTH_SECRET WEB_REVALIDATE_SECRET MEILI_MASTER_KEY DATA_ENCRYPTION_KEY; do
      echo "$name=$(openssl rand -base64 32)"
    done
    ```
@@ -176,6 +176,7 @@ Co warto wiedzieć przed testami (z opisu F-08):
    - `BETTER_AUTH_SECRET`: podpis sesji (API i worker używają tego samego). Późniejsza zmiana wylogowuje wszystkich i unieważnia linki wypisania z e-maili.
    - `WEB_REVALIDATE_SECRET`: sekret, którym worker odświeża strony aukcji w web (ta sama wartość w web i workerze, Compose przekazuje ją obu).
    - `MEILI_MASTER_KEY`: klucz główny wyszukiwarki, wymagane co najmniej 16 znaków.
+   - `DATA_ENCRYPTION_KEY`: klucz szyfrowania danych do wypłat (F-27, DAC7 i rachunek). Bez starego klucza zapisanych danych nie da się odczytać, więc nie zmieniaj go po starcie.
 
 2. Skopiuj `DATABASE_URL`: Dokploy → Projects → Biddy → `biddy-postgres` → **Internal Connection URL**. Ma postać `postgresql://biddy:…@biddy-postgres-xxxxxx:5432/biddy`. Hasło nie może zawierać znaków `$`, `@`, `:` ani `/`: `$` Compose próbowałby interpretować jako zmienną, a pozostałe psują adres.
 
@@ -187,6 +188,7 @@ Co warto wiedzieć przed testami (z opisu F-08):
    | `BETTER_AUTH_SECRET` | punkt 1 | |
    | `WEB_REVALIDATE_SECRET` | punkt 1 | |
    | `MEILI_MASTER_KEY` | punkt 1 | |
+   | `DATA_ENCRYPTION_KEY` | punkt 1 | |
    | `S3_ENDPOINT` | krok 3 | |
    | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | krok 3 | |
    | `MEDIA_PUBLIC_URL` | krok 3 | |

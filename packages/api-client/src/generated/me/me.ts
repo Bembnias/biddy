@@ -30,13 +30,18 @@ import type {
 
 import type {
   AcceptTermsDto,
+  AccountBlockDto,
   AddressDto,
+  AppealDto,
   AuctionSummaryDto,
   AvatarDto,
+  BalanceHistoryDto,
+  BankAccountInputDto,
   ConfirmPhoneVerificationDto,
   CreateAddressDto,
   FollowStateDto,
   GetMyAuctionsParams,
+  GetMyBalanceHistoryParams,
   GetMyBidsParams,
   GetMyNotificationsParams,
   ListingDto,
@@ -44,18 +49,31 @@ import type {
   MeDto,
   MyBiddingDto,
   MyBidsDto,
+  MyStandingDto,
+  MyStrikesDto,
   MyWatchlistDto,
   NotificationListDto,
   NotificationPreferencesDto,
   NotificationSummaryDto,
+  PayoutDto,
+  PayoutProfileDto,
+  PayoutSettingsInputDto,
+  PersonalDataInputDto,
   PhoneVerificationDto,
   ProblemDetails,
+  RequestPayoutDto,
+  SavePickupPointDto,
+  SavedPickupPointDto,
+  SavedPickupPointDtoOutput,
+  SellerBalanceDto,
   SellingLimitsDto,
   SessionDto,
   SetAvatarDto,
   StartPhoneVerificationDto,
+  StrikeDto,
   UpdateAddressDto,
   UpdateMeDto,
+  UpdatePickupPointDto,
   UpdatePreferencesDto,
   VerifiedPhoneDto
 } from '../model';
@@ -1451,6 +1469,496 @@ export const useUnfollowSeller = <TError = ErrorType<ProblemDetails>,
       > => {
       return useMutation(getUnfollowSellerMutationOptions(options), queryClient);
     }
+    export const getGetMyStandingUrl = () => {
+
+
+
+
+  return `/v1/me/standing`
+}
+
+/**
+ * Następny poziom z brakującymi warunkami; aktywne blokady licytowania i wystawiania.
+ * @summary Poziomy, limity, blokady i liczniki strike'ów (§4.1)
+ */
+export const getMyStanding = async ( options?: Parameters<typeof apiFetch>[1]): Promise<MyStandingDto> => {
+
+  return apiFetch<MyStandingDto>(getGetMyStandingUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyStandingQueryKey = () => {
+    return [
+    `/v1/me/standing`
+    ] as const;
+    }
+
+
+export const getGetMyStandingQueryOptions = <TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyStandingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyStanding>>> = ({ signal }) => getMyStanding({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyStandingQueryResult = NonNullable<Awaited<ReturnType<typeof getMyStanding>>>
+export type GetMyStandingQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyStanding<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyStanding>>,
+          TError,
+          Awaited<ReturnType<typeof getMyStanding>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyStanding<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyStanding>>,
+          TError,
+          Awaited<ReturnType<typeof getMyStanding>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyStanding<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Poziomy, limity, blokady i liczniki strike'ów (§4.1)
+ */
+
+export function useGetMyStanding<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyStandingQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyStandingSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyStandingQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyStanding>>> = ({ signal }) => getMyStanding({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyStandingSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyStanding>>>
+export type GetMyStandingSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyStandingSuspense<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyStandingSuspense<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyStandingSuspense<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Poziomy, limity, blokady i liczniki strike'ów (§4.1)
+ */
+
+export function useGetMyStandingSuspense<TData = Awaited<ReturnType<typeof getMyStanding>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyStanding>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyStandingSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getListMyStrikesUrl = () => {
+
+
+
+
+  return `/v1/me/strikes`
+}
+
+/**
+ * Każdy wpis ma uzasadnienie i stan odwołania; `canAppeal` mówi, czy można się odwołać.
+ * @summary Strike'i i blokady z uzasadnieniem (ostatnie 2 lata)
+ */
+export const listMyStrikes = async ( options?: Parameters<typeof apiFetch>[1]): Promise<MyStrikesDto> => {
+
+  return apiFetch<MyStrikesDto>(getListMyStrikesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyStrikesQueryKey = () => {
+    return [
+    `/v1/me/strikes`
+    ] as const;
+    }
+
+
+export const getListMyStrikesQueryOptions = <TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyStrikesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyStrikes>>> = ({ signal }) => listMyStrikes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListMyStrikesQueryResult = NonNullable<Awaited<ReturnType<typeof listMyStrikes>>>
+export type ListMyStrikesQueryError = ErrorType<ProblemDetails>
+
+
+export function useListMyStrikes<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMyStrikes>>,
+          TError,
+          Awaited<ReturnType<typeof listMyStrikes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMyStrikes<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMyStrikes>>,
+          TError,
+          Awaited<ReturnType<typeof listMyStrikes>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMyStrikes<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Strike'i i blokady z uzasadnieniem (ostatnie 2 lata)
+ */
+
+export function useListMyStrikes<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListMyStrikesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getListMyStrikesSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyStrikesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyStrikes>>> = ({ signal }) => listMyStrikes({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type ListMyStrikesSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof listMyStrikes>>>
+export type ListMyStrikesSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useListMyStrikesSuspense<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMyStrikesSuspense<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListMyStrikesSuspense<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Strike'i i blokady z uzasadnieniem (ostatnie 2 lata)
+ */
+
+export function useListMyStrikesSuspense<TData = Awaited<ReturnType<typeof listMyStrikes>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof listMyStrikes>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListMyStrikesSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getAppealStrikeUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/strikes/${id}/appeal`
+}
+
+/**
+ * Jedno odwołanie na strike, tylko od niecofniętego i w terminie (409 APPEAL_NOT_ALLOWED).
+ * @summary Odwołanie od strike'a
+ */
+export const appealStrike = async (id: string,
+    appealDto: AppealDto, options?: Parameters<typeof apiFetch>[1]): Promise<StrikeDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<StrikeDto>(getAppealStrikeUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(appealDto)
+  }
+);}
+
+
+
+
+
+export const getAppealStrikeMutationKey = () => ['appealStrike'] as const;
+
+export const getAppealStrikeMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appealStrike>>, TError,AppealStrikeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof appealStrike>>, TError,AppealStrikeMutationVariables, TContext> => {
+
+const mutationKey = getAppealStrikeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof appealStrike>>, AppealStrikeMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  appealStrike(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AppealStrikeMutationResult = NonNullable<Awaited<ReturnType<typeof appealStrike>>>
+    export type AppealStrikeMutationBody = BodyType<AppealDto>
+    export type AppealStrikeMutationError = ErrorType<ProblemDetails>
+    export type AppealStrikeMutationVariables = {id: string;data: BodyType<AppealDto>}
+
+    /**
+ * @summary Odwołanie od strike'a
+ */
+export const useAppealStrike = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appealStrike>>, TError,AppealStrikeMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof appealStrike>>,
+        TError,
+        AppealStrikeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAppealStrikeMutationOptions(options), queryClient);
+    }
+    export const getAppealAccountBlockUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/account-blocks/${id}/appeal`
+}
+
+/**
+ * Jedno odwołanie na blokadę, tylko od trwającej i w terminie (409 APPEAL_NOT_ALLOWED).
+ * @summary Odwołanie od blokady konta
+ */
+export const appealAccountBlock = async (id: string,
+    appealDto: AppealDto, options?: Parameters<typeof apiFetch>[1]): Promise<AccountBlockDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<AccountBlockDto>(getAppealAccountBlockUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(appealDto)
+  }
+);}
+
+
+
+
+
+export const getAppealAccountBlockMutationKey = () => ['appealAccountBlock'] as const;
+
+export const getAppealAccountBlockMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appealAccountBlock>>, TError,AppealAccountBlockMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof appealAccountBlock>>, TError,AppealAccountBlockMutationVariables, TContext> => {
+
+const mutationKey = getAppealAccountBlockMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof appealAccountBlock>>, AppealAccountBlockMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  appealAccountBlock(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AppealAccountBlockMutationResult = NonNullable<Awaited<ReturnType<typeof appealAccountBlock>>>
+    export type AppealAccountBlockMutationBody = BodyType<AppealDto>
+    export type AppealAccountBlockMutationError = ErrorType<ProblemDetails>
+    export type AppealAccountBlockMutationVariables = {id: string;data: BodyType<AppealDto>}
+
+    /**
+ * @summary Odwołanie od blokady konta
+ */
+export const useAppealAccountBlock = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof appealAccountBlock>>, TError,AppealAccountBlockMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof appealAccountBlock>>,
+        TError,
+        AppealAccountBlockMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAppealAccountBlockMutationOptions(options), queryClient);
+    }
     export const getSetAvatarUrl = () => {
 
 
@@ -2711,6 +3219,1237 @@ export const useUnwatchAuction = <TError = ErrorType<ProblemDetails>,
         TContext
       > => {
       return useMutation(getUnwatchAuctionMutationOptions(options), queryClient);
+    }
+    export const getGetMyBalanceUrl = () => {
+
+
+
+
+  return `/v1/me/balance`
+}
+
+/**
+ * Salda z ledgera, powód blokady wypłaty i zamówienia w trakcie.
+ * @summary Saldo sprzedającego: do wypłaty, w trakcie, należność, wypłaty w drodze
+ */
+export const getMyBalance = async ( options?: Parameters<typeof apiFetch>[1]): Promise<SellerBalanceDto> => {
+
+  return apiFetch<SellerBalanceDto>(getGetMyBalanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyBalanceQueryKey = () => {
+    return [
+    `/v1/me/balance`
+    ] as const;
+    }
+
+
+export const getGetMyBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalance>>> = ({ signal }) => getMyBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalance>>>
+export type GetMyBalanceQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBalance>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBalance>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBalance>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBalance>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Saldo sprzedającego: do wypłaty, w trakcie, należność, wypłaty w drodze
+ */
+
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBalanceQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyBalanceSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalance>>> = ({ signal }) => getMyBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyBalanceSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalance>>>
+export type GetMyBalanceSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBalanceSuspense<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceSuspense<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceSuspense<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Saldo sprzedającego: do wypłaty, w trakcie, należność, wypłaty w drodze
+ */
+
+export function useGetMyBalanceSuspense<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBalanceSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyBalanceHistoryUrl = (params?: GetMyBalanceHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/me/balance/history?${stringifiedParams}` : `/v1/me/balance/history`
+}
+
+/**
+ * Od najnowszej; kolejna strona z `cursor` = `nextCursor`.
+ * @summary Historia salda: sprzedaże, wypłaty, korekty (20 na stronę)
+ */
+export const getMyBalanceHistory = async (params?: GetMyBalanceHistoryParams, options?: Parameters<typeof apiFetch>[1]): Promise<BalanceHistoryDto> => {
+
+  return apiFetch<BalanceHistoryDto>(getGetMyBalanceHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyBalanceHistoryQueryKey = (params?: GetMyBalanceHistoryParams,) => {
+    return [
+    `/v1/me/balance/history`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMyBalanceHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalanceHistory>>> = ({ signal }) => getMyBalanceHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyBalanceHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalanceHistory>>>
+export type GetMyBalanceHistoryQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBalanceHistory<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params: undefined |  GetMyBalanceHistoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBalanceHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBalanceHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceHistory<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyBalanceHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getMyBalanceHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceHistory<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Historia salda: sprzedaże, wypłaty, korekty (20 na stronę)
+ */
+
+export function useGetMyBalanceHistory<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBalanceHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyBalanceHistorySuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalanceHistory>>> = ({ signal }) => getMyBalanceHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyBalanceHistorySuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalanceHistory>>>
+export type GetMyBalanceHistorySuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyBalanceHistorySuspense<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params: undefined |  GetMyBalanceHistoryParams, options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceHistorySuspense<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyBalanceHistorySuspense<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Historia salda: sprzedaże, wypłaty, korekty (20 na stronę)
+ */
+
+export function useGetMyBalanceHistorySuspense<TData = Awaited<ReturnType<typeof getMyBalanceHistory>>, TError = ErrorType<ProblemDetails>>(
+ params?: GetMyBalanceHistoryParams, options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyBalanceHistory>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyBalanceHistorySuspenseQueryOptions(params,options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetPayoutProfileUrl = () => {
+
+
+
+
+  return `/v1/me/payout-profile`
+}
+
+/**
+ * Identyfikator podatkowy i rachunek tylko zamaskowane.
+ * @summary Dane do wypłat (DAC7 i rachunek)
+ */
+export const getPayoutProfile = async ( options?: Parameters<typeof apiFetch>[1]): Promise<PayoutProfileDto> => {
+
+  return apiFetch<PayoutProfileDto>(getGetPayoutProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayoutProfileQueryKey = () => {
+    return [
+    `/v1/me/payout-profile`
+    ] as const;
+    }
+
+
+export const getGetPayoutProfileQueryOptions = <TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayoutProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayoutProfile>>> = ({ signal }) => getPayoutProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPayoutProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getPayoutProfile>>>
+export type GetPayoutProfileQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetPayoutProfile<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPayoutProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getPayoutProfile>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayoutProfile<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPayoutProfile>>,
+          TError,
+          Awaited<ReturnType<typeof getPayoutProfile>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayoutProfile<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Dane do wypłat (DAC7 i rachunek)
+ */
+
+export function useGetPayoutProfile<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPayoutProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetPayoutProfileSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayoutProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayoutProfile>>> = ({ signal }) => getPayoutProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetPayoutProfileSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getPayoutProfile>>>
+export type GetPayoutProfileSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetPayoutProfileSuspense<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayoutProfileSuspense<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayoutProfileSuspense<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Dane do wypłat (DAC7 i rachunek)
+ */
+
+export function useGetPayoutProfileSuspense<TData = Awaited<ReturnType<typeof getPayoutProfile>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getPayoutProfile>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPayoutProfileSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getPutPersonalDataUrl = () => {
+
+
+
+
+  return `/v1/me/payout-profile/personal-data`
+}
+
+/**
+ * PESEL musi zgadzać się z datą urodzenia; wypłaty od 18 lat. Dane są szyfrowane.
+ * @summary Zapis danych osobowych do wypłat (DAC7)
+ */
+export const putPersonalData = async (personalDataInputDto: PersonalDataInputDto, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutProfileDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PayoutProfileDto>(getPutPersonalDataUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(personalDataInputDto)
+  }
+);}
+
+
+
+
+
+export const getPutPersonalDataMutationKey = () => ['putPersonalData'] as const;
+
+export const getPutPersonalDataMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putPersonalData>>, TError,PutPersonalDataMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putPersonalData>>, TError,PutPersonalDataMutationVariables, TContext> => {
+
+const mutationKey = getPutPersonalDataMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putPersonalData>>, PutPersonalDataMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  putPersonalData(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutPersonalDataMutationResult = NonNullable<Awaited<ReturnType<typeof putPersonalData>>>
+    export type PutPersonalDataMutationBody = BodyType<PersonalDataInputDto>
+    export type PutPersonalDataMutationError = ErrorType<ProblemDetails>
+    export type PutPersonalDataMutationVariables = {data: BodyType<PersonalDataInputDto>}
+
+    /**
+ * @summary Zapis danych osobowych do wypłat (DAC7)
+ */
+export const usePutPersonalData = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putPersonalData>>, TError,PutPersonalDataMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putPersonalData>>,
+        TError,
+        PutPersonalDataMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutPersonalDataMutationOptions(options), queryClient);
+    }
+    export const getPutBankAccountUrl = () => {
+
+
+
+
+  return `/v1/me/payout-profile/bank-account`
+}
+
+/**
+ * Zmiana numeru wstrzymuje wypłaty na 48 h; każdy nowy numer wysyła powiadomienie (§16.1).
+ * @summary Zapis rachunku do wypłat
+ */
+export const putBankAccount = async (bankAccountInputDto: BankAccountInputDto, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutProfileDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PayoutProfileDto>(getPutBankAccountUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(bankAccountInputDto)
+  }
+);}
+
+
+
+
+
+export const getPutBankAccountMutationKey = () => ['putBankAccount'] as const;
+
+export const getPutBankAccountMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putBankAccount>>, TError,PutBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof putBankAccount>>, TError,PutBankAccountMutationVariables, TContext> => {
+
+const mutationKey = getPutBankAccountMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putBankAccount>>, PutBankAccountMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  putBankAccount(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutBankAccountMutationResult = NonNullable<Awaited<ReturnType<typeof putBankAccount>>>
+    export type PutBankAccountMutationBody = BodyType<BankAccountInputDto>
+    export type PutBankAccountMutationError = ErrorType<ProblemDetails>
+    export type PutBankAccountMutationVariables = {data: BodyType<BankAccountInputDto>}
+
+    /**
+ * @summary Zapis rachunku do wypłat
+ */
+export const usePutBankAccount = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putBankAccount>>, TError,PutBankAccountMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof putBankAccount>>,
+        TError,
+        PutBankAccountMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPutBankAccountMutationOptions(options), queryClient);
+    }
+    export const getPatchPayoutSettingsUrl = () => {
+
+
+
+
+  return `/v1/me/payout-settings`
+}
+
+/**
+ * @summary Ustawienia wypłat: wypłata tygodniowa
+ */
+export const patchPayoutSettings = async (payoutSettingsInputDto: PayoutSettingsInputDto, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutProfileDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PayoutProfileDto>(getPatchPayoutSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(payoutSettingsInputDto)
+  }
+);}
+
+
+
+
+
+export const getPatchPayoutSettingsMutationKey = () => ['patchPayoutSettings'] as const;
+
+export const getPatchPayoutSettingsMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchPayoutSettings>>, TError,PatchPayoutSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchPayoutSettings>>, TError,PatchPayoutSettingsMutationVariables, TContext> => {
+
+const mutationKey = getPatchPayoutSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchPayoutSettings>>, PatchPayoutSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  patchPayoutSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchPayoutSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof patchPayoutSettings>>>
+    export type PatchPayoutSettingsMutationBody = BodyType<PayoutSettingsInputDto>
+    export type PatchPayoutSettingsMutationError = ErrorType<ProblemDetails>
+    export type PatchPayoutSettingsMutationVariables = {data: BodyType<PayoutSettingsInputDto>}
+
+    /**
+ * @summary Ustawienia wypłat: wypłata tygodniowa
+ */
+export const usePatchPayoutSettings = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchPayoutSettings>>, TError,PatchPayoutSettingsMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof patchPayoutSettings>>,
+        TError,
+        PatchPayoutSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPatchPayoutSettingsMutationOptions(options), queryClient);
+    }
+    export const getRequestPayoutUrl = () => {
+
+
+
+
+  return `/v1/me/payouts`
+}
+
+/**
+ * Kwota domyślnie = całe saldo do wypłaty. 409 z kodem przyczyny: PAYOUT_PROFILE_INCOMPLETE, PAYOUTS_ON_HOLD, PAYOUTS_BLOCKED, RECEIVABLE_OUTSTANDING, INSUFFICIENT_BALANCE, PAYOUT_BELOW_MINIMUM, SELLER_NOT_VERIFIED.
+ * @summary Wypłata salda na rachunek (minimum 20 zł)
+ */
+export const requestPayout = async (requestPayoutDto: RequestPayoutDto, options?: Parameters<typeof apiFetch>[1]): Promise<PayoutDto> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<PayoutDto>(getRequestPayoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(requestPayoutDto)
+  }
+);}
+
+
+
+
+
+export const getRequestPayoutMutationKey = () => ['requestPayout'] as const;
+
+export const getRequestPayoutMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPayout>>, TError,RequestPayoutMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestPayout>>, TError,RequestPayoutMutationVariables, TContext> => {
+
+const mutationKey = getRequestPayoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestPayout>>, RequestPayoutMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestPayout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestPayoutMutationResult = NonNullable<Awaited<ReturnType<typeof requestPayout>>>
+    export type RequestPayoutMutationBody = BodyType<RequestPayoutDto>
+    export type RequestPayoutMutationError = ErrorType<ProblemDetails>
+    export type RequestPayoutMutationVariables = {data: BodyType<RequestPayoutDto>}
+
+    /**
+ * @summary Wypłata salda na rachunek (minimum 20 zł)
+ */
+export const useRequestPayout = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestPayout>>, TError,RequestPayoutMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestPayout>>,
+        TError,
+        RequestPayoutMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestPayoutMutationOptions(options), queryClient);
+    }
+    export const getGetMyPickupPointsUrl = () => {
+
+
+
+
+  return `/v1/me/pickup-points`
+}
+
+/**
+ * @summary Zapisane punkty odbioru
+ */
+export const getMyPickupPoints = async ( options?: Parameters<typeof apiFetch>[1]): Promise<SavedPickupPointDtoOutput[]> => {
+
+  return apiFetch<SavedPickupPointDtoOutput[]>(getGetMyPickupPointsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyPickupPointsQueryKey = () => {
+    return [
+    `/v1/me/pickup-points`
+    ] as const;
+    }
+
+
+export const getGetMyPickupPointsQueryOptions = <TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyPickupPointsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPickupPoints>>> = ({ signal }) => getMyPickupPoints({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyPickupPointsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPickupPoints>>>
+export type GetMyPickupPointsQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyPickupPoints<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyPickupPoints>>,
+          TError,
+          Awaited<ReturnType<typeof getMyPickupPoints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPickupPoints<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyPickupPoints>>,
+          TError,
+          Awaited<ReturnType<typeof getMyPickupPoints>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPickupPoints<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Zapisane punkty odbioru
+ */
+
+export function useGetMyPickupPoints<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyPickupPointsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getGetMyPickupPointsSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>( options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyPickupPointsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPickupPoints>>> = ({ signal }) => getMyPickupPoints({ signal, ...requestOptions });
+
+
+
+
+
+   return  queryOptionsBuilder({ queryKey, ...queryOptions, queryFn: queryOptions?.queryFn ?? queryFn}) as UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> } & { throwOnError?: ((this: never, error: TError) => boolean) & { readonly __inferenceOnly: never } }
+}
+
+export type GetMyPickupPointsSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPickupPoints>>>
+export type GetMyPickupPointsSuspenseQueryError = ErrorType<ProblemDetails>
+
+
+export function useGetMyPickupPointsSuspense<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options: { query:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPickupPointsSuspense<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyPickupPointsSuspense<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+  ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Zapisane punkty odbioru
+ */
+
+export function useGetMyPickupPointsSuspense<TData = Awaited<ReturnType<typeof getMyPickupPoints>>, TError = ErrorType<ProblemDetails>>(
+  options?: { query?:Partial<UseSuspenseQueryOptions<Awaited<ReturnType<typeof getMyPickupPoints>>, TError, TData>>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyPickupPointsSuspenseQueryOptions(options)
+
+  const query = useSuspenseQuery(queryOptions, queryClient) as  UseSuspenseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+export const getSavePickupPointUrl = () => {
+
+
+
+
+  return `/v1/me/pickup-points`
+}
+
+/**
+ * Sprawdza punkt u dostawcy i zapisuje kopię nazwy i adresu. Pierwszy punkt usługi jest domyślny. Już zapisany punkt: 200 bez drugiego wpisu. Najwyżej 10 punktów (409 PICKUP_POINT_LIMIT_REACHED); punkt nieczynny: 422 PICKUP_POINT_NOT_FOUND.
+ * @summary Zapis punktu odbioru
+ */
+export const savePickupPoint = async (savePickupPointDto: SavePickupPointDto, options?: Parameters<typeof apiFetch>[1]): Promise<SavedPickupPointDto | SavedPickupPointDtoOutput> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<SavedPickupPointDto | SavedPickupPointDtoOutput>(getSavePickupPointUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(savePickupPointDto)
+  }
+);}
+
+
+
+
+
+export const getSavePickupPointMutationKey = () => ['savePickupPoint'] as const;
+
+export const getSavePickupPointMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof savePickupPoint>>, TError,SavePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof savePickupPoint>>, TError,SavePickupPointMutationVariables, TContext> => {
+
+const mutationKey = getSavePickupPointMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof savePickupPoint>>, SavePickupPointMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  savePickupPoint(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SavePickupPointMutationResult = NonNullable<Awaited<ReturnType<typeof savePickupPoint>>>
+    export type SavePickupPointMutationBody = BodyType<SavePickupPointDto>
+    export type SavePickupPointMutationError = ErrorType<ProblemDetails>
+    export type SavePickupPointMutationVariables = {data: BodyType<SavePickupPointDto>}
+
+    /**
+ * @summary Zapis punktu odbioru
+ */
+export const useSavePickupPoint = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof savePickupPoint>>, TError,SavePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof savePickupPoint>>,
+        TError,
+        SavePickupPointMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSavePickupPointMutationOptions(options), queryClient);
+    }
+    export const getUpdatePickupPointUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/pickup-points/${id}`
+}
+
+/**
+ * @summary Punkt domyślny usługi
+ */
+export const updatePickupPoint = async (id: string,
+    updatePickupPointDto: UpdatePickupPointDto, options?: Parameters<typeof apiFetch>[1]): Promise<SavedPickupPointDtoOutput> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return apiFetch<SavedPickupPointDtoOutput>(getUpdatePickupPointUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updatePickupPointDto)
+  }
+);}
+
+
+
+
+
+export const getUpdatePickupPointMutationKey = () => ['updatePickupPoint'] as const;
+
+export const getUpdatePickupPointMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePickupPoint>>, TError,UpdatePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePickupPoint>>, TError,UpdatePickupPointMutationVariables, TContext> => {
+
+const mutationKey = getUpdatePickupPointMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePickupPoint>>, UpdatePickupPointMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePickupPoint(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePickupPointMutationResult = NonNullable<Awaited<ReturnType<typeof updatePickupPoint>>>
+    export type UpdatePickupPointMutationBody = BodyType<UpdatePickupPointDto>
+    export type UpdatePickupPointMutationError = ErrorType<ProblemDetails>
+    export type UpdatePickupPointMutationVariables = {id: string;data: BodyType<UpdatePickupPointDto>}
+
+    /**
+ * @summary Punkt domyślny usługi
+ */
+export const useUpdatePickupPoint = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePickupPoint>>, TError,UpdatePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updatePickupPoint>>,
+        TError,
+        UpdatePickupPointMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdatePickupPointMutationOptions(options), queryClient);
+    }
+    export const getDeletePickupPointUrl = (id: string,) => {
+
+
+
+
+  return `/v1/me/pickup-points/${id}`
+}
+
+/**
+ * Usunięcie domyślnego punktu nie wybiera nowego domyślnego.
+ * @summary Usunięcie punktu odbioru
+ */
+export const deletePickupPoint = async (id: string, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getDeletePickupPointUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeletePickupPointMutationKey = () => ['deletePickupPoint'] as const;
+
+export const getDeletePickupPointMutationOptions = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePickupPoint>>, TError,DeletePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePickupPoint>>, TError,DeletePickupPointMutationVariables, TContext> => {
+
+const mutationKey = getDeletePickupPointMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePickupPoint>>, DeletePickupPointMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deletePickupPoint(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePickupPointMutationResult = NonNullable<Awaited<ReturnType<typeof deletePickupPoint>>>
+
+    export type DeletePickupPointMutationError = ErrorType<ProblemDetails>
+    export type DeletePickupPointMutationVariables = {id: string}
+
+    /**
+ * @summary Usunięcie punktu odbioru
+ */
+export const useDeletePickupPoint = <TError = ErrorType<ProblemDetails>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePickupPoint>>, TError,DeletePickupPointMutationVariables, TContext>, request?: SecondParameter<typeof apiFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deletePickupPoint>>,
+        TError,
+        DeletePickupPointMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeletePickupPointMutationOptions(options), queryClient);
     }
     export const getGetMyNotificationsUrl = (params?: GetMyNotificationsParams,) => {
   const normalizedParams = new URLSearchParams();

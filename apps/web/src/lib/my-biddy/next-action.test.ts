@@ -88,6 +88,7 @@ describe('bidRow', () => {
       date,
     );
     expect(paid.status.key).toBe('wonPaid');
+    expect(paid.action).toMatchObject({ label: 'details', href: '/zamowienia/p7q2m4nx' });
     const cancelled = bidRow(
       entry({
         outcome: 'WON',
@@ -124,7 +125,7 @@ describe('watchRow i saleRow', () => {
     expect(watchRow({ ...AUCTION, status: 'ENDED_SOLD' }).action).toEqual({ kind: 'unwatch' });
   });
 
-  it('sprzedana: czeka na płatność, opłacona z „Nadaj paczkę” prowadzącym do strony nadania (F-24)', () => {
+  it('sprzedana: czeka na płatność, opłacona z „Nadaj paczkę”, po braku płatności druga szansa (F-24, F-26)', () => {
     const sale = (status: string): AuctionSummaryDto => ({
       id: AUCTION.id,
       publicId: AUCTION.publicId,
@@ -152,7 +153,7 @@ describe('watchRow i saleRow', () => {
         values: { date: '[2026-10-21]', number: 'p7q2m4nx' },
         tone: 'warning',
       },
-      action: { kind: 'none' },
+      action: { kind: 'link', label: 'details', href: '/zamowienia/p7q2m4nx', primary: false },
     });
     expect(saleRow(sale('SHIPPED'), date).status).toMatchObject({
       key: 'orderStatus',
@@ -164,6 +165,16 @@ describe('watchRow i saleRow', () => {
       label: 'ship',
       href: '/zamowienia/p7q2m4nx/nadaj',
       primary: true,
+    });
+    expect(saleRow(sale('CANCELLED_UNPAID'), date).action).toEqual({
+      kind: 'link',
+      label: 'secondChance',
+      href: '/zamowienia/p7q2m4nx',
+      primary: true,
+    });
+    expect(saleRow(sale('COMPLETED'), date).action).toMatchObject({
+      label: 'details',
+      href: '/zamowienia/p7q2m4nx',
     });
   });
 });

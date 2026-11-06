@@ -45,6 +45,11 @@ export const publicEnvSchema = z
       httpUrl('https://eu.i.posthog.com').default('https://eu.i.posthog.com'),
     ),
     NEXT_PUBLIC_APP_RELEASE: emptyAsMissing(z.string().trim().optional()),
+    /**
+     * Klucz klienta mapy punktów Furgonetki (F-64), przypisany w panelu Furgonetki do domen
+     * środowiska (nie do localhost). Publiczny; bez niego checkout pokazuje tylko wyszukiwarkę.
+     */
+    NEXT_PUBLIC_FURGONETKA_MAP_KEY: emptyAsMissing(z.string().trim().optional()),
   })
   .superRefine((env, ctx) => {
     // Poza środowiskiem lokalnym adresy localhost byłyby błędem konfiguracji, a nie wygodą.
@@ -69,6 +74,7 @@ export const publicEnvSchema = z
     posthogKey: env.NEXT_PUBLIC_POSTHOG_KEY,
     posthogHost: env.NEXT_PUBLIC_POSTHOG_HOST,
     release: env.NEXT_PUBLIC_APP_RELEASE,
+    furgonetkaMapKey: env.NEXT_PUBLIC_FURGONETKA_MAP_KEY,
   }));
 
 export type PublicEnv = z.output<typeof publicEnvSchema>;
@@ -105,6 +111,7 @@ export function publicEnvInput(
     NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
     NEXT_PUBLIC_APP_RELEASE: process.env.NEXT_PUBLIC_APP_RELEASE,
+    NEXT_PUBLIC_FURGONETKA_MAP_KEY: process.env.NEXT_PUBLIC_FURGONETKA_MAP_KEY,
   };
   return Object.fromEntries(
     Object.entries(explicit).map(([key, value]) => [

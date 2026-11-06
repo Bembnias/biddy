@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Query } from '@nestjs/common';
+import { Controller, Get, Header, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ZodResponse, createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
@@ -26,9 +26,17 @@ class PickupPointsQuery extends createZodDto(
     }),
 ) {}
 
+class PickupPointParams extends createZodDto(
+  z.object({ pointId: z.string().trim().min(1).max(100).describe('Kod punktu, np. WAW01M') }),
+) {}
+
+class PickupPointCarrierQuery extends createZodDto(
+  z.object({ carrier: z.string().min(1).max(60).describe('Usługa, np. inpost-paczkomat') }),
+) {}
+
 /**
- * Punkty odbioru usługi u dostawcy (F-24): mapa w checkoutcie (F-25). Wymaga sesji, bo każde
- * zapytanie zużywa limit API dostawcy.
+ * Punkty odbioru usługi u dostawcy punktów (F-24, F-64): wyszukiwarka i punkt po kodzie z mapy.
+ * Wymaga sesji, bo każde zapytanie zużywa limit API dostawcy.
  */
 @ApiTags('shipping')
 @Controller('shipping')
@@ -53,5 +61,22 @@ export class PickupPointsController {
       ...(query.limit === undefined ? {} : { limit: query.limit }),
     });
     return points.map(pickupPointDto);
+  }
+
+  @Get('points/:pointId')
+  @RequireSession()
+  @Header('cache-control', 'private, max-age=60')
+  @ApiOperation({
+    summary: 'Punkt odbioru po kodzie',
+    description:
+      'Punkt wybrany na mapie (F-64): nazwa, adres i godziny od dostawcy punktów. 422 PICKUP_POINT_NOT_FOUND (nieczynny albo nieznany) i SHIPPING_OPTION_UNAVAILABLE (kurier, nieznana usługa).',
+  })
+  @ZodResponse({ status: 200, description: 'Punkt odbioru', type: PickupPointDto })
+  async getPickupPoint(
+    @Param() params: PickupPointParams,
+    @Query() query: PickupPointCarrierQuery,
+  ): Promise<PickupPointDto> {
+    const { point } = await this.points.byId(query.carrier, params.pointId);
+    return pickupPointDto(point);
   }
 }

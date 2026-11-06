@@ -35,8 +35,15 @@ const CARRIERS: CarrierDto[] = [
     name: 'InPost Paczkomat 24/7',
     kind: 'LOCKER',
     packageSizes: ['S', 'M', 'L'],
+    pointMap: null,
   },
-  { id: 'dpd-kurier', name: 'DPD Kurier', kind: 'COURIER', packageSizes: ['S', 'M', 'L', 'XL'] },
+  {
+    id: 'dpd-kurier',
+    name: 'DPD Kurier',
+    kind: 'COURIER',
+    packageSizes: ['S', 'M', 'L', 'XL'],
+    pointMap: null,
+  },
 ];
 
 const CATEGORIES: CategoryDto[] = [
@@ -78,6 +85,7 @@ const LIMITS: SellingLimitsDto = {
   maxAuctionValue: 500_000,
   kycVerified: false,
   kycRequiredAbove: 500_000,
+  listingBlocked: false,
   listingBlockedUntil: null,
   kycNoticeAccepted: false,
 };
@@ -217,7 +225,9 @@ describe('ListingWizard', () => {
     renderWizard(COMPLETE, 'opis');
     const title = screen.getByLabelText('Tytuł');
     await user.clear(title);
-    await user.type(title, 'Wazon z Ćmielowa, lata 70.');
+    // Wklejenie zamiast wpisywania znak po znaku: w CI 26 zdarzeń klawiatury i autozapis
+    // przekraczały limit czasu testu, a autozapis sprawdza to samo.
+    await user.paste('Wazon z Ćmielowa, lata 70.');
     await waitFor(
       () => {
         expect(apiCalls(fetchMock, `/v1/auctions/${ID}`).map((call) => call.body)).toEqual([

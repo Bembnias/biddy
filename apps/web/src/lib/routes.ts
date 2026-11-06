@@ -17,13 +17,24 @@ export const routes = {
   profileSettings: '/konto/profil',
   addresses: '/konto/adresy',
   newAddress: '/konto/adresy/nowy',
+  newPickupPoint: '/konto/adresy/punkty/nowy',
   myBiddy: '/moje-biddy',
   myWins: '/moje-biddy/wygrane',
   myWatchlist: '/moje-biddy/obserwowane',
   myAuctions: '/moje-biddy/aukcje',
   mySales: '/moje-biddy/sprzedane',
   notifications: '/powiadomienia',
+  /** Rozmowy kupujących ze sprzedającymi (F-29). */
+  messages: '/wiadomosci',
+  /** Zablokowani użytkownicy (F-29). */
+  blockedUsers: '/konto/zablokowani',
   notificationSettings: '/konto/powiadomienia',
+  /** Limity konta, strike'i, blokady i odwołania (F-61). */
+  accountStanding: '/konto/limity',
+  /** Saldo, wypłaty i historia salda (F-27). */
+  balance: '/konto/saldo',
+  /** Dane do wypłat: dane osobowe (DAC7) i rachunek (F-27). */
+  payoutProfile: '/konto/saldo/dane',
   unsubscribe: '/wypisz',
   about: '/o-nas',
   contact: '/kontakt',
@@ -42,6 +53,38 @@ export const routes = {
 /** Checkout zamówienia dla kupującego (F-25), np. `/zamowienia/k3x9qa7m/zaplac`. */
 export function checkoutUrl(orderPublicId: string): string {
   return `/zamowienia/${encodeURIComponent(orderPublicId)}/zaplac`;
+}
+
+/** Strona zamówienia dla obu stron (F-26), np. `/zamowienia/k3x9qa7m`. */
+export function orderUrl(orderPublicId: string): string {
+  return `/zamowienia/${encodeURIComponent(orderPublicId)}`;
+}
+
+/** Spór zamówienia dla obu stron (F-28), np. `/zamowienia/k3x9qa7m/spor`. */
+export function disputeUrl(orderPublicId: string): string {
+  return `/zamowienia/${encodeURIComponent(orderPublicId)}/spor`;
+}
+
+/** Rozmowa (F-29), np. `/wiadomosci/0196…`. */
+export function conversationUrl(conversationId: string): string {
+  return `${routes.messages}/${encodeURIComponent(conversationId)}`;
+}
+
+/**
+ * Nowa wiadomość o aukcji albo zamówieniu (F-29): `/wiadomosci/nowa?aukcja={id}` albo
+ * `?zamowienie={numer}`. Strona przekierowuje do istniejącej rozmowy pary.
+ */
+export function newConversationUrl(
+  subject: { readonly auctionId: string } | { readonly orderPublicId: string },
+): string {
+  const query: Record<string, string> =
+    'auctionId' in subject ? { aukcja: subject.auctionId } : { zamowienie: subject.orderPublicId };
+  return `${routes.messages}/nowa?${new URLSearchParams(query).toString()}`;
+}
+
+/** Oferta drugiej szansy dla licytującego (F-26). */
+export function secondChanceUrl(offerId: string): string {
+  return `/druga-szansa/${encodeURIComponent(offerId)}`;
 }
 
 /** Strona nadania paczki zamówienia dla sprzedającego (F-24), np. `/zamowienia/k3x9qa7m/nadaj`. */

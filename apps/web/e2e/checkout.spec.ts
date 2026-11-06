@@ -22,6 +22,7 @@ const LOCKER = {
   price: 1_399,
   currency: 'PLN',
   requiresPickupPoint: true,
+  pointMap: null,
 };
 const COURIER = {
   carrierId: 'inpost-kurier',
@@ -30,6 +31,7 @@ const COURIER = {
   price: 1_799,
   currency: 'PLN',
   requiresPickupPoint: false,
+  pointMap: null,
 };
 const POINT = {
   id: 'WAW01M',

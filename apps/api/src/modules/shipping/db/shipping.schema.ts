@@ -1,6 +1,7 @@
 // Tabele modułu shipping: przewoźnicy i ich usługi (F-14), cennik dostaw Biddy, przesyłki
 // z historią trackingu, reklamacje u przewoźników i tokeny Furgonetki (F-24, PROJECT.md §8,
-// §13.3). Mapowanie „gabaryt → przewoźnicy” to konfiguracja w bazie, nie stała w kodzie (§8.2).
+// §13.3) oraz zapisane punkty odbioru kupujących (F-64). Mapowanie „gabaryt → przewoźnicy” to
+// konfiguracja w bazie, nie stała w kodzie (§8.2).
 // Tabele FakeShipping są w fake-shipping.schema.ts.
 //
 // Plik nie zależy od NestJS: czyta go też drizzle-kit (drizzle.config.ts). Ograniczenie
@@ -324,3 +325,44 @@ export const furgonetkaTokens = pgTable(
   },
   (table) => [check('furgonetka_tokens_single_row_check', sql`${table.id} = 1`)],
 );
+
+/**
+ * Zapisane punkty odbioru kupującego (F-64): do 10 na konto, jeden domyślny na usługę. Kopia
+ * nazwy i adresu służy do wyświetlania; punkt i tak sprawdzamy u dostawcy przy wyborze dostawy.
+ * Kody punktów różnych dostawców się nie mieszają, więc `provider` dzieli listy.
+ */
+export const savedPickupPoints = pgTable(
+  'saved_pickup_points',
+  {
+    id: idColumn(),
+    /** Konto właściciela (bez FK między modułami). */
+    userId: uuid().notNull(),
+    provider: text().$type<ShippingProviderName>().notNull(),
+    carrierId: text()
+      .notNull()
+      .references(() => shippingCarriers.id),
+    /** Kod punktu u dostawcy, np. WAW01M. */
+    pointId: text().notNull(),
+    name: text().notNull(),
+    address: text().notNull(),
+    openingHours: text(),
+    isDefault: boolean().notNull().default(false),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('saved_pickup_points_point_key').on(
+      table.userId,
+      table.provider,
+      table.carrierId,
+      table.pointId,
+    ),
+    uniqueIndex('saved_pickup_points_default_key')
+      .on(table.userId, table.provider, table.carrierId)
+      .where(sql`${table.isDefault}`),
+    index('saved_pickup_points_user_idx').on(table.userId, table.createdAt),
+    check('saved_pickup_points_point_id_check', sql`length(${table.pointId}) between 1 and 100`),
+  ],
+);
+
+export type SavedPickupPointRow = typeof savedPickupPoints.$inferSelect;

@@ -116,6 +116,9 @@ services:
         value: 'true'
       - key: BETTER_AUTH_SECRET
         generateValue: true
+      # Szyfrowanie danych do wypłat (F-27): losowe 256 bitów w base64; nie zmieniać po zapisie danych.
+      - key: DATA_ENCRYPTION_KEY
+        generateValue: true
       - key: MEILI_URL
         sync: false
       - key: MEILI_API_KEY
@@ -202,6 +205,11 @@ services:
           name: biddy-staging-api
           type: web
           envVarKey: BETTER_AUTH_SECRET
+      - key: DATA_ENCRYPTION_KEY
+        fromService:
+          name: biddy-staging-api
+          type: web
+          envVarKey: DATA_ENCRYPTION_KEY
       - key: MEILI_URL
         sync: false
       - key: MEILI_API_KEY

@@ -1,7 +1,9 @@
-// Punkty odbioru (F-24, PROJECT.md §8.3): paczkomaty i punkty usługi u dostawcy domyślnego.
-// Lista do mapy w checkoutcie (F-25) i sprawdzenie punktu przy wyborze dostawy.
+// Punkty odbioru (F-24, F-64, PROJECT.md §8.3): paczkomaty i punkty usługi u dostawcy punktów
+// (SHIPPING_POINTS_PROVIDER). Wyszukiwarka w checkoutcie i koncie, punkt po kodzie z mapy
+// i sprawdzenie punktu przy wyborze dostawy.
 import { Inject, Injectable } from '@nestjs/common';
 
+import type { ShippingProviderName } from '../../../infra/config/index.js';
 import { DomainError } from '../../../infra/http/index.js';
 import { CarrierService, type CarrierConfigRow } from '../carriers/carrier.service.js';
 import type { PickupPoint, ShippingProvider } from '../ports/shipping-provider.port.js';
@@ -28,7 +30,7 @@ export class PickupPointService {
   /** Punkty usługi blisko miejsca albo frazy. 422 dla kuriera i nieznanej usługi. */
   async search(search: PickupPointSearch): Promise<PickupPoint[]> {
     const carrier = await this.pointCarrier(search.carrierId);
-    const provider = this.registry.default();
+    const provider = this.registry.points();
     return providerCall(() =>
       provider.findPoints({
         carrier,
@@ -43,10 +45,32 @@ export class PickupPointService {
   async point(
     carrier: CarrierConfigRow,
     pointId: string,
-    provider: ShippingProvider = this.registry.default(),
+    provider: ShippingProvider = this.registry.points(),
   ): Promise<PickupPoint | undefined> {
     const points = await providerCall(() => provider.findPoints({ carrier, pointId, limit: 1 }));
     return points.find((point) => point.id === pointId);
+  }
+
+  /**
+   * Punkt usługi po kodzie u dostawcy punktów (F-64: punkt z mapy i zapis w koncie).
+   * @throws {DomainError} SHIPPING_OPTION_UNAVAILABLE (kurier, nieznana usługa),
+   *   PICKUP_POINT_NOT_FOUND (punkt nieczynny albo nieznany)
+   */
+  async byId(
+    carrierId: string,
+    pointId: string,
+  ): Promise<{ readonly carrier: CarrierConfigRow; readonly point: PickupPoint }> {
+    const carrier = await this.pointCarrier(carrierId);
+    const point = await this.point(carrier, pointId);
+    if (point === undefined) {
+      throw new DomainError({ code: 'PICKUP_POINT_NOT_FOUND' });
+    }
+    return { carrier, point };
+  }
+
+  /** Dostawca punktów (F-64): zapisane punkty innego dostawcy są niewidoczne. */
+  get provider(): ShippingProviderName {
+    return this.registry.pointsProvider;
   }
 
   private async pointCarrier(carrierId: string): Promise<CarrierConfigRow> {

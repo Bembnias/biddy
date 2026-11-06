@@ -1,6 +1,17 @@
 // Treść powiadomień (F-20): tytuł, akapity, adres i przycisk z migawki zapisanej przy zdarzeniu.
 // Te same teksty widać w centrum powiadomień (web, mobile) i w e-mailu. Bez form zależnych od płci.
-import { auctionPath, formatMoney, type Money, type NotificationType } from '@biddy/shared';
+import {
+  type AccountBlockKind,
+  auctionPath,
+  type DisputeDecider,
+  type DisputeEscalationCause,
+  type DisputeFault,
+  type DisputeOutcome,
+  formatMoney,
+  type Money,
+  type NotificationType,
+  type StrikeReason,
+} from '@biddy/shared';
 
 /** Aukcja w migawce powiadomienia. */
 export interface AuctionRef {
@@ -10,9 +21,75 @@ export interface AuctionRef {
   readonly title: string;
 }
 
+/** Strike albo blokada w migawce powiadomienia o koncie (F-61). */
+export interface AccountRef {
+  readonly reason?: StrikeReason;
+  readonly kind?: AccountBlockKind;
+  /** Uzasadnienie decyzji (statement of reasons) albo notatka przy cofnięciu i odwołaniu. */
+  readonly statement: string;
+  readonly subject?: 'STRIKE' | 'BLOCK';
+}
+
+/** Wypłata albo zmiana rachunku w migawce powiadomienia (F-27). */
+export interface PayoutRef {
+  /** Kwota wypłaty; brak przy zmianie rachunku. */
+  readonly amount?: Money;
+  /** Rachunek, np. `•••• 2874`; brak przy nieudanej wypłacie. */
+  readonly bankAccountMasked?: string;
+  readonly trigger?: 'MANUAL' | 'WEEKLY' | 'DORMANT_BALANCE' | 'ACCOUNT_CLOSURE';
+  readonly failureReason?:
+    'REJECTED' | 'SELLER_NOT_VERIFIED' | 'INSUFFICIENT_BALANCE' | 'INVALID_REQUEST';
+  /** Zmiana rachunku: pierwszy rachunek i koniec blokady wypłat (null = bez blokady). */
+  readonly first?: boolean;
+  readonly blockedUntil?: string | null;
+}
+
+/** Spór w migawce powiadomienia (F-28). */
+export interface DisputeRef {
+  readonly orderPublicId: string;
+  readonly title: string;
+  readonly recipientRole: 'BUYER' | 'SELLER';
+  /** Termin: odpowiedzi, decyzji, nadania albo sprawdzenia zwrotu (zależnie od typu). */
+  readonly dueAt?: string;
+  /** Propozycja zwrotu części ceny albo kwota zwrotu w rozstrzygnięciu. */
+  readonly amount?: Money | null;
+  readonly cause?: DisputeEscalationCause;
+  readonly decidedBy?: DisputeDecider;
+  readonly outcome?: DisputeOutcome;
+  readonly fault?: DisputeFault | null;
+  readonly sellerCosts?: Money | null;
+  readonly statement?: string;
+}
+
+/** Nieprzeczytane wiadomości w migawce powiadomienia (F-29); bez treści wiadomości. */
+export interface MessageRef {
+  readonly conversationId: string;
+  readonly senderName: string;
+  readonly title: string;
+  readonly count: number;
+}
+
+/** Ocena w migawce powiadomienia (F-30); `REVIEW_REQUESTED` bez gwiazdek. */
+export interface ReviewRef {
+  readonly orderPublicId: string;
+  readonly title: string;
+  /** Rola autora oceny w zamówieniu. */
+  readonly authorRole: 'BUYER' | 'SELLER';
+  /** Otrzymana ocena (tylko `REVIEW_RECEIVED`). */
+  readonly rating?: number;
+  /** Termin oceny odbiorcy (tylko `REVIEW_REQUESTED`). */
+  readonly rateUntil?: string;
+}
+
 /** Migawka zapisana w `notifications.payload` (pola zależne od typu). */
 export interface NotificationPayload {
-  readonly auction: AuctionRef;
+  /** Aukcja; brak w powiadomieniach o koncie (F-61), wypłatach (F-27) i sporach (F-28). */
+  readonly auction?: AuctionRef;
+  readonly account?: AccountRef;
+  readonly payout?: PayoutRef;
+  readonly dispute?: DisputeRef;
+  readonly message?: MessageRef;
+  readonly review?: ReviewRef;
   /** Aktualna albo wywoławcza cena. */
   readonly price?: Money;
   readonly endsAt?: string;
@@ -24,10 +101,35 @@ export interface NotificationPayload {
   readonly paymentDueAt?: string;
   /** Termin nadania paczki (opłacone zamówienie, F-24). */
   readonly shipBy?: string;
+  /** Etapy zamówienia (F-26): kto dostaje powiadomienie i szczegóły etapu. */
+  readonly recipientRole?: 'BUYER' | 'SELLER';
+  readonly cancelReason?: 'UNPAID' | 'NOT_SHIPPED';
+  readonly carrierName?: string;
+  readonly trackingNumber?: string | null;
+  readonly inspectionEndsAt?: string;
+  readonly refund?: Money;
+  readonly refundReason?: RefundReasonCode;
+  readonly compensation?: Money;
+  readonly compensationDueAt?: string;
+  /** Oferta drugiej szansy (F-26). */
+  readonly offerId?: string;
+  readonly offerStatus?: 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+  readonly expiresAt?: string;
   readonly reason?: 'NO_BIDS' | 'RESERVE_NOT_MET';
   readonly cancelledBy?: 'SELLER' | 'MODERATOR';
   readonly sellerName?: string;
 }
+
+/** Powód zwrotu w migawce (lista z modułu payments; plik treści nie zależy od modułów). */
+export type RefundReasonCode =
+  | 'NOT_SHIPPED'
+  | 'LOST'
+  | 'DISPUTE'
+  | 'LATE_PAYMENT'
+  | 'DUPLICATE_PAYMENT'
+  | 'CHARGEBACK'
+  | 'NOT_PICKED_UP'
+  | 'DISPUTE_PARTIAL';
 
 export interface NotificationContent {
   readonly title: string;
@@ -45,10 +147,51 @@ export function checkoutPath(orderPublicId: string): string {
   return `/zamowienia/${orderPublicId}/zaplac`;
 }
 
+/** Limity i strike'i w ustawieniach konta (F-61). */
+export const ACCOUNT_STANDING_PATH = '/konto/limity';
+
 /** Strona nadania paczki zamówienia (F-24). */
 export function dispatchPath(orderPublicId: string): string {
   return `/zamowienia/${orderPublicId}/nadaj`;
 }
+
+/** Strona zamówienia dla obu stron (F-26). */
+export function orderPath(orderPublicId: string): string {
+  return `/zamowienia/${orderPublicId}`;
+}
+
+/** Saldo i wypłaty w ustawieniach konta (F-27). */
+export const BALANCE_PATH = '/konto/saldo';
+
+/** Dane do wypłat: dane osobowe i rachunek (F-27). */
+export const PAYOUT_PROFILE_PATH = '/konto/saldo/dane';
+
+/** Spór zamówienia dla obu stron (F-28). */
+export function disputePath(orderPublicId: string): string {
+  return `/zamowienia/${orderPublicId}/spor`;
+}
+
+/** Rozmowa (F-29). */
+export function conversationPath(conversationId: string): string {
+  return `/wiadomosci/${conversationId}`;
+}
+
+/** Oferta drugiej szansy dla licytującego (F-26). */
+export function secondChancePath(offerId: string): string {
+  return `/druga-szansa/${offerId}`;
+}
+
+/** Dlaczego zwracamy pieniądze (zdanie w powiadomieniu o zwrocie). */
+const REFUND_REASON_TEXT: Readonly<Record<RefundReasonCode, string>> = {
+  LATE_PAYMENT: 'Płatność dotarła po terminie.',
+  DUPLICATE_PAYMENT: 'Zamówienie było już opłacone.',
+  NOT_SHIPPED: 'Sprzedający nie nadał paczki w terminie.',
+  NOT_PICKED_UP: 'Paczka nie została odebrana, więc zwrot nie obejmuje dostawy.',
+  LOST: 'Paczka zaginęła.',
+  DISPUTE: 'Spór rozstrzygnięto na Twoją korzyść.',
+  DISPUTE_PARTIAL: 'To zwrot części ceny uzgodniony w sporze. POK i dostawa nie są zwracane.',
+  CHARGEBACK: 'Zwrot po reklamacji płatności w banku.',
+};
 
 const dateTime = new Intl.DateTimeFormat('pl-PL', {
   timeZone: 'Europe/Warsaw',
@@ -60,13 +203,300 @@ const date = (iso: string | undefined) => (iso === undefined ? '' : dateTime.for
 const money = (value: Money | undefined) =>
   value === undefined ? '' : formatMoney(value, { trailingZeroDisplay: 'stripIfInteger' });
 
+/** Powód strike'a w tytułach powiadomień. */
+export const STRIKE_REASON_LABELS: Readonly<Record<StrikeReason, string>> = {
+  UNPAID: 'brak płatności',
+  NOT_COLLECTED: 'nieodebrana paczka',
+  NOT_SHIPPED: 'paczka nienadana w terminie',
+  AUCTION_CANCELLED_WITH_BIDS: 'anulowanie aukcji z ofertami',
+  DISPUTE_LOST: 'przegrany spór',
+  COUNTERFEIT: 'podróbka',
+  OTHER: 'naruszenie regulaminu',
+};
+
+const BLOCK_LABELS: Readonly<Record<AccountBlockKind, string>> = {
+  BIDDING: 'licytowania',
+  LISTING: 'wystawiania aukcji',
+  PAYOUTS: 'wypłat',
+};
+
+const ACCOUNT_TYPES = [
+  'STRIKE_ISSUED',
+  'STRIKE_REVOKED',
+  'ACCOUNT_BLOCKED',
+  'ACCOUNT_UNBLOCKED',
+  'APPEAL_REJECTED',
+] as const satisfies readonly NotificationType[];
+type AccountNotificationType = (typeof ACCOUNT_TYPES)[number];
+
+function isAccountType(type: NotificationType): type is AccountNotificationType {
+  return (ACCOUNT_TYPES as readonly NotificationType[]).includes(type);
+}
+
+/** Strike'i, blokady i odwołania (F-61): treść z zapisanego uzasadnienia. */
+function accountContent(type: AccountNotificationType, account: AccountRef): NotificationContent {
+  const reason = account.reason === undefined ? 'naruszenie' : STRIKE_REASON_LABELS[account.reason];
+  const block = account.kind === undefined ? 'konta' : BLOCK_LABELS[account.kind];
+  const base = { path: ACCOUNT_STANDING_PATH, lines: [account.statement] };
+  switch (type) {
+    case 'STRIKE_ISSUED':
+      return { ...base, title: `Strike: ${reason}`, actionLabel: 'Zobacz szczegóły' };
+    case 'STRIKE_REVOKED':
+      return { ...base, title: `Cofnięto strike: ${reason}`, actionLabel: "Limity i strike'i" };
+    case 'ACCOUNT_BLOCKED':
+      return { ...base, title: `Blokada ${block}`, actionLabel: 'Szczegóły i odwołanie' };
+    case 'ACCOUNT_UNBLOCKED':
+      return { ...base, title: `Zdjęto blokadę ${block}`, actionLabel: "Limity i strike'i" };
+    case 'APPEAL_REJECTED':
+      return {
+        ...base,
+        title:
+          account.subject === 'BLOCK'
+            ? `Odwołanie od blokady ${block} nieuwzględnione`
+            : `Odwołanie od strike'a nieuwzględnione: ${reason}`,
+        actionLabel: 'Zobacz szczegóły',
+      };
+  }
+}
+
+const PAYOUT_TYPES = [
+  'PAYOUT_PAID',
+  'PAYOUT_FAILED',
+  'PAYOUT_ACCOUNT_CHANGED',
+] as const satisfies readonly NotificationType[];
+type PayoutNotificationType = (typeof PAYOUT_TYPES)[number];
+
+function isPayoutType(type: NotificationType): type is PayoutNotificationType {
+  return (PAYOUT_TYPES as readonly NotificationType[]).includes(type);
+}
+
+/** Zdanie o źródle wypłaty automatycznej. */
+const PAYOUT_TRIGGER_TEXT: Readonly<Record<NonNullable<PayoutRef['trigger']>, string>> = {
+  MANUAL: '',
+  WEEKLY: 'To wypłata tygodniowa; wyłączysz ją na stronie salda.',
+  DORMANT_BALANCE: 'Saldo poniżej 20 zł bez sprzedaży od 90 dni wypłacamy automatycznie.',
+  ACCOUNT_CLOSURE: 'To wypłata salda przy zamknięciu konta.',
+};
+
+const ACCOUNT_TAKEOVER_HINT = 'Jeśli to nie Ty, od razu zmień hasło i napisz do nas.';
+
+/** Wypłaty i zmiana rachunku (F-27). */
+function payoutContent(type: PayoutNotificationType, payout: PayoutRef): NotificationContent {
+  const amount = money(payout.amount);
+  switch (type) {
+    case 'PAYOUT_PAID':
+      return {
+        title: `Wypłata ${amount} wysłana`,
+        lines: [
+          `Wysłaliśmy ${amount} na rachunek ${payout.bankAccountMasked ?? ''}. Pieniądze dotrą zwykle w 1–2 dni robocze.`,
+          ...(payout.trigger === undefined || payout.trigger === 'MANUAL'
+            ? []
+            : [PAYOUT_TRIGGER_TEXT[payout.trigger]]),
+        ],
+        path: BALANCE_PATH,
+        actionLabel: 'Saldo i wypłaty',
+      };
+    case 'PAYOUT_FAILED':
+      return {
+        title: `Wypłata ${amount} nie powiodła się`,
+        lines: [
+          'Pieniądze wróciły na saldo w Biddy.',
+          payout.failureReason === 'SELLER_NOT_VERIFIED'
+            ? 'Wypłata wymaga weryfikacji tożsamości u operatora płatności.'
+            : 'Sprawdź numer rachunku w danych do wypłat i spróbuj ponownie.',
+        ],
+        path: BALANCE_PATH,
+        actionLabel: 'Saldo i wypłaty',
+      };
+    case 'PAYOUT_ACCOUNT_CHANGED':
+      return payout.first === true ||
+        payout.blockedUntil === undefined ||
+        payout.blockedUntil === null
+        ? {
+            title: 'Dodano rachunek do wypłat',
+            lines: [
+              `Wypłaty trafią na rachunek ${payout.bankAccountMasked ?? ''}.`,
+              ACCOUNT_TAKEOVER_HINT,
+            ],
+            path: PAYOUT_PROFILE_PATH,
+            actionLabel: 'Dane do wypłat',
+          }
+        : {
+            title: 'Zmieniono rachunek do wypłat',
+            lines: [
+              `Nowy rachunek do wypłat: ${payout.bankAccountMasked ?? ''}. Ze względów bezpieczeństwa wypłaty ruszą ${date(payout.blockedUntil)}.`,
+              ACCOUNT_TAKEOVER_HINT,
+            ],
+            path: PAYOUT_PROFILE_PATH,
+            actionLabel: 'Dane do wypłat',
+          };
+  }
+}
+
+const DISPUTE_TYPES = [
+  'DISPUTE_OPENED',
+  'DISPUTE_PARTIAL_OFFERED',
+  'DISPUTE_ESCALATED',
+  'DISPUTE_RETURN_REQUESTED',
+  'DISPUTE_RETURN_DELIVERED',
+  'DISPUTE_RESOLVED',
+] as const satisfies readonly NotificationType[];
+type DisputeNotificationType = (typeof DISPUTE_TYPES)[number];
+
+function isDisputeType(type: NotificationType): type is DisputeNotificationType {
+  return (DISPUTE_TYPES as readonly NotificationType[]).includes(type);
+}
+
+/** Wynik sporu dla odbiorcy: co dostaje albo co się dzieje z pieniędzmi. */
+function disputeOutcomeLine(dispute: DisputeRef): string {
+  const buyer = dispute.recipientRole === 'BUYER';
+  const amount = money(dispute.amount ?? undefined);
+  switch (dispute.outcome) {
+    case 'SELLER_FAVOR':
+      return buyer
+        ? 'Spór zakończył się na korzyść sprzedającego, więc nie zwracamy pieniędzy.'
+        : 'Spór zakończył się na Twoją korzyść: cena trafi na Twoje saldo.';
+    case 'PARTIAL_REFUND':
+      return buyer
+        ? `Zwracamy Ci ${amount}. Przedmiot zostaje u Ciebie.`
+        : `Kupujący dostaje zwrot ${amount}, a reszta ceny trafi na Twoje saldo.`;
+    case 'FULL_REFUND':
+      if (buyer) {
+        return `Zwracamy Ci ${amount}.`;
+      }
+      if (dispute.fault === 'CARRIER') {
+        return 'Kupujący dostaje pełny zwrot, a Ty rekompensatę równą cenie, bo paczkę uszkodził przewoźnik.';
+      }
+      return dispute.sellerCosts === null || dispute.sellerCosts === undefined
+        ? 'Kupujący dostaje pełny zwrot.'
+        : `Kupujący dostaje pełny zwrot, a koszt dostawy ${money(dispute.sellerCosts)} potrącimy z Twojego salda.`;
+    case undefined:
+      return '';
+  }
+}
+
+/** Dlaczego spór trafił do Biddy (zdanie w powiadomieniu o eskalacji). */
+const ESCALATION_TEXT: Readonly<Record<DisputeEscalationCause, string>> = {
+  SELLER_REJECTED: 'Sprzedający nie zgodził się ze zgłoszeniem.',
+  SELLER_SILENT: 'Sprzedający nie odpowiedział w 48 godzin.',
+  OFFER_REJECTED: 'Kupujący nie przyjął propozycji zwrotu części ceny.',
+  BUYER_SILENT: 'Kupujący nie odpowiedział na propozycję w 48 godzin.',
+  RETURN_CONTESTED: 'Sprzedający zgłosił problem ze zwrotem.',
+  RETURN_FAILED: 'Przesyłka zwrotna nie dotarła do sprzedającego.',
+};
+
+/** Spory (F-28): terminy i rozstrzygnięcie z uzasadnieniem. */
+function disputeContent(type: DisputeNotificationType, dispute: DisputeRef): NotificationContent {
+  const title = `„${dispute.title}”`;
+  const path = disputePath(dispute.orderPublicId);
+  const buyer = dispute.recipientRole === 'BUYER';
+  switch (type) {
+    case 'DISPUTE_OPENED':
+      return {
+        title: `Kupujący zgłosił problem z ${title}`,
+        lines: [
+          `Odpowiedz do ${date(dispute.dueAt)}: zwróć pieniądze, zaproponuj zwrot części ceny albo wyjaśnij, dlaczego się nie zgadzasz.`,
+          'Bez odpowiedzi spór rozstrzygnie zespół Biddy. Do tego czasu pieniądze czekają w Biddy.',
+        ],
+        path,
+        actionLabel: 'Odpowiedz',
+      };
+    case 'DISPUTE_PARTIAL_OFFERED':
+      return {
+        title: `Propozycja zwrotu ${money(dispute.amount ?? undefined)} za ${title}`,
+        lines: [
+          `Sprzedający proponuje zwrot ${money(dispute.amount ?? undefined)}, a przedmiot zostaje u Ciebie. Odpowiedz do ${date(dispute.dueAt)}.`,
+          'Jeśli odrzucisz propozycję albo nie odpowiesz, spór rozstrzygnie zespół Biddy.',
+        ],
+        path,
+        actionLabel: 'Zobacz propozycję',
+      };
+    case 'DISPUTE_ESCALATED':
+      return {
+        title: `Spór o ${title} sprawdza zespół Biddy`,
+        lines: [
+          ...(dispute.cause === undefined ? [] : [ESCALATION_TEXT[dispute.cause]]),
+          `Decyzję wydamy do ${date(dispute.dueAt)}. Możesz dodać wyjaśnienia i zdjęcia na stronie sporu.`,
+        ],
+        path,
+        actionLabel: 'Zobacz spór',
+      };
+    case 'DISPUTE_RETURN_REQUESTED':
+      return buyer
+        ? {
+            title: `Odeślij ${title}`,
+            lines: [
+              `Nadaj zwrot do ${date(dispute.dueAt)}. Etykietę przygotuje Biddy, a pieniądze zwrócimy, gdy sprzedający odbierze przedmiot.`,
+              'Bez nadania w terminie spór zakończy się na korzyść sprzedającego.',
+            ],
+            path,
+            actionLabel: 'Nadaj zwrot',
+          }
+        : {
+            title: `Kupujący odeśle ${title}`,
+            lines: [
+              ...(dispute.decidedBy === 'STAFF' && dispute.statement !== undefined
+                ? [`Decyzja zespołu Biddy: ${dispute.statement}`]
+                : []),
+              `Kupujący ma czas na nadanie zwrotu do ${date(dispute.dueAt)}. Po odbiorze będzie 36 godzin na sprawdzenie przedmiotu.`,
+            ],
+            path,
+            actionLabel: 'Zobacz spór',
+          };
+    case 'DISPUTE_RETURN_DELIVERED':
+      return {
+        title: `Zwrot ${title} dotarł`,
+        lines: [
+          `Sprawdź przedmiot do ${date(dispute.dueAt)}. Potem zwrócimy pieniądze kupującemu.`,
+          'Jeśli coś jest nie tak ze zwrotem, zgłoś to na stronie sporu przed terminem.',
+        ],
+        path,
+        actionLabel: 'Sprawdź zwrot',
+      };
+    case 'DISPUTE_RESOLVED':
+      return {
+        title: `Spór o ${title} rozstrzygnięty`,
+        lines: [
+          disputeOutcomeLine(dispute),
+          ...(dispute.statement === undefined ? [] : [`Uzasadnienie: ${dispute.statement}`]),
+        ],
+        path,
+        actionLabel: 'Zobacz spór',
+      };
+  }
+}
+
 export function notificationContent(
   type: NotificationType,
   payload: NotificationPayload,
 ): NotificationContent {
-  const { auction } = payload;
+  if (isAccountType(type)) {
+    return accountContent(type, payload.account ?? { statement: '' });
+  }
+  if (isPayoutType(type)) {
+    return payoutContent(type, payload.payout ?? {});
+  }
+  if (isDisputeType(type)) {
+    return disputeContent(
+      type,
+      payload.dispute ?? { orderPublicId: '', title: '', recipientRole: 'BUYER' },
+    );
+  }
+  if (type === 'NEW_MESSAGE') {
+    return messageContent(
+      payload.message ?? { conversationId: '', senderName: '', title: '', count: 1 },
+    );
+  }
+  if (type === 'REVIEW_REQUESTED' || type === 'REVIEW_RECEIVED') {
+    return reviewContent(
+      type,
+      payload.review ?? { orderPublicId: '', title: '', authorRole: 'BUYER' },
+    );
+  }
+  const auction = payload.auction ?? { id: '', publicId: '', slug: '', title: '' };
   const path = auctionPath(auction.slug, auction.publicId);
   const title = `„${auction.title}”`;
+  const number = payload.orderPublicId ?? '';
   switch (type) {
     case 'OUTBID':
       return {
@@ -137,6 +567,102 @@ export function notificationContent(
         path: dispatchPath(payload.orderPublicId ?? ''),
         actionLabel: 'Nadaj paczkę',
       };
+    case 'PAYMENT_REMINDER':
+      return {
+        title: `Zapłać za: ${auction.title}`,
+        lines: [
+          `Zamówienie nr ${number} czeka na płatność do ${date(payload.paymentDueAt)}. Do zapłaty z Pakietem Ochrony Kupujących: ${money(payload.total)} (bez dostawy).`,
+          'Bez płatności w terminie zamówienie zostanie anulowane, a konto dostanie strike.',
+        ],
+        path: checkoutPath(number),
+        actionLabel: 'Zapłać',
+      };
+    case 'SHIP_REMINDER':
+      return {
+        title: `Nadaj paczkę: ${auction.title}`,
+        lines: [
+          `Termin nadania paczki z zamówienia nr ${number} mija ${date(payload.shipBy)}.`,
+          'Bez nadania w terminie zamówienie zostanie anulowane, kupujący dostanie zwrot, a konto strike.',
+        ],
+        path: dispatchPath(number),
+        actionLabel: 'Nadaj paczkę',
+      };
+    case 'ORDER_CANCELLED':
+      return cancelledContent(payload, auction.title, number);
+    case 'ORDER_SHIPPED':
+      return {
+        title: `Paczka w drodze: ${auction.title}`,
+        lines: [
+          payload.trackingNumber === undefined || payload.trackingNumber === null
+            ? `Sprzedający nadał paczkę (${payload.carrierName ?? 'przewoźnik'}).`
+            : `Sprzedający nadał paczkę: ${payload.carrierName ?? 'przewoźnik'}, numer przesyłki ${payload.trackingNumber}.`,
+          'Po odbiorze będziesz mieć 36 godzin na sprawdzenie przedmiotu.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Śledź przesyłkę',
+      };
+    case 'ORDER_DELIVERED':
+      return {
+        title: `Odebrano: ${auction.title}`,
+        lines: [
+          `Sprawdź przedmiot do ${date(payload.inspectionEndsAt)}. Jeśli wszystko się zgadza, potwierdź odbiór.`,
+          'Po tym czasie zamówienie zakończy się samo, a sprzedający dostanie pieniądze.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Sprawdź i potwierdź',
+      };
+    case 'ORDER_COMPLETED':
+      return {
+        title: `Zakończono: ${auction.title}`,
+        lines: [
+          `Zamówienie nr ${number} jest zakończone. ${money(payload.itemsTotal)} trafia na Twoje saldo.`,
+          'Oceń kupującego na stronie zamówienia w ciągu 14 dni.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'ORDER_NOT_PICKED_UP':
+      return {
+        title: `Paczka wraca: ${auction.title}`,
+        lines: [
+          `Kupujący nie odebrał paczki z zamówienia nr ${number}, więc wraca ona do Ciebie.`,
+          'Gdy paczka dotrze, kupujący dostanie zwrot ceny i Pakietu Ochrony Kupujących, bez kosztu dostawy.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'ORDER_LOST':
+      return {
+        title: `Zaginiona paczka: ${auction.title}`,
+        lines: [
+          `Kupujący zgłosił, że paczka z zamówienia nr ${number} nie dotarła. Biddy składa reklamację u przewoźnika, a kupujący dostaje zwrot.`,
+          `Dostaniesz rekompensatę ${money(payload.compensation)} najpóźniej ${date(payload.compensationDueAt)}.`,
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'ORDER_REFUNDED':
+      return {
+        title: `Zwrot: ${auction.title}`,
+        lines: [
+          `Zwróciliśmy ${money(payload.refund)} za zamówienie nr ${number}. ${payload.refundReason === undefined ? '' : REFUND_REASON_TEXT[payload.refundReason]}`.trim(),
+          'Pieniądze wracają tą samą metodą płatności; bank może potrzebować kilku dni.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'SECOND_CHANCE_OFFER':
+      return {
+        title: `Druga szansa: ${auction.title}`,
+        lines: [
+          `Zwycięzca nie zapłacił. Sprzedający proponuje Ci ten przedmiot za Twoją najwyższą ofertę: ${money(payload.price)}.`,
+          `Oferta jest ważna do ${date(payload.expiresAt)} i nie jest wiążąca.`,
+        ],
+        path: secondChancePath(payload.offerId ?? ''),
+        actionLabel: 'Zobacz ofertę',
+      };
+    case 'SECOND_CHANCE_ANSWERED':
+      return answeredContent(payload, auction.title, number);
     case 'FOLLOWED_SELLER_NEW_AUCTION':
       return {
         title: `Nowa aukcja: ${payload.sellerName ?? 'obserwowany sprzedawca'}`,
@@ -145,6 +671,121 @@ export function notificationContent(
         ],
         path,
         actionLabel: 'Zobacz aukcję',
+      };
+  }
+}
+
+/**
+ * Nieprzeczytane wiadomości (F-29): kto i w jakiej sprawie, bez treści (telefony i adresy nie
+ * wychodzą poza Biddy, decyzja nr 138).
+ */
+function messageContent(message: MessageRef): NotificationContent {
+  return {
+    title: `Nowa wiadomość od ${message.senderName}`,
+    lines: [
+      message.count > 1
+        ? `Rozmowa w sprawie „${message.title}”. Nieprzeczytane wiadomości: ${String(message.count)}.`
+        : `Rozmowa w sprawie „${message.title}”.`,
+      'Odpowiedz w Biddy: płatność i ustalenia poza Biddy nie są chronione.',
+    ],
+    path: conversationPath(message.conversationId),
+    actionLabel: 'Odpowiedz',
+  };
+}
+
+/**
+ * Oceny (F-30): druga strona oceniła zamówienie (bez gwiazdek, z terminem odbiorcy) albo ocena
+ * o odbiorcy jest już widoczna.
+ */
+function reviewContent(
+  type: 'REVIEW_REQUESTED' | 'REVIEW_RECEIVED',
+  review: ReviewRef,
+): NotificationContent {
+  const from = review.authorRole === 'BUYER' ? 'kupującego' : 'sprzedającego';
+  const path = orderPath(review.orderPublicId);
+  if (type === 'REVIEW_REQUESTED') {
+    return {
+      title: `Oceń zamówienie: ${review.title}`,
+      lines: [
+        `Druga strona już oceniła zamówienie nr ${review.orderPublicId}. Wystaw swoją ocenę do ${date(review.rateUntil)}, a zobaczysz obie.`,
+        'Oceny obu stron pokazujemy razem, więc żadna nie wpływa na drugą.',
+      ],
+      path,
+      actionLabel: 'Oceń zamówienie',
+    };
+  }
+  return {
+    title: `Nowa ocena: ${String(review.rating ?? 0)}/5`,
+    lines: [
+      `Ocena od ${from} za zamówienie „${review.title}” (nr ${review.orderPublicId}) jest już widoczna na Twoim profilu.`,
+    ],
+    path,
+    actionLabel: 'Zobacz ocenę',
+  };
+}
+
+/** Anulowane zamówienie (F-26): po braku płatności tylko sprzedający, po braku nadania obie strony. */
+function cancelledContent(
+  payload: NotificationPayload,
+  title: string,
+  number: string,
+): NotificationContent {
+  if (payload.cancelReason === 'UNPAID') {
+    return {
+      title: `Kupujący nie zapłacił: ${title}`,
+      lines: [
+        `Zamówienie nr ${number} zostało anulowane, bo kupujący nie zapłacił w terminie.`,
+        'Możesz wysłać ofertę drugiej szansy kolejnej osobie z licytacji albo wystawić przedmiot ponownie.',
+      ],
+      path: orderPath(number),
+      actionLabel: 'Co dalej',
+    };
+  }
+  return {
+    title: `Zamówienie anulowane: ${title}`,
+    lines:
+      payload.recipientRole === 'SELLER'
+        ? [
+            `Paczka z zamówienia nr ${number} nie została nadana w terminie, więc zamówienie zostało anulowane, a kupujący dostaje zwrot.`,
+          ]
+        : [
+            `Sprzedający nie nadał paczki w terminie, więc zamówienie nr ${number} zostało anulowane.`,
+            'Zwracamy pełną kwotę tą samą metodą płatności.',
+          ],
+    path: orderPath(number),
+    actionLabel: 'Zobacz zamówienie',
+  };
+}
+
+/** Odpowiedź na ofertę drugiej szansy (sprzedający). */
+function answeredContent(
+  payload: NotificationPayload,
+  title: string,
+  number: string,
+): NotificationContent {
+  switch (payload.offerStatus) {
+    case 'ACCEPTED':
+      return {
+        title: `Druga szansa przyjęta: ${title}`,
+        lines: [
+          `Licytujący kupuje przedmiot za ${money(payload.price)}. Zamówienie nr ${number} czeka na płatność do ${date(payload.paymentDueAt)}.`,
+        ],
+        path: orderPath(number),
+        actionLabel: 'Zobacz zamówienie',
+      };
+    case 'DECLINED':
+    case 'EXPIRED':
+    case undefined:
+      return {
+        title:
+          payload.offerStatus === 'DECLINED'
+            ? `Druga szansa odrzucona: ${title}`
+            : `Oferta drugiej szansy wygasła: ${title}`,
+        lines: [
+          'Licytujący nie skorzystał z oferty. Możesz wysłać ofertę kolejnej osobie albo wystawić przedmiot ponownie.',
+        ],
+        path: orderPath(number),
+        actionLabel: 'Co dalej',
       };
   }
 }

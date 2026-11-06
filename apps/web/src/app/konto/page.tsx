@@ -1,4 +1,5 @@
 import {
+  Banknote,
   Bell,
   ChevronRight,
   CircleCheck,
@@ -6,12 +7,18 @@ import {
   type LucideIcon,
   Mail,
   MapPin,
+  MessagesSquare,
   Plus,
+  ShieldAlert,
+  ShieldCheck,
   Smartphone,
   Store,
   TriangleAlert,
   UserRound,
+  UserX,
 } from 'lucide-react';
+import { getMyBalance, getMyStanding } from '@biddy/api-client';
+import { formatMoney, money } from '@biddy/shared';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
@@ -22,6 +29,7 @@ import { UserAvatar } from '@/components/profile/user-avatar';
 import { Button } from '@/components/ui/button';
 import { IconTile } from '@/components/ui/icon-tile';
 import { loadMeOrRedirect } from '@/lib/api/me';
+import { withSessionCookies } from '@/lib/api/server';
 import { monthAndYear } from '@/lib/dates';
 import { formatPhoneNumber } from '@/lib/phone';
 import { publicProfileUrl, routes, withNext } from '@/lib/routes';
@@ -38,6 +46,27 @@ interface Shortcut {
   readonly description: string;
   readonly Icon: LucideIcon;
   readonly tone: ComponentProps<typeof IconTile>['tone'];
+  /** Ostrzeżenie pod opisem (np. aktywna blokada konta). */
+  readonly alert?: string;
+}
+
+/** Czy konto ma aktywną blokadę (F-61); błąd API nie blokuje strony konta. */
+async function hasActiveBlock(): Promise<boolean> {
+  try {
+    const standing = await getMyStanding(await withSessionCookies());
+    return standing.buyer.block !== null || standing.seller.block !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** Saldo do wypłaty (F-27) w opisie skrótu; błąd API nie blokuje strony konta. */
+async function availableBalance(): Promise<number | undefined> {
+  try {
+    return (await getMyBalance(await withSessionCookies())).available;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -47,7 +76,11 @@ interface Shortcut {
  */
 export default async function AccountPage() {
   const me = await loadMeOrRedirect(routes.account);
-  const t = await getTranslations('auth.account');
+  const [t, blocked, available] = await Promise.all([
+    getTranslations('auth.account'),
+    hasActiveBlock(),
+    availableBalance(),
+  ]);
   const selling: Shortcut[] = [
     {
       href: routes.myBiddy,
@@ -57,11 +90,30 @@ export default async function AccountPage() {
       tone: 'brand',
     },
     {
+      href: routes.messages,
+      label: t('messages'),
+      description: t('shortcuts.messages'),
+      Icon: MessagesSquare,
+      tone: 'info',
+    },
+    {
       href: routes.myAuctions,
       label: t('myAuctions'),
       description: t('shortcuts.myAuctions'),
       Icon: Store,
       tone: 'warning',
+    },
+    {
+      href: routes.balance,
+      label: t('balance'),
+      description:
+        available === undefined || available === 0
+          ? t('shortcuts.balance')
+          : t('balanceAvailable', {
+              amount: formatMoney(money(available), { trailingZeroDisplay: 'stripIfInteger' }),
+            }),
+      Icon: Banknote,
+      tone: 'success',
     },
     {
       href: routes.sell,
@@ -92,6 +144,21 @@ export default async function AccountPage() {
       description: t('shortcuts.notifications'),
       Icon: Bell,
       tone: 'neutral',
+    },
+    {
+      href: routes.blockedUsers,
+      label: t('blockedUsers'),
+      description: t('shortcuts.blockedUsers'),
+      Icon: UserX,
+      tone: 'neutral',
+    },
+    {
+      href: routes.accountStanding,
+      label: t('standing'),
+      description: t('shortcuts.standing'),
+      Icon: blocked ? ShieldAlert : ShieldCheck,
+      tone: blocked ? 'danger' : 'neutral',
+      ...(blocked ? { alert: t('standingAlert') } : {}),
     },
   ];
   return (
@@ -231,7 +298,7 @@ function ShortcutSection({
         {title}
       </h2>
       <ul className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-        {links.map(({ href, label, description, Icon, tone }) => (
+        {links.map(({ href, label, description, Icon, tone, alert }) => (
           <li key={href}>
             <Link
               href={href}
@@ -243,6 +310,12 @@ function ShortcutSection({
               <span className="min-w-0 flex-1">
                 <span className="block text-title font-extrabold">{label}</span>
                 <span className="block text-body-sm text-foreground-secondary">{description}</span>
+                {alert === undefined ? null : (
+                  <span className="mt-1 inline-flex items-center gap-1 text-body-sm font-semibold text-destructive">
+                    <TriangleAlert aria-hidden className="size-3.5" />
+                    {alert}
+                  </span>
+                )}
               </span>
               <ChevronRight
                 aria-hidden

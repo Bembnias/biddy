@@ -71,8 +71,23 @@ export const QUEUE_DEFINITIONS = {
   },
   payments: {
     description:
-      'Płatności: polling zapasowy płatności w PENDING co minutę i symulator FakeGateway (rozliczenie z opóźnieniem, webhooki HTTP, F-23)',
+      'Płatności: polling zapasowy płatności w PENDING co minutę, symulator FakeGateway (rozliczenie z opóźnieniem, webhooki HTTP, F-23), wypłaty tygodniowe i sald uśpionych (F-27)',
     concurrency: 5,
+  },
+  disputes: {
+    description:
+      'Spory: eskalacja bez odpowiedzi w 48 h, brak nadania zwrotu w 5 dni roboczych i zwrot pieniędzy po 36 h od odbioru zwrotu, co minutę (F-28)',
+    concurrency: 1,
+  },
+  messaging: {
+    description:
+      'Wiadomości: powiadomienie o wiadomościach nieprzeczytanych od 5 minut, co minutę (F-29)',
+    concurrency: 1,
+  },
+  reviews: {
+    description:
+      'Oceny: event o ujawnionych ocenach (po obu ocenach albo po 7 dniach) dla powiadomień, co minutę (F-30)',
+    concurrency: 1,
   },
   shipping: {
     description:

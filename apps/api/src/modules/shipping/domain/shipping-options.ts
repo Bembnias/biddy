@@ -4,6 +4,7 @@
 import type { PackageSize } from '@biddy/shared';
 
 import type { CarrierKind } from '../db/shipping.schema.js';
+import type { PointMap } from './point-map.js';
 import type { DispatchMethod } from './shipping-values.js';
 
 /** Paczka przedmiotu (snapshot z zamówienia albo przedmiot na stronie aukcji). */
@@ -40,6 +41,8 @@ export interface ShippingOption {
   readonly dispatchMethods: readonly DispatchMethod[];
   /** Paczkomat i punkt wymagają wyboru punktu, kurier adresu. */
   readonly requiresPickupPoint: boolean;
+  /** Mapa punktów (F-64); uzupełnia ShippingQuoteService, brak = bez mapy. */
+  readonly pointMap?: PointMap | null;
 }
 
 /** Obwód paczki: najdłuższy bok + 2 × pozostałe (jak u kurierów). */

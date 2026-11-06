@@ -50,7 +50,10 @@ export const ERROR_CODES = {
   ADDRESS_LIMIT_REACHED: 'ADDRESS_LIMIT_REACHED',
   /** Plik zdjęcia nie dotarł do magazynu przed potwierdzeniem uploadu (F-12). */
   MEDIA_NOT_UPLOADED: 'MEDIA_NOT_UPLOADED',
-  /** Sprzedający ma blokadę wystawiania (F-61); `blockedUntil` w odpowiedzi (F-14). */
+  /**
+   * Sprzedający ma blokadę wystawiania (F-61): `blockedUntil` (null = bezterminowa) i `blockId`
+   * w odpowiedzi.
+   */
   LISTING_BLOCKED: 'LISTING_BLOCKED',
   /** Osiągnięto limit aktywnych aukcji poziomu sprzedawcy (§4.1, F-14). */
   LISTING_LIMIT_REACHED: 'LISTING_LIMIT_REACHED',
@@ -62,7 +65,10 @@ export const ERROR_CODES = {
   BID_TOO_LOW: 'BID_TOO_LOW',
   /** Oferta przekracza limit konta kupującego (§4.1, F-15). */
   BID_LIMIT_EXCEEDED: 'BID_LIMIT_EXCEEDED',
-  /** Kupujący ma blokadę licytowania (F-61); `blockedUntil` w odpowiedzi (F-15). */
+  /**
+   * Kupujący ma blokadę licytowania (F-61): `blockedUntil` (null = bezterminowa) i `blockId`
+   * w odpowiedzi.
+   */
   BIDDING_BLOCKED: 'BIDDING_BLOCKED',
   /** Aukcja się zakończyła albo została anulowana (F-15). */
   AUCTION_ENDED: 'AUCTION_ENDED',
@@ -72,12 +78,22 @@ export const ERROR_CODES = {
   BUY_NOW_UNAVAILABLE: 'BUY_NOW_UNAVAILABLE',
   /** Ten sam Idempotency-Key użyty z innym żądaniem (F-15). */
   IDEMPOTENCY_KEY_REUSED: 'IDEMPOTENCY_KEY_REUSED',
+  /** Nie ma takiego strike'a albo należy do innego użytkownika (F-61). */
+  STRIKE_NOT_FOUND: 'STRIKE_NOT_FOUND',
+  /** Nie ma takiej blokady konta albo należy do innego użytkownika (F-61). */
+  ACCOUNT_BLOCK_NOT_FOUND: 'ACCOUNT_BLOCK_NOT_FOUND',
+  /** Odwołanie niemożliwe: już było, decyzja jest cofnięta albo minął termin (F-61). */
+  APPEAL_NOT_ALLOWED: 'APPEAL_NOT_ALLOWED',
+  /** Decyzja w odwołaniu, którego nie ma albo które już rozpatrzono (F-61). */
+  APPEAL_NOT_PENDING: 'APPEAL_NOT_PENDING',
   /** Usługa dostawy nie pasuje do przedmiotu albo nie ma ceny w cenniku (F-24). */
   SHIPPING_OPTION_UNAVAILABLE: 'SHIPPING_OPTION_UNAVAILABLE',
   /** Paczkomat i punkt odbioru wymagają wskazania punktu (F-24). */
   PICKUP_POINT_REQUIRED: 'PICKUP_POINT_REQUIRED',
   /** Punktu odbioru nie ma u dostawcy (nieaktywny albo zły identyfikator, F-24). */
   PICKUP_POINT_NOT_FOUND: 'PICKUP_POINT_NOT_FOUND',
+  /** Osiągnięto limit zapisanych punktów odbioru (F-64). */
+  PICKUP_POINT_LIMIT_REACHED: 'PICKUP_POINT_LIMIT_REACHED',
   /** Kurier wymaga adresu dostawy (F-24). */
   DELIVERY_ADDRESS_REQUIRED: 'DELIVERY_ADDRESS_REQUIRED',
   /** Sposób nadania niedostępny dla tej usługi albo dostawcy (F-24). */
@@ -98,6 +114,53 @@ export const ERROR_CODES = {
   CHECKOUT_TOTAL_CHANGED: 'CHECKOUT_TOTAL_CHANGED',
   /** Sprzedający nie może przyjąć płatności (konto zablokowane albo bez e-maila, F-25). */
   SELLER_UNAVAILABLE: 'SELLER_UNAVAILABLE',
+  /** Zamówienie nie jest odebrane, więc nie da się potwierdzić odbioru (F-26). */
+  ORDER_NOT_DELIVERED: 'ORDER_NOT_DELIVERED',
+  /** Zamówienie wstrzymane do wyjaśnienia chargebacku (F-26). */
+  ORDER_ON_HOLD: 'ORDER_ON_HOLD',
+  /** Paczka nie została jeszcze nadana (F-26). */
+  ORDER_NOT_SHIPPED_YET: 'ORDER_NOT_SHIPPED_YET',
+  /** Brak paczki można zgłosić dopiero 14 dni po nadaniu (F-26). */
+  NOT_RECEIVED_TOO_EARLY: 'NOT_RECEIVED_TOO_EARLY',
+  /** Przesyłka jest już doręczona albo zwrócona, albo zamówienie nie czeka na paczkę (F-26). */
+  SHIPMENT_FINISHED: 'SHIPMENT_FINISHED',
+  /** Oferty drugiej szansy nie da się teraz wysłać (przyczyna w `reason`, F-26). */
+  SECOND_CHANCE_UNAVAILABLE: 'SECOND_CHANCE_UNAVAILABLE',
+  /** Oferta drugiej szansy jest już przyjęta, odrzucona albo wygasła (F-26). */
+  SECOND_CHANCE_CLOSED: 'SECOND_CHANCE_CLOSED',
+  /** Brak danych do wypłat: danych osobowych (DAC7) albo rachunku (F-27). */
+  PAYOUT_PROFILE_INCOMPLETE: 'PAYOUT_PROFILE_INCOMPLETE',
+  /** Wypłaty wstrzymane na 48 h po zmianie rachunku (`blockedUntil`, F-27). */
+  PAYOUTS_ON_HOLD: 'PAYOUTS_ON_HOLD',
+  /**
+   * Aktywna blokada wypłat (F-61, np. potwierdzona podróbka): `blockedUntil` (null =
+   * bezterminowa) i `blockId` w odpowiedzi (F-27).
+   */
+  PAYOUTS_BLOCKED: 'PAYOUTS_BLOCKED',
+  /** Wypłata wymaga zweryfikowanego konta u operatora płatności (KYC, F-27, F-32). */
+  SELLER_NOT_VERIFIED: 'SELLER_NOT_VERIFIED',
+  /** Sprzedający ma należność wobec Biddy: wypłaty do jej spłaty są wstrzymane (F-27). */
+  RECEIVABLE_OUTSTANDING: 'RECEIVABLE_OUTSTANDING',
+  /** Kwota wypłaty większa niż saldo dostępne w ledgerze (F-27). */
+  INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
+  /** Kwota wypłaty poniżej minimum 20 zł (F-27). */
+  PAYOUT_BELOW_MINIMUM: 'PAYOUT_BELOW_MINIMUM',
+  /** Problem można zgłosić tylko dla odebranego zamówienia (F-28). */
+  DISPUTE_UNAVAILABLE: 'DISPUTE_UNAVAILABLE',
+  /** Minęło 36 h na zgłoszenie problemu (`inspectionEndsAt`, F-28). */
+  DISPUTE_WINDOW_CLOSED: 'DISPUTE_WINDOW_CLOSED',
+  /** Spór jest już w innym stanie niż zakłada akcja (`status`, F-28). */
+  DISPUTE_STATE_CHANGED: 'DISPUTE_STATE_CHANGED',
+  /** Decyzję personelu można wydać tylko w sporze przekazanym do Biddy (F-28). */
+  DISPUTE_NOT_ESCALATED: 'DISPUTE_NOT_ESCALATED',
+  /** Dla tej paczki nie ma usługi kurierskiej do zwrotu (F-28). */
+  RETURN_SHIPPING_UNAVAILABLE: 'RETURN_SHIPPING_UNAVAILABLE',
+  /** Rozmowy nie da się zacząć: aukcja zakończona bez zamówienia albo własna aukcja (F-29). */
+  CONVERSATION_UNAVAILABLE: 'CONVERSATION_UNAVAILABLE',
+  /** Jedna ze stron zablokowała drugą: w rozmowie nie można pisać (F-29). */
+  CONVERSATION_BLOCKED: 'CONVERSATION_BLOCKED',
+  /** Zamówienia nie da się ocenić: w toku, po terminie albo już ocenione (`reason`, F-30). */
+  REVIEW_UNAVAILABLE: 'REVIEW_UNAVAILABLE',
   /** Treść żądania przekracza limit rozmiaru. */
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** Nieobsługiwany nagłówek Content-Type. */

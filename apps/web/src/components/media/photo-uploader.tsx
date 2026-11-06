@@ -1,6 +1,11 @@
 'use client';
 
-import { type MediaDto, deleteMedia, isApiError } from '@biddy/api-client';
+import {
+  type CreateUploadDtoPurpose,
+  type MediaDto,
+  deleteMedia,
+  isApiError,
+} from '@biddy/api-client';
 import { ArrowLeft, ArrowRight, ImagePlus, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
@@ -20,6 +25,8 @@ interface Entry {
   readonly state: EntryState;
   readonly progress: number;
   readonly media?: Pick<MediaDto, 'id'> & { readonly urls?: { readonly thumb?: string } | null };
+  /** Podgląd z pliku w przeglądarce: zdjęcia prywatne (spory) nie mają adresów publicznych. */
+  readonly preview?: string;
   readonly error?: string;
 }
 
@@ -31,26 +38,48 @@ export interface ExistingPhoto {
 
 let counter = 0;
 
+/** Adres podglądu pliku albo undefined (np. środowisko bez `URL.createObjectURL`). */
+function filePreview(file: File): string | undefined {
+  return typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : undefined;
+}
+
+function revokePreview(entry: Entry): void {
+  if (entry.preview !== undefined && typeof URL.revokeObjectURL === 'function') {
+    URL.revokeObjectURL(entry.preview);
+  }
+}
+
 /**
  * Zdjęcia przedmiotu (F-12; kreator w F-14): wiele plików naraz, postęp, przetwarzanie
  * w workerze, zdjęcie główne (pierwsze), kolejność przyciskami i usuwanie. `onChange` dostaje
  * identyfikatory gotowych zdjęć w kolejności. `initial`: zdjęcia już zapisane (szkic aukcji);
  * `deleteOnRemove={false}`: usunięte zdjęcie zwalnia dopiero zapis właściciela (szkic).
+ * Zdjęcia ze sporu (F-28, `purpose="DISPUTE_EVIDENCE"`) i z wiadomości (F-29, `MESSAGE_PHOTO`) są
+ * prywatne: bez zdjęcia głównego i kolejności, z podglądem z pliku.
  */
 export function PhotoUploader({
   max = MAX_ITEM_PHOTOS,
   initial = [],
   deleteOnRemove = true,
+  purpose = 'ITEM_PHOTO',
+  hint,
   onChange,
   describedBy,
 }: {
   readonly max?: number;
   readonly initial?: readonly ExistingPhoto[];
   readonly deleteOnRemove?: boolean;
+  readonly purpose?: Extract<
+    CreateUploadDtoPurpose,
+    'ITEM_PHOTO' | 'DISPUTE_EVIDENCE' | 'MESSAGE_PHOTO'
+  >;
+  /** Podpowiedź pod przyciskiem zamiast domyślnej (zdjęcia przedmiotu). */
+  readonly hint?: string;
   readonly onChange?: (mediaIds: string[]) => void;
   /** Dodatkowy opis pola dodawania (np. błąd kroku kreatora). */
   readonly describedBy?: string | undefined;
 }) {
+  const ordered = purpose === 'ITEM_PHOTO';
   const t = useTranslations('media');
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -66,6 +95,17 @@ export function PhotoUploader({
   const notify = useEffectEvent((mediaIds: string[]) => {
     onChange?.(mediaIds);
   });
+  // Podglądy z plików zwalniamy przy odmontowaniu (ostatni znany stan listy).
+  const previews = useRef<readonly Entry[]>([]);
+  useEffect(() => {
+    previews.current = entries;
+  }, [entries]);
+  useEffect(
+    () => () => {
+      previews.current.forEach(revokePreview);
+    },
+    [],
+  );
 
   const readyIds = entries
     .filter((entry) => entry.state === 'ready' && entry.media !== undefined)
@@ -84,13 +124,20 @@ export function PhotoUploader({
   const start = (file: File) => {
     counter += 1;
     const key = `photo-${String(counter)}`;
+    const preview = ordered ? undefined : filePreview(file);
     setEntries((current) => [
       ...current,
-      { key, name: file.name, state: 'uploading', progress: 0 },
+      {
+        key,
+        name: file.name,
+        state: 'uploading',
+        progress: 0,
+        ...(preview === undefined ? {} : { preview }),
+      },
     ]);
     uploadPhoto(
       file,
-      'ITEM_PHOTO',
+      purpose,
       (progress) => {
         update(key, progress >= 1 ? { progress, state: 'processing' } : { progress });
       },
@@ -101,7 +148,7 @@ export function PhotoUploader({
       .then((media) => {
         if (media.status === 'READY') {
           update(key, { media, state: 'ready' });
-          track('photo_uploaded', { purpose: 'ITEM_PHOTO' });
+          track('photo_uploaded', { purpose });
         } else if (media.status === 'FLAGGED') {
           update(key, { media, state: 'flagged' });
         } else {
@@ -146,6 +193,7 @@ export function PhotoUploader({
   };
 
   const remove = (entry: Entry) => {
+    revokePreview(entry);
     setEntries((current) => current.filter((candidate) => candidate.key !== entry.key));
     if (entry.media !== undefined && deleteOnRemove) {
       // Nieużyte zdjęcie i tak zniknie przy sprzątaniu po dobie; błąd usunięcia pomijamy.
@@ -187,7 +235,7 @@ export function PhotoUploader({
         </Button>
       </div>
       <p id={hintId} className="text-body-sm text-muted-foreground">
-        {full ? t('uploader.limit', { max }) : t('uploader.hint')}
+        {full ? t('uploader.limit', { max }) : (hint ?? t('uploader.hint'))}
       </p>
       {entries.length === 0 ? null : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -198,15 +246,19 @@ export function PhotoUploader({
                 key={entry.key}
                 className={cn(
                   'space-y-2 rounded-xl border border-border bg-card p-2 shadow-xs',
-                  index === 0 && entry.state === 'ready' && 'border-brand ring-2 ring-brand',
+                  ordered &&
+                    index === 0 &&
+                    entry.state === 'ready' &&
+                    'border-brand ring-2 ring-brand',
                 )}
               >
                 <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-muted text-center text-body-sm">
-                  {entry.state === 'ready' && entry.media?.urls?.thumb !== undefined ? (
-                    // Gotowa miniatura WebP z CDN.
+                  {entry.state === 'ready' &&
+                  (entry.media?.urls?.thumb ?? entry.preview) !== undefined ? (
+                    // Gotowa miniatura WebP z CDN albo podgląd pliku (zdjęcia prywatne).
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={entry.media.urls.thumb}
+                      src={entry.media?.urls?.thumb ?? entry.preview}
                       alt={t('uploader.photo', { position })}
                       className="size-full object-cover"
                     />
@@ -235,14 +287,14 @@ export function PhotoUploader({
                       {entry.error}
                     </span>
                   )}
-                  {index === 0 && entry.state === 'ready' ? (
+                  {ordered && index === 0 && entry.state === 'ready' ? (
                     <span className="absolute top-2 left-2 rounded-full bg-brand-strong px-2.5 py-0.5 text-caption font-extrabold text-primary-foreground">
                       {t('uploader.cover')}
                     </span>
                   ) : null}
                 </div>
-                <div className="flex justify-between gap-1">
-                  <div className="flex gap-1">
+                <div className={cn('flex gap-1', ordered ? 'justify-between' : 'justify-end')}>
+                  <div className={cn('flex gap-1', !ordered && 'hidden')}>
                     <Button
                       type="button"
                       variant="ghost"

@@ -40,6 +40,7 @@ describe('FakeGateway wyłączony (DEPLOYMENT_ENV=production)', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
     );
     await expect(
       processor.receive('fake', { headers: {}, rawBody: Buffer.from('{}') }),

@@ -7,7 +7,7 @@
  */
 
 /**
- * Publiczne adresy wariantów WebP (tylko READY)
+ * Publiczne adresy wariantów WebP (tylko READY; zdjęcia ze sporu: null)
  * @nullable
  */
 export type MediaDtoUrls = {

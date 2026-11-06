@@ -10,13 +10,7 @@ export {
   replay,
   resolve,
 } from './resolve.js';
-export {
-  BUYER_LEVELS,
-  BUYER_LIMITS,
-  type BuyerLevel,
-  type BuyerLevelLimits,
-  anonymizeName,
-} from './buyers.js';
+export { BUYER_LEVELS, type BuyerLevel, anonymizeName } from './buyers.js';
 export {
   type AuctionSignalSource,
   HOT_MIN_BIDS,

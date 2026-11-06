@@ -5,12 +5,13 @@
 // - job orders.expire-unpaid: AWAITING_PAYMENT → CANCELLED_UNPAID po terminie, z przedłużeniem
 //   o 30 min dla płatności w toku założonej przed terminem, i event OrderCancelled.
 // Obie ścieżki blokują wiersz zamówienia, więc wyścig rozstrzyga kolejność blokad: jeśli job był
-// pierwszy, płatność jest spóźniona i wraca do kupującego.
+// pierwszy, płatność jest spóźniona i wraca do kupującego. Zmiany stanu idą przez maszynę stanów
+// (F-26, ../orders/order-records.ts), a opłacenie zapisuje płatność do zwrotów i zwolnienia.
 import { businessDayDeadline, money } from '@biddy/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, asc, eq, lte } from 'drizzle-orm';
 
-import { type Database, DRIZZLE, type Transaction } from '../../../infra/db/index.js';
+import { type Database, DRIZZLE } from '../../../infra/db/index.js';
 import {
   type DomainEventContext,
   type DomainEventOf,
@@ -20,7 +21,8 @@ import {
 import { ScheduledJob } from '../../../infra/queues/index.js';
 import { PaymentService, PaymentSucceeded, RefundService } from '../../payments/index.js';
 import { ShipmentService } from '../../shipping/index.js';
-import { type Order, orderItems, orders } from '../db/orders.schema.js';
+import { orders } from '../db/orders.schema.js';
+import { lockOrder, orderParties, transitionOrder } from '../orders/order-records.js';
 import { OrderCancelled, OrderPaid } from '../orders.events.js';
 import {
   effectivePaymentDeadline,
@@ -55,7 +57,7 @@ export class OrderPaymentLifecycle {
     { tx }: DomainEventContext,
   ): Promise<void> {
     const paymentId = event.aggregateId;
-    const locked = await this.lock(tx, event.payload.orderId);
+    const locked = await lockOrder(tx, event.payload.orderId);
     if (locked === undefined) {
       // Płatność bez zamówienia (np. testowa z panelu FakeGateway): nic do zmiany.
       this.logger.warn(
@@ -64,7 +66,7 @@ export class OrderPaymentLifecycle {
       );
       return;
     }
-    const { order, auctionId } = locked;
+    const { order, item } = locked;
     const settlement = settlementFor(order.status);
     if (settlement !== 'PAY') {
       const reason = settlement === 'REFUND_LATE' ? 'LATE_PAYMENT' : 'DUPLICATE_PAYMENT';
@@ -89,19 +91,13 @@ export class OrderPaymentLifecycle {
     }
     const paidAt = new Date(event.occurredAt);
     const shipBy = businessDayDeadline(paidAt, SHIP_WITHIN_BUSINESS_DAYS);
-    await tx
-      .update(orders)
-      .set({ status: 'PAID', paidAt, shipBy, updatedAt: new Date() })
-      .where(eq(orders.id, order.id));
+    await transitionOrder(tx, order, 'PAID', { paidAt, shipBy, paymentId });
     await this.outbox.add(
       tx,
       OrderPaid.create({
         aggregateId: order.id,
         payload: {
-          publicId: order.publicId,
-          auctionId,
-          buyerId: order.buyerId,
-          sellerId: order.sellerId,
+          ...orderParties(order, item),
           total: money(order.total, order.currency),
           paidAt: paidAt.toISOString(),
           shipBy: shipBy.toISOString(),
@@ -142,29 +138,28 @@ export class OrderPaymentLifecycle {
 
   private async expire(orderId: string, now: Date): Promise<boolean> {
     const order = await this.db.transaction(async (tx) => {
-      const locked = await this.lock(tx, orderId);
+      const locked = await lockOrder(tx, orderId);
       if (locked?.order.status !== 'AWAITING_PAYMENT') {
         return undefined;
       }
-      const { order: current, auctionId } = locked;
+      const { order: current, item } = locked;
       const attempts = await this.payments.forOrder(current.id, tx);
       if (now.getTime() < effectivePaymentDeadline(current.paymentDueAt, attempts).getTime()) {
         return undefined;
       }
-      const [updated] = await tx
-        .update(orders)
-        .set({ status: 'CANCELLED_UNPAID', cancelledAt: now, updatedAt: now })
-        .where(eq(orders.id, current.id))
-        .returning();
+      const updated = await transitionOrder(
+        tx,
+        current,
+        'CANCELLED_UNPAID',
+        { cancelledAt: now },
+        now,
+      );
       await this.outbox.add(
         tx,
         OrderCancelled.create({
           aggregateId: current.id,
           payload: {
-            publicId: current.publicId,
-            auctionId,
-            buyerId: current.buyerId,
-            sellerId: current.sellerId,
+            ...orderParties(current, item),
             reason: 'UNPAID',
             paymentPending: attempts.some((attempt) => attempt.status === 'PENDING'),
             cancelledAt: now.toISOString(),
@@ -182,24 +177,5 @@ export class OrderPaymentLifecycle {
       await this.shipments.cancel(shipment.shipment.id);
     }
     return true;
-  }
-
-  private async lock(
-    tx: Transaction,
-    orderId: string,
-  ): Promise<{ readonly order: Order; readonly auctionId: string } | undefined> {
-    const [order] = await tx.select().from(orders).where(eq(orders.id, orderId)).for('update');
-    if (order === undefined) {
-      return undefined;
-    }
-    const [item] = await tx
-      .select({ auctionId: orderItems.auctionId })
-      .from(orderItems)
-      .where(eq(orderItems.orderId, order.id))
-      .limit(1);
-    if (item === undefined) {
-      throw new Error(`Zamówienie ${order.id} bez pozycji`);
-    }
-    return { order, auctionId: item.auctionId };
   }
 }

@@ -21,7 +21,11 @@ import {
   type ItemPatch,
   ItemService,
 } from '../../catalog/index.js';
-import { type SellerStanding, SellerStandingService } from '../../identity/index.js';
+import {
+  accountBlockedError,
+  type SellerStanding,
+  SellerStandingService,
+} from '../../identity/index.js';
 import { type MediaDescription, MediaService } from '../../media/index.js';
 import { type Order, OrderService } from '../../orders/index.js';
 import { CarrierService } from '../../shipping/index.js';
@@ -353,15 +357,14 @@ export class ListingService {
       // Jedna publikacja naraz na sprzedającego: limit aktywnych aukcji liczony bez wyścigu.
       await this.lockSeller(tx, sellerId);
       const standing = await this.standing.get(sellerId, tx);
-      if (standing.listingBlockedUntil !== null && standing.listingBlockedUntil > new Date()) {
-        throw new DomainError({
-          code: 'LISTING_BLOCKED',
-          detail: `Masz blokadę wystawiania aukcji do ${standing.listingBlockedUntil.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', dateStyle: 'long', timeStyle: 'short' })}.`,
-          extensions: { blockedUntil: standing.listingBlockedUntil.toISOString() },
-        });
+      if (standing.listingBlock !== null) {
+        throw accountBlockedError('LISTING_BLOCKED', standing.listingBlock);
       }
       const active = await this.countByStatus(tx, sellerId, ACTIVE_STATUSES);
-      if (active >= standing.limits.maxActiveAuctions) {
+      if (
+        standing.limits.maxActiveAuctions !== null &&
+        active >= standing.limits.maxActiveAuctions
+      ) {
         throw new DomainError({
           code: 'LISTING_LIMIT_REACHED',
           detail: `Możesz mieć najwyżej ${String(standing.limits.maxActiveAuctions)} aktywnych aukcji. Poczekaj, aż któraś się zakończy, albo anuluj aukcję bez ofert.`,

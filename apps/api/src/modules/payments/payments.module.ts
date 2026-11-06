@@ -15,6 +15,7 @@ import {
 } from './adapters/fake/fake-gateway-schedule.js';
 import { FakeGatewaySimulator } from './adapters/fake/fake-gateway-simulator.js';
 import { FakeGateway } from './adapters/fake/fake-gateway.js';
+import { EscrowService } from './application/escrow.service.js';
 import { GatewayRegistry, PAYMENT_GATEWAYS } from './application/gateway-registry.js';
 import { PaymentEventProcessor } from './application/payment-event-processor.js';
 import { PaymentTransitions } from './application/payment-transitions.js';
@@ -24,18 +25,21 @@ import { RefundService } from './application/refund.service.js';
 import { SellerAccountService } from './application/seller-account.service.js';
 import { FeeScheduleService } from './fees/fee-schedule.service.js';
 import { FeeSchedulesController } from './fees/fee-schedules.controller.js';
+import { PayoutProfileService } from './payouts/payout-profile.service.js';
+import { PayoutService } from './payouts/payout.service.js';
+import { PayoutsController } from './payouts/payouts.controller.js';
 import type { PaymentGateway } from './ports/payment-gateway.port.js';
 import { registerPaymentWebhookRoutes } from './webhooks/payment-webhook-routes.js';
 
 /**
  * Moduł domenowy `payments` (PROJECT.md §10.3, §7.8): cenniki POK (F-13), port płatności,
  * rejestr adapterów, FakeGateway, płatności, konta sprzedawców u operatora, webhooki i polling
- * zapasowy (F-23), zwroty (F-25); wypłaty i chargebacki w kolejnych feature'ach. Publiczne API:
- * ./index.ts. Trasę webhooków (surowe body) rejestruje tylko w procesie HTTP.
+ * zapasowy (F-23), zwroty (F-25), zwolnienie środków i rekompensaty (F-26), dane do wypłat
+ * i wypłaty (F-27); chargebacki w F-28. Publiczne API: ./index.ts. Trasę webhooków (surowe body) rejestruje tylko w procesie HTTP.
  */
 @Module({
   imports: [LedgerModule],
-  controllers: [FeeSchedulesController, FakeGatewayDevController],
+  controllers: [FeeSchedulesController, FakeGatewayDevController, PayoutsController],
   providers: [
     FeeScheduleService,
     { provide: FAKE_GATEWAY_SCHEDULE, useClass: QueuedFakeGatewaySchedule },
@@ -55,13 +59,18 @@ import { registerPaymentWebhookRoutes } from './webhooks/payment-webhook-routes.
     SellerAccountService,
     PaymentService,
     RefundService,
+    EscrowService,
+    PayoutProfileService,
+    PayoutService,
     PaymentEventProcessor,
     PendingPaymentsPoller,
   ],
   exports: [
+    EscrowService,
     FeeScheduleService,
     GatewayRegistry,
     PaymentService,
+    PayoutService,
     RefundService,
     SellerAccountService,
     PaymentEventProcessor,

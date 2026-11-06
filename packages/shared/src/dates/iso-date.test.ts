@@ -115,16 +115,27 @@ describe('addCalendarDays', () => {
   });
 
   it('jest odwracalne dla każdego dnia z lat 1999–2101', () => {
+    // Około 37 tys. dni: błędy zbieramy i sprawdzamy raz, bo `expect` dla każdego dnia
+    // przekraczał w CI limit czasu testu.
+    const failures: string[] = [];
     let date: IsoDate = '1999-01-01';
     let previousEpochDay = isoDateToEpochDay(date) - 1;
     while (date <= '2101-12-31') {
       const epochDay = isoDateToEpochDay(date);
-      expect(epochDay).toBe(previousEpochDay + 1);
-      expect(epochDayToIsoDate(epochDay)).toBe(date);
-      expect(addCalendarDays(addCalendarDays(date, 40), -40)).toBe(date);
+      if (epochDay !== previousEpochDay + 1) {
+        failures.push(`${date}: dzień epoki ${String(epochDay)}`);
+      }
+      if (epochDayToIsoDate(epochDay) !== date) {
+        failures.push(`${date}: epochDayToIsoDate`);
+      }
+      if (addCalendarDays(addCalendarDays(date, 40), -40) !== date) {
+        failures.push(`${date}: ±40 dni`);
+      }
       previousEpochDay = epochDay;
       date = addCalendarDays(date, 1);
     }
+    expect(failures).toEqual([]);
+    expect(date).toBe('2102-01-01');
   });
 
   it('rzuca RangeError dla niecałkowitej liczby dni i wyjścia poza lata 0000–9999', () => {

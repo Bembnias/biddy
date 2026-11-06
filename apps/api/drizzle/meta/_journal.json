@@ -134,6 +134,55 @@
       "when": 1793101900321,
       "tag": "0018_checkout",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793644180590,
+      "tag": "0019_account_standing",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793647571447,
+      "tag": "0020_order_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793652014282,
+      "tag": "0021_payouts",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793716002376,
+      "tag": "0022_disputes",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793720332366,
+      "tag": "0023_messaging",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793806230373,
+      "tag": "0024_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793983739359,
+      "tag": "0025_saved_pickup_points",
+      "breakpoints": true
     }
   ]
 }

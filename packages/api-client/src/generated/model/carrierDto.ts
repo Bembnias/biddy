@@ -7,6 +7,7 @@
  */
 import type { CarrierDtoKind } from './carrierDtoKind';
 import type { CarrierDtoPackageSizesItem } from './carrierDtoPackageSizesItem';
+import type { CarrierDtoPointMap } from './carrierDtoPointMap';
 
 export interface CarrierDto {
   /**
@@ -20,4 +21,9 @@ export interface CarrierDto {
   kind: CarrierDtoKind;
   /** Obsługiwane gabaryty */
   packageSizes: CarrierDtoPackageSizesItem[];
+  /**
+     * Mapa punktów odbioru; null: kurier albo dostawca punktów bez mapy
+     * @nullable
+     */
+  pointMap: CarrierDtoPointMap;
 }

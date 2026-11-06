@@ -35,7 +35,7 @@ Zdjęcia sprzedają przedmiot, ale są też ryzykiem: metadane EXIF zawierają w
 
 - Prawdziwy dostawca moderacji obrazów (np. Cloudflare, Sightengine, AWS Rekognition): wybór i umowa przed startem; F-12 daje adapter i atrapę.
 - Panel kolejki moderacji (F-35), edycja i kadrowanie zdjęć w przeglądarce, wideo.
-- Zdjęcia w sporach (F-27, kubełek `documents`).
+- Zdjęcia w sporach (F-28: prywatne przeznaczenie `DISPUTE_EVIDENCE` z wariantami w kubełku `uploads`).
 
 ## UX
 

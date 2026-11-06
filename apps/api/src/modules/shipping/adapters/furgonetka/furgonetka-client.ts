@@ -1,8 +1,10 @@
 // Klient HTTP API Furgonetki (F-24): token OAuth z bazy (logowanie hasłem raz na instalację,
 // potem odświeżanie), wersja endpointu w nagłówkach Accept i Content-Type, komendy z UUID
 // i odpytywaniem stanu oraz mapowanie błędów na ShippingProviderError. Błąd sieci, 429 i 5xx to
-// UNAVAILABLE (ponowienie joba), dane odrzucone przez Furgonetkę to INVALID_REQUEST.
+// UNAVAILABLE (ponowienie joba), dane odrzucone przez Furgonetkę to INVALID_REQUEST, a
+// niezaakceptowany regulamin przewoźnika to UNAVAILABLE z alertem w Sentry.
 import { Logger } from '@nestjs/common';
+import { captureException } from '@sentry/nestjs';
 
 import type { FurgonetkaConfig } from '../../../../infra/config/index.js';
 import { ShippingProviderError } from '../../ports/shipping-provider.port.js';
@@ -50,6 +52,18 @@ export interface FurgonetkaCommandResult {
 
 function unavailable(message: string, cause?: unknown): ShippingProviderError {
   return new ShippingProviderError('UNAVAILABLE', `Furgonetka: ${message}`, { cause });
+}
+
+/**
+ * Błąd niezaakceptowanego regulaminu przewoźnika. Furgonetka nie dokumentuje jego kodu; na
+ * sandboksie (2026-11-06) PUT komendy przesyłki odpowiedział komunikatem „Zmienił się regulamin
+ * przewoźnika. Prześlij aktualną wersję regulaminu…” z odnośnikiem do `POST /regulations`, więc
+ * rozpoznajemy go po słowach „regulamin” albo „regulation” w kodzie, ścieżce lub komunikacie.
+ */
+export function isRegulationsError(error: FurgonetkaApiError): boolean {
+  return [error.code, error.path, error.message].some((part) =>
+    /regulamin|regulation/iu.test(part),
+  );
 }
 
 /** Odrzucenie danych z komunikatem dla sprzedającego i polem Biddy (gdy da się je ustalić). */
@@ -131,11 +145,41 @@ export class FurgonetkaClient {
     if (response.status === 404) {
       throw new ShippingProviderError('NOT_FOUND', `Furgonetka: nie znaleziono (${path})`);
     }
+    const errors = furgonetkaErrors(body);
     if (response.status === 409) {
-      // Np. niezaakceptowany regulamin przewoźnika na koncie Biddy: sprawa konfiguracji.
-      throw unavailable(`konflikt (${furgonetkaErrors(body)[0]?.code ?? 'HTTP 409'})`);
+      // Konflikt to sprawa konta Biddy (np. regulamin przewoźnika), nie danych przesyłki.
+      throw (
+        this.regulationsBlock(errors) ?? unavailable(`konflikt (${errors[0]?.code ?? 'HTTP 409'})`)
+      );
     }
-    throw furgonetkaRejection(furgonetkaErrors(body));
+    throw this.rejection(errors);
+  }
+
+  /**
+   * Odrzucenie przez Furgonetkę. Niezaakceptowany regulamin przewoźnika to UNAVAILABLE z alertem
+   * dla zespołu: sprzedający nic tu nie poprawi, a po akceptacji regulaminu ponowienie przejdzie.
+   * Pozostałe błędy to INVALID_REQUEST z komunikatem dla sprzedającego.
+   */
+  rejection(errors: readonly FurgonetkaApiError[]): ShippingProviderError {
+    return this.regulationsBlock(errors) ?? furgonetkaRejection(errors);
+  }
+
+  private regulationsBlock(
+    errors: readonly FurgonetkaApiError[],
+  ): ShippingProviderError | undefined {
+    const blocked = errors.find(isRegulationsError);
+    if (blocked === undefined) {
+      return undefined;
+    }
+    const error = unavailable(
+      `niezaakceptowany regulamin przewoźnika na koncie Biddy (${blocked.message.trim() || blocked.code})`,
+    );
+    this.logger.error(
+      { err: error, code: blocked.code, path: blocked.path },
+      'Furgonetka wstrzymała przesyłki do akceptacji regulaminu przewoźnika: zaakceptuj go w panelu Furgonetki (Konto → Regulaminy) albo przez POST /regulations',
+    );
+    captureException(error, { tags: { component: 'furgonetka', reason: 'carrier-regulations' } });
+    return error;
   }
 
   /**
@@ -156,7 +200,7 @@ export class FurgonetkaClient {
         if (submitted.status === 404) {
           throw new ShippingProviderError('NOT_FOUND', `Furgonetka: nie znaleziono (${path})`);
         }
-        throw furgonetkaRejection(errors);
+        throw this.rejection(errors);
       }
     }
     for (let attempt = 0; attempt < this.pollAttempts; attempt += 1) {

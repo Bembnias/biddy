@@ -8,3 +8,8 @@ export * from './pricing/index.js';
 export * from './listing/index.js';
 export * from './bidding/index.js';
 export * from './notifications/index.js';
+export * from './account/index.js';
+export * from './payouts/index.js';
+export * from './disputes/index.js';
+export * from './messaging/index.js';
+export * from './reviews/index.js';

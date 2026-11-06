@@ -12,4 +12,6 @@ export type UploadDtoMediaPurpose = typeof UploadDtoMediaPurpose[keyof typeof Up
 export const UploadDtoMediaPurpose = {
   ITEM_PHOTO: 'ITEM_PHOTO',
   AVATAR: 'AVATAR',
+  DISPUTE_EVIDENCE: 'DISPUTE_EVIDENCE',
+  MESSAGE_PHOTO: 'MESSAGE_PHOTO',
 } as const;
