@@ -724,10 +724,16 @@ describe('zwrot z odesłaniem (kryterium 5)', () => {
       action: 'ACCEPT',
       returnRequired: true,
     });
-    expect(await deadlines.expireReturns(new Date(Date.now() + DAY))).toMatchObject({
-      changed: 0,
-    });
-    await deadlines.expireReturns(new Date(Date.now() + 10 * DAY));
+    // Termin to 5 dni roboczych z kalendarzem świąt, więc liczba dni kalendarzowych zależy od daty
+    // uruchomienia (np. 11 listopada): bierzemy termin zapisany w sporze.
+    const { rows } = await pool.query<{ return_ship_by: Date }>(
+      `select return_ship_by from disputes where id = $1`,
+      [dispute.id],
+    );
+    const shipBy = rows[0]?.return_ship_by.getTime() ?? 0;
+    expect(shipBy).toBeGreaterThan(Date.now() + 5 * DAY);
+    expect(await deadlines.expireReturns(new Date(shipBy - 1))).toMatchObject({ changed: 0 });
+    await deadlines.expireReturns(new Date(shipBy + 1));
     const resolved = await disputeView(sale, sale.seller);
     expect(resolved).toMatchObject({
       status: 'RESOLVED',

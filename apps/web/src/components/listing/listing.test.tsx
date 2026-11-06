@@ -225,7 +225,9 @@ describe('ListingWizard', () => {
     renderWizard(COMPLETE, 'opis');
     const title = screen.getByLabelText('Tytuł');
     await user.clear(title);
-    await user.type(title, 'Wazon z Ćmielowa, lata 70.');
+    // Wklejenie zamiast wpisywania znak po znaku: w CI 26 zdarzeń klawiatury i autozapis
+    // przekraczały limit czasu testu, a autozapis sprawdza to samo.
+    await user.paste('Wazon z Ćmielowa, lata 70.');
     await waitFor(
       () => {
         expect(apiCalls(fetchMock, `/v1/auctions/${ID}`).map((call) => call.body)).toEqual([
